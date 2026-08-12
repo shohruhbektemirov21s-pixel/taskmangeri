@@ -423,6 +423,27 @@ export interface Invitation {
   created_at: string;
 }
 
+/** Ochiq (autentifikatsiyasiz) API dan keladigan loyiha - faqat xavfsiz maydonlar */
+export interface PublicProject {
+  id: number;
+  name: string;
+  key: string;
+  description: string;
+  color: string;
+  status: string;
+  status_display: string;
+  workspace_name: string;
+  manager_name: string;
+  needed_specialties: { value: string; label: string }[];
+  member_count: number | null;
+  open_tasks: number | null;
+  done_tasks: number | null;
+  progress: number;
+  created_at: string;
+  specialty_gaps?: { value: string; label: string }[];
+  team_composition?: { value: string; label: string; count: number }[];
+}
+
 export interface ProjectFile {
   id: number;
   file: string;

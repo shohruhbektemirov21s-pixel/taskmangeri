@@ -148,6 +148,25 @@ qayta ulanadi.
 
 ---
 
+## Ochiq qism — ro'yxatdan o'tmasdan
+
+Bosh sahifadagi qidiruv **ishlaydi va hisob talab qilmaydi**: platformada nima
+borligini ko'rmasdan turib odam ro'yxatdan o'tmaydi.
+
+- `/qidiruv` — ochiq loyihalar ro'yxati, nom/tavsif/kalit bo'yicha qidiruv va
+  mutaxassislik filtri;
+- `/ochiq-loyiha/:id` — loyihaning ochiq ko'rinishi: tavsif, bajarilgani,
+  jamoa tarkibi, qanday mutaxassis kerakligi va **bo'sh o'rinlar**;
+- `/` bosilganda qidiruv maydoni fokuslanadi.
+
+**Chegara qat'iy.** Ochiq API (`/api/public/…`) faqat `is_public=True`
+loyihalarni beradi va faqat xavfsiz maydonlarni: qo'shilish kodi, a'zolar
+ro'yxati, emaillar, vazifalar matni, fayllar va tarix **chiqmaydi**.
+Menejerning faqat ismi ko'rinadi. Yopiq loyiha so'ralsa — `404`.
+So'rovlar soni cheklangan (`search` scope) — ma'lumotni qirqib olishning oldini oladi.
+
+---
+
 ## Kim nimani ko'radi
 
 Profil sahifasida boshqa odamning **loyihalari, vazifalari, sarflagan soati va
@@ -171,6 +190,7 @@ loyihalar. Cheklov bo'lgani javobda `limited: true` bilan aytiladi.
 | Xabarni faqat muallifi (yoki admin) o'chiradi | `chat/api.py` |
 | Boshqa odamning ishi so'rovchi huquqi bilan cheklanadi | `accounts/api.py` → `work` |
 | Bildirishnoma havolasi faqat ilova ichiga olib boradi | `components/ui.tsx` → `safePath` |
+| Ochiq API faqat `is_public` loyiha va xavfsiz maydonlar | `core/public.py` |
 | Rollar va ro'yxatlar frontendda qattiq yozilmagan — `/api/meta/` dan | `core/api.py` |
 | Menejerni hech kim chiqara olmaydi (tizim admini ham) | `core/permissions.py` → `can_change_member` |
 | Menejer rolini faqat menejer beradi | `core/permissions.py` → `can_grant_role` |
@@ -290,6 +310,9 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 | `GET /api/chat/messages/people/?q=` | Odam qidirish — email yoki ism bo'yicha |
 | `GET /api/chat/messages/conversations/` | Shaxsiy suhbatlar ro'yxati |
 | `GET /api/users/:id/work/` | Foydalanuvchining loyihalari, vazifalari, tarixi |
+| `GET /api/public/projects/?q=&specialty=` | **Hisobsiz** — ochiq loyihalar qidiruvi |
+| `GET /api/public/projects/:id/` | **Hisobsiz** — ochiq loyihaning ko'rinishi |
+| `GET /api/public/stats/` | **Hisobsiz** — umumiy raqamlar |
 | `GET /api/activity/` | Tarix (filtr: project, actor, category, days, search) |
 | `GET /api/activity/developer-report/` | Dasturchi hisoboti |
 | `GET /api/activity/onboarding/` | Loyihaga kirish to'plami |

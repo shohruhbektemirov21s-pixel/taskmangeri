@@ -24,6 +24,8 @@ import WorkspaceForm from "@/pages/WorkspaceForm";
 import WorkspaceDetail from "@/pages/WorkspaceDetail";
 import Profile from "@/pages/Profile";
 import JoinProject from "@/pages/JoinProject";
+import Search from "@/pages/Search";
+import PublicProject from "@/pages/PublicProject";
 import Invitations from "@/pages/Invitations";
 import Notifications from "@/pages/Notifications";
 import Messages from "@/pages/Messages";
@@ -47,6 +49,10 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<GuestOnly><Landing /></GuestOnly>} />
+      {/* Ochiq sahifalar: kirmagan odam ham ko'radi */}
+      <Route path="/qidiruv" element={<Search />} />
+      <Route path="/ochiq-loyiha/:id" element={<PublicProject />} />
+
       <Route path="/kirish" element={<GuestOnly><Login /></GuestOnly>} />
       <Route path="/royxatdan-otish" element={<GuestOnly><Register /></GuestOnly>} />
 
