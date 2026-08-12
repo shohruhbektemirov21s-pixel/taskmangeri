@@ -10,7 +10,7 @@ import {
   IconPlus, IconReview, IconSearch, IconSettings, IconTasks, IconUsers, IconWorkspace,
 } from "./icons";
 import NotificationBell from "./NotificationBell";
-import { Avatar, SpecialtyTag } from "./ui";
+import { Avatar } from "./ui";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -172,9 +172,6 @@ export default function Layout() {
                 <span className="role">{user?.specialty_display}</span>
               </span>
             </Link>
-            <div style={{ padding: "6px 8px" }}>
-              <SpecialtyTag user={user} />
-            </div>
             <button
               className="btn btn-sm btn-block"
               onClick={() => {
