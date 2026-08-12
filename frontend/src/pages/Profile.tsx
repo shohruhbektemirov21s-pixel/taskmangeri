@@ -94,9 +94,6 @@ export default function Profile() {
                   <h2 style={{ margin: 0 }}>{target.full_name}</h2>
                   <p className="muted" style={{ margin: "4px 0" }}>{target.job_title}</p>
                   <div className="row wrap" style={{ gap: 6 }}>
-                    <span className="badge" style={{ color: target.specialty_color }}>
-                      <span className="mono">{target.specialty_icon}</span> {target.specialty_display}
-                    </span>
                     <span className="badge">{target.seniority_display}</span>
                     <span className="badge">{target.years_experience} yil tajriba</span>
                     <span className="badge badge-info">{target.global_role_display}</span>
