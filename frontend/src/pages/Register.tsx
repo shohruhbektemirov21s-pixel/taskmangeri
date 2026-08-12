@@ -1,0 +1,127 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ApiError, api } from "@/api/client";
+import { useAuth } from "@/auth/AuthContext";
+import { Logo } from "@/components/Logo";
+import { ErrorMsg } from "@/components/ui";
+
+interface SpecialtyItem {
+  value: string;
+  label: string;
+  icon: string;
+  color: string;
+  skills: string[];
+  focus: string;
+}
+
+export default function Register() {
+  const { register } = useAuth();
+  const nav = useNavigate();
+
+  const [specialties, setSpecialties] = useState<SpecialtyItem[]>([]);
+  const [form, setForm] = useState({
+    full_name: "", email: "", specialty: "", password: "", password_confirm: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const data = await api.get<{ specialties: SpecialtyItem[] }>("/auth/specialties/");
+        setSpecialties(data.specialties);
+      } catch {
+        setError("Mutaxassisliklar royxatini yuklab bolmadi");
+      }
+    })();
+  }, []);
+
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setErrors({});
+    try {
+      await register(form);
+      nav("/qoshilish");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErrors(err.fields);
+        setError(err.message);
+      } else setError("Royxatdan otishda xatolik");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-card" style={{ maxWidth: 380 }}>
+        <div className="center mb">
+          <Logo size={46} />
+          <h2 style={{ fontWeight: 300, marginTop: 12 }}>TeamFlow hisobini yarating</h2>
+        </div>
+
+        <ErrorMsg error={error} />
+
+        <div className="auth-box">
+          <form onSubmit={submit}>
+            <div className="field">
+              <label>F.I.Sh.</label>
+              <input value={form.full_name} required autoFocus
+                     onChange={(e) => set("full_name", e.target.value)}
+                     placeholder="Ism Familiya" />
+              {errors.full_name && <div className="err">{errors.full_name}</div>}
+            </div>
+
+            <div className="field">
+              <label>Email</label>
+              <input type="email" value={form.email} required
+                     onChange={(e) => set("email", e.target.value)}
+                     placeholder="siz@example.com" />
+              {errors.email && <div className="err">{errors.email}</div>}
+            </div>
+
+            <div className="field">
+              <label>Mutaxassislik</label>
+              <select value={form.specialty} required
+                      onChange={(e) => set("specialty", e.target.value)}>
+                <option value="">Tanlang</option>
+                {specialties.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+              {errors.specialty && <div className="err">{errors.specialty}</div>}
+            </div>
+
+            <div className="field">
+              <label>Parol</label>
+              <input type="password" value={form.password} required
+                     onChange={(e) => set("password", e.target.value)}
+                     placeholder="kamida 8 belgi" />
+              {errors.password && <div className="err">{errors.password}</div>}
+            </div>
+
+            <div className="field">
+              <label>Parolni tasdiqlang</label>
+              <input type="password" value={form.password_confirm} required
+                     onChange={(e) => set("password_confirm", e.target.value)} />
+              {errors.password_confirm && <div className="err">{errors.password_confirm}</div>}
+            </div>
+
+            <button className="btn btn-primary btn-block" disabled={busy}>
+              {busy ? "Yaratilmoqda..." : "Akkaunt yaratish"}
+            </button>
+          </form>
+        </div>
+
+        <div className="auth-alt">
+          Akkauntingiz bormi? <Link to="/kirish">Kirish</Link>
+        </div>
+      </div>
+    </div>
+  );
+}

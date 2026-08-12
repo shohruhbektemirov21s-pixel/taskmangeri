@@ -1,0 +1,64 @@
+services:
+  # ---------------------------------------------------------- Ma'lumotlar bazasi
+  db:
+    image: postgres:16-alpine
+    container_name: teamflow_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-teamflow}
+      POSTGRES_USER: ${POSTGRES_USER:-teamflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teamflow}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-teamflow} -d ${POSTGRES_DB:-teamflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5443:5432"
+    restart: unless-stopped
+    networks: [teamflow]
+
+  # ---------------------------------------------------------- Backend: Django REST API
+  backend:
+    build: ./backend
+    container_name: teamflow_backend
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - backend_static:/app/staticfiles
+      - backend_media:/app/media
+    ports:
+      - "8010:8000"
+    restart: unless-stopped
+    networks: [teamflow]
+
+  # ---------------------------------------------------------- Frontend: React + TypeScript
+  frontend:
+    build: ./frontend
+    container_name: teamflow_frontend
+    environment:
+      VITE_API_URL: /api
+      VITE_PROXY_TARGET: http://backend:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5183:5173"
+    restart: unless-stopped
+    networks: [teamflow]
+
+volumes:
+  pgdata:
+  backend_static:
+  backend_media:
+
+networks:
+  teamflow:
+    driver: bridge
