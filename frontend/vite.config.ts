@@ -16,6 +16,12 @@ export default defineConfig({
         target: process.env.VITE_PROXY_TARGET || "http://backend:8000",
         changeOrigin: true,
       },
+      // WebSocket: bildirishnoma va chat
+      "/ws": {
+        target: (process.env.VITE_PROXY_TARGET || "http://backend:8000").replace(/^http/, "ws"),
+        ws: true,
+        changeOrigin: true,
+      },
       "/media": {
         target: process.env.VITE_PROXY_TARGET || "http://backend:8000",
         changeOrigin: true,

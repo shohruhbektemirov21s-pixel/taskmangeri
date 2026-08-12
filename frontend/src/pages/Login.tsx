@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { Logo } from "@/components/Logo";
-import { ErrorMsg } from "@/components/ui";
+import { ErrorMsg, PasswordInput } from "@/components/ui";
 
 export default function Login() {
   const { login } = useAuth();
@@ -46,8 +46,8 @@ export default function Login() {
             </div>
             <div className="field">
               <label>Parol</label>
-              <input type="password" value={password} required
-                     onChange={(e) => setPassword(e.target.value)} placeholder="parolingiz" />
+              <PasswordInput value={password} required autoComplete="current-password"
+                             onChange={setPassword} placeholder="parolingiz" />
             </div>
             <button className="btn btn-primary btn-block" disabled={busy}>
               {busy ? "Tekshirilmoqda..." : "Kirish"}

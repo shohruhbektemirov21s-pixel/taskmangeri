@@ -3,20 +3,24 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
+import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
 import {
-  IconBoard, IconDashboard, IconHistory, IconInbox, IconLogout, IconPlus,
-  IconReview, IconSearch, IconSettings, IconTasks, IconUsers, IconWorkspace,
+  IconBell, IconBoard, IconChat, IconDashboard, IconHistory, IconInbox, IconLogout, IconMail,
+  IconPlus, IconReview, IconSearch, IconSettings, IconTasks, IconUsers, IconWorkspace,
 } from "./icons";
+import NotificationBell from "./NotificationBell";
 import { Avatar, SpecialtyTag } from "./ui";
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { subscribe } = useRealtime();
   const nav = useNavigate();
   const loc = useLocation();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0 });
+  const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0, invites: 0 });
   const [q, setQ] = useState("");
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     void (async () => {
@@ -26,14 +30,27 @@ export default function Layout() {
       } catch { /* jim */ }
       try {
         const d = await api.get<any>("/dashboard/");
+        let invites = 0;
+        try {
+          const inv = await api.get<any>("/invitations/", { pending: 1, page_size: 1 });
+          invites = typeof inv?.count === "number" ? inv.count : listOf<unknown>(inv).length;
+        } catch { /* jim */ }
         setCounts({
           open: d.stats.open,
           reviews: d.review_queue?.length ?? 0,
           joins: d.join_queue?.length ?? 0,
+          invites,
         });
       } catch { /* jim */ }
     })();
-  }, [loc.pathname]);
+  }, [loc.pathname, tick]);
+
+  // Yangi taklif kelsa yon panel sanog'i o'zi yangilansin.
+  useEffect(() => subscribe((data) => {
+    if (data.event === "notification" && String(data.notification?.kind || "").startsWith("invite.")) {
+      setTick((n) => n + 1);
+    }
+  }), [subscribe]);
 
   const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) => (
     <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`} end>
@@ -75,6 +92,14 @@ export default function Layout() {
 
         <span className="spacer" />
 
+        <NotificationBell />
+        <Link className="top-icon" to="/xabarlar" title="Xabarlar">
+          <IconChat size={17} />
+        </Link>
+        <Link className="top-icon" to="/takliflar" title="Takliflar">
+          <IconMail size={17} />
+          {!!counts.invites && <span className="dot">{counts.invites}</span>}
+        </Link>
         <Link className="top-icon" to="/tekshiruv" title="Tekshiruv navbati">
           <IconInbox size={17} />
           {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
@@ -93,6 +118,9 @@ export default function Layout() {
             {item("/panel", <IconDashboard />, "Bosh panel")}
             {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}
             {item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
+            {item("/xabarlar", <IconChat />, "Xabarlar")}
+            {item("/takliflar", <IconMail />, "Takliflar", counts.invites, true)}
+            {item("/bildirishnomalar", <IconBell />, "Bildirishnomalar")}
             {item("/tarix", <IconHistory />, "Umumiy tarix")}
           </div>
 

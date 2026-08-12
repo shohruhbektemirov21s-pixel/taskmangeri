@@ -27,7 +27,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug", "description", "color", "owner", "join_code",
                   "is_open", "created_at", "member_count", "project_count",
                   "my_role", "can_manage"]
-        read_only_fields = ["slug", "join_code", "owner"]
+        read_only_fields = ["slug", "join_code", "owner", "color"]
 
     def _user(self):
         request = self.context.get("request")

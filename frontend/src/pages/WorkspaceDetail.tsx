@@ -2,11 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Project, Workspace } from "@/api/types";
+import { useAuth } from "@/auth/AuthContext";
+import InviteBox from "@/components/InviteBox";
+import { IconChat } from "@/components/icons";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, ErrorMsg, Loading, Progress } from "@/components/ui";
 
 export default function WorkspaceDetail() {
   const { slug } = useParams();
+  const { meta } = useAuth();
   const [ws, setWs] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +65,11 @@ export default function WorkspaceDetail() {
                       onClick={() => void act(() => api.post(`/workspaces/${ws.slug}/join/`, {}))}>
                 Qoshilish
               </button>
+            )}
+            {ws.my_role && (
+              <Link className="btn btn-sm" to={`/ish-maydoni/${ws.slug}/chat`}>
+                <IconChat size={14} /> Suhbat
+              </Link>
             )}
             <Link className="btn btn-sm btn-primary" to="/loyiha/yangi">Yangi loyiha</Link>
           </>
@@ -127,8 +136,11 @@ export default function WorkspaceDetail() {
                                 api.post(`/workspaces/${ws.slug}/members/`, {
                                   member_id: m.id, role: e.target.value,
                                 }))}>
-                        <option value="ADMIN">Administrator</option>
-                        <option value="MEMBER">Aʼzo</option>
+                        {(meta?.workspace_role || [])
+                          .filter((r) => r.value !== "OWNER")
+                          .map((r) => (
+                            <option key={String(r.value)} value={String(r.value)}>{r.label}</option>
+                          ))}
                       </select>
                     ) : <span className="badge">{m.role_display}</span>}
                   </div>
@@ -136,6 +148,16 @@ export default function WorkspaceDetail() {
                 {!(ws.members || []).length && <Empty title="Aʼzo yoq" />}
               </div>
             </Card>
+
+            {ws.can_manage && (
+              <InviteBox
+                workspaceId={ws.id}
+                workspaceSlug={ws.slug}
+                roles={(meta?.workspace_role || []).filter((r) => r.value !== "OWNER")}
+                defaultRole="MEMBER"
+                onChange={() => void load()}
+              />
+            )}
 
             <Card title="Maʼlumot">
               <ul className="list-plain" style={{ fontSize: 13 }}>

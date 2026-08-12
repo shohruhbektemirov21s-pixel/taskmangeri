@@ -24,6 +24,10 @@ import WorkspaceForm from "@/pages/WorkspaceForm";
 import WorkspaceDetail from "@/pages/WorkspaceDetail";
 import Profile from "@/pages/Profile";
 import JoinProject from "@/pages/JoinProject";
+import Invitations from "@/pages/Invitations";
+import Notifications from "@/pages/Notifications";
+import Messages from "@/pages/Messages";
+import WorkspaceChat from "@/pages/WorkspaceChat";
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -65,7 +69,12 @@ export default function App() {
         <Route path="/jamoa" element={<People />} />
         <Route path="/ish-maydonlari" element={<Workspaces />} />
         <Route path="/ish-maydoni/yangi" element={<WorkspaceForm />} />
+        <Route path="/ish-maydoni/:slug/chat" element={<WorkspaceChat />} />
         <Route path="/ish-maydoni/:slug" element={<WorkspaceDetail />} />
+        <Route path="/xabarlar" element={<Messages />} />
+        <Route path="/xabarlar/:userId" element={<Messages />} />
+        <Route path="/takliflar" element={<Invitations />} />
+        <Route path="/bildirishnomalar" element={<Notifications />} />
         <Route path="/profil" element={<Profile />} />
         <Route path="/profil/:userId" element={<Profile />} />
       </Route>

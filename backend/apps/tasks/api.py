@@ -10,15 +10,45 @@ from rest_framework.response import Response
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
 from apps.core.permissions import ProjectAccess, check_access
+from apps.notifications.models import NotificationKind
+from apps.notifications.services import notify_many
 from apps.projects.models import Project, ProjectRole
 
-from .models import (BOARD_COLUMNS, Attachment, Label, Review, ReviewVerdict, Task,
-                     TaskAssignment, TaskStatus, WorkLog)
+from .models import (BOARD_COLUMNS, Attachment, Label, Review, ReviewVerdict, Submission,
+                     SubmissionEdit, Task, TaskAssignment, TaskStatus, WorkLog)
 from .serializers import (AttachmentSerializer, BulkTaskSerializer, CommentSerializer,
                           LabelSerializer, ReviewSerializer, StatusChangeSerializer,
-                          TaskDetailSerializer, TaskSerializer, WorkLogSerializer)
+                          SubmissionSerializer, TaskDetailSerializer, TaskSerializer,
+                          WorkLogSerializer)
 
 User = get_user_model()
+
+
+def send_to_review(task, access):
+    """Ish topshirilgach vazifani TEKSHIRUVGA olib boradi.
+
+    Dasturchi TODO yoki "Tuzatish kerak" holatidan togridan-togri tekshiruvga
+    ota olmaydi - avval "Jarayonda" bolishi kerak. Foydalanuvchi bu ichki
+    qoidani bilishi shart emas: ishni topshirdi - demak tugatgan. Shuning uchun
+    oraliq qadamni ozimiz bosib otamiz.
+
+    True qaytsa - vazifa tekshiruvga otdi.
+    """
+    if task.status in (TaskStatus.IN_REVIEW, TaskStatus.DONE, TaskStatus.CANCELLED):
+        return False
+
+    if TaskStatus.IN_REVIEW not in task.allowed_transitions(access):
+        if TaskStatus.IN_PROGRESS not in task.allowed_transitions(access):
+            return False
+        task.apply_status(TaskStatus.IN_PROGRESS)
+
+    if TaskStatus.IN_REVIEW not in task.allowed_transitions(access):
+        return False
+
+    task.apply_status(TaskStatus.IN_REVIEW)
+    task.review_round += 1
+    task.save()
+    return True
 
 
 def sync_assignees(task, user_ids, actor):
@@ -308,6 +338,117 @@ class TaskViewSet(viewsets.ModelViewSet):
             summary="{}: {} soat ish qayd etildi".format(task.code, wl.hours),
             detail=wl.note[:500], meta={"hours": str(wl.hours)})
         return Response(WorkLogSerializer(wl, context={"request": request}).data, status=201)
+
+    # ------------------------------------------------------------ ish topshirish
+    @action(detail=True, methods=["get", "post"], url_path="submissions",
+            parser_classes=[MultiPartParser, FormParser, JSONParser])
+    def submissions(self, request, pk=None):
+        """Dasturchi ishni yakunlab hisobot topshiradi.
+
+        GET  - topshiriqlar (tahrir tarixi bilan);
+        POST - yangi topshiriq: matn + ixtiyoriy fayllar. Odatiy holda vazifa
+               darrov TEKSHIRUVGA otadi va menejer tasdiqlamaguncha shunday
+               turadi (`submit_for_review=0` bolsa - otmaydi).
+        """
+        task = self.get_object()
+
+        if request.method == "GET":
+            check_access(request.user, task.project, "view")
+            qs = (task.submissions.select_related("author")
+                  .prefetch_related("files", "edits__editor"))
+            return Response(SubmissionSerializer(qs, many=True,
+                                                 context=self.get_serializer_context()).data)
+
+        access = check_access(request.user, task.project, "work")
+
+        ser = SubmissionSerializer(data={"text": request.data.get("text", "")},
+                                   context=self.get_serializer_context())
+        ser.is_valid(raise_exception=True)
+        submission = ser.save(task=task, author=request.user,
+                              round_no=max(task.review_round, 1))
+
+        uploads = request.FILES.getlist("file") or request.FILES.getlist("files")
+        for f in uploads:
+            fs = AttachmentSerializer(data={"file": f, "description": "Ish topshirigi"},
+                                      context={"request": request})
+            fs.is_valid(raise_exception=True)
+            fs.save(task=task, submission=submission, uploaded_by=request.user,
+                    content_type=(getattr(f, "content_type", "") or "")[:120])
+
+        moved = False
+        old_label = task.get_status_display()
+        wants_review = str(request.data.get("submit_for_review", "1")).lower() not in ("0", "false")
+        if wants_review:
+            moved = send_to_review(task, access)
+            if moved:
+                submission.round_no = task.review_round
+                submission.save(update_fields=["round_no"])
+                log(actor=request.user, verb="task.submitted", task=task,
+                    summary="{}: {} -> {}".format(task.code, old_label,
+                                                  task.get_status_display()),
+                    meta={"from": old_label, "to": task.get_status_display()})
+
+        log(actor=request.user, verb="task.handover", task=task,
+            summary="{}: ish topshirildi ({}-aylana)".format(task.code, submission.round_no),
+            detail=submission.text[:1000],
+            meta={"files": len(uploads), "moved_to_review": moved})
+
+        # Tekshiruvchilarga xabar: kimdir ishni topshirdi
+        reviewers = [m.user for m in task.project.memberships.filter(
+            is_active=True, role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN])
+            .select_related("user")]
+        notify_many(reviewers, NotificationKind.TASK_REVIEW,
+                    title="{} tekshiruvga topshirildi".format(task.code),
+                    body="{}: {}".format(request.user.full_name, task.title[:100]),
+                    url="/vazifa/{}".format(task.pk), actor=request.user)
+
+        payload = SubmissionSerializer(
+            submission, context=self.get_serializer_context()).data
+        # Interfeys rostini aytsin: vazifa tekshiruvga otdimi yoki yoq.
+        payload["moved_to_review"] = moved
+        payload["task_status"] = task.status
+        payload["task_status_display"] = task.get_status_display()
+        return Response(payload, status=201)
+
+    @action(detail=True, methods=["patch", "delete"],
+            url_path="submissions/(?P<submission_id>[^/.]+)")
+    def submission_detail(self, request, pk=None, submission_id=None):
+        """Topshiriqni tahrirlash yoki ochirish.
+
+        Tahrirlanganda eski matn `SubmissionEdit` da qoladi - tarix yoqolmaydi.
+        """
+        task = self.get_object()
+        submission = get_object_or_404(Submission, pk=submission_id, task=task)
+        access = ProjectAccess(request.user, task.project)
+        mine = submission.author_id == request.user.pk
+        if not (mine or access.can_manage):
+            raise PermissionDenied("Faqat topshirgan odam yoki menejer ozgartira oladi.")
+
+        if request.method == "DELETE":
+            log(actor=request.user, verb="task.handover_deleted", task=task,
+                summary="{}: ish topshirigi ochirildi".format(task.code),
+                detail=submission.text[:500])
+            submission.delete()
+            return Response(status=204)
+
+        new_text = (request.data.get("text") or "").strip()
+        if len(new_text) < 3:
+            raise ValidationError({"text": "Qilingan ishni qisqacha bolsa ham yozing."})
+
+        old_text = submission.text
+        if new_text != old_text:
+            SubmissionEdit.objects.create(submission=submission, editor=request.user,
+                                          old_text=old_text, new_text=new_text)
+            submission.text = new_text
+            submission.edited_count += 1
+            submission.save(update_fields=["text", "edited_count", "updated_at"])
+            log(actor=request.user, verb="task.handover_edited", task=task,
+                summary="{}: ish topshirigi tahrirlandi".format(task.code),
+                detail="Eski: {}\nYangi: {}".format(old_text[:400], new_text[:400]))
+
+        submission.refresh_from_db()
+        return Response(SubmissionSerializer(
+            submission, context=self.get_serializer_context()).data)
 
     # ------------------------------------------------------------ fayllar
     @action(detail=True, methods=["get", "post"], url_path="attachments",

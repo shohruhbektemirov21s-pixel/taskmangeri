@@ -4,6 +4,7 @@ import { ApiError, api, tokens } from "@/api/client";
 import type { Activity, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
+import TaskSubmission from "@/components/TaskSubmission";
 import Timeline from "@/components/Timeline";
 import {
   Avatar, AvatarStack, Card, ErrorMsg, Loading, Priority, StatusBadge,
@@ -251,6 +252,8 @@ export default function TaskDetail() {
             </Card>
 
             {/* ------------------------------------------------ IZOHLAR */}
+            <TaskSubmission task={task} canWork={acc.can_work} onChange={() => void load()} />
+
             <Card title="Izohlar" badge={<span className="badge">{task.comments?.length || 0}</span>}>
               <ul className="list-plain">
                 {(task.comments || []).map((c) => (

@@ -21,6 +21,9 @@ DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*") or ["*"]
 
 INSTALLED_APPS = [
+    # daphne ro'yxatning boshida turishi shart - shunda runserver ham
+    # ASGI rejimida ishlaydi va WebSocket ulanishlarini qabul qiladi.
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -31,12 +34,16 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "django_filters",
+    "channels",
     # loyiha ilovalari
     "apps.accounts",
     "apps.workspaces",
     "apps.projects",
     "apps.tasks",
     "apps.activity",
+    "apps.notifications",
+    "apps.invites",
+    "apps.chat",
 ]
 
 MIDDLEWARE = [
@@ -126,6 +133,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "config.pagination.StandardPagination",
     "PAGE_SIZE": 30,
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%z",
+    # Spam va qo'pol kuch (brute force) ga qarshi cheklovlar.
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "chat": "90/min",        # bir odam daqiqada 90 tadan ko'p xabar yozmaydi
+        "invite": "40/hour",     # taklif bilan bosim o'tkazishning oldini oladi
+        "auth": "20/min",        # kirish va ro'yxatdan o'tish urinishlari
+        "search": "120/min",     # odam qidirish
+    },
 }
 
 SIMPLE_JWT = {
@@ -150,6 +167,30 @@ CSRF_TRUSTED_ORIGINS = env_list(
 )
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+
+# ---------------------------------------------------------------- Real-time
+# Bildirishnoma va chat WebSocket orqali yetkaziladi. Kanal qatlami Redis da:
+# bir nechta backend jarayoni bo'lsa ham xabar hammaga yetib boradi.
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+# Pub/Sub qatlami tanlandi: navbatga asoslangan `core.RedisChannelLayer` bo'sh
+# turgan ulanishda "Timeout reading from redis" bilan yiqilib, tirik WebSocketni
+# uzib yuboradi. Bizga navbat kerak emas - faqat guruhga tarqatish kerak.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
+        "CONFIG": {"hosts": [REDIS_URL]},
+    }
+}
+
+# Kesh ham Redis da: so'rov cheklovlari (throttling) shu yerda sanaladi.
+# Xotiradagi kesh bo'lsa har bir jarayon o'zicha sanab, cheklov osongina
+# aylanib o'tilardi.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
 
 LOGGING = {
     "version": 1,

@@ -7,7 +7,7 @@ import { Card, ErrorMsg } from "@/components/ui";
 
 export default function WorkspaceForm() {
   const nav = useNavigate();
-  const [f, setF] = useState({ name: "", description: "", color: "#2f81f7", is_open: true });
+  const [f, setF] = useState({ name: "", description: "", is_open: true });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -46,11 +46,6 @@ export default function WorkspaceForm() {
               <textarea rows={3} value={f.description}
                         onChange={(e) => setF({ ...f, description: e.target.value })}
                         placeholder="Jamoa nima bilan shugullanadi" />
-            </div>
-            <div className="field" style={{ width: 120 }}>
-              <label>Rang</label>
-              <input type="color" value={f.color}
-                     onChange={(e) => setF({ ...f, color: e.target.value })} />
             </div>
             <label className="row" style={{ fontWeight: 400 }}>
               <input type="checkbox" checked={f.is_open} style={{ width: "auto", minHeight: 0 }}

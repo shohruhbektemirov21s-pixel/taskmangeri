@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
-import type { JoinRequest, Project, ProjectMember, User } from "@/api/types";
+import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
+import InviteBox from "@/components/InviteBox";
 import { Avatar, Card, Empty, ErrorMsg, Loading, SpecialtyTag, fmtDate, timeAgo } from "@/components/ui";
 
 export default function Members({ project, onChange }: { project: Project; onChange: () => void }) {
@@ -11,23 +12,18 @@ export default function Members({ project, onChange }: { project: Project; onCha
 
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [requests, setRequests] = useState<JoinRequest[]>([]);
-  const [candidates, setCandidates] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [addUser, setAddUser] = useState("");
-  const [addRole, setAddRole] = useState("DEVELOPER");
-  const [specFilter, setSpecFilter] = useState("");
+  // Har bir o'zgarishda taklif qutisidagi nomzodlar ro'yxati qayta so'raladi.
+  const [version, setVersion] = useState(0);
 
   const load = useCallback(async () => {
     setMembers(listOf<ProjectMember>(await api.get<any>(`/projects/${project.id}/members/`)));
     if (acc.can_manage) {
       try {
         setRequests(await api.get<JoinRequest[]>(`/projects/${project.id}/requests/`));
-        setCandidates(listOf<User>(await api.get<any>("/users/", {
-          specialty: specFilter, page_size: 100,
-        })));
       } catch { /* ignore */ }
     }
-  }, [project.id, acc.can_manage, specFilter]);
+  }, [project.id, acc.can_manage]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -37,10 +33,15 @@ export default function Members({ project, onChange }: { project: Project; onCha
       await fn();
       await load();
       onChange();
+      setVersion((n) => n + 1);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Amalni bajarib bolmadi");
     }
   }
+
+  /** Menejer himoyalangan: uni na loyiha admini, na tizim admini chiqara oladi. */
+  const isManager = (m: ProjectMember) =>
+    m.role === "MANAGER" || m.user.id === project.manager?.id;
 
   const pending = requests.filter((r) => r.status === "PENDING");
   const decided = requests.filter((r) => r.status !== "PENDING");
@@ -52,6 +53,19 @@ export default function Members({ project, onChange }: { project: Project; onCha
   return (
     <>
       <ErrorMsg error={error} />
+
+      {acc.can_manage && (
+        <div className="mb">
+          <InviteBox
+            projectId={project.id}
+            roles={(meta?.project_role || [])
+              .filter((r) => r.value !== "MANAGER" || acc.can_grant_manager)}
+            defaultRole="DEVELOPER"
+            refreshKey={version}
+            onChange={() => { void load(); onChange(); setVersion((n) => n + 1); }}
+          />
+        </div>
+      )}
 
       {acc.can_manage && pending.length > 0 && (
         <Card title="Qoshilish sorovlari" padded={false}
@@ -108,7 +122,11 @@ export default function Members({ project, onChange }: { project: Project; onCha
                         <Avatar user={m.user} size="sm" />
                         <div>
                           <Link to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}>{m.user.full_name}</Link>
-                          <br /><small className="muted">{m.user.email}</small>
+                          <br />
+                          <small className="muted">{m.user.email}</small>
+                          {m.user.is_platform_admin && (
+                            <> <span className="badge badge-brand">tizim admini</span></>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -119,32 +137,58 @@ export default function Members({ project, onChange }: { project: Project; onCha
                       <br /><small className="muted">{m.user.seniority_display}</small>
                     </td>
                     <td>
-                      {acc.can_manage ? (
-                        <select defaultValue={m.role} style={{ width: 150 }}
+                      {acc.can_manage && !isManager(m) ? (
+                        <select defaultValue={m.role} style={{ width: 160 }}
                                 onChange={(e) => void act(() =>
                                   api.post(`/projects/${project.id}/members/${m.id}/`, {
                                     action: "role", role: e.target.value,
                                   }))}>
-                          {(meta?.project_role || []).map((x) => (
-                            <option key={x.value} value={String(x.value)}>{x.label}</option>
-                          ))}
+                          {(meta?.project_role || [])
+                            /* MENEJER rolini faqat amaldagi menejer bera oladi */
+                            .filter((x) => x.value !== "MANAGER" || acc.can_grant_manager)
+                            .map((x) => (
+                              <option key={x.value} value={String(x.value)}>{x.label}</option>
+                            ))}
                         </select>
-                      ) : <span className="badge">{m.role_display}</span>}
+                      ) : (
+                        <span className={`badge ${isManager(m) ? "badge-brand" : ""}`}>
+                          {m.role_display}
+                        </span>
+                      )}
                     </td>
                     <td className="nowrap">
                       <span className="badge badge-info">{m.load?.open ?? 0} ochiq</span>{" "}
                       <span className="badge badge-ok">{m.load?.done ?? 0} bajarilgan</span>
                     </td>
-                    <td className="right">
+                    <td className="right nowrap">
+                      {acc.can_appoint_admin && !m.user.is_platform_admin && (
+                        <button className="btn btn-sm" title="Tizim admini qilib tayinlash"
+                                onClick={() => {
+                                  if (!window.confirm(
+                                    `${m.user.full_name} tizim admini bo'ladi va butun platformada `
+                                    + "hamma huquqqa ega bo'ladi. Davom etamizmi?")) return;
+                                  void act(() => api.post(
+                                    `/projects/${project.id}/members/${m.id}/`,
+                                    { action: "appoint_admin" }));
+                                }}>
+                          Admin qilish
+                        </button>
+                      )}{" "}
                       {acc.can_manage && (
-                        <button className="btn btn-sm btn-danger" onClick={() => {
-                          const note = window.prompt(
-                            "Keyingi dasturchi uchun topshiriq eslatmasi (tarixda saqlanadi):", "");
-                          if (note === null) return;
-                          void act(() => api.post(`/projects/${project.id}/members/${m.id}/`, {
-                            action: "remove", handover_note: note,
-                          }));
-                        }}>Chiqarish</button>
+                        isManager(m) ? (
+                          <span className="badge" title="Menejerni faqat boshqa menejer almashtira oladi">
+                            himoyalangan
+                          </span>
+                        ) : (
+                          <button className="btn btn-sm btn-danger" onClick={() => {
+                            const note = window.prompt(
+                              "Keyingi dasturchi uchun topshiriq eslatmasi (tarixda saqlanadi):", "");
+                            if (note === null) return;
+                            void act(() => api.post(`/projects/${project.id}/members/${m.id}/`, {
+                              action: "remove", handover_note: note,
+                            }));
+                          }}>Chiqarish</button>
+                        )
                       )}
                     </td>
                   </tr>
@@ -200,49 +244,15 @@ export default function Members({ project, onChange }: { project: Project; onCha
 
         <div>
           {acc.can_manage && (
-            <Card title="Aʼzo qoshish">
-              <div className="field">
-                <label>Mutaxassislik boyicha filtr</label>
-                <select value={specFilter} onChange={(e) => setSpecFilter(e.target.value)}>
-                  <option value="">Hammasi</option>
-                  {(meta?.specialties || []).map((s: any) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Foydalanuvchi</label>
-                <select value={addUser} onChange={(e) => setAddUser(e.target.value)}>
-                  <option value="">Tanlang</option>
-                  {candidates
-                    .filter((u) => !active.some((m) => m.user.id === u.id))
-                    .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.full_name} — {u.specialty_display}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Rol</label>
-                <select value={addRole} onChange={(e) => setAddRole(e.target.value)}>
-                  {(meta?.project_role || []).map((x) => (
-                    <option key={x.value} value={String(x.value)}>{x.label}</option>
-                  ))}
-                </select>
-              </div>
-              <button className="btn btn-primary btn-block" disabled={!addUser}
-                      onClick={() => void act(async () => {
-                        await api.post(`/projects/${project.id}/members/add/`, {
-                          user_id: Number(addUser), role: addRole,
-                        });
-                        setAddUser("");
-                      })}>
-                Qoshish
-              </button>
+            <Card title="Qoshilish kodi">
+              <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+                Jamoaga qo'shish uchun yuqoridagi <strong>«A'zo qo'shish»</strong> dan
+                odamni email yoki ismi bo'yicha toping va taklif yuboring — u
+                tasdiqlagach a'zo bo'ladi.
+              </p>
               <div className="divider" />
               <div className="muted" style={{ fontSize: 12 }}>
-                Qoshilish kodi: <code>{project.join_code}</code>
+                Kod bilan o'zi qo'shilishi uchun: <code>{project.join_code}</code>
               </div>
             </Card>
           )}

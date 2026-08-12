@@ -22,6 +22,7 @@ class UserBriefSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "full_name", "email", "job_title", "initials", "avatar_color", "avatar",
+                  "is_platform_admin",
                   "specialty", "specialty_display", "specialty_icon", "specialty_color",
                   "seniority", "seniority_display"]
 

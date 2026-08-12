@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ApiError, api, listOf } from "@/api/client";
-import type { Project, Task, User } from "@/api/types";
+import { ApiError, api } from "@/api/client";
+import type { User, UserWork } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
+import { IconChat } from "@/components/icons";
+import Timeline from "@/components/Timeline";
 import {
   Avatar, Card, ErrorMsg, Loading, OkMsg, Priority, Stat, StatusBadge, fmtDate,
 } from "@/components/ui";
@@ -14,8 +16,7 @@ export default function Profile() {
   const isSelf = !userId || Number(userId) === me?.id;
 
   const [target, setTarget] = useState<User | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [work, setWork] = useState<UserWork | null>(null);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -31,12 +32,9 @@ export default function Profile() {
         bio: u.bio, github_username: u.github_username, telegram: u.telegram,
         seniority: u.seniority, years_experience: String(u.years_experience ?? 0),
       });
-      if (isSelf) {
-        setProjects(listOf<Project>(await api.get<any>("/projects/", { scope: "mine" })));
-        setTasks(listOf<Task>(await api.get<any>("/tasks/", { assignee: "me", page_size: 10 })));
-      } else {
-        setTasks(listOf<Task>(await api.get<any>("/tasks/", { assignee: userId, page_size: 10 })));
-      }
+      // Loyihalar, vazifalar, statistika va tarix - hammasi bitta endpointdan.
+      // Ko'rinish serverda so'rovchining huquqiga qarab cheklanadi.
+      setWork(await api.get<UserWork>(`/users/${u.id}/work/`));
     })().catch(() => setError("Profilni ochib bolmadi"));
   }, [userId, isSelf]);
 
@@ -61,16 +59,27 @@ export default function Profile() {
   if (!target) return <div className="content">{error ? <div className="msg msg-error">{error}</div> : <Loading />}</div>;
 
   const spec = meta?.specialties?.find((s) => s.value === target.specialty);
-  const done = tasks.filter((t) => t.status === "DONE").length;
-  const open = tasks.filter((t) => !["DONE", "CANCELLED"].includes(t.status)).length;
+  const stats = work?.stats;
+  const tasks = work?.tasks || [];
 
   return (
     <>
       <PageHead
         title={<><span className="muted">profil / </span><strong>{target.full_name}</strong></>}
-        actions={isSelf && !edit && (
-          <button className="btn btn-sm btn-primary" onClick={() => setEdit(true)}>Tahrirlash</button>
-        )}
+        actions={
+          <>
+            {!isSelf && (
+              <Link className="btn btn-sm" to={`/xabarlar/${target.id}`}>
+                <IconChat size={14} /> Xabar yozish
+              </Link>
+            )}
+            {isSelf && !edit && (
+              <button className="btn btn-sm btn-primary" onClick={() => setEdit(true)}>
+                Tahrirlash
+              </button>
+            )}
+          </>
+        }
       />
       <div className="content">
         <ErrorMsg error={error} />
@@ -149,7 +158,8 @@ export default function Profile() {
               </Card>
             )}
 
-            <Card title="Songgi vazifalar" padded={false}>
+            <Card title={isSelf ? "Songgi vazifalarim" : "Songgi vazifalari"} padded={false}
+                  badge={<span className="badge">{tasks.length}</span>}>
               <table className="table">
                 <tbody>
                   {tasks.map((t) => (
@@ -167,12 +177,28 @@ export default function Profile() {
                 </tbody>
               </table>
             </Card>
+
+            <Card title={isSelf ? "Nima qilganman" : "Nima qilgan"} padded={false}
+                  badge={<span className="badge">{(work?.activity || []).length}</span>}>
+              {work?.activity?.length
+                ? <div className="card-body"><Timeline items={work.activity} /></div>
+                : <div className="empty">Hozircha yozuv yo'q</div>}
+            </Card>
+
+            {work?.limited && (
+              <div className="callout mt">
+                Bu ro'yxat siz ko'ra oladigan loyihalar bilan cheklangan — yopiq
+                loyihalardagi ishlar ko'rsatilmaydi.
+              </div>
+            )}
           </div>
 
           <div>
             <div className="grid grid-2 mb">
-              <Stat value={open} label="Ochiq vazifa" tone="accent" />
-              <Stat value={done} label="Bajarilgan" tone="ok" />
+              <Stat value={stats?.open ?? 0} label="Ochiq vazifa" tone="accent" />
+              <Stat value={stats?.done ?? 0} label="Bajarilgan" tone="ok" />
+              <Stat value={stats?.in_review ?? 0} label="Tekshiruvda" tone="done" />
+              <Stat value={stats?.hours ?? 0} label="Sarflangan soat" tone="warn" />
             </div>
 
             {spec && (
@@ -191,15 +217,19 @@ export default function Profile() {
               </Card>
             )}
 
-            {isSelf && projects.length > 0 && (
-              <Card title="Loyihalarim" padded={false}>
+            {!!work?.projects?.length && (
+              <Card title={isSelf ? "Loyihalarim" : "Loyihalari"} padded={false}
+                    badge={<span className="badge">{work.projects.length}</span>}>
                 <div className="card-list">
-                  {projects.map((p) => (
+                  {work.projects.map((p) => (
                     <div className="card-body tight row" key={p.id}>
                       <span className="lang-dot" style={{ background: p.color }} />
-                      <Link to={`/loyiha/${p.id}`}>{p.name}</Link>
+                      <div style={{ minWidth: 0 }}>
+                        <Link to={`/loyiha/${p.id}`}>{p.name}</Link>
+                        <br /><small className="muted">{p.workspace_name}</small>
+                      </div>
                       <span className="spacer" />
-                      <span className="badge">{p.access.role_label}</span>
+                      {p.role && <span className="badge">{p.role}</span>}
                     </div>
                   ))}
                 </div>

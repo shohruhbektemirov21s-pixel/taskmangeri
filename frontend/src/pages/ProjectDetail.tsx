@@ -12,12 +12,18 @@ import Members from "./project/Members";
 import History from "./project/History";
 import Onboarding from "./project/Onboarding";
 import Brief from "./project/Brief";
+import Chat from "@/components/Chat";
+import Files from "./project/Files";
+import ForecastTab from "./project/Forecast";
 
 const TABS = [
   { slug: "", label: "Umumiy" },
   { slug: "doska", label: "Doska" },
   { slug: "vazifalar", label: "Vazifalar" },
   { slug: "jamoa", label: "Jamoa" },
+  { slug: "muddatlar", label: "Muddatlar" },
+  { slug: "fayllar", label: "Fayllar" },
+  { slug: "chat", label: "Suhbat" },
   { slug: "tarix", label: "Tarix" },
   { slug: "kirish", label: "Loyihaga kirish" },
   { slug: "brif", label: "Brif" },
@@ -105,6 +111,9 @@ export default function ProjectDetail() {
         {active === "doska" && <Board project={project} />}
         {active === "vazifalar" && <TaskList project={project} />}
         {active === "jamoa" && <Members project={project} onChange={reload} />}
+        {active === "muddatlar" && <ForecastTab project={project} />}
+        {active === "fayllar" && <Files project={project} />}
+        {active === "chat" && <Chat projectId={project.id} />}
         {active === "tarix" && <History project={project} />}
         {active === "kirish" && <Onboarding project={project} />}
         {active === "brif" && <Brief project={project} onChange={reload} />}

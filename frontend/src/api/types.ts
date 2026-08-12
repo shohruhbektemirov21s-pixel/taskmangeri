@@ -4,7 +4,7 @@ export type TaskStatusValue =
   | "BACKLOG" | "TODO" | "IN_PROGRESS" | "IN_REVIEW"
   | "CHANGES_REQUESTED" | "BLOCKED" | "DONE" | "CANCELLED";
 
-export type ProjectRoleValue = "MANAGER" | "DEVELOPER" | "QA" | "VIEWER";
+export type ProjectRoleValue = "MANAGER" | "ADMIN" | "DEVELOPER" | "QA" | "VIEWER";
 export type GlobalRoleValue = "ADMIN" | "MANAGER" | "DEVELOPER";
 export type VerdictValue = "APPROVED" | "CHANGES_REQUESTED" | "REJECTED";
 
@@ -12,6 +12,7 @@ export interface UserBrief {
   id: number;
   full_name: string;
   email: string;
+  is_platform_admin: boolean;
   job_title: string;
   initials: string;
   avatar_color: string;
@@ -32,7 +33,6 @@ export interface User extends UserBrief {
   skill_list: string[];
   github_username: string;
   telegram: string;
-  is_platform_admin: boolean;
   is_active: boolean;
   date_joined: string;
   years_experience: number;
@@ -48,6 +48,10 @@ export interface Access {
   role: ProjectRoleValue | null;
   role_label: string;
   is_admin: boolean;
+  is_project_admin: boolean;
+  can_delete_task: boolean;
+  can_appoint_admin: boolean;
+  can_grant_manager: boolean;
   is_manager: boolean;
   is_member: boolean;
   can_view: boolean;
@@ -367,10 +371,177 @@ export interface MetaData {
   review_verdict: Choice[];
   project_role: Choice[];
   project_status: Choice[];
+  workspace_role: Choice[];
   global_role: Choice[];
 }
 
 export interface Choice {
   value: string | number;
   label: string;
+}
+
+/* ------------------------------------------------ Bildirishnoma, taklif, chat */
+
+export type NotificationKind =
+  | "invite.received" | "invite.accepted" | "invite.declined"
+  | "member.joined" | "join.request"
+  | "task.assigned" | "task.review" | "task.decided" | "task.comment"
+  | "chat.message";
+
+export interface AppNotification {
+  id: number;
+  kind: NotificationKind;
+  kind_display: string;
+  title: string;
+  body: string;
+  url: string;
+  meta: Record<string, unknown>;
+  is_read: boolean;
+  actor: UserBrief | null;
+  created_at: string;
+}
+
+export type InviteStatusValue = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED";
+
+export interface Invitation {
+  id: number;
+  scope: "workspace" | "project";
+  workspace: number | null;
+  workspace_slug: string;
+  project: number | null;
+  project_key: string;
+  target_name: string;
+  user: UserBrief;
+  invited_by: UserBrief | null;
+  role: string;
+  role_display: string;
+  message: string;
+  status: InviteStatusValue;
+  status_display: string;
+  url: string;
+  responded_at: string | null;
+  created_at: string;
+}
+
+export interface ProjectFile {
+  id: number;
+  file: string;
+  url: string | null;
+  original_name: string;
+  size: number;
+  size_display: string;
+  content_type: string;
+  description: string;
+  extension: string;
+  is_image: boolean;
+  uploaded_by: UserBrief | null;
+  created_at: string;
+}
+
+export interface SubmissionEdit {
+  id: number;
+  editor: UserBrief | null;
+  old_text: string;
+  new_text: string;
+  edited_at: string;
+}
+
+/** Dasturchining ish topshirig'i */
+export interface Submission {
+  id: number;
+  task: number;
+  author: UserBrief;
+  round_no: number;
+  text: string;
+  files: Attachment[];
+  edits: SubmissionEdit[];
+  is_edited: boolean;
+  edited_count: number;
+  can_edit: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ForecastRow {
+  user: UserBrief;
+  role: string;
+  specialty: string;
+  specialty_display: string;
+  open: number;
+  done: number;
+  in_review: number;
+  overdue: number;
+  hours_left: number;
+  last_due: string | null;
+  forecast_date: string | null;
+  at_risk: boolean;
+}
+
+export interface ForecastGroup {
+  value: string;
+  label: string;
+  people: number;
+  open: number;
+  done: number;
+  overdue: number;
+  hours_left: number;
+  last_due: string | null;
+  forecast_date: string | null;
+  progress: number;
+  at_risk: boolean;
+}
+
+/** `GET /api/projects/:id/forecast/` javobi */
+export interface Forecast {
+  today: string;
+  hours_per_day: number;
+  default_task_hours: number;
+  members: ForecastRow[];
+  specialties: ForecastGroup[];
+  project: {
+    open: number;
+    done: number;
+    unassigned: number;
+    hours_left: number;
+    due_date: string | null;
+    forecast_date: string | null;
+    at_risk: boolean;
+  };
+}
+
+export interface ChatMessage {
+  id: number;
+  scope: "workspace" | "project" | "direct";
+  project: number | null;
+  workspace: number | null;
+  author: UserBrief;
+  /** Shaxsiy yozishmada - kimga yozilgani */
+  recipient: UserBrief | null;
+  text: string;
+  created_at: string;
+}
+
+/** Shaxsiy yozishmalar ro'yxatidagi bitta qator */
+export interface Conversation {
+  partner: UserBrief;
+  last_message: string;
+  last_at: string;
+  outgoing: boolean;
+}
+
+/** `GET /api/users/:id/work/` javobi */
+export interface UserWork {
+  user: UserBrief;
+  stats: {
+    projects: number; open: number; done: number;
+    in_review: number; changes: number; hours: number;
+  };
+  projects: {
+    id: number; name: string; key: string; color: string;
+    workspace_name: string; role: string;
+  }[];
+  tasks: Task[];
+  activity: Activity[];
+  /** true bo'lsa - ro'yxat so'rovchining huquqi bilan cheklangan */
+  limited: boolean;
 }

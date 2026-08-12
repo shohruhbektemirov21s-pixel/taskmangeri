@@ -145,3 +145,66 @@ export const IconLayers = ({ size = 16 }: P) => (
     <path d="m4 12.5 8 4.2 8-4.2M4 16.8l8 4.2 8-4.2" />
   </svg>
 );
+
+export const IconBell = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M18 8a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7" />
+    <path d="M13.7 20a2 2 0 0 1-3.4 0" />
+  </svg>
+);
+
+export const IconChat = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M20 14a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+export const IconSend = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M21 3 10.5 13.5" />
+    <path d="M21 3l-6.5 18-4-8-8-4z" />
+  </svg>
+);
+
+export const IconCheck = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+export const IconClose = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
+export const IconMail = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </svg>
+);
+
+export const IconUserPlus = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M15 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="8.5" cy="7" r="4" />
+    <path d="M19 8v6M22 11h-6" />
+  </svg>
+);
+
+export const IconEye = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+    <circle cx="12" cy="12" r="3.2" />
+  </svg>
+);
+
+export const IconEyeOff = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.6 17.6 0 0 1-3.2 3.9" />
+    <path d="M6.6 6.8A17.4 17.4 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 4.2-.9" />
+    <path d="M9.9 9.9a3.2 3.2 0 0 0 4.3 4.3" />
+    <path d="M3 3l18 18" />
+  </svg>
+);

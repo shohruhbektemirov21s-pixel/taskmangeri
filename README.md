@@ -10,7 +10,8 @@ va GitHub uslubidagi ish maydonlari (workspaces) birlashtirilgan.
 | Backend | Python 3.12 · Django 5.2 · Django REST Framework · JWT | http://localhost:8010/api |
 | Frontend | Node 22 · React 19 · TypeScript · Vite 7 | http://localhost:5183 |
 | Ma'lumotlar bazasi | PostgreSQL 16 | localhost:5443 |
-| Konteynerlar | Docker Compose (3 servis) | — |
+| Real-time | Django Channels · Redis 7 · WebSocket | ws://localhost:5183/ws/ |
+| Konteynerlar | Docker Compose (4 servis) | — |
 
 ---
 
@@ -39,10 +40,16 @@ admin@teamflow.uz / admin12345
 
 | Rol | Imkoniyatlari |
 |-----|---------------|
-| **Admin** (tizim) | Hamma loyihani ko'radi, vazifalarni tekshiradi, yo'nalish beradi, foydalanuvchi rollarini boshqaradi |
-| **Loyiha menejeri** | O'z loyihasini boshqaradi, qo'shilish so'rovlarini qabul qiladi, vazifa taqsimlaydi va tekshiradi |
-| **Dasturchi / QA** | O'ziga biriktirilgan vazifalarni bajaradi, holatni suradi, izoh va ish jurnali qoldiradi |
+| **Admin** (tizim) | Hamma loyihada hamma narsa. **Lekin loyiha menejerini chiqara olmaydi** |
+| **Loyiha menejeri** | O'z loyihasida hamma narsa: vazifa berish va o'chirish, tekshirish, fayl, taklif, rol berish, a'zoni tizim admini qilib tayinlash |
+| **Loyiha admini** | Menejer bilan deyarli teng: vazifa berish/o'chirish, tekshirish, fayl, taklif, a'zolarni chiqarish. **Menejerga tegmaydi** — uni chiqara ham, rolini o'zgartira ham olmaydi |
+| **Dasturchi / QA** | O'ziga biriktirilgan vazifalarni bajaradi, ishni topshiradi, fayl yuklaydi, izoh va ish jurnali qoldiradi |
 | **Kuzatuvchi** | Faqat o'qiydi |
+
+**Menejer himoyalangan.** Uni na loyiha admini, na tizim admini chiqara oladi —
+loyiha boshqaruvsiz qolib ketmasin. Menejer faqat o'zi chiqadi yoki boshqa
+menejer almashtiradi. Istisno: loyiha menejersiz qolgan bo'lsa, tizim admini
+yangi menejer tayinlay oladi (aks holda loyiha muzlab qolardi).
 
 Ruxsatlar bitta joyda — `backend/apps/core/permissions.py` (`ProjectAccess`).
 
@@ -67,6 +74,108 @@ Tanlov butun tizimga ta'sir qiladi:
 - har bir yo'nalish uchun **sifat ro'yxati** (checklist) ko'rsatiladi.
 
 Katalog: `backend/apps/accounts/specialties.py`.
+
+---
+
+## Loyiha yaratish
+
+Forma imkon qadar qisqa: **ish maydoni · nom · tavsif · muddat**.
+Qolganini tizim o'zi to'ldiradi:
+
+- **kalit** loyiha nomidan yasaladi (`Tolov tizimi v2` -> `TTV`) va ish maydoni ichida
+  takrorlanmaydi (`backend/apps/projects/models.py` -> `generate_key`);
+- **rang** palitradan avtomatik tanlanadi — bitta ish maydonidagi loyihalar
+  ro'yxatda bir-biridan ajralib tursin (`pick_color`).
+
+Ikkalasi ham API da `read_only` — tashqaridan o'zgartirib bo'lmaydi.
+Ish maydoni rangi ham xuddi shunday avtomatik (`backend/apps/workspaces/models.py`).
+
+---
+
+## Jamoaga a'zo qo'shish
+
+Hech kim tasdiqsiz jamoaga qo'shilmaydi. Ikki yo'nalish bor:
+
+- **So'rov** (`JoinRequest`) — foydalanuvchi o'zi so'raydi, menejer qabul qiladi;
+- **Taklif** (`Invitation`) — menejer chaqiradi, **foydalanuvchi tasdiqlaydi**;
+- **Kod bilan** — foydalanuvchi qo'shilish kodini kiritib o'zi kiradi.
+
+Uchalasida ham qo'shilish odamning o'z roziligi bilan bo'ladi. Eski
+`POST /api/projects/:id/members/add/` ilgari odamni tasdiqsiz a'zo qilardi —
+endi u ham taklif yaratadi.
+
+Taklif oqimi: menejer loyiha yoki ish maydoni sahifasidagi **«A'zo qo'shish»** da
+odamni **email yoki ism bo'yicha qidirib topadi** (uzun ochiluvchi ro'yxat emas -
+jamoa kattalashganda ishlamay qoladi) va rol beradi → taklif qilingan odamga darrov bildirishnoma boradi →
+u `/takliflar` sahifasida **qabul qiladi yoki rad etadi**. A'zolik aynan qabul
+qilingan paytda paydo bo'ladi (`apps/invites/models.py` → `Invitation.accept`).
+
+Loyihaga taklif qabul qilinsa, odam avtomatik ravishda loyiha ish maydoniga ham
+qo'shiladi — aks holda u o'z loyihasini ko'ra olmasdi.
+
+---
+
+## Bildirishnoma va suhbat (real-time)
+
+Ikkalasi ham WebSocket orqali ishlaydi — sahifani yangilash shart emas.
+
+**Bildirishnomalar** (`apps/notifications`) — yuqoridagi qo'ng'iroqda o'qilmagan
+soni bilan, `/bildirishnomalar` da to'liq ro'yxat. Taklif kelganda, taklif qabul
+qilinganda, suhbatga xabar tushganda yoziladi. Chat xabarlari **bitta yozuvga
+yig'iladi** — 50 ta xabar 50 ta qo'ng'iroq bo'lib ketmaydi.
+
+**Suhbat** (`apps/chat`) uch ko'rinishda:
+
+- **loyiha suhbati** — loyihadagi «Suhbat» bo'limi;
+- **ish maydoni suhbati** — `/ish-maydoni/:slug/chat`;
+- **shaxsiy yozishma** — `/xabarlar`: odamni **email yoki ism bo'yicha qidirib**
+  topib, to'g'ridan-to'g'ri yoziladi. Chapda ochiq suhbatlar ro'yxati.
+
+Tarix REST orqali yuklanadi, yangi xabarlar WebSocket orqali darrov chiqadi.
+Loyiha va maydon suhbatiga yozish huquqi faqat jamoa a'zolarida; shaxsiy
+yozishmani faqat o'sha ikki kishi ko'radi.
+
+| Kanal | Manzil |
+|-------|--------|
+| Shaxsiy (bildirishnoma) | `ws://…/ws/notifications/?token=<access>` |
+| Loyiha suhbati | `ws://…/ws/chat/project/<id>/?token=<access>` |
+| Ish maydoni suhbati | `ws://…/ws/chat/workspace/<id>/?token=<access>` |
+| Shaxsiy yozishma | `ws://…/ws/chat/direct/<user_id>/?token=<access>` |
+
+Brauzer WebSocket ochayotganda header qo'sha olmaydi, shuning uchun JWT so'rov
+satrida yuboriladi (`backend/config/ws_auth.py`). Ulanish uzilsa mijoz o'zi
+qayta ulanadi.
+
+---
+
+## Kim nimani ko'radi
+
+Profil sahifasida boshqa odamning **loyihalari, vazifalari, sarflagan soati va
+nima qilgani** ko'rinadi (`GET /api/users/:id/work/`). Lekin ro'yxat **so'rovchining
+huquqi bilan cheklanadi**: begonaning yopiq loyihasi nomi ham, o'sha loyihadagi
+vazifasi ham chiqmaydi — faqat ochiq loyihalar va so'rovchi ham a'zo bo'lgan
+loyihalar. Cheklov bo'lgani javobda `limited: true` bilan aytiladi.
+
+---
+
+## Xavfsizlik
+
+| Chora | Qayerda |
+|-------|---------|
+| WebSocket Origin tekshiruvi — begona saytdan ulanib bo'lmaydi | `config/asgi.py` |
+| WebSocket JWT autentifikatsiyasi, yaroqsiz token → `4401` | `config/ws_auth.py` |
+| Kirish va ro'yxatdan o'tishga cheklov (20/min) — parol topishga qarshi | `accounts/api.py` |
+| Chat (90/min) va taklif (40/soat) cheklovlari | `chat/api.py`, `invites/api.py` |
+| Cheklov hisoblagichi Redis da — jarayonlar orasida umumiy | `settings.CACHES` |
+| Shaxsiy yozishmani faqat ikki tomon o'qiydi | `chat/api.py` → `get_queryset` |
+| Xabarni faqat muallifi (yoki admin) o'chiradi | `chat/api.py` |
+| Boshqa odamning ishi so'rovchi huquqi bilan cheklanadi | `accounts/api.py` → `work` |
+| Bildirishnoma havolasi faqat ilova ichiga olib boradi | `components/ui.tsx` → `safePath` |
+| Rollar va ro'yxatlar frontendda qattiq yozilmagan — `/api/meta/` dan | `core/api.py` |
+| Menejerni hech kim chiqara olmaydi (tizim admini ham) | `core/permissions.py` → `can_change_member` |
+| Menejer rolini faqat menejer beradi | `core/permissions.py` → `can_grant_role` |
+| Loyiha fayllari faqat a'zolarga (ochiq loyihada ham) | `projects/api.py` → `files` |
+| Topshiriqni faqat muallif yoki menejer tahrirlaydi, tarix o'chmaydi | `tasks/api.py` |
 
 ---
 
@@ -101,9 +210,44 @@ Har bir harakat `Activity` jadvaliga yoziladi va **hech qachon o'chirilmaydi**:
 
 ## Fayllar
 
-Har bir vazifaga fayl biriktirish mumkin (skrinshot, hujjat, log, arxiv — 25 MB gacha):
-sudrab tashlash yoki tanlash, rasmlar oldindan ko'rinadi, o'chirishni faqat yuklagan odam
-yoki menejer qila oladi. Har bir amal tarixga yoziladi.
+Ikki darajada, ikkalasi ham 25 MB gacha, sudrab tashlash yoki tanlash bilan,
+rasmlar oldindan ko'rinadi, o'chirishni faqat yuklagan odam yoki menejer qila
+oladi, har bir amal tarixga yoziladi:
+
+- **vazifa fayllari** — skrinshot, log, patch: aniq bir ishga bog'langan;
+- **loyiha fayllari** (`/loyiha/:id/fayllar`) — texnik topshiriq, dizayn,
+  shartnoma: butun loyihaga tegishli, yangi kelgan odam darrov topadi.
+
+Loyiha fayllari **faqat jamoa a'zolariga** ko'rinadi — ochiq loyihada vazifalar
+hammaga ko'rinsa ham, fayllar ko'rinmaydi.
+
+---
+
+## Ishni topshirish
+
+Dasturchi vazifani yakunlagach **nima qilganini yozib topshiradi** va xohlasa
+fayl biriktiradi (`/vazifa/:id` → «Topshirilgan ish»). Topshirilgan zahoti vazifa
+**TEKSHIRUVGA** o'tadi va **menejer (yoki loyiha admini) tasdiqlamaguncha shunday
+turadi** — dasturchi o'zini `BAJARILDI` qila olmaydi.
+
+Topshiriqni **tahrirlash va o'chirish** mumkin. Har bir tahrir
+`SubmissionEdit` da saqlanadi va sahifada ko'rinadi: kim, qachon, qaysi matndan
+qaysi matnga o'zgartirgani. Eski matn hech qachon yo'qolmaydi.
+
+---
+
+## Muddatlar — kim qachon tugatadi
+
+`/loyiha/:id/muddatlar` — ikki kesimda:
+
+- **mutaxassislik bo'yicha**: «frontend qachon tugaydi», nechta odam, qancha
+  soat qoldi, taxminiy sana;
+- **odam bo'yicha**: har kimning ochiq, tekshiruvdagi va bajarilgan vazifalari,
+  qolgan soati, taxminan qachon tugatishi.
+
+Muddatdan kechikayotgan qator qizil bilan belgilanadi. Hisob ochiq: kuniga
+6 soat samarali ish, rejalashtirilgan soati yo'q vazifa 4 soat deb olinadi —
+aks holda bashorat «0 kun» bo'lib, yolg'on tinchlik berardi.
 
 ---
 
@@ -122,7 +266,9 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 | `GET/POST /api/projects/` | Loyihalar (`scope=mine\|managed\|discover\|all`, `matching=1`) |
 | `POST /api/projects/:id/join/` | Qo'shilish so'rovi |
 | `GET /api/projects/:id/requests/` · `:rid/decide/` | So'rovlarni ko'rish va hal qilish |
-| `GET/POST /api/projects/:id/members/…` | Jamoa (qo'shish, rol, chiqarish) |
+| `GET/POST /api/projects/:id/members/…` | Jamoa (qo'shish, rol, chiqarish, `appoint_admin`) |
+| `GET/POST /api/projects/:id/files/` · `DELETE …/:fid/` | Loyiha fayllari |
+| `GET /api/projects/:id/forecast/` | Kim qachon tugatadi (odam va mutaxassislik kesimi) |
 | `GET/PATCH /api/projects/:id/brief/` | Loyiha brifi |
 | `GET/POST /api/tasks/` | Vazifalar (filtr: status, assignee, priority, open, overdue) |
 | `POST /api/tasks/bulk/` | Ko'plab vazifa yaratish va taqsimlash |
@@ -131,7 +277,19 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 | `POST /api/tasks/:id/status/` | Holatni o'zgartirish (ruxsat tekshiriladi) |
 | `GET/POST /api/tasks/:id/attachments/` · `DELETE …/:aid/` | Fayllar |
 | `POST /api/tasks/:id/comments/` · `worklogs/` | Izoh va ish jurnali |
+| `GET/POST /api/tasks/:id/submissions/` | Ish topshirig'i (matn + fayl) |
+| `PATCH/DELETE /api/tasks/:id/submissions/:sid/` | Topshiriqni tahrirlash yoki o'chirish |
 | `GET /api/tasks/review-queue/` · `POST /api/tasks/:id/review/` | Tekshiruv |
+| `GET/POST /api/invitations/` | Takliflar (`box=incoming\|sent`, `pending=1`) |
+| `GET /api/invitations/candidates/` | Taklif qilish mumkin bo'lgan odamlar |
+| `POST /api/invitations/:id/respond/` | Qabul qilish yoki rad etish |
+| `POST /api/invitations/:id/cancel/` | Taklifni bekor qilish |
+| `GET /api/notifications/` · `unread-count/` | Bildirishnomalar |
+| `POST /api/notifications/:id/read/` · `read-all/` | O'qildi deb belgilash |
+| `GET/POST /api/chat/messages/` | Suhbat tarixi va yangi xabar (`project` / `workspace` / `direct`) |
+| `GET /api/chat/messages/people/?q=` | Odam qidirish — email yoki ism bo'yicha |
+| `GET /api/chat/messages/conversations/` | Shaxsiy suhbatlar ro'yxati |
+| `GET /api/users/:id/work/` | Foydalanuvchining loyihalari, vazifalari, tarixi |
 | `GET /api/activity/` | Tarix (filtr: project, actor, category, days, search) |
 | `GET /api/activity/developer-report/` | Dasturchi hisoboti |
 | `GET /api/activity/onboarding/` | Loyihaga kirish to'plami |
@@ -143,7 +301,7 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 
 ```
 .
-├── docker-compose.yml          # db + backend + frontend
+├── docker-compose.yml          # db + redis + backend + frontend
 ├── backend/
 │   ├── Dockerfile
 │   ├── config/                 # settings, urls, wsgi
@@ -151,18 +309,22 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 │       ├── accounts/           # foydalanuvchi, mutaxassisliklar, JWT
 │       ├── workspaces/         # ish maydonlari
 │       ├── projects/           # loyiha, a'zolik, so'rov, brif
-│       ├── tasks/              # vazifa, biriktirish, izoh, tekshiruv, fayl
+│       ├── tasks/              # vazifa, biriktirish, izoh, tekshiruv, fayl, ish topshirig'i
 │       ├── activity/           # tarix, dasturchi hisoboti, onboarding
+│       ├── invites/            # jamoaga taklif va tasdiqlash
+│       ├── notifications/      # bildirishnomalar + WebSocket kanali
+│       ├── chat/               # loyiha va ish maydoni suhbati
 │       └── core/               # ruxsatlar, dashboard, meta
 └── frontend/
     ├── Dockerfile
     └── src/
         ├── api/                # HTTP mijoz va TypeScript turlari
         ├── auth/               # AuthContext (JWT)
+        ├── realtime/           # WebSocket mijozi va bildirishnoma konteksti
         ├── components/         # Layout, ui, Timeline
         ├── pages/              # sahifalar
         │   └── project/        # loyiha bo'limlari (doska, jamoa, tarix, brif...)
-        └── styles/app.css      # GitHub Primer dark dizayn tizimi
+        └── styles/app.css      # "Liquid glass" dark dizayn tizimi
 ```
 
 ---

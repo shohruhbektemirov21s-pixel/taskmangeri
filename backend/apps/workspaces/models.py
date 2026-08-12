@@ -1,9 +1,17 @@
+import hashlib
 import secrets
 
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+
+
+# Ish maydoni rangi foydalanuvchidan sorlmaydi - shu palitradan avtomatik tanlanadi.
+WORKSPACE_COLORS = [
+    "#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444",
+    "#a855f7", "#ec4899", "#14b8a6", "#f97316", "#3b82f6",
+]
 
 
 def make_code(n=10):
@@ -22,7 +30,8 @@ class Workspace(models.Model):
     name = models.CharField("Nomi", max_length=120)
     slug = models.SlugField("Manzil", max_length=140, unique=True, blank=True)
     description = models.TextField("Tavsif", blank=True)
-    color = models.CharField("Rang", max_length=9, default="#6366f1")
+    color = models.CharField("Rang", max_length=9, blank=True, default="",
+                             help_text="Tizim ozi tanlaydi - maydonlar royxatda ajralib tursin")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                               related_name="owned_workspaces", verbose_name="Egasi")
     join_code = models.CharField("Taklif kodi", max_length=12, unique=True, default=make_code)
@@ -46,7 +55,22 @@ class Workspace(models.Model):
                 slug = "{}-{}".format(base, i)
                 i += 1
             self.slug = slug
+        if not (self.color or "").strip():
+            self.color = self.pick_color()
         super().save(*args, **kwargs)
+
+    def pick_color(self):
+        """Rangni tizim ozi tanlaydi - egasining maydonlari bir xil rangda bolmasin."""
+        used = set(
+            Workspace.objects.filter(owner_id=self.owner_id)
+            .exclude(pk=self.pk).values_list("color", flat=True)
+        )
+        free = [c for c in WORKSPACE_COLORS if c not in used]
+        if free:
+            return free[0]
+
+        digest = hashlib.md5((self.name or "").encode("utf-8")).hexdigest()
+        return WORKSPACE_COLORS[int(digest, 16) % len(WORKSPACE_COLORS)]
 
     def get_absolute_url(self):
         return reverse("workspaces:detail", args=[self.slug])

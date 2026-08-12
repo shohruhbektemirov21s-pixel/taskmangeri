@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Task, UserBrief } from "@/api/types";
+import { IconEye, IconEyeOff } from "./icons";
 
 /* ---------------------------------------------------------------- Avatar */
 export function Avatar({ user, size = "" }: { user?: UserBrief | null; size?: "sm" | "lg" | "xl" | "" }) {
@@ -226,4 +228,66 @@ export function timeAgo(value?: string | null) {
   if (diff < 86400) return `${Math.floor(diff / 3600)} soat oldin`;
   if (diff < 2592000) return `${Math.floor(diff / 86400)} kun oldin`;
   return fmtDate(value);
+}
+
+/**
+ * Bildirishnomadagi havolani xavfsiz yo'lga aylantiradi.
+ *
+ * URL serverda yaratiladi, lekin baribir tekshiramiz: faqat ilova ichidagi
+ * yo'l ("/..."), protokolli yoki "//" bilan boshlanadigan tashqi manzil emas.
+ * Shu bilan ochiq yo'naltirish (open redirect) yo'li yopiladi.
+ */
+export function safePath(url?: string | null, fallback = "/bildirishnomalar") {
+  const value = (url || "").trim();
+  if (!value.startsWith("/") || value.startsWith("//")) return fallback;
+  return value;
+}
+
+/**
+ * Parol maydoni - yonida ko'zcha bilan.
+ *
+ * Parolni ko'rsatib tekshirish imkoni bo'lmasa, odam xato yozganini bilmay
+ * qayta-qayta urinadi. Ko'zcha bosilganda matn ochiladi, ikonka esa
+ * chizilgan ko'zga almashadi - holat ko'rinib tursin.
+ */
+export function PasswordInput({
+  value, onChange, placeholder, required, autoFocus, autoComplete, name, id,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  autoFocus?: boolean;
+  autoComplete?: string;
+  name?: string;
+  id?: string;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="pw-wrap">
+      <input
+        id={id}
+        name={name}
+        type={shown ? "text" : "password"}
+        className="pw-input"
+        value={value}
+        required={required}
+        autoFocus={autoFocus}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <button
+        type="button"
+        className="pw-toggle"
+        onClick={() => setShown((v) => !v)}
+        title={shown ? "Parolni yashirish" : "Parolni ko'rsatish"}
+        aria-label={shown ? "Parolni yashirish" : "Parolni ko'rsatish"}
+        aria-pressed={shown}
+        tabIndex={-1}
+      >
+        {shown ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+      </button>
+    </div>
+  );
 }
