@@ -2,8 +2,9 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserBriefSerializer
 
-from .models import (Attachment, Comment, Label, Review, ReviewVerdict, Task,
-                     TaskAssignment, TaskPriority, TaskStatus, TaskType, WorkLog)
+from .models import (Attachment, Comment, Label, Review, ReviewVerdict, Submission,
+                     SubmissionEdit, Task, TaskAssignment, TaskPriority, TaskStatus,
+                     TaskType, WorkLog)
 
 
 class LabelSerializer(serializers.ModelSerializer):
@@ -213,3 +214,47 @@ class BulkTaskSerializer(serializers.Serializer):
 class StatusChangeSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=TaskStatus.choices)
     blocked_reason = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class SubmissionEditSerializer(serializers.ModelSerializer):
+    """Topshiriq tahriri - kim, qachon, nimadan nimaga."""
+
+    editor = UserBriefSerializer(read_only=True)
+
+    class Meta:
+        model = SubmissionEdit
+        fields = ["id", "editor", "old_text", "new_text", "edited_at"]
+        read_only_fields = fields
+
+
+class SubmissionSerializer(serializers.ModelSerializer):
+    """Dasturchining ish topshirig'i: nima qilingani va biriktirilgan fayllar."""
+
+    author = UserBriefSerializer(read_only=True)
+    files = AttachmentSerializer(many=True, read_only=True)
+    edits = SubmissionEditSerializer(many=True, read_only=True)
+    is_edited = serializers.BooleanField(read_only=True)
+    can_edit = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Submission
+        fields = ["id", "task", "author", "round_no", "text", "files", "edits",
+                  "is_edited", "edited_count", "can_edit", "created_at", "updated_at"]
+        read_only_fields = ["task", "author", "round_no", "edited_count", "created_at", "updated_at"]
+
+    def validate_text(self, value):
+        value = (value or "").strip()
+        if len(value) < 3:
+            raise serializers.ValidationError("Qilingan ishni qisqacha bo'lsa ham yozing.")
+        return value
+
+    def get_can_edit(self, obj):
+        """Tahrirlash/o'chirish huquqi: muallif yoki loyihani boshqaruvchi."""
+        from apps.core.permissions import ProjectAccess
+
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        if obj.author_id == request.user.pk:
+            return True
+        return ProjectAccess(request.user, obj.task.project).can_manage

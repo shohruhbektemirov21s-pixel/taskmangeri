@@ -1,0 +1,92 @@
+/**
+ * Odamni **email yoki ism** bo'yicha qidirib topish.
+ *
+ * Ro'yxatdan tanlash o'rniga yozib qidirish: jamoa kattalashganda uzun
+ * ochiluvchi ro'yxat foydasiz bo'lib qoladi. Natijalar backenddan keladi,
+ * har bosishda emas - yozish to'xtagach (debounce).
+ */
+import { useEffect, useRef, useState } from "react";
+import type { UserBrief } from "@/api/types";
+import { IconSearch } from "./icons";
+import { Avatar, SpecialtyTag } from "./ui";
+
+interface Props {
+  /** Backenddan qidiruv natijasini oladi */
+  search: (q: string) => Promise<UserBrief[]>;
+  onPick: (user: UserBrief) => void;
+  placeholder?: string;
+  emptyText?: string;
+  /** Tanlangan odamni ajratib ko'rsatish uchun */
+  activeId?: number;
+  autoFocus?: boolean;
+}
+
+const DEBOUNCE_MS = 250;
+
+export default function UserSearch({
+  search, onPick, placeholder = "Email yoki ism bo'yicha qidiring",
+  emptyText = "Hech kim topilmadi", activeId, autoFocus,
+}: Props) {
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<UserBrief[]>([]);
+  const [loading, setLoading] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  const seq = useRef(0);
+
+  useEffect(() => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      const mine = ++seq.current;
+      setLoading(true);
+      search(q.trim())
+        .then((rows) => {
+          // Kechikib kelgan eski javob yangisini bosib ketmasin.
+          if (mine === seq.current) setItems(rows);
+        })
+        .catch(() => {
+          if (mine === seq.current) setItems([]);
+        })
+        .finally(() => {
+          if (mine === seq.current) setLoading(false);
+        });
+    }, DEBOUNCE_MS);
+    return () => window.clearTimeout(timer.current);
+    // `search` identifikatori o'zgarsa (masalan a'zo qo'shilgach) ro'yxat yangilanadi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, search]);
+
+  return (
+    <div className="user-search">
+      <div className="gh-search" style={{ width: "100%" }}>
+        <IconSearch size={14} />
+        <input
+          type="search"
+          value={q}
+          autoFocus={autoFocus}
+          placeholder={placeholder}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        {loading && <span className="tl-time">…</span>}
+      </div>
+
+      <div className="user-hits">
+        {!items.length && !loading && <div className="muted center" style={{ padding: 14 }}>{emptyText}</div>}
+        {items.map((u) => (
+          <button
+            key={u.id}
+            type="button"
+            className={`user-hit ${activeId === u.id ? "on" : ""}`}
+            onClick={() => onPick(u)}
+          >
+            <Avatar user={u} size="sm" />
+            <span className="user-hit-text">
+              <strong>{u.full_name}</strong>
+              <span className="muted mono">{u.email}</span>
+            </span>
+            <SpecialtyTag user={u} compact />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

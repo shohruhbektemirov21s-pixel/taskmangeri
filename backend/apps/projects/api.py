@@ -5,17 +5,22 @@ from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from apps.accounts.models import GlobalRole
 from apps.activity.services import log
 from apps.core.permissions import ProjectAccess, check_access
+from apps.notifications.models import NotificationKind
+from apps.notifications.services import notify
 from apps.tasks.models import TaskAssignment, TaskStatus
 from apps.workspaces.models import WorkspaceMember, WorkspaceRole
 
-from .models import (JoinRequest, Project, ProjectBrief, ProjectMember, ProjectRole,
-                     RequestStatus)
+from .models import (JoinRequest, Project, ProjectBrief, ProjectFile, ProjectMember,
+                     ProjectRole, RequestStatus)
 from .serializers import (JoinRequestSerializer, ProjectBriefSerializer,
-                          ProjectDetailSerializer, ProjectMemberSerializer, ProjectSerializer)
+                          ProjectDetailSerializer, ProjectFileSerializer,
+                          ProjectMemberSerializer, ProjectSerializer)
 
 User = get_user_model()
 
@@ -157,29 +162,81 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="members/add")
     def add_member(self, request, pk=None):
+        """Jamoaga qoshish - TAKLIF orqali.
+
+        Ilgari bu endpoint odamni tosridan-togri azo qilardi. Endi unday emas:
+        hech kim ozi tasdiqlamaguncha jamoaga qoshilmaydi. Shuning uchun bu
+        yerda taklif yaratiladi va odamga bildirishnoma boradi.
+        """
+        from apps.invites.models import Invitation, InviteStatus
+        from apps.invites.serializers import InvitationSerializer
+
         project = self._manage_project(pk)
-        user_id = request.data.get("user_id")
+        access = ProjectAccess(request.user, project)
         role = request.data.get("role", ProjectRole.DEVELOPER)
         if role not in ProjectRole.values:
             raise ValidationError({"role": "Notogri rol."})
-        target = get_object_or_404(User, pk=user_id)
-        member, created = ProjectMember.objects.update_or_create(
-            project=project, user=target,
-            defaults={"role": role, "is_active": True, "left_at": None, "added_by": request.user})
-        WorkspaceMember.objects.get_or_create(
-            workspace=project.workspace, user=target,
-            defaults={"role": WorkspaceRole.MEMBER})
-        log(actor=request.user, verb="member.added", project=project, target=target,
-            summary="{} jamoaga qoshildi ({})".format(target.full_name,
-                                                      member.get_role_display()))
-        return Response(ProjectMemberSerializer(member, context={"request": request}).data)
+        if not access.can_grant_role(role):
+            raise PermissionDenied("Menejer rolini faqat amaldagi menejer bera oladi.")
+
+        target = get_object_or_404(User, pk=request.data.get("user_id"), is_active=True)
+        if target.pk == request.user.pk:
+            raise ValidationError({"user_id": "Ozingizni taklif qila olmaysiz."})
+        if project.memberships.filter(user=target, is_active=True).exists():
+            raise ValidationError({"user_id": "Bu odam allaqachon jamoada."})
+        if Invitation.objects.filter(project=project, user=target,
+                                     status=InviteStatus.PENDING).exists():
+            raise ValidationError({"user_id": "Bu odamga taklif allaqachon yuborilgan."})
+
+        invite = Invitation.objects.create(
+            project=project, user=target, invited_by=request.user, role=role,
+            message=(request.data.get("message") or "").strip())
+
+        log(actor=request.user, verb="member.invited", project=project, target=target,
+            summary="{} jamoaga taklif qilindi: {}".format(target.full_name, project.name))
+        notify(target, NotificationKind.INVITE_RECEIVED,
+               title="Sizni jamoaga taklif qilishdi",
+               body="{} - {} ({})".format(project.name, invite.role_display,
+                                          request.user.full_name),
+               url="/takliflar", actor=request.user,
+               meta={"invitation": invite.pk, "scope": "project"})
+
+        return Response(InvitationSerializer(invite, context={"request": request}).data,
+                        status=201)
 
     @action(detail=True, methods=["post"], url_path="members/(?P<member_id>[^/.]+)")
     def member_action(self, request, pk=None, member_id=None):
-        """action=role|remove"""
+        """action=role|remove|appoint_admin"""
         project = self._manage_project(pk)
         member = get_object_or_404(ProjectMember, pk=member_id, project=project)
+        access = ProjectAccess(request.user, project)
         act = request.data.get("action")
+
+        # MENEJER himoyalangan: unga faqat boshqa menejer tega oladi.
+        if act in ("remove", "role") or act is None:
+            if not access.can_change_member(member):
+                raise PermissionDenied(
+                    "Loyiha menejeriga tegib bo'lmaydi — uni faqat boshqa menejer "
+                    "almashtira oladi yoki o'zi chiqadi.")
+
+        if act == "appoint_admin":
+            if not access.can_appoint_admin:
+                raise PermissionDenied("Admin tayinlash huquqi faqat loyiha menejerida.")
+            if not member.is_active:
+                raise ValidationError({"detail": "Faol bo'lmagan a'zoni tayinlab bo'lmaydi."})
+            target = member.user
+            if target.is_platform_admin:
+                raise ValidationError({"detail": "Bu odam allaqachon tizim admini."})
+            target.global_role = GlobalRole.ADMIN
+            target.save(update_fields=["global_role"])
+            log(actor=request.user, verb="user.role_changed", project=project, target=target,
+                summary="{} tizim admini qilib tayinlandi".format(target.full_name),
+                detail="Tayinladi: {}".format(request.user.full_name))
+            notify(target, NotificationKind.MEMBER_JOINED,
+                   title="Sizga tizim admini huquqi berildi",
+                   body="{} loyihasida {} tayinladi".format(project.name, request.user.full_name),
+                   url="/profil", actor=request.user)
+            return Response(ProjectMemberSerializer(member, context={"request": request}).data)
 
         if act == "remove":
             note = (request.data.get("handover_note") or "").strip()
@@ -198,6 +255,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         role = request.data.get("role")
         if role not in ProjectRole.values:
             raise ValidationError({"role": "Notogri rol."})
+        if not access.can_grant_role(role):
+            raise PermissionDenied(
+                "Menejer rolini faqat amaldagi menejer bera oladi.")
         old = member.get_role_display()
         member.role = role
         member.is_active = True
@@ -225,6 +285,188 @@ class ProjectViewSet(viewsets.ModelViewSet):
         log(actor=request.user, verb="member.left", project=project, target=request.user,
             summary="{} loyihadan chiqdi".format(request.user.full_name), detail=note)
         return Response({"left": True})
+
+    # ------------------------------------------------------------ loyiha fayllari
+    @action(detail=True, methods=["get", "post"], url_path="files",
+            parser_classes=[MultiPartParser, FormParser, JSONParser])
+    def files(self, request, pk=None):
+        """GET - fayllar royxati (azolar koradi);
+        POST - fayl yuklash (multipart/form-data, azolar yuklaydi)."""
+        project = get_object_or_404(Project, pk=pk)
+
+        if request.method == "GET":
+            # Ochiq loyihaning vazifalari hammaga korinadi, lekin FAYLLAR yoq:
+            # texnik topshiriq, shartnoma, eksport - bular jamoa ichidagi narsa.
+            access = ProjectAccess(request.user, project)
+            if not (access.is_admin or access.is_member):
+                raise PermissionDenied("Loyiha fayllari faqat jamoa azolariga korinadi.")
+            qs = project.files.select_related("uploaded_by")
+            return Response(ProjectFileSerializer(qs, many=True,
+                                                  context={"request": request}).data)
+
+        check_access(request.user, project, "work")
+        uploads = request.FILES.getlist("file") or request.FILES.getlist("files")
+        if not uploads:
+            raise ValidationError({"file": "Fayl tanlanmagan."})
+
+        created = []
+        for f in uploads:
+            ser = ProjectFileSerializer(
+                data={"file": f, "description": request.data.get("description", "")},
+                context={"request": request})
+            ser.is_valid(raise_exception=True)
+            created.append(ser.save(project=project, uploaded_by=request.user,
+                                    content_type=(getattr(f, "content_type", "") or "")[:120]))
+
+        log(actor=request.user, verb="project.file", project=project, target=project,
+            summary="{} ta fayl yuklandi".format(len(created)),
+            detail=", ".join(x.original_name for x in created),
+            meta={"files": [{"name": x.original_name, "size": x.size} for x in created]})
+
+        return Response(ProjectFileSerializer(created, many=True,
+                                              context={"request": request}).data, status=201)
+
+    @action(detail=True, methods=["delete"], url_path="files/(?P<file_id>[^/.]+)")
+    def delete_file(self, request, pk=None, file_id=None):
+        """Faylni yuklagan odam yoki loyihani boshqaruvchi ochira oladi."""
+        project = get_object_or_404(Project, pk=pk)
+        item = get_object_or_404(ProjectFile, pk=file_id, project=project)
+        access = ProjectAccess(request.user, project)
+        if item.uploaded_by_id != request.user.pk and not access.can_manage:
+            raise PermissionDenied("Faylni faqat yuklagan odam yoki menejer ochira oladi.")
+
+        name = item.original_name
+        item.file.delete(save=False)
+        item.delete()
+        log(actor=request.user, verb="project.file_deleted", project=project, target=project,
+            summary="Fayl ochirildi: " + name)
+        return Response(status=204)
+
+    # ------------------------------------------------------------ muddat bashorati
+    @action(detail=True, methods=["get"])
+    def forecast(self, request, pk=None):
+        """Kim qachon tugatadi: odam va mutaxassislik kesimida.
+
+        Bashorat sodda va tushunarli: qolgan rejalashtirilgan soat kuniga
+        HOURS_PER_DAY soatdan bajariladi deb hisoblanadi. Rejalashtirilgan soat
+        qoyilmagan vazifa uchun DEFAULT_TASK_HOURS olinadi - aks holda bashorat
+        "0 kun" bolib, yolgon tinchlik beradi.
+        """
+        from datetime import timedelta
+
+        from apps.accounts.serializers import UserBriefSerializer
+        from apps.accounts.specialties import Specialty
+
+        project = get_object_or_404(Project, pk=pk)
+        check_access(request.user, project, "view")
+
+        HOURS_PER_DAY = 6
+        DEFAULT_TASK_HOURS = 4
+        today = timezone.localdate()
+        closed = [TaskStatus.DONE, TaskStatus.CANCELLED]
+
+        rows = (TaskAssignment.objects
+                .filter(task__project=project, is_active=True)
+                .select_related("task", "user"))
+
+        people = {}
+        for row in rows:
+            task, user = row.task, row.user
+            item = people.setdefault(user.pk, {
+                "user": user, "open": 0, "done": 0, "in_review": 0, "overdue": 0,
+                "hours_left": 0.0, "last_due": None,
+            })
+            if task.status == TaskStatus.DONE:
+                item["done"] += 1
+                continue
+            if task.status == TaskStatus.CANCELLED:
+                continue
+            item["open"] += 1
+            if task.status == TaskStatus.IN_REVIEW:
+                item["in_review"] += 1
+            if task.due_date and task.due_date < today:
+                item["overdue"] += 1
+            item["hours_left"] += float(task.estimate_hours or 0) or DEFAULT_TASK_HOURS
+            if task.due_date and (item["last_due"] is None or task.due_date > item["last_due"]):
+                item["last_due"] = task.due_date
+
+        def finish_date(hours, workers=1):
+            if hours <= 0:
+                return None
+            per_day = HOURS_PER_DAY * max(workers, 1)
+            days = int(-(-hours // per_day))  # yuqoriga yaxlitlash
+            return today + timedelta(days=days)
+
+        members = {m.user_id: m for m in project.memberships.filter(is_active=True)}
+        names = dict(Specialty.choices)
+
+        member_rows = []
+        for uid, item in people.items():
+            user = item["user"]
+            forecast = finish_date(item["hours_left"])
+            member_rows.append({
+                "user": UserBriefSerializer(user, context={"request": request}).data,
+                "role": members[uid].get_role_display() if uid in members else "",
+                "specialty": user.specialty,
+                "specialty_display": names.get(user.specialty, user.specialty),
+                "open": item["open"], "done": item["done"],
+                "in_review": item["in_review"], "overdue": item["overdue"],
+                "hours_left": round(item["hours_left"], 1),
+                "last_due": item["last_due"],
+                "forecast_date": forecast,
+                "at_risk": bool(forecast and item["last_due"] and forecast > item["last_due"]),
+            })
+        member_rows.sort(key=lambda r: (-r["open"], r["user"]["full_name"]))
+
+        groups = {}
+        for row in member_rows:
+            g = groups.setdefault(row["specialty"], {
+                "value": row["specialty"], "label": row["specialty_display"],
+                "people": 0, "open": 0, "done": 0, "overdue": 0,
+                "hours_left": 0.0, "last_due": None,
+            })
+            g["people"] += 1
+            g["open"] += row["open"]
+            g["done"] += row["done"]
+            g["overdue"] += row["overdue"]
+            g["hours_left"] += row["hours_left"]
+            if row["last_due"] and (g["last_due"] is None or row["last_due"] > g["last_due"]):
+                g["last_due"] = row["last_due"]
+
+        specialty_rows = []
+        for g in groups.values():
+            forecast = finish_date(g["hours_left"], g["people"])
+            total = g["open"] + g["done"]
+            item = dict(g)
+            item["hours_left"] = round(g["hours_left"], 1)
+            item["forecast_date"] = forecast
+            item["progress"] = round(g["done"] * 100 / total) if total else 0
+            item["at_risk"] = bool(forecast and g["last_due"] and forecast > g["last_due"])
+            specialty_rows.append(item)
+        specialty_rows.sort(key=lambda r: -r["open"])
+
+        total_hours = sum(r["hours_left"] for r in member_rows)
+        workers = max(len([r for r in member_rows if r["open"]]), 1)
+        project_forecast = finish_date(total_hours, workers)
+
+        return Response({
+            "today": today,
+            "hours_per_day": HOURS_PER_DAY,
+            "default_task_hours": DEFAULT_TASK_HOURS,
+            "members": member_rows,
+            "specialties": specialty_rows,
+            "project": {
+                "open": project.tasks.exclude(status__in=closed).count(),
+                "done": project.tasks.filter(status=TaskStatus.DONE).count(),
+                "unassigned": project.tasks.exclude(status__in=closed)
+                                     .exclude(assignments__is_active=True).count(),
+                "hours_left": round(total_hours, 1),
+                "due_date": project.due_date,
+                "forecast_date": project_forecast,
+                "at_risk": bool(project_forecast and project.due_date
+                                and project_forecast > project.due_date),
+            },
+        })
 
     # ------------------------------------------------------------ qoshilish sorovlari
     @action(detail=True, methods=["post"], url_path="join")

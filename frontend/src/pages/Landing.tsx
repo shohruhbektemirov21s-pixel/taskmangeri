@@ -1,7 +1,9 @@
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import {
-  IconBoard, IconFile, IconHistory, IconReview, IconTasks, IconUsers, IconWorkspace,
+  IconBoard, IconFile, IconHistory, IconReview, IconSearch, IconTasks, IconUsers,
+  IconWorkspace,
 } from "@/components/icons";
 
 const FEATURES = [
@@ -33,6 +35,24 @@ const FLOW = [
 ];
 
 export default function Landing() {
+  const nav = useNavigate();
+  const [q, setQ] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+
+  // "/" bosilganda qidiruv ochiladi - headerdagi ishora shuni va'da qiladi.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement;
+      const typing = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        searchInput.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <>
       <header className="lp-header">
@@ -46,7 +66,18 @@ export default function Landing() {
             <a href="#tarix">Loyiha tarixi</a>
           </nav>
           <span className="spacer" />
-          <div className="gh-search mono">Loyiha qidirish... <kbd>/</kbd></div>
+          <form
+            className="gh-search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              nav(`/qidiruv?q=${encodeURIComponent(q.trim())}`);
+            }}
+          >
+            <IconSearch size={14} />
+            <input ref={searchInput} type="search" value={q} placeholder="Loyiha qidirish…"
+                   onChange={(e) => setQ(e.target.value)} />
+            <kbd>/</kbd>
+          </form>
           <Link className="btn" to="/kirish">Kirish</Link>
           <Link className="btn btn-primary" to="/royxatdan-otish">Royxatdan otish</Link>
         </div>

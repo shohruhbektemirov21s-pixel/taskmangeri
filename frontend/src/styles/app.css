@@ -381,7 +381,6 @@ input:focus, select:focus, textarea:focus {
 input::placeholder, textarea::placeholder { color: var(--subtle); }
 select { cursor: pointer; }
 select option { background: #10141f; color: var(--text); }
-input[type=color] { padding: 3px; height: 40px; cursor: pointer; }
 input[type=checkbox], input[type=radio] { accent-color: var(--accent); cursor: pointer; }
 textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .field { margin-bottom: 18px; }
@@ -763,3 +762,177 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   .tcard { background: #1a1f2b; }
   input, select, textarea, pre, .terminal { background: #0b0e16; }
 }
+
+/* ============ POPOVER (bildirishnoma paneli) ============ */
+.popover-wrap { position: relative; display: inline-flex; }
+.popover {
+  position: absolute; top: calc(100% + 10px); right: 0; width: 380px; max-width: 92vw;
+  background: rgba(16, 20, 30, .84); border: 1px solid var(--border); border-radius: 18px;
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  box-shadow: var(--gloss-strong), var(--shadow-lg);
+  z-index: 80; overflow: hidden;
+}
+.popover-head, .popover-foot { display: flex; align-items: center; gap: 8px; padding: 12px 14px; }
+.popover-head { border-bottom: 1px solid var(--border-muted); }
+.popover-foot { border-top: 1px solid var(--border-muted); font-size: 13px; }
+.popover-body { max-height: 60vh; overflow-y: auto; }
+
+.notif {
+  display: flex; gap: 10px; width: 100%; text-align: left; padding: 12px 14px;
+  background: transparent; border: none; border-bottom: 1px solid var(--border-muted);
+  color: var(--text); cursor: pointer; font: inherit; align-items: flex-start;
+  transition: background .14s;
+}
+.notif:hover { background: rgba(255, 255, 255, .06); }
+.notif:last-child { border-bottom: none; }
+.notif.unread { background: rgba(88, 166, 255, .09); }
+.notif.unread::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; margin-top: 9px;
+  flex: 0 0 6px; background: var(--accent); box-shadow: 0 0 8px var(--accent);
+}
+.notif-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13.5px; }
+.notif-text .muted { font-size: 12.5px; overflow-wrap: anywhere; }
+.notif.wide { padding: 14px 18px; }
+
+/* Jonli ulanish belgisi */
+.live {
+  position: absolute; bottom: -2px; right: -2px; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--subtle); border: 2px solid #0b0f1a;
+}
+.live.on { background: var(--success); box-shadow: 0 0 8px var(--success); }
+.live-tag {
+  font-size: 11px; color: var(--subtle); border: 1px solid var(--border);
+  border-radius: 20px; padding: 0 9px; white-space: nowrap;
+}
+.live-tag.on { color: var(--success); border-color: rgba(74, 222, 128, .4); background: var(--success-soft); }
+
+/* ============ CHAT ============ */
+.chat { display: flex; flex-direction: column; }
+.chat-body {
+  overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;
+  scroll-behavior: smooth;
+}
+.chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+.chat-msg.grouped { margin-top: -7px; }
+.chat-ava { width: 20px; flex: 0 0 20px; }
+.chat-bubble {
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--border-muted);
+  border-radius: 14px; padding: 8px 12px; max-width: min(680px, 78%);
+  font-size: 13.8px; line-height: 1.5; box-shadow: var(--gloss);
+}
+.chat-msg.mine { flex-direction: row-reverse; }
+.chat-msg.mine .chat-bubble {
+  background: rgba(88, 166, 255, .16); border-color: rgba(88, 166, 255, .3);
+}
+.chat-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; font-size: 12.5px; }
+.chat-meta a { font-weight: 600; }
+.chat-form { border-top: 1px solid var(--border-muted); padding: 12px 14px; }
+
+@media (max-width: 700px) {
+  .popover { width: 100vw; right: -12px; border-radius: 16px; }
+  .chat-bubble { max-width: 84%; }
+}
+
+/* ============ ODAM QIDIRISH ============ */
+.user-search { display: flex; flex-direction: column; gap: 10px; }
+.user-hits {
+  max-height: 320px; overflow-y: auto; border: 1px solid var(--border-muted);
+  border-radius: 14px; background: rgba(255, 255, 255, .035);
+}
+.user-hit {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 10px 12px; background: transparent; border: none;
+  border-bottom: 1px solid var(--border-muted); color: var(--text);
+  font: inherit; cursor: pointer; transition: background .14s;
+}
+.user-hit:last-child { border-bottom: none; }
+.user-hit:hover { background: rgba(255, 255, 255, .07); }
+.user-hit.on { background: var(--accent-soft); }
+.user-hit-text { display: flex; flex-direction: column; min-width: 0; font-size: 13.5px; }
+.user-hit-text .muted { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+
+.picked-user {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border: 1px solid rgba(88, 166, 255, .35); border-radius: 14px;
+  background: var(--accent-soft); box-shadow: var(--gloss);
+}
+
+/* ============ SHAXSIY YOZISHMALAR ============ */
+.dm-layout {
+  display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 18px; align-items: start;
+}
+.conv {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left;
+  padding: 11px 14px; background: transparent; border: none;
+  border-bottom: 1px solid var(--border-muted); color: var(--text);
+  font: inherit; cursor: pointer; transition: background .14s;
+}
+.conv:last-child { border-bottom: none; }
+.conv:hover { background: rgba(255, 255, 255, .06); }
+.conv.on { background: var(--accent-soft); }
+.conv-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; width: 100%; font-size: 13.5px; }
+.conv-text .muted {
+  font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .dm-layout { grid-template-columns: 1fr; }
+}
+
+/* ============ ISH TOPSHIRIG'I VA FAYLLAR ============ */
+.submission {
+  border: 1px solid var(--border-muted); border-radius: 14px;
+  padding: 14px 16px; background: rgba(255, 255, 255, .04);
+  box-shadow: var(--gloss);
+}
+.edit-history {
+  margin-top: 10px; border: 1px solid var(--border-muted);
+  border-radius: 12px; overflow: hidden;
+}
+.edit-row { padding: 10px 12px; border-bottom: 1px solid var(--border-muted); font-size: 13px; }
+.edit-row:last-child { border-bottom: none; }
+.edit-old {
+  color: var(--danger); background: rgba(255, 123, 114, .09);
+  border-radius: 8px; padding: 6px 9px; margin-top: 6px; white-space: pre-wrap;
+}
+.edit-new {
+  color: var(--success); background: rgba(74, 222, 128, .09);
+  border-radius: 8px; padding: 6px 9px; margin-top: 5px; white-space: pre-wrap;
+}
+
+.dropzone {
+  border: 1.5px dashed var(--border); border-radius: 14px; padding: 26px 16px;
+  text-align: center; color: var(--muted); cursor: pointer; font-size: 13.5px;
+  background: rgba(255, 255, 255, .03); transition: .16s;
+}
+.dropzone:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+
+.file-thumb {
+  width: 40px; height: 40px; border-radius: 10px; object-fit: cover;
+  border: 1px solid var(--border); flex: 0 0 40px;
+}
+.file-ico {
+  width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .07); border: 1px solid var(--border);
+  color: var(--muted); flex: 0 0 40px;
+}
+
+/* Muddatdan kechikayotgan qator */
+.table tbody tr.row-risk { background: rgba(255, 123, 114, .08); }
+.table tbody tr.row-risk:hover { background: rgba(255, 123, 114, .13); }
+.c-red { color: var(--danger); }
+
+/* ============ PAROL MAYDONI (ko'zcha bilan) ============ */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap .pw-input { padding-right: 46px; }
+.pw-toggle {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  width: 32px; height: 32px; display: grid; place-items: center;
+  background: transparent; border: none; border-radius: 9px;
+  color: var(--muted); cursor: pointer; transition: color .15s, background .15s;
+}
+.pw-toggle:hover { color: var(--text); background: rgba(255, 255, 255, .09); }
+.pw-toggle:active { transform: translateY(-50%) scale(.92); }
+/* Brauzerning o'z "parolni ko'rsatish" tugmasi ikkilanmasin */
+.pw-input::-ms-reveal, .pw-input::-ms-clear { display: none; }

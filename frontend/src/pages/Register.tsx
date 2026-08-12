@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { Logo } from "@/components/Logo";
-import { ErrorMsg } from "@/components/ui";
+import { ErrorMsg, PasswordInput } from "@/components/ui";
 
 interface SpecialtyItem {
   value: string;
@@ -99,16 +99,17 @@ export default function Register() {
 
             <div className="field">
               <label>Parol</label>
-              <input type="password" value={form.password} required
-                     onChange={(e) => set("password", e.target.value)}
-                     placeholder="kamida 8 belgi" />
+              <PasswordInput value={form.password} required autoComplete="new-password"
+                             onChange={(v) => set("password", v)}
+                             placeholder="kamida 8 belgi" />
               {errors.password && <div className="err">{errors.password}</div>}
             </div>
 
             <div className="field">
               <label>Parolni tasdiqlang</label>
-              <input type="password" value={form.password_confirm} required
-                     onChange={(e) => set("password_confirm", e.target.value)} />
+              <PasswordInput value={form.password_confirm} required autoComplete="new-password"
+                             onChange={(v) => set("password_confirm", v)}
+                             placeholder="parolni qayta yozing" />
               {errors.password_confirm && <div className="err">{errors.password_confirm}</div>}
             </div>
 

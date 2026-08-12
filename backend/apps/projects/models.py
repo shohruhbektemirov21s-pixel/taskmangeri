@@ -20,6 +20,9 @@ def make_join_code():
 
 class ProjectRole(models.TextChoices):
     MANAGER = "MANAGER", "Loyiha menejeri"
+    # Loyihada menejer bilan deyarli teng huquqli, lekin MENEJERGA tegmaydi:
+    # uni chiqara ham, roli o'zgartira ham olmaydi.
+    ADMIN = "ADMIN", "Loyiha admini"
     DEVELOPER = "DEVELOPER", "Dasturchi"
     QA = "QA", "Tester (QA)"
     VIEWER = "VIEWER", "Kuzatuvchi"
@@ -158,6 +161,11 @@ class Project(models.Model):
     def developers(self):
         return self.active_members.filter(role__in=[ProjectRole.DEVELOPER, ProjectRole.QA])
 
+    @property
+    def has_active_manager(self):
+        """Loyihada tirik menejer bormi - menejersiz qolib ketmasin."""
+        return self.memberships.filter(is_active=True, role=ProjectRole.MANAGER).exists()
+
     def progress(self):
         from apps.tasks.models import TaskStatus
 
@@ -295,3 +303,60 @@ class ProjectBrief(models.Model):
                   "conventions", "definition_of_done", "pitfalls", "contacts"]
         filled = sum(1 for f in fields if (getattr(self, f) or "").strip())
         return round(filled * 100 / len(fields))
+
+
+def project_file_path(instance, filename):
+    return "projects/{}/{}".format(instance.project_id, filename)
+
+
+class ProjectFile(models.Model):
+    """Loyihaga tegishli fayl: texnik topshiriq, dizayn, hujjat, arxiv.
+
+    Vazifa fayllaridan (`tasks.Attachment`) farqi: bu fayllar bitta ishga emas,
+    butun loyihaga tegishli - yangi kelgan odam ham topib oladi.
+    """
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="files")
+    file = models.FileField("Fayl", upload_to=project_file_path)
+    original_name = models.CharField("Fayl nomi", max_length=255, blank=True)
+    size = models.PositiveBigIntegerField("Hajmi (bayt)", default=0)
+    content_type = models.CharField("Turi", max_length=120, blank=True)
+    description = models.CharField("Izoh", max_length=250, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                    null=True, related_name="project_files")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Loyiha fayli"
+        verbose_name_plural = "Loyiha fayllari"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.original_name or str(self.file)
+
+    def save(self, *args, **kwargs):
+        if self.file and not self.original_name:
+            self.original_name = self.file.name.rsplit("/", 1)[-1][:255]
+        if self.file and not self.size:
+            try:
+                self.size = self.file.size
+            except Exception:
+                self.size = 0
+        super().save(*args, **kwargs)
+
+    @property
+    def extension(self):
+        return (self.original_name or "").rsplit(".", 1)[-1].lower() if "." in (self.original_name or "") else ""
+
+    @property
+    def is_image(self):
+        return (self.content_type or "").startswith("image/")
+
+    @property
+    def size_display(self):
+        size = float(self.size or 0)
+        for unit in ("B", "KB", "MB", "GB"):
+            if size < 1024 or unit == "GB":
+                return "{:.0f} {}".format(size, unit) if unit == "B" else "{:.1f} {}".format(size, unit)
+            size /= 1024
+        return "{:.1f} GB".format(size)

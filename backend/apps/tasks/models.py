@@ -286,6 +286,8 @@ class Attachment(models.Model):
     """Vazifaga biriktirilgan fayl: skrinshot, hujjat, log, arxiv."""
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="attachments")
+    submission = models.ForeignKey("Submission", on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name="files", verbose_name="Topshiriq")
     file = models.FileField("Fayl", upload_to=attachment_path)
     original_name = models.CharField("Fayl nomi", max_length=255, blank=True)
     size = models.PositiveBigIntegerField("Hajmi (bayt)", default=0)
@@ -351,3 +353,56 @@ class WorkLog(models.Model):
 
     def __str__(self):
         return "{} - {} soat".format(self.user, self.hours)
+
+
+class Submission(models.Model):
+    """Ish topshirig'i: dasturchi vazifani yakunlab, nima qilganini yozadi.
+
+    Menejer (yoki loyiha admini) tasdiqlamaguncha vazifa tekshiruvda turadi -
+    topshiriq esa shu tekshiruv aylanasining "hisoboti" bo'lib qoladi.
+
+    Tahrirlash va o'chirish mumkin, lekin har bir tahrir `SubmissionEdit` da
+    saqlanadi: kim, qachon, nimani o'zgartirgani ko'rinib tursin.
+    """
+
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="submissions")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                               related_name="submissions", verbose_name="Kim topshirdi")
+    round_no = models.PositiveIntegerField("Tekshiruv aylanasi", default=1)
+    text = models.TextField("Qilingan ish",
+                            help_text="Nima qilindi, qaysi fayllar o'zgardi, nimaga e'tibor berish kerak")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    edited_count = models.PositiveIntegerField("Necha marta tahrirlangan", default=0)
+
+    class Meta:
+        verbose_name = "Ish topshirig'i"
+        verbose_name_plural = "Ish topshiriqlari"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["task", "-created_at"])]
+
+    def __str__(self):
+        return "{} - {}".format(self.task.code, self.author)
+
+    @property
+    def is_edited(self):
+        return self.edited_count > 0
+
+
+class SubmissionEdit(models.Model):
+    """Topshiriq tahrirlari tarixi - eski matn hech qachon yo'qolmaydi."""
+
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="edits")
+    editor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                               null=True, related_name="submission_edits")
+    old_text = models.TextField("Eski matn")
+    new_text = models.TextField("Yangi matn")
+    edited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Topshiriq tahriri"
+        verbose_name_plural = "Topshiriq tahrirlari"
+        ordering = ["-edited_at"]
+
+    def __str__(self):
+        return "{} tahriri".format(self.submission_id)

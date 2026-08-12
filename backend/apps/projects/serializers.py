@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserBriefSerializer
 
-from .models import JoinRequest, Project, ProjectBrief, ProjectMember, ProjectRole
+from .models import (JoinRequest, Project, ProjectBrief, ProjectFile, ProjectMember,
+                     ProjectRole)
 
 
 class ProjectMemberSerializer(serializers.ModelSerializer):
@@ -138,3 +139,31 @@ class ProjectDetailSerializer(ProjectSerializer):
         from .models import RequestStatus
 
         return obj.join_requests.filter(status=RequestStatus.PENDING).count()
+
+
+class ProjectFileSerializer(serializers.ModelSerializer):
+    """Loyihaga biriktirilgan fayl."""
+
+    uploaded_by = UserBriefSerializer(read_only=True)
+    size_display = serializers.CharField(read_only=True)
+    extension = serializers.CharField(read_only=True)
+    is_image = serializers.BooleanField(read_only=True)
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectFile
+        fields = ["id", "file", "url", "original_name", "size", "size_display", "content_type",
+                  "description", "extension", "is_image", "uploaded_by", "created_at"]
+        read_only_fields = ["original_name", "size", "content_type", "uploaded_by", "created_at"]
+
+    def get_url(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.file.url) if request else obj.file.url
+
+    def validate_file(self, value):
+        limit = 25 * 1024 * 1024
+        if value.size > limit:
+            raise serializers.ValidationError("Fayl hajmi 25 MB dan oshmasligi kerak.")
+        return value
