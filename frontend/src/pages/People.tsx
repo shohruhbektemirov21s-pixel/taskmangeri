@@ -79,7 +79,7 @@ export default function People() {
         <div className="split">
           <div className="card">
             {!users ? <Loading /> : (
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <thead>
                   <tr>
                     <th>Foydalanuvchi</th><th>Mutaxassislik</th><th>Tizim roli</th>
@@ -137,7 +137,7 @@ export default function People() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
 

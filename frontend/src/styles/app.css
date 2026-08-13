@@ -468,6 +468,9 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .form-actions { display: flex; gap: 12px; padding-top: 10px; }
 
 /* ============ TABLE ============ */
+/* Kartaning o'zida `overflow: hidden` turadi - keng jadval qirqilib qolmasin
+   deb uni alohida siljiydigan o'ramga solamiz. */
+.table-wrap { width: 100%; overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th {
   text-align: left; padding: 11px 18px; font-size: 11.5px; color: var(--muted);
@@ -478,6 +481,16 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .table tr:last-child td { border-bottom: none; }
 .table tbody tr { transition: background .14s; }
 .table tbody tr:hover { background: rgba(255, 255, 255, .055); }
+/* Amal tugmalari: joy yetmasa yangi qatorga tushsin, qirqilib ketmasin */
+.table .row-actions {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end;
+  max-width: 230px; margin-left: auto;
+}
+/* Tugmada `white-space: nowrap` turadi - uzun yozuv ("Adminlikni bekor qilish")
+   ustunni cho'zib, jadvalni kartadan chiqarib yuborardi. Shu yerda o'ralsin. */
+.table .row-actions .btn {
+  white-space: normal; text-align: center; line-height: 1.25; padding: 6px 12px;
+}
 
 /* ============ MESSAGES ============ */
 .msg {
@@ -611,6 +624,20 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   background: rgba(255, 255, 255, .08); border: 1px solid var(--border);
   border-radius: 20px; font-size: 12.5px;
 }
+/* Ko'nikma muharriri: olib tashlash tugmasi va bosiladigan taklif */
+.chip-x {
+  display: grid; place-items: center; padding: 0; min-height: 0;
+  width: 15px; height: 15px; border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(255, 255, 255, .12); color: var(--muted);
+  margin-right: -4px;
+}
+.chip-x:hover { background: var(--danger, #f85149); color: #fff; }
+.chip-add {
+  cursor: pointer; font-family: inherit; min-height: 0;
+  color: var(--muted); border-style: dashed;
+}
+.chip-add:hover { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+
 .divider { height: 1px; background: var(--border-muted); margin: 18px 0; }
 .callout {
   padding: 13px 17px; border-radius: 14px;

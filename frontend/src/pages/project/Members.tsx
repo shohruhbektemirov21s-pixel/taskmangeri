@@ -7,7 +7,7 @@ import InviteBox from "@/components/InviteBox";
 import { Avatar, Card, Empty, ErrorMsg, Loading, SpecialtyTag, fmtDate, timeAgo } from "@/components/ui";
 
 export default function Members({ project, onChange }: { project: Project; onChange: () => void }) {
-  const { meta } = useAuth();
+  const { meta, user } = useAuth();
   const acc = project.access;
 
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
@@ -42,6 +42,9 @@ export default function Members({ project, onChange }: { project: Project; onCha
   /** Menejer himoyalangan: uni na loyiha admini, na tizim admini chiqara oladi. */
   const isManager = (m: ProjectMember) =>
     m.role === "MANAGER" || m.user.id === project.manager?.id;
+  /** O'ziga o'zi tegmaydi: adminlikni ham, chiqishni ham boshqa odam bajaradi.
+      Ataylab chiqmoqchi bo'lsa o'ngdagi «Loyihadan chiqish» kartasi bor. */
+  const isSelf = (m: ProjectMember) => m.user.id === user?.id;
 
   const pending = requests.filter((r) => r.status === "PENDING");
   const decided = requests.filter((r) => r.status !== "PENDING");
@@ -110,7 +113,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
       <div className="split">
         <div>
           <Card title="Jamoa" padded={false} badge={<span className="badge">{active.length}</span>}>
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <thead>
                 <tr><th>Azo</th><th>Mutaxassislik</th><th>Rol</th><th>Yuklama</th><th></th></tr>
               </thead>
@@ -160,22 +163,42 @@ export default function Members({ project, onChange }: { project: Project; onCha
                       <span className="badge badge-info">{m.load?.open ?? 0} ochiq</span>{" "}
                       <span className="badge badge-ok">{m.load?.done ?? 0} bajarilgan</span>
                     </td>
-                    <td className="right nowrap">
-                      {acc.can_appoint_admin && !m.user.is_platform_admin && (
-                        <button className="btn btn-sm" title="Tizim admini qilib tayinlash"
-                                onClick={() => {
-                                  if (!window.confirm(
-                                    `${m.user.full_name} tizim admini bo'ladi va butun platformada `
-                                    + "hamma huquqqa ega bo'ladi. Davom etamizmi?")) return;
-                                  void act(() => api.post(
-                                    `/projects/${project.id}/members/${m.id}/`,
-                                    { action: "appoint_admin" }));
-                                }}>
-                          Admin qilish
-                        </button>
-                      )}{" "}
+                    <td className="right"><div className="row-actions">
+                      {acc.can_appoint_admin && !isSelf(m) && (
+                        m.user.is_platform_admin ? (
+                          /* Berilgan huquqni qaytarib olish. Oxirgi admin va bosh
+                             hisob serverda himoyalangan - u yerdan 400 keladi. */
+                          <button className="btn btn-sm" title="Tizim admini huquqini bekor qilish"
+                                  onClick={() => {
+                                    if (!window.confirm(
+                                      `${m.user.full_name} tizim admini huquqidan mahrum bo'ladi. `
+                                      + "Loyihadagi roli o'zgarmaydi. Davom etamizmi?")) return;
+                                    void act(() => api.post(
+                                      `/projects/${project.id}/members/${m.id}/`,
+                                      { action: "revoke_admin" }));
+                                  }}>
+                            Adminlikni bekor qilish
+                          </button>
+                        ) : (
+                          <button className="btn btn-sm" title="Tizim admini qilib tayinlash"
+                                  onClick={() => {
+                                    if (!window.confirm(
+                                      `${m.user.full_name} tizim admini bo'ladi va butun platformada `
+                                      + "hamma huquqqa ega bo'ladi. Davom etamizmi?")) return;
+                                    void act(() => api.post(
+                                      `/projects/${project.id}/members/${m.id}/`,
+                                      { action: "appoint_admin" }));
+                                  }}>
+                            Admin qilish
+                          </button>
+                        )
+                      )}
                       {acc.can_manage && (
-                        isManager(m) ? (
+                        isSelf(m) ? (
+                          <span className="badge" title="O'zingizga bu yerdan tega olmaysiz">
+                            bu sizsiz
+                          </span>
+                        ) : isManager(m) ? (
                           <span className="badge" title="Menejerni faqat boshqa menejer almashtira oladi">
                             himoyalangan
                           </span>
@@ -190,11 +213,12 @@ export default function Members({ project, onChange }: { project: Project; onCha
                           }}>Chiqarish</button>
                         )
                       )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
 
           {former.length > 0 && (
@@ -222,7 +246,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
 
           {decided.length > 0 && acc.can_manage && (
             <Card title="Sorovlar tarixi" padded={false}>
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <tbody>
                   {decided.map((r) => (
                     <tr key={r.id}>
@@ -237,7 +261,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
           )}
         </div>

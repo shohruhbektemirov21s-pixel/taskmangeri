@@ -238,7 +238,59 @@ class ProjectViewSet(viewsets.ModelViewSet):
                    url="/profil", actor=request.user)
             return Response(ProjectMemberSerializer(member, context={"request": request}).data)
 
+        if act == "revoke_admin":
+            """Berilgan tizim admini huquqini qaytarib olish.
+
+            Tayinlashning teskarisi, lekin ikkita himoya bilan:
+              - oxirgi tizim adminini tushirib bo'lmaydi (platforma boshqaruvsiz
+                qolmasin - menejer himoyasi bilan bir xil mantiq);
+              - superuser (bosh hisob) hech qachon tushirilmaydi.
+            """
+            if not access.can_appoint_admin:
+                raise PermissionDenied("Adminlikni bekor qilish huquqi faqat loyiha menejerida.")
+            target = member.user
+            # O'ziga o'zi tegmasin: adminlikdan tushib qolib, keyin uni qaytara
+            # olmay qolish oson. Huquqni boshqa admin yoki menejer olib qo'yadi.
+            if target.pk == request.user.pk:
+                raise ValidationError({
+                    "detail": "O'z adminlik huquqingizni o'zingiz bekor qila olmaysiz - "
+                              "buni boshqa menejer yoki admin qiladi."
+                })
+            if not target.is_platform_admin:
+                raise ValidationError({"detail": "Bu odam tizim admini emas."})
+            if target.is_superuser:
+                raise ValidationError({"detail": "Bosh hisobning adminligini bekor qilib bo'lmaydi."})
+            if User.objects.filter(global_role=GlobalRole.ADMIN, is_active=True)                    .exclude(pk=target.pk).count() == 0:
+                raise ValidationError({
+                    "detail": "Bu oxirgi tizim admini - uni tushirsak platforma boshqaruvsiz qoladi."
+                })
+
+            # Mutaxassisligi loyiha menejeri bo'lsa menejer roliga qaytadi,
+            # aks holda oddiy dasturchi bo'ladi - ro'yxatdan o'tish mantig'i bilan bir xil.
+            from apps.accounts.specialties import Specialty
+
+            target.global_role = (GlobalRole.MANAGER if target.specialty == Specialty.PM
+                                  else GlobalRole.DEVELOPER)
+            target.save(update_fields=["global_role"])
+            log(actor=request.user, verb="user.role_changed", project=project, target=target,
+                summary="{} tizim adminligi bekor qilindi".format(target.full_name),
+                detail="Bekor qildi: {} | yangi rol: {}".format(
+                    request.user.full_name, target.get_global_role_display()))
+            notify(target, NotificationKind.MEMBER_JOINED,
+                   title="Tizim admini huquqi bekor qilindi",
+                   body="{} loyihasida {} bekor qildi".format(project.name, request.user.full_name),
+                   url="/profil", actor=request.user)
+            return Response(ProjectMemberSerializer(member, context={"request": request}).data)
+
         if act == "remove":
+            # O'zini bu yerdan chiqarish - chalkash yo'l. Ataylab chiqmoqchi bo'lsa
+            # "Loyihadan chiqish" (POST /leave/) bor: u eslatma so'raydi va
+            # tarixga "o'zi chiqdi" deb yoziladi.
+            if member.user_id == request.user.pk:
+                raise ValidationError({
+                    "detail": "O'zingizni bu ro'yxatdan chiqara olmaysiz - "
+                              "«Loyihadan chiqish» dan foydalaning."
+                })
             note = (request.data.get("handover_note") or "").strip()
             member.is_active = False
             member.left_at = timezone.now()
@@ -352,7 +404,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         qoyilmagan vazifa uchun DEFAULT_TASK_HOURS olinadi - aks holda bashorat
         "0 kun" bolib, yolgon tinchlik beradi.
         """
-        from datetime import timedelta
+        from datetime import datetime, timedelta
 
         from apps.accounts.serializers import UserBriefSerializer
         from apps.accounts.specialties import Specialty
@@ -363,6 +415,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
         HOURS_PER_DAY = 6
         DEFAULT_TASK_HOURS = 4
         today = timezone.localdate()
+
+        def to_date(value):
+            """Muddatni mahalliy sanaga keltiradi (date ham, datetime ham bo'lishi mumkin)."""
+            if value is None:
+                return None
+            if isinstance(value, datetime):
+                return timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
+            return value
         closed = [TaskStatus.DONE, TaskStatus.CANCELLED]
 
         rows = (TaskAssignment.objects
@@ -384,11 +444,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
             item["open"] += 1
             if task.status == TaskStatus.IN_REVIEW:
                 item["in_review"] += 1
-            if task.due_date and task.due_date < today:
+            # Vazifa muddati sana+soat, bashorat esa kun hisobida ishlaydi -
+            # shuning uchun mahalliy sanaga keltiramiz. `to_date` ikkala turni
+            # ham qabul qiladi: eski yozuvlar yoki keshlangan ulanish tufayli
+            # bu yerga `date` kelib qolsa ham hisob buzilmaydi.
+            task_due = to_date(task.due_date)
+            if task_due and task_due < today:
                 item["overdue"] += 1
             item["hours_left"] += float(task.estimate_hours or 0) or DEFAULT_TASK_HOURS
-            if task.due_date and (item["last_due"] is None or task.due_date > item["last_due"]):
-                item["last_due"] = task.due_date
+            if task_due and (item["last_due"] is None or task_due > item["last_due"]):
+                item["last_due"] = task_due
 
         def finish_date(hours, workers=1):
             if hours <= 0:

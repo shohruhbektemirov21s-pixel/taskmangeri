@@ -7,7 +7,7 @@ import TeamBuilder from "@/components/TeamBuilder";
 import Timeline from "@/components/Timeline";
 import {
   AvatarStack, Card, Empty, Loading, Priority, Progress,
-  Stat, StatusBadge, fmtDate, timeAgo,
+  Stat, StatusBadge, fmtDate, fmtDateTime, timeAgo,
 } from "@/components/ui";
 
 export default function Dashboard() {
@@ -71,7 +71,7 @@ export default function Dashboard() {
                   {t.specialty_label && <span className="badge badge-brand">{t.specialty_label}</span>}
                   {t.due_date && (
                     <span className={`badge ${t.is_overdue ? "badge-danger" : ""}`}>
-                      Muddat: {fmtDate(t.due_date)}
+                      Muddat: {fmtDateTime(t.due_date)}
                     </span>
                   )}
                 </div>
@@ -103,7 +103,7 @@ export default function Dashboard() {
           {d.focus_queue.length > 1 && (
             <Card title="Navbatdagi ishlar" padded={false}
                   action={<Link className="btn btn-sm" to="/mening-ishim">Hammasi</Link>}>
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <tbody>
                   {d.focus_queue.map((x) => (
                     <tr key={x.id}>
@@ -117,7 +117,7 @@ export default function Dashboard() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
           )}
 
@@ -125,7 +125,7 @@ export default function Dashboard() {
             <Card title="Tekshirishingiz kutilmoqda" padded={false}
                   badge={<span className="badge badge-danger">{d.review_queue.length}</span>}
                   action={<Link className="btn btn-sm" to="/tekshiruv">Navbatga otish</Link>}>
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <tbody>
                   {d.review_queue.map((x) => (
                     <tr key={x.id}>
@@ -138,7 +138,7 @@ export default function Dashboard() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
           )}
 
