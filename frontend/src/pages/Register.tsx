@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { Logo } from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 import { ErrorMsg, PasswordInput } from "@/components/ui";
 
 interface SpecialtyItem {
@@ -59,6 +60,8 @@ export default function Register() {
 
   return (
     <div className="auth-wrap">
+      {/* Kirish sahifasida sarlavha yo'q - rejim tugmasi burchakda turadi */}
+      <ThemeToggle className="top-icon theme-float" />
       <div className="auth-card" style={{ maxWidth: 380 }}>
         <div className="center mb">
           <Logo size={46} />

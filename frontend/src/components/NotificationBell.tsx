@@ -13,7 +13,10 @@ const TONE: Record<string, string> = {
   "task.assigned": "badge-info",
   "task.review": "badge-brand",
   "task.decided": "badge-ok",
+  "task.comment": "badge",
+  "member.joined": "badge-ok",
   "chat.message": "badge",
+  "chat.direct": "badge",
 };
 
 export default function NotificationBell() {

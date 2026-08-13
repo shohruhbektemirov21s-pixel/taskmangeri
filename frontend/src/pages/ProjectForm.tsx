@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
-import TeamPicker, { sendInvites } from "@/components/TeamPicker";
+import TeamPicker, { createPickedTasks, sendInvites, taskCount }
+  from "@/components/TeamPicker";
 import type { Pick as TeamPick } from "@/components/TeamPicker";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -27,8 +28,7 @@ export default function ProjectForm() {
 
   const [f, setF] = useState({
     name: "", description: "",
-    status: "ACTIVE", repo_url: "", start_date: "", due_date: "",
-    is_public: true, auto_accept: false,
+    status: "ACTIVE", start_date: "", due_date: "",
   });
 
   useEffect(() => {
@@ -37,9 +37,8 @@ export default function ProjectForm() {
         const p = await api.get<Project>(`/projects/${id}/`);
         setF({
           name: p.name, description: p.description,
-          status: p.status, repo_url: p.repo_url,
+          status: p.status,
           start_date: p.start_date || "", due_date: p.due_date || "",
-          is_public: p.is_public, auto_accept: p.auto_accept,
         });
         setLoaded(true);
       }
@@ -79,19 +78,34 @@ export default function ProjectForm() {
           return;
         }
       }
-      // Taklif yuborilmasa ham loyiha qoladi - kim qolib ketganini aytamiz.
+      // Taklif yoki vazifa o'tmasa ham loyiha qoladi - nima qolib ketganini
+      // aytamiz. Vazifa taklifga bog'liq emas: taklif yuborilmasa ham
+      // yozib qo'yilgan ish doskaga tushaveradi.
+      const tasks = taskCount(invites);
       if (invites.length) {
-        const failed = await sendInvites(saved.id, invites);
-        if (failed.length) {
+        const failedInvites = await sendInvites(saved.id, invites);
+        const { failedTasks, failedFiles } = tasks
+          ? await createPickedTasks(saved.id, invites)
+          : { failedTasks: [], failedFiles: [] };
+        if (failedInvites.length || failedTasks.length || failedFiles.length) {
+          const parts = [];
+          if (failedInvites.length) parts.push("taklif yuborilmadi: " + failedInvites.join(", "));
+          if (failedTasks.length) parts.push("vazifa yaratilmadi: " + failedTasks.join(", "));
+          if (failedFiles.length) {
+            parts.push("fayllari biriktirilmadi: " + failedFiles.join(", ")
+                       + " (vazifaning ozi yaratildi)");
+          }
           setBusy(false);
-          setError("Loyiha yaratildi, lekin taklif yuborilmadi: " + failed.join(", ")
-                   + " — «Jamoa» bolimidan qayta urinib koring.");
-          nav(`/loyiha/${saved.id}/jamoa`);
+          setError("Loyiha yaratildi, lekin " + parts.join("; ")
+                   + " — «Jamoa» va «Doska» bolimidan qayta urinib koring.");
+          nav(`/loyiha/${saved.id}/${failedInvites.length ? "jamoa" : "doska"}`);
           return;
         }
       }
 
-      nav(`/loyiha/${saved.id}/brif`);
+      // Vazifa yozilgan bolsa darrov doskani ochamiz - odam ishlar joyiga
+      // tushganini oz kozi bilan korsin.
+      nav(`/loyiha/${saved.id}/${tasks ? "doska" : "brif"}`);
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields);
@@ -142,20 +156,12 @@ export default function ProjectForm() {
                   {errors.due_date && <div className="err">{errors.due_date}</div>}
                 </div>
               </div>
-              <div className="help">
-                Ikkalasi ham ixtiyoriy, lekin qoyilsa muddat bashorati aniqroq boladi —
-                «Muddatlar» bolimi shu sanalarga qarab kechikishni belgilaydi.
-              </div>
             </Card>
 
             {/* Tahrirlashda fayllar alohida «Fayllar» bolimida boshqariladi -
                 bu yerda faqat yangi loyiha uchun boshlangich hujjatlar. */}
             {!editing && (
               <Card title="Boshlangich fayllar">
-                <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
-                  Texnik topshiriq, dizayn, shartnoma — loyiha bilan birga yuklanadi va
-                  jamoaga darrov korinadi. Keyin «Fayllar» bolimidan qoshsa ham boladi.
-                </p>
                 <FilePicker
                   files={files}
                   onChange={setFiles}
@@ -168,67 +174,32 @@ export default function ProjectForm() {
             </div>
 
             <div>
-              <Card title="Qoshilish va holat">
-                <div className="field">
-                  <label>Holat</label>
+              {/* Kim korishi, avtomatik qabul va repozitoriy formadan olib
+                  tashlandi - bu yerda faqat holat qoladi. Loyiha ochiq bo'lib
+                  yaratiladi (modeldagi standart), repozitoriy esa keyin
+                  qo'shiladi. */}
+              <Card title="Holat">
+                {/* Kartada bitta maydon qoldi - pastdagi ortiqcha bo'shliq olindi */}
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>Loyiha holati</label>
                   <select value={f.status} onChange={(e) => set("status", e.target.value)}>
                     {(meta?.project_status || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
                     ))}
                   </select>
                 </div>
-                {/* Belgilash katakchasi orniga ikkita aniq variant: odam nima
-                    tanlayotganini va oqibati nima ekanini korib tursin. */}
-                <div className="field">
-                  <label>Kim korishi mumkin</label>
-                  <div className="choice-list">
-                    <label className={`choice ${f.is_public ? "on" : ""}`}>
-                      <input type="radio" name="visibility" checked={f.is_public}
-                             onChange={() => set("is_public", true)} />
-                      <span>
-                        <strong>Ochiq</strong>
-                        <small>
-                          Platformadagi hamma koradi va qoshilish sorovi yubora oladi.
-                          Vazifalar korinadi, fayllar esa faqat jamoaga.
-                        </small>
-                      </span>
-                    </label>
-                    <label className={`choice ${!f.is_public ? "on" : ""}`}>
-                      <input type="radio" name="visibility" checked={!f.is_public}
-                             onChange={() => set("is_public", false)} />
-                      <span>
-                        <strong>Yopiq</strong>
-                        <small>
-                          Faqat jamoa azolari koradi. Loyiha royxatlarda, qidiruvda va
-                          ochiq sahifalarda umuman chiqmaydi — begona odam manzilni
-                          bilsa ham kira olmaydi. Qoshilish faqat taklif yoki kod bilan.
-                        </small>
-                      </span>
-                    </label>
-                  </div>
-                </div>
-                <label className="row" style={{ fontWeight: 400, marginTop: 8 }}>
-                  <input type="checkbox" checked={f.auto_accept} style={{ width: "auto", minHeight: 0 }}
-                         onChange={(e) => set("auto_accept", e.target.checked)} />
-                  Sorovlarni avtomatik qabul qilish
-                </label>
-                <div className="divider" />
-                <div className="field">
-                  <label>Repozitoriy</label>
-                  <input value={f.repo_url} onChange={(e) => set("repo_url", e.target.value)}
-                         placeholder="https://github.com/..." />
-                </div>
               </Card>
 
               {/* Tahrirlashda jamoa «Jamoa» bolimida boshqariladi - bu yerda
                   faqat yangi loyihaga chaqiriladigan odamlar. */}
               {!editing && (
-                <Card title="Jamoaga taklif">
+                <Card title="Jamoaga taklif va vazifalar">
                   <TeamPicker
                     picks={invites}
                     onChange={setInvites}
                     /* Menejer siz bolasiz - bu royxatdan menejer roli berilmaydi */
                     roles={(meta?.project_role || []).filter((r) => r.value !== "MANAGER")}
+                    priorities={meta?.task_priority || []}
                     defaultRole="DEVELOPER"
                     excludeId={user?.id}
                   />

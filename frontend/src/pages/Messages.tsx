@@ -87,7 +87,7 @@ export default function Messages() {
               <div className="card-list">
                 {!conversations.length && (
                   <div className="muted center" style={{ padding: 18, fontSize: 13 }}>
-                    Hali yozishma yo'q — yuqoridan odam toping.
+                    Hali yozishma yo'q.
                   </div>
                 )}
                 {conversations.map((c) => (

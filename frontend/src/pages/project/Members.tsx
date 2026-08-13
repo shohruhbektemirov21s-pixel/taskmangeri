@@ -269,12 +269,6 @@ export default function Members({ project, onChange }: { project: Project; onCha
         <div>
           {acc.can_manage && (
             <Card title="Qoshilish kodi">
-              <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
-                Jamoaga qo'shish uchun yuqoridagi <strong>«A'zo qo'shish»</strong> dan
-                odamni email yoki ismi bo'yicha toping va taklif yuboring — u
-                tasdiqlagach a'zo bo'ladi.
-              </p>
-              <div className="divider" />
               <div className="muted" style={{ fontSize: 12 }}>
                 Kod bilan o'zi qo'shilishi uchun: <code>{project.join_code}</code>
               </div>

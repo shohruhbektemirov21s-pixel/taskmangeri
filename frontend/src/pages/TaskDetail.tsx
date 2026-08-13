@@ -6,6 +6,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import TaskSubmission from "@/components/TaskSubmission";
 import Timeline from "@/components/Timeline";
+import { useRealtime } from "@/realtime/RealtimeContext";
 import {
   Avatar, AvatarStack, Card, ErrorMsg, Loading, Priority, StatusBadge,
   fmtDate, fmtDateTime, fromDateTimeInput, timeAgo, toDateTimeInput,
@@ -21,6 +22,7 @@ export default function TaskDetail() {
   const { taskId } = useParams();
   const nav = useNavigate();
   const { user, meta } = useAuth();
+  const { subscribe } = useRealtime();
 
   const [task, setTask] = useState<Task | null>(null);
   const [history, setHistory] = useState<Activity[]>([]);
@@ -47,6 +49,11 @@ export default function TaskDetail() {
   }, [taskId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Shu vazifaga tegilsa (izoh, holat, tekshiruv) - sahifa o'zi yangilanadi.
+  useEffect(() => subscribe((d) => {
+    if (d.event === "task.update" && String(d.task) === String(taskId)) void load();
+  }), [subscribe, load, taskId]);
 
   async function run(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -92,7 +99,8 @@ export default function TaskDetail() {
 
   const acc = task.access!;
   // Muddatni menejer (yoki ijrochining o'zi) qo'yadi - tahrirlash huquqi bilan bir xil.
-  const canEdit = acc.can_create_task || task.assignees.some((a) => a.id === user?.id);
+  // Vazifa mazmunini faqat menejer va admin o'zgartiradi (serverda ham shunday).
+  const canEdit = acc.can_create_task;
   const transitions = task.allowed_transitions || [];
   const attachments = task.attachments || [];
 
@@ -109,7 +117,7 @@ export default function TaskDetail() {
         }
         actions={
           <>
-            {(acc.can_create_task || task.assignees.some((a) => a.id === user?.id)) && (
+            {canEdit && (
               <Link className="btn btn-sm" to={`/vazifa/${task.id}/tahrir`}>Tahrirlash</Link>
             )}
             {acc.can_manage && (
@@ -133,6 +141,9 @@ export default function TaskDetail() {
           <Priority task={task} />
           <span className="badge">{task.type_display}</span>
           {task.specialty_label && <span className="badge badge-brand">{task.specialty_label}</span>}
+          {task.start_date && (
+            <span className="badge">Boshlanish: {fmtDateTime(task.start_date)}</span>
+          )}
           {task.due_date && !editDue && (
             <span className={`badge ${task.is_overdue ? "badge-danger" : ""}`}>
               Muddat: {fmtDateTime(task.due_date)}
@@ -416,7 +427,6 @@ export default function TaskDetail() {
                     <textarea rows={4} value={review.comment}
                               placeholder="Nimani tuzatish kerak - aniq yozing"
                               onChange={(e) => setReview({ ...review, comment: e.target.value })} />
-                    <div className="help">Qaytarayotgan bolsangiz izoh majburiy</div>
                   </div>
                   <button className="btn btn-primary btn-block" disabled={busy}>Qarorni saqlash</button>
                 </form>
@@ -445,18 +455,6 @@ export default function TaskDetail() {
                   <li className="row">
                     <span className="muted">Yakunlangan</span><span className="spacer" />
                     <span>{fmtDateTime(task.completed_at)}</span>
-                  </li>
-                )}
-                {task.branch_name && (
-                  <li className="row">
-                    <span className="muted">Branch</span><span className="spacer" />
-                    <code>{task.branch_name}</code>
-                  </li>
-                )}
-                {task.pr_url && (
-                  <li className="row">
-                    <span className="muted">Pull request</span><span className="spacer" />
-                    <a href={task.pr_url} target="_blank" rel="noreferrer">ochish</a>
                   </li>
                 )}
               </ul>

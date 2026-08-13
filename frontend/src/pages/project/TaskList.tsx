@@ -1,20 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { Project, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
+import { useRealtime } from "@/realtime/RealtimeContext";
 import { Empty, Loading, TaskRow } from "@/components/ui";
 
 export default function TaskList({ project }: { project: Project }) {
   const { meta } = useAuth();
+  const { subscribe } = useRealtime();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [f, setF] = useState({ status: "", assignee: "", task_type: "", search: "", open: "" });
 
-  useEffect(() => {
-    setTasks(null);
-    void api.get<any>("/tasks/", { project: project.id, ...f, page_size: 200 })
-      .then((d) => setTasks(listOf<Task>(d)));
+  const load = useCallback(async () => {
+    const d = await api.get<any>("/tasks/", { project: project.id, ...f, page_size: 200 });
+    setTasks(listOf<Task>(d));
   }, [project.id, f]);
+
+  useEffect(() => {
+    // Filtr almashganda ro'yxat tozalanadi; jonli yangilanishda esa yo'q -
+    // aks holda har o'zgarishda ro'yxat "sakrab" ketardi.
+    setTasks(null);
+    void load();
+  }, [load]);
+
+  useEffect(() => subscribe((d) => {
+    if (d.event === "task.update" && Number(d.project) === project.id) void load();
+  }), [subscribe, load, project.id]);
 
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 

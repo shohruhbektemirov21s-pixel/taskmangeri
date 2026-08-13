@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Task, UserBrief } from "@/api/types";
-import { IconEye, IconEyeOff } from "./icons";
+import { IconEye, IconEyeOff, IconFile } from "./icons";
 
 /* ---------------------------------------------------------------- Avatar */
 export function Avatar({ user, size = "" }: { user?: UserBrief | null; size?: "sm" | "lg" | "xl" | "" }) {
@@ -237,6 +237,13 @@ export function TaskCard({ task, draggable = false, onDragStart }: {
       <div className="foot">
         <span className="badge">{task.type_display}</span>
         {task.specialty_label && <span className="badge badge-brand">{task.specialty_label}</span>}
+        {/* Biriktirilgan fayl bor-yo'qligi kartaning o'zida ko'rinsin - odam
+            vazifani ochmasdan turib biladi. */}
+        {!!task.attachment_count && (
+          <span className="badge" title={`${task.attachment_count} ta fayl biriktirilgan`}>
+            <IconFile size={11} /> {task.attachment_count}
+          </span>
+        )}
         {task.due_date && (
           <span className={`badge ${task.is_overdue ? "badge-danger" : ""}`}>{fmtDateTime(task.due_date)}</span>
         )}
@@ -255,6 +262,14 @@ export function TaskRow({ task, showProject = false }: { task: Task; showProject
         <Link to={`/vazifa/${task.id}`} style={{ color: "var(--text)", fontWeight: 500 }}>
           {task.title}
         </Link>
+        {!!task.attachment_count && (
+          <>
+            {" "}
+            <span className="muted nowrap" title={`${task.attachment_count} ta fayl`}>
+              <IconFile size={11} /> {task.attachment_count}
+            </span>
+          </>
+        )}
         {showProject && (
           <>
             <br />

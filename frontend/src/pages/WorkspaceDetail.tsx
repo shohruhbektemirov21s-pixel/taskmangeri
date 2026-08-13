@@ -10,7 +10,7 @@ import { Avatar, Card, Empty, ErrorMsg, Loading, Progress } from "@/components/u
 
 export default function WorkspaceDetail() {
   const { slug } = useParams();
-  const { meta } = useAuth();
+  const { meta, user } = useAuth();
   const [ws, setWs] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +71,9 @@ export default function WorkspaceDetail() {
                 <IconChat size={14} /> Suhbat
               </Link>
             )}
-            <Link className="btn btn-sm btn-primary" to="/loyiha/yangi">Yangi loyiha</Link>
+            {user?.can_create_project && (
+              <Link className="btn btn-sm btn-primary" to="/loyiha/yangi">Yangi loyiha</Link>
+            )}
           </>
         }
       />
@@ -111,7 +113,9 @@ export default function WorkspaceDetail() {
                 ))}
                 {!projects.length && (
                   <Empty title="Loyiha yoq" text="Bu maydonda hali loyiha yaratilmagan.">
-                    <Link className="btn btn-primary btn-sm" to="/loyiha/yangi">Loyiha yaratish</Link>
+                    {user?.can_create_project && (
+                      <Link className="btn btn-primary btn-sm" to="/loyiha/yangi">Loyiha yaratish</Link>
+                    )}
                   </Empty>
                 )}
               </div>

@@ -92,10 +92,6 @@ export default function SkillEditor({
 
       {!!free.length && (
         <div style={{ marginTop: 10 }}>
-          <div className="help" style={{ marginBottom: 6 }}>
-            {items.length ? "Yana qoshish mumkin" : "Yonalishingiz boyicha takliflar"} —
-            bosgan qoshiladi:
-          </div>
           <div className="row wrap" style={{ gap: 6 }}>
             {free.map((s) => (
               <button type="button" className="chip chip-add" key={s}

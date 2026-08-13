@@ -252,12 +252,6 @@ export default function Profile() {
                 : <div className="empty">Hozircha yozuv yo'q</div>}
             </Card>
 
-            {work?.limited && (
-              <div className="callout mt">
-                Bu ro'yxat siz ko'ra oladigan loyihalar bilan cheklangan — yopiq
-                loyihalardagi ishlar ko'rsatilmaydi.
-              </div>
-            )}
           </div>
 
           <div>

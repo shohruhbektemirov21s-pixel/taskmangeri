@@ -33,6 +33,26 @@ def send_to_user(user_id, payload):
         return False
 
 
+def send_to_users(users, payload):
+    """Bir nechta odamning shaxsiy kanaliga bir xil xabar uzatadi.
+
+    Bu bildirishnoma EMAS: bazaga hech narsa yozilmaydi va qo'ng'iroq
+    chalinmaydi. Bu - ochiq turgan sahifaga "shu joyda nimadir o'zgardi"
+    degan kichik signal (masalan doska o'zini yangilashi uchun). Shuning
+    uchun uni ko'p yuborish ham xavfsiz.
+    """
+    sent = 0
+    seen = set()
+    for user in users:
+        uid = getattr(user, "pk", user)
+        if not uid or uid in seen:
+            continue
+        seen.add(uid)
+        if send_to_user(uid, payload):
+            sent += 1
+    return sent
+
+
 def serialize(notification):
     from .serializers import NotificationSerializer
 

@@ -106,10 +106,6 @@ export default function History({ project }: { project: Project }) {
         </Card>
 
         <Card title="Nima uchun bu kerak">
-          <p className="muted" style={{ fontSize: 13 }}>
-            Tarix hech qachon ochirilmaydi. Yangi dasturchi kelganda kim nima qilgani,
-            qaysi qaror qabul qilingani va qayerda xato qilingani shu yerdan korinadi.
-          </p>
           <Link className="btn btn-sm btn-block" to={`/loyiha/${project.id}/kirish`}>
             Loyihaga kirish qollanmasi
           </Link>

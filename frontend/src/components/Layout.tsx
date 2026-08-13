@@ -6,10 +6,11 @@ import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
 import {
-  IconBell, IconBoard, IconChat, IconDashboard, IconHistory, IconInbox, IconLogout, IconMail,
-  IconPlus, IconReview, IconSearch, IconTasks,
+  IconBell, IconBoard, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout,
+  IconMail, IconMenu, IconPlus, IconReview, IconSearch, IconTasks,
 } from "./icons";
 import NotificationBell from "./NotificationBell";
+import ThemeToggle from "./ThemeToggle";
 import { Avatar, SpecialtyTag } from "./ui";
 
 export default function Layout() {
@@ -23,6 +24,8 @@ export default function Layout() {
   // Tepadagi qidiruv odamni ham topadi: ism, familiya yoki email bo'yicha.
   const [people, setPeople] = useState<UserBrief[]>([]);
   const [openHits, setOpenHits] = useState(false);
+  // Telefonda yon panel chetdan chiqadigan tortma bo'ladi.
+  const [menu, setMenu] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -65,8 +68,21 @@ export default function Layout() {
     return () => window.clearTimeout(timer);
   }, [q]);
 
-  // Sahifa almashsa qidiruv oynasi yopilsin.
-  useEffect(() => { setOpenHits(false); }, [loc.pathname]);
+  // Sahifa almashsa qidiruv oynasi ham, tortma ham yopilsin.
+  useEffect(() => { setOpenHits(false); setMenu(false); }, [loc.pathname]);
+
+  // Tortma ochiq turganda: Esc yopadi va orqadagi sahifa siljimaydi.
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [menu]);
 
   const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) => (
     <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`} end>
@@ -79,6 +95,10 @@ export default function Layout() {
   return (
     <>
       <header className="gh-top">
+        <button type="button" className="top-icon menu-btn" onClick={() => setMenu((v) => !v)}
+                aria-label={menu ? "Menyuni yopish" : "Menyuni ochish"} aria-expanded={menu}>
+          {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
+        </button>
         <Link to="/panel" className="logo-link">
           <Logo size={30} />
           <span>TeamFlow</span>
@@ -142,28 +162,34 @@ export default function Layout() {
           )}
         </div>
 
+        <ThemeToggle />
         <NotificationBell />
-        <Link className="top-icon" to="/xabarlar" title="Xabarlar">
+        <Link className="top-icon hide-sm" to="/xabarlar" title="Xabarlar">
           <IconChat size={17} />
         </Link>
-        <Link className="top-icon" to="/takliflar" title="Takliflar">
+        <Link className="top-icon hide-sm" to="/takliflar" title="Takliflar">
           <IconMail size={17} />
           {!!counts.invites && <span className="dot">{counts.invites}</span>}
         </Link>
-        <Link className="top-icon" to="/tekshiruv" title="Tekshiruv navbati">
+        <Link className="top-icon hide-sm" to="/tekshiruv" title="Tekshiruv navbati">
           <IconInbox size={17} />
           {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
         </Link>
-        <Link className="top-icon" to="/loyiha/yangi" title="Yangi loyiha">
-          <IconPlus size={17} />
-        </Link>
+        {/* Loyiha ochish - faqat menejer va admin */}
+        {user?.can_create_project && (
+          <Link className="top-icon hide-sm" to="/loyiha/yangi" title="Yangi loyiha">
+            <IconPlus size={17} />
+          </Link>
+        )}
         <Link to="/profil" title={user?.full_name}>
           <Avatar user={user} />
         </Link>
       </header>
 
       <div className="layout">
-        <aside className="sidebar">
+        {menu && <button type="button" className="scrim" aria-label="Menyuni yopish"
+                         onClick={() => setMenu(false)} />}
+        <aside className={`sidebar ${menu ? "open" : ""}`}>
           <div className="nav-section">
             {item("/panel", <IconDashboard />, "Bosh panel")}
             {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}

@@ -3,6 +3,8 @@ import { ApiError, api } from "@/api/client";
 import type { Brief as BriefType, Project } from "@/api/types";
 import { Card, ErrorMsg, Loading, OkMsg, Progress, fmtDateTime } from "@/components/ui";
 
+// `hint` faqat tahrirlashdagi placeholder uchun - ko'rish rejimida maslahat
+// yozilmaydi, karta faqat to'ldirilgan-to'ldirilmaganini aytadi.
 const FIELDS: { key: keyof BriefType; label: string; hint: string; rows: number }[] = [
   { key: "goal", label: "Loyiha maqsadi", hint: "Bir-ikki gapda: nima uchun bu loyiha bor", rows: 3 },
   { key: "tech_stack", label: "Texnologiyalar", hint: "Django 5, PostgreSQL, React, Docker ...", rows: 3 },
@@ -39,7 +41,7 @@ export default function Brief({ project, onChange }: { project: Project; onChang
     try {
       const b = await api.patch<BriefType>(`/projects/${project.id}/brief/`, values);
       setBrief(b);
-      setSaved("Brif saqlandi. Endi yangi kelgan dasturchi kontekstni tez tushunadi.");
+      setSaved("Brif saqlandi.");
       setEdit(false);
       onChange();
     } catch (err) {
@@ -71,11 +73,6 @@ export default function Brief({ project, onChange }: { project: Project; onChang
               <button className="btn btn-sm btn-primary" onClick={() => setEdit(true)}>Tahrirlash</button>
             )}
           </div>
-          {brief.filled_ratio < 50 && (
-            <div className="callout warn mt">
-              Brif toliq emas. Toldirilmagan brif — jamoaning eng kop vaqt yoqotadigan sababi.
-            </div>
-          )}
         </div>
       </div>
 
@@ -87,7 +84,6 @@ export default function Brief({ project, onChange }: { project: Project; onChang
                 <textarea rows={f.rows} value={values[f.key as string] || ""}
                           placeholder={f.hint}
                           onChange={(e) => setValues((p) => ({ ...p, [f.key]: e.target.value }))} />
-                <div className="help muted" style={{ fontSize: 12, marginTop: 6 }}>{f.hint}</div>
               </Card>
             ))}
           </div>
@@ -107,7 +103,7 @@ export default function Brief({ project, onChange }: { project: Project; onChang
                 {value.trim() ? (
                   <div className="pre-wrap">{value}</div>
                 ) : (
-                  <p className="muted">Toldirilmagan — {f.hint.toLowerCase()}</p>
+                  <p className="muted">Toldirilmagan</p>
                 )}
               </Card>
             );

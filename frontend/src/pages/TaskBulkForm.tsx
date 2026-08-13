@@ -76,6 +76,21 @@ export default function TaskBulkForm() {
 
   if (!project) return <div className="content"><Loading /></div>;
 
+  // URL orqali kirib qolmasin: vazifa yaratish/tahrirlash - menejer va admin ishi.
+  if (!project.access?.can_create_task) {
+    return (
+      <div className="content">
+        <Card title="Ruxsat yoq">
+          <p className="muted" style={{ margin: 0 }}>
+            Vazifa yaratish va tahrirlash faqat loyiha menejeri va adminda.
+            Sizga biriktirilgan ishni «Mening ishim» bolimidan bajarasiz.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+
   return (
     <>
       <PageHead
@@ -83,11 +98,6 @@ export default function TaskBulkForm() {
       />
       <div className="content">
         <ErrorMsg error={error} />
-        <div className="callout mb">
-          Har qatorga bitta vazifa yozing. Tizim ularni yaratib, tanlangan mutaxassislar
-          orasida navbat bilan taqsimlaydi.
-        </div>
-
         <form onSubmit={submit}>
           <div className="split">
             <div>
@@ -99,7 +109,6 @@ export default function TaskBulkForm() {
                   onChange={(e) => setLines(e.target.value)}
                   placeholder={"Login sahifasini yasash\nAPI: foydalanuvchi royxati\nDocker konfiguratsiyani sozlash"}
                 />
-                <div className="help">Bir vaqtda 100 tagacha vazifa yaratish mumkin.</div>
               </Card>
 
               {titles.length > 0 && (
@@ -193,7 +202,6 @@ export default function TaskBulkForm() {
                   <label>Umumiy muddat</label>
                   <input type="datetime-local" value={f.due_date}
                          onChange={(e) => setF({ ...f, due_date: e.target.value })} />
-                  <div className="help">Kun va soat: masalan 13.08.2026 21:00</div>
                 </div>
                 <div className="field">
                   <label>Umumiy tayyorlik mezoni</label>

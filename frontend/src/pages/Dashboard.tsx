@@ -35,7 +35,9 @@ export default function Dashboard() {
         </div>
         <span className="spacer" />
         <Link className="btn" to="/mening-ishim">Mening ishim</Link>
-        <Link className="btn btn-primary" to="/loyiha/yangi">Yangi loyiha</Link>
+        {user?.can_create_project && (
+          <Link className="btn btn-primary" to="/loyiha/yangi">Yangi loyiha</Link>
+        )}
       </div>
 
       <div className="grid grid-4 mb">
@@ -49,7 +51,7 @@ export default function Dashboard() {
         <div className="callout danger mb">
           <strong>Diqqat:</strong>{" "}
           {d.stats.returned > 0 && `${d.stats.returned} ta vazifa tuzatishga qaytarilgan. `}
-          {d.stats.overdue > 0 && `${d.stats.overdue} ta vazifa muddati otgan.`} Avval shularni yoping.
+          {d.stats.overdue > 0 && `${d.stats.overdue} ta vazifa muddati otgan.`}
         </div>
       )}
 

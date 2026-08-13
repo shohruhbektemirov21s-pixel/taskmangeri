@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, api } from "@/api/client";
-import type { Access, Project, Task, TaskStatusValue } from "@/api/types";
+import { Link } from "react-router-dom";
+import { ApiError, api, listOf } from "@/api/client";
+import type { Access, Project, ProjectFile, Task, TaskStatusValue } from "@/api/types";
+import { IconFile } from "@/components/icons";
+import { useRealtime } from "@/realtime/RealtimeContext";
 import { ErrorMsg, Loading, TaskCard } from "@/components/ui";
 
 interface Column {
@@ -16,12 +19,15 @@ const DOT: Record<string, string> = {
 };
 
 export default function Board({ project }: { project: Project }) {
+  const { subscribe } = useRealtime();
   const [columns, setColumns] = useState<Column[] | null>(null);
   const [access, setAccess] = useState<Access | null>(null);
   const [assignee, setAssignee] = useState("");
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Menejer hamma uchun yuklagan hujjatlar - doskaning tepasida turadi.
+  const [files, setFiles] = useState<ProjectFile[]>([]);
 
   const load = useCallback(async () => {
     const d = await api.get<{ columns: Column[]; access: Access }>("/tasks/board/", {
@@ -32,6 +38,20 @@ export default function Board({ project }: { project: Project }) {
   }, [project.id, assignee]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Fayllar faqat jamoa a'zolariga ko'rinadi - begonaga 403 keladi, o'shanda
+  // tasma umuman chizilmaydi.
+  useEffect(() => {
+    void api.get<any>(`/projects/${project.id}/files/`)
+      .then((d) => setFiles(listOf<ProjectFile>(d)))
+      .catch(() => setFiles([]));
+  }, [project.id]);
+
+  // Boshqa odam kartani ko'chirsa yoki yangi vazifa qo'shsa, doska o'zi
+  // yangilanadi - sahifani qayta yuklab o'tirmaymiz.
+  useEffect(() => subscribe((d) => {
+    if (d.event === "task.update" && Number(d.project) === project.id) void load();
+  }), [subscribe, load, project.id]);
 
   async function drop(status: TaskStatusValue) {
     setOver(null);
@@ -64,10 +84,24 @@ export default function Board({ project }: { project: Project }) {
           </select>
         </div>
         <span className="spacer" />
-        <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>
-          Kartani surib boshqa ustunga oting — ruxsat bolmasa tizim toxtatadi
-        </span>
       </div>
+
+      {files.length > 0 && (
+        <div className="board-files">
+          <span className="muted nowrap"><IconFile size={13} /> Loyiha fayllari:</span>
+          {files.slice(0, 5).map((f) => (
+            <a key={f.id} className="chip" href={f.url || "#"} target="_blank" rel="noreferrer"
+               title={f.description || f.original_name}>
+              {f.original_name}
+            </a>
+          ))}
+          {files.length > 5 && (
+            <Link className="chip" to={`/loyiha/${project.id}/fayllar`}>
+              yana {files.length - 5} ta
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="board">
         {columns.map((col) => (

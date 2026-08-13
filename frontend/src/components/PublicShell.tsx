@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { IconSearch } from "./icons";
+import ThemeToggle from "./ThemeToggle";
 import { Logo } from "./Logo";
 
 export default function PublicShell({
@@ -46,7 +47,7 @@ export default function PublicShell({
       <header className="lp-header">
         <div className="lp-wrap">
           <Link to="/" className="logo-link"
-                style={{ display: "flex", alignItems: "center", gap: 10, color: "#fff", fontWeight: 600 }}>
+                style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text)", fontWeight: 600 }}>
             <Logo size={30} /> <span>TeamFlow</span>
           </Link>
 
@@ -66,6 +67,8 @@ export default function PublicShell({
               <kbd>/</kbd>
             </form>
           )}
+
+          <ThemeToggle />
 
           {user ? (
             <Link className="btn btn-primary" to="/panel">Panelga o'tish</Link>

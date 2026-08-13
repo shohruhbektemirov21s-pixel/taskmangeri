@@ -24,6 +24,24 @@ class IsPlatformAdmin(permissions.BasePermission):
                     and request.user.is_platform_admin)
 
 
+class CanCreateProject(permissions.BasePermission):
+    """Loyiha (va ish maydoni) ochish - faqat loyiha menejeri va admin.
+
+    O'qish hammaga ochiq qoladi: dasturchi loyihani ko'radi, unda ishlaydi,
+    faqat yangisini ocha olmaydi. Tahrirlash va o'chirish ruxsati bu yerda
+    tekshirilmaydi - u loyiha ichidagi rolga bog'liq (`ProjectAccess`).
+    """
+
+    message = "Loyiha ochish huquqi faqat loyiha menejeri va adminda."
+
+    def has_permission(self, request, view):
+        if getattr(view, "action", None) != "create":
+            return True
+        user = request.user
+        return bool(user and user.is_authenticated
+                    and getattr(user, "can_create_project", False))
+
+
 def ProjectRole_value(name):
     from apps.projects.models import ProjectRole
 

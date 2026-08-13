@@ -62,7 +62,6 @@ export default function JoinProject() {
                 <select value={role} onChange={(e) => setRole(e.target.value)}>
                   {roles.map((r) => <option key={r.value} value={String(r.value)}>{r.label}</option>)}
                 </select>
-                <div className="help">Mutaxassisligingiz asosida tavsiya qilindi</div>
               </div>
               <div className="field">
                 <label>Xabar</label>
@@ -73,7 +72,6 @@ export default function JoinProject() {
                 <div className="field">
                   <label>Taklif kodi</label>
                   <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="A1B2C3D4" />
-                  <div className="help">Loyiha yopiq - menejerdan kod soranng</div>
                 </div>
               )}
               <button className="btn btn-primary btn-block" disabled={busy}>

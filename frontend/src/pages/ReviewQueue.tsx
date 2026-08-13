@@ -45,11 +45,6 @@ export default function ReviewQueue() {
       />
       <div className="content">
         <ErrorMsg error={error} />
-        <div className="callout mb">
-          Bu yerda siz boshqaradigan loyihalardagi tekshiruvga yuborilgan ishlar toplanadi.
-          Qaytarayotgan bolsangiz sababini albatta yozing — aks holda dasturchi vaqt yoqotadi.
-        </div>
-
         {!tasks ? <Loading /> : tasks.length ? (
           <div className="card">
             <div className="card-list">

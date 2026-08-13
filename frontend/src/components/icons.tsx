@@ -208,3 +208,24 @@ export const IconEyeOff = ({ size = 16 }: P) => (
     <path d="M3 3l18 18" />
   </svg>
 );
+
+/* Kunduzgi/kechki rejim tugmasi uchun */
+export const IconSun = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="4.2" />
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" />
+  </svg>
+);
+
+export const IconMoon = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M20.5 14.4A8.6 8.6 0 0 1 9.6 3.5a8.6 8.6 0 1 0 10.9 10.9Z" />
+  </svg>
+);
+
+/* Telefonda yon panelni ochadigan tugma */
+export const IconMenu = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M4 6.5h16M4 12h16M4 17.5h16" />
+  </svg>
+);

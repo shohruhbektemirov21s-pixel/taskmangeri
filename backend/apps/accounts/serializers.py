@@ -38,6 +38,7 @@ class UserSerializer(serializers.ModelSerializer):
     initials = serializers.CharField(read_only=True)
     avatar_color = serializers.CharField(read_only=True)
     is_platform_admin = serializers.BooleanField(read_only=True)
+    can_create_project = serializers.BooleanField(read_only=True)
     skill_list = serializers.ListField(read_only=True)
     global_role_display = serializers.CharField(source="get_global_role_display", read_only=True)
 
@@ -62,7 +63,8 @@ class UserSerializer(serializers.ModelSerializer):
             "suggested_task_types", "suggested_skills", "quality_checklist",
             "default_project_role",
             "bio", "skills", "skill_list", "github_username", "telegram", "avatar",
-            "initials", "avatar_color", "is_platform_admin", "is_active", "date_joined",
+            "initials", "avatar_color", "is_platform_admin", "can_create_project",
+            "is_active", "date_joined",
         ]
         read_only_fields = ["email", "global_role", "is_active", "date_joined"]
 

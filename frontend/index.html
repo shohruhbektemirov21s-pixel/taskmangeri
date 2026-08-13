@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TeamFlow</title>
+    <meta name="theme-color" content="#f4f6f9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)" />
+    <!-- Rejim birinchi boʻyalishdan oldin qoʻyiladi: React yuklanguncha
+         kutsak, kunduzgi rejimdagi odam bir lahza qora ekranni koʻrib qoladi.
+         Kalit `src/theme.ts` dagi THEME_KEY bilan bir xil. -->
+    <script>
+      (function () {
+        var t;
+        try { t = localStorage.getItem("teamflow.theme"); } catch (e) { t = null; }
+        if (t !== "light" && t !== "dark") {
+          t = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+            ? "light" : "dark";
+        }
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9889;</text></svg>" />
   </head>
   <body>

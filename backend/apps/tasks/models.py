@@ -103,6 +103,9 @@ class Task(models.Model):
                                related_name="subtasks", verbose_name="Asosiy task")
     labels = models.ManyToManyField(Label, blank=True, related_name="tasks", verbose_name="Teglar")
 
+    # Ish oynasi: qachondan boshlanadi va qachonga tugaydi. Ikkalasi ham
+    # ixtiyoriy - shoshilinch ishga faqat muddat qo'yiladi.
+    start_date = models.DateTimeField("Boshlanish sanasi", null=True, blank=True)
     # Muddat aniq daqiqagacha: "13.08.2026 21:00". Faqat kun bo'lsa
     # "bugun tugatilsin" va "bugun ish kuni oxirigacha" farqlanmasdi.
     due_date = models.DateTimeField("Muddat", null=True, blank=True)

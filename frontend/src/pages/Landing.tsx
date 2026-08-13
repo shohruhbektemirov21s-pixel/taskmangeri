@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { Logo } from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   IconBoard, IconFile, IconHistory, IconReview, IconSearch, IconTasks, IconUsers,
   IconWorkspace,
@@ -80,7 +81,7 @@ export default function Landing() {
     <>
       <header className="lp-header">
         <div className="lp-wrap">
-          <Link to="/" className="logo-link" style={{ display: "flex", alignItems: "center", gap: 10, color: "#fff", fontWeight: 600 }}>
+          <Link to="/" className="logo-link" style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text)", fontWeight: 600 }}>
             <Logo size={30} /> <span>TeamFlow</span>
           </Link>
           <nav className="lp-nav">
@@ -101,6 +102,7 @@ export default function Landing() {
                    onChange={(e) => setQ(e.target.value)} />
             <kbd>/</kbd>
           </form>
+          <ThemeToggle />
           <Link className="btn" to="/kirish">Kirish</Link>
           <Link className="btn btn-primary" to="/royxatdan-otish">Royxatdan otish</Link>
         </div>

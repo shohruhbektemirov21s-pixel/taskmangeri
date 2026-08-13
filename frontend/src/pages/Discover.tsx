@@ -81,14 +81,6 @@ export default function Discover() {
               </div>
             </Card>
 
-            <Card title="Qanday ishlaydi">
-              <ul className="list-plain muted" style={{ fontSize: 13 }}>
-                <li>1. Loyihani tanlab sorov yuborasiz</li>
-                <li>2. Menejer sorovni korib chiqadi</li>
-                <li>3. Qabul qilingach Loyihaga kirish sahifasini oqiysiz</li>
-                <li>4. Mutaxassisligingizga mos vazifalar biriktiriladi</li>
-              </ul>
-            </Card>
           </div>
         </div>
       </div>

@@ -216,9 +216,13 @@ class TaskViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         task = self.get_object()
         access = ProjectAccess(request.user, task.project)
-        is_assignee = task.assignments.filter(user=request.user, is_active=True).exists()
-        if not (access.can_create_task or is_assignee):
-            raise PermissionDenied("Faqat menejer yoki ijrochi tahrirlay oladi.")
+        # Vazifa mazmunini (sarlavha, tavsif, muddat, ijrochi) faqat menejer
+        # va admin o'zgartiradi. Ijrochi ishni bajaradi: holatni suradi, izoh
+        # yozadi, fayl biriktiradi va ishni topshiradi - lekin topshiriqning
+        # o'zini qayta yozmaydi.
+        if not access.can_create_task:
+            raise PermissionDenied(
+                "Vazifani faqat loyiha menejeri yoki admin ozgartira oladi.")
 
         tracked = ["title", "description", "acceptance_criteria", "priority", "due_date",
                    "task_type", "estimate_hours", "branch_name", "pr_url"]
@@ -235,7 +239,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         obj = serializer.save()
         if label_ids is not None:
             obj.labels.set(Label.objects.filter(project=obj.project, id__in=label_ids))
-        if assignee_ids is not None and access.can_create_task:
+        if assignee_ids is not None:
             sync_assignees(obj, assignee_ids, request.user)
 
         changes = {}

@@ -37,8 +37,8 @@ export default function TaskForm() {
   const [f, setF] = useState({
     title: "", description: "", acceptance_criteria: "",
     task_type: "FEATURE", priority: 2, status: "TODO",
-    required_specialty: "", due_date: "", estimate_hours: "",
-    branch_name: "", pr_url: "", reviewer_id: "",
+    required_specialty: "", start_date: "", due_date: "",
+    reviewer_id: "",
   });
 
   const projectId = project?.id ?? id;
@@ -53,9 +53,9 @@ export default function TaskForm() {
           title: t.title, description: t.description, acceptance_criteria: t.acceptance_criteria,
           task_type: t.task_type, priority: t.priority, status: t.status,
           required_specialty: t.required_specialty || "",
+          start_date: toDateTimeInput(t.start_date),
           due_date: toDateTimeInput(t.due_date),
-          estimate_hours: t.estimate_hours || "", branch_name: t.branch_name,
-          pr_url: t.pr_url, reviewer_id: t.reviewer ? String(t.reviewer.id) : "",
+          reviewer_id: t.reviewer ? String(t.reviewer.id) : "",
         });
         setAssignees(t.assignees.map((a) => a.id));
       }
@@ -87,8 +87,8 @@ export default function TaskForm() {
       project: Number(projectId),
       priority: Number(f.priority),
       assignee_ids: assignees,
+      start_date: fromDateTimeInput(f.start_date),
       due_date: fromDateTimeInput(f.due_date),
-      estimate_hours: f.estimate_hours || null,
       reviewer_id: f.reviewer_id ? Number(f.reviewer_id) : null,
     };
     try {
@@ -121,6 +121,21 @@ export default function TaskForm() {
   }
 
   if (!ready || !project) return <div className="content"><Loading /></div>;
+
+  // URL orqali kirib qolmasin: vazifa yaratish/tahrirlash - menejer va admin ishi.
+  if (!project.access?.can_create_task) {
+    return (
+      <div className="content">
+        <Card title="Ruxsat yoq">
+          <p className="muted" style={{ margin: 0 }}>
+            Vazifa yaratish va tahrirlash faqat loyiha menejeri va adminda.
+            Sizga biriktirilgan ishni «Mening ishim» bolimidan bajarasiz.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
 
   const specialtyInfo = meta?.specialties?.find((s) => s.value === f.required_specialty);
 
@@ -168,19 +183,11 @@ export default function TaskForm() {
                   <textarea rows={4} value={f.acceptance_criteria}
                             onChange={(e) => set("acceptance_criteria", e.target.value)}
                             placeholder={"- Login ishlaydi\n- Testlar otadi\n- Hujjat yangilandi"} />
-                  <div className="help">
-                    Aniq royxat yozing — dasturchi nima qilishini bilib, vaqt yoqotmaydi.
-                  </div>
                 </div>
               </Card>
 
               <Card title="Ijrochilar"
                     badge={<span className="badge">{assignees.length} tanlangan</span>}>
-                {f.required_specialty && (
-                  <div className="callout mb">
-                    Faqat <b>{specialtyInfo?.label}</b> yonalishidagi aʼzolar korsatilmoqda.
-                  </div>
-                )}
                 <div className="gh-search mb" style={{ width: "100%" }}>
                   <IconSearch size={14} />
                   <input type="search" value={who} placeholder="Ism, familiya yoki email bo'yicha qidiring"
@@ -230,10 +237,6 @@ export default function TaskForm() {
                   faqat yangi vazifaga biriktiriladigan boshlangich fayllar. */}
               {!editing && (
                 <Card title="Fayllar">
-                  <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
-                    Skrinshot, maket, log yoki namuna hujjat — vazifa bilan birga
-                    biriktiriladi, ijrochi darrov koradi.
-                  </p>
                   <FilePicker files={files} onChange={setFiles} />
                 </Card>
               )}
@@ -250,7 +253,6 @@ export default function TaskForm() {
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
-                  <div className="help">Belgilansa, faqat mos mutaxassislar tavsiya qilinadi</div>
                 </div>
                 <div className="field">
                   <label>Turi</label>
@@ -276,17 +278,22 @@ export default function TaskForm() {
                     ))}
                   </select>
                 </div>
-                <div className="row">
-                  <div className="field" style={{ flex: 1 }}>
-                    <label>Muddat</label>
-                    <input type="datetime-local" value={f.due_date}
-                           onChange={(e) => set("due_date", e.target.value)} />
-                    <div className="help">Kun va soat: masalan 13.08.2026 21:00</div>
+                {/* Ish oynasi yonma-yon: "qachondan - qachongacha" bir qarashda
+                    o'qiladi. Tor ekranda pastma-past tushadi. */}
+                <div className="row wrap">
+                  <div className="field" style={{ flex: 1, minWidth: 190 }}>
+                    <label>Boshlanish</label>
+                    <input type="datetime-local" value={f.start_date}
+                           max={f.due_date || undefined}
+                           onChange={(e) => set("start_date", e.target.value)} />
                   </div>
-                  <div className="field" style={{ width: 120 }}>
-                    <label>Reja (soat)</label>
-                    <input type="number" step="0.5" value={f.estimate_hours}
-                           onChange={(e) => set("estimate_hours", e.target.value)} />
+                  <div className="field" style={{ flex: 1, minWidth: 190 }}>
+                    <label>Muddat</label>
+                    {/* min: muddat boshlanishdan oldin bo'lib qolmasin */}
+                    <input type="datetime-local" value={f.due_date}
+                           min={f.start_date || undefined}
+                           onChange={(e) => set("due_date", e.target.value)} />
+                    {errors.due_date && <div className="err">{errors.due_date}</div>}
                   </div>
                 </div>
                 <div className="field">
@@ -300,24 +307,8 @@ export default function TaskForm() {
                 </div>
               </Card>
 
-              <Card title="Git">
-                <div className="field">
-                  <label>Branch</label>
-                  <input value={f.branch_name} onChange={(e) => set("branch_name", e.target.value)}
-                         placeholder="feature/login" />
-                </div>
-                <div className="field">
-                  <label>Pull request</label>
-                  <input value={f.pr_url} onChange={(e) => set("pr_url", e.target.value)}
-                         placeholder="https://github.com/..." />
-                </div>
-              </Card>
-
               {specialtyInfo && (
                 <Card title="Sifat royxati">
-                  <p className="muted" style={{ fontSize: 13 }}>
-                    {specialtyInfo.label} uchun standart tekshiruvlar:
-                  </p>
                   <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
                     {specialtyInfo.checklist.map((c) => <li key={c}>{c}</li>)}
                   </ul>

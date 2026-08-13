@@ -40,6 +40,8 @@ export interface User extends UserBrief {
   suggested_skills: string[];
   quality_checklist: string[];
   default_project_role: string;
+  /** Loyiha va ish maydoni ocha oladimi - faqat menejer va admin */
+  can_create_project: boolean;
   project_count?: number;
   open_tasks?: number;
 }
@@ -194,6 +196,7 @@ export interface Task {
   parent: number | null;
   labels: Label[];
   assignees: UserBrief[];
+  start_date: string | null;
   due_date: string | null;
   estimate_hours: string | null;
   branch_name: string;
@@ -386,7 +389,7 @@ export type NotificationKind =
   | "invite.received" | "invite.accepted" | "invite.declined"
   | "member.joined" | "join.request"
   | "task.assigned" | "task.review" | "task.decided" | "task.comment"
-  | "chat.message";
+  | "chat.message" | "chat.direct";
 
 export interface AppNotification {
   id: number;

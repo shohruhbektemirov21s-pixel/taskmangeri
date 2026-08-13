@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
@@ -6,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Empty, Loading, Progress } from "@/components/ui";
 
 export default function Projects() {
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [scope, setScope] = useState("mine");
 
@@ -27,7 +29,9 @@ export default function Projects() {
                         onClick={() => setScope(v)}>{l}</button>
               ))}
             </div>
-            <Link className="btn btn-primary btn-sm" to="/loyiha/yangi">Yangi loyiha</Link>
+            {user?.can_create_project && (
+              <Link className="btn btn-primary btn-sm" to="/loyiha/yangi">Yangi loyiha</Link>
+            )}
           </>
         }
       />
@@ -66,7 +70,9 @@ export default function Projects() {
                 <Empty icon="☰" title="Loyiha topilmadi" text="Ochiq loyihaga qoshiling yoki yangi yarating.">
                   <div className="row" style={{ justifyContent: "center" }}>
                     <Link className="btn btn-primary" to="/qoshilish">Loyiha topish</Link>
-                    <Link className="btn" to="/loyiha/yangi">Yangi loyiha</Link>
+                    {user?.can_create_project && (
+                      <Link className="btn" to="/loyiha/yangi">Yangi loyiha</Link>
+                    )}
                   </div>
                 </Empty>
               )}

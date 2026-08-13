@@ -38,6 +38,14 @@ function Protected({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Loyiha va ish maydoni ochish sahifalari - faqat menejer va admin uchun. */
+function ManagerOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Loading />;
+  if (!user?.can_create_project) return <Navigate to="/loyihalar" replace />;
+  return <>{children}</>;
+}
+
 function GuestOnly({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
@@ -61,7 +69,7 @@ export default function App() {
         <Route path="/mening-ishim" element={<MyWork />} />
         <Route path="/loyihalar" element={<Projects />} />
         <Route path="/qoshilish" element={<Discover />} />
-        <Route path="/loyiha/yangi" element={<ProjectForm />} />
+        <Route path="/loyiha/yangi" element={<ManagerOnly><ProjectForm /></ManagerOnly>} />
         <Route path="/loyiha/:id/tahrir" element={<ProjectForm />} />
         <Route path="/loyiha/:id/qoshilish" element={<JoinProject />} />
         <Route path="/loyiha/:id/vazifa-yaratish" element={<TaskForm />} />
@@ -74,7 +82,7 @@ export default function App() {
         <Route path="/tarix" element={<Feed />} />
         <Route path="/jamoa" element={<People />} />
         <Route path="/ish-maydonlari" element={<Workspaces />} />
-        <Route path="/ish-maydoni/yangi" element={<WorkspaceForm />} />
+        <Route path="/ish-maydoni/yangi" element={<ManagerOnly><WorkspaceForm /></ManagerOnly>} />
         <Route path="/ish-maydoni/:slug/chat" element={<WorkspaceChat />} />
         <Route path="/ish-maydoni/:slug" element={<WorkspaceDetail />} />
         <Route path="/xabarlar" element={<Messages />} />

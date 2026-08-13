@@ -151,13 +151,6 @@ export default function People() {
                 ))}
               </ul>
             </Card>
-            <Card title="Rollar haqida">
-              <ul className="list-plain muted" style={{ fontSize: 13 }}>
-                <li><b>Admin</b> — hamma loyihani koradi, tasklarni tekshiradi, yonalish beradi</li>
-                <li><b>Loyiha menejeri</b> — oz loyihasini boshqaradi, azo qabul qiladi, vazifa beradi</li>
-                <li><b>Dasturchi</b> — oziga biriktirilgan vazifalarni bajaradi</li>
-              </ul>
-            </Card>
           </div>
         </div>
       </div>

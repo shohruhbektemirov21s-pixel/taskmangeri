@@ -114,11 +114,21 @@ class TaskSerializer(serializers.ModelSerializer):
                   "task_type", "type_display", "required_specialty", "specialty_label",
                   "created_by", "reviewer", "reviewer_id",
                   "parent", "labels", "label_ids", "assignees", "assignee_ids",
-                  "due_date", "estimate_hours", "branch_name", "pr_url", "blocked_reason",
+                  "start_date", "due_date", "estimate_hours",
+                  "branch_name", "pr_url", "blocked_reason",
                   "review_round", "is_overdue", "logged_hours", "attachment_count",
                   "created_at", "updated_at", "started_at", "submitted_at", "completed_at"]
         read_only_fields = ["project", "number", "created_by", "review_round",
                             "started_at", "submitted_at", "completed_at"]
+
+    def validate(self, attrs):
+        """Ish oynasi teskari bo'lib qolmasin: boshlanish muddatdan keyin emas."""
+        start = attrs.get("start_date", getattr(self.instance, "start_date", None))
+        due = attrs.get("due_date", getattr(self.instance, "due_date", None))
+        if start and due and start > due:
+            raise serializers.ValidationError({
+                "due_date": "Muddat boshlanish sanasidan oldin bolishi mumkin emas."})
+        return attrs
 
     def get_attachment_count(self, obj):
         return obj.attachments.count()

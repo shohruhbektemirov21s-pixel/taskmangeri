@@ -49,7 +49,6 @@ export default function ForecastTab({ project }: { project: Project }) {
         <div className="callout danger mb">
           Bashorat muddatdan kechikmoqda: rejada <strong>{fmtDate(p.due_date)}</strong>,
           hisob-kitobga ko'ra <strong>{fmtDate(p.forecast_date)}</strong>.
-          Ish taqsimotini qayta ko'rib chiqing.
         </div>
       )}
       {!!p.unassigned && (
@@ -149,11 +148,6 @@ export default function ForecastTab({ project }: { project: Project }) {
         )}
       </Card>
 
-      <p className="muted" style={{ fontSize: 12.5 }}>
-        Hisob: kuniga {data.hours_per_day} soat samarali ish. Rejalashtirilgan soati
-        yo'q vazifa {data.default_task_hours} soat deb olinadi — aks holda bashorat
-        «0 kun» bo'lib, yolg'on tinchlik berardi.
-      </p>
     </>
   );
 }

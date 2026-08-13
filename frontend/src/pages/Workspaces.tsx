@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Workspace } from "@/api/types";
@@ -6,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Card, Empty, ErrorMsg, Loading } from "@/components/ui";
 
 export default function Workspaces() {
+  const { user } = useAuth();
   const [mine, setMine] = useState<Workspace[] | null>(null);
   const [others, setOthers] = useState<Workspace[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -57,14 +59,12 @@ export default function Workspaces() {
     <>
       <PageHead
         title={<strong>Ish maydonlari</strong>}
-        actions={<Link className="btn btn-sm btn-primary" to="/ish-maydoni/yangi">Yangi maydon</Link>}
+        actions={user?.can_create_project
+                 ? <Link className="btn btn-sm btn-primary" to="/ish-maydoni/yangi">Yangi maydon</Link>
+                 : undefined}
       />
       <div className="content">
         <ErrorMsg error={error} />
-        <div className="callout mb">
-          Ish maydoni — GitHub organization ekvivalenti. Ichida bir nechta loyiha va umumiy jamoa boladi.
-        </div>
-
         <div className="split">
           <div>
             <Card title="Mening maydonlarim" padded={false}>
@@ -89,7 +89,6 @@ export default function Workspaces() {
                 <label>Kod</label>
                 <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
                        placeholder="ABC123XYZ" />
-                <div className="help">Yopiq maydonga kirish uchun egasidan kod soranng</div>
               </div>
               <p className="muted" style={{ fontSize: 12 }}>
                 Kodni kiritib, quyidagi royxatdan kerakli maydonga Qoshilish tugmasini bosing.

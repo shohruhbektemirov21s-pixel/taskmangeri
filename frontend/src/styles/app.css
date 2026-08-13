@@ -8,8 +8,20 @@
    ishlanadigan interfeysda diqqatni matndan o'g'irlab turardi.
 
    Class nomlari o'zgarmadi - sahifalar tegilmasdan shu ko'rinishga o'tadi.
+
+   IKKI REJIM: kechki (standart) va kunduzgi. Sahifalar rangni to'g'ridan-
+   to'g'ri yozmaydi - hammasi shu yerdagi o'zgaruvchilardan oladi, shuning
+   uchun rejim almashganda butun interfeys birdan o'zgaradi. Tanlov
+   `<html data-theme="light|dark">` da turadi (`src/theme.ts`).
    ============================================================ */
 :root {
+  color-scheme: dark;
+  /* Qorong'i sathda yorug'lik bilan ishlanadi: hover chegarasi, ajratuvchi
+     nozik chiziqlar. Kunduzgi rejimda bular soyaga aylanadi. */
+  --veil: rgba(255, 255, 255, .12);
+  --veil-strong: rgba(255, 255, 255, .24);
+  --veil-soft: rgba(255, 255, 255, .07);
+
   /* ---------- asos: qattiq sathlar, shaffof emas ---------- */
   --canvas: #0e1116;
   --canvas-inset: #0a0d12;                   /* ichkariga botgan sath: input, kod */
@@ -28,6 +40,11 @@
   --gloss-strong: inset 0 0 0 0 transparent;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .22);
   --shadow-lg: 0 10px 34px rgba(0, 0, 0, .45);
+  --sh-top: 0 6px 24px rgba(0, 0, 0, .28);       /* yopishqoq sarlavha */
+  --sh-drawer: 0 18px 46px rgba(0, 0, 0, .55);   /* ochiluvchi panel */
+  --sh-raised: 0 2px 10px rgba(0, 0, 0, .22);    /* karta, tugma */
+  --sh-raised-hover: 0 10px 26px rgba(0, 0, 0, .34);
+  --sh-inset: inset 0 1px 2px rgba(0, 0, 0, .3); /* ichkariga botgan maydon */
   --ring: 0 0 0 3px rgba(95, 131, 232, .25);
 
   /* ---------- matn ---------- */
@@ -59,6 +76,55 @@
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
+/* ---------------- KUNDUZGI REJIM ----------------
+   O'lchamlar, radiuslar va shriftlar o'zgarmaydi - faqat sath va ranglar.
+   Oq qog'oz emas, biroz kulrang tuval: uzoq qaraganda ko'z qamashmasin.
+   Ranglar qorong'i rejimdagidan to'qroq olindi - oq fonda ochiq rang
+   o'qilmay qoladi (kontrast AA dan past tushmasin). */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --veil: rgba(15, 23, 42, .07);
+  --veil-strong: rgba(15, 23, 42, .2);
+  --veil-soft: rgba(15, 23, 42, .06);
+
+  --canvas: #f4f6f9;
+  --canvas-inset: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --surface-3: #dfe4ec;
+  --border: #d7dde6;
+  --border-muted: #e8ecf2;
+
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 4px 14px rgba(16, 24, 40, .06);
+  --shadow-lg: 0 10px 34px rgba(16, 24, 40, .16);
+  --sh-top: 0 1px 3px rgba(16, 24, 40, .07);
+  --sh-drawer: 0 18px 46px rgba(16, 24, 40, .18);
+  --sh-raised: 0 1px 2px rgba(16, 24, 40, .06);
+  --sh-raised-hover: 0 8px 20px rgba(16, 24, 40, .12);
+  --sh-inset: inset 0 1px 2px rgba(16, 24, 40, .04);
+  --ring: 0 0 0 3px rgba(59, 96, 208, .22);
+
+  --text: #182031;
+  --muted: #5b6577;
+  --subtle: #737d8d;
+
+  --accent: #3b60d0;
+  --accent-soft: rgba(59, 96, 208, .1);
+  --success: #2f8353;
+  --success-soft: rgba(47, 131, 83, .12);
+  --done: #6b5fcf;
+  --done-soft: rgba(107, 95, 207, .12);
+  --attention: #8f6910;
+  --attention-soft: rgba(154, 113, 18, .14);
+  --danger: #c4463d;
+  --danger-soft: rgba(196, 70, 61, .12);
+
+  --green: #2f8353;
+  --green-hover: #276e46;
+  --btn: #ffffff;
+  --btn-hover: #eef1f6;
+}
+
 * { box-sizing: border-box; }
 html { background: var(--canvas); scroll-behavior: smooth; }
 html, body, #root { margin: 0; padding: 0; min-height: 100%; }
@@ -69,6 +135,7 @@ body {
   font-size: 14.5px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
 }
 
@@ -111,7 +178,13 @@ pre {
   background: var(--surface-3); border-radius: 10px;
   border: 3px solid transparent; background-clip: content-box;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .3); background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--subtle); background-clip: content-box; }
+
+/* Rejim almashganda sath keskin sakramasin */
+html, body { transition: background-color .18s ease, color .18s ease; }
+/* Kirish/ro'yxatdan o'tish sahifalarida sarlavha yo'q - rejim tugmasi
+   burchakda suzib turadi. */
+.theme-float { position: fixed; top: 16px; right: 16px; z-index: 70; }
 
 /* Klaviatura bilan yurgan foydalanuvchi qayerdaligini doim koʻrsin */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
@@ -121,11 +194,11 @@ pre {
   background: var(--canvas);
   -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
   border-bottom: 1px solid var(--border);
-  box-shadow: var(--gloss), 0 6px 24px rgba(0, 0, 0, .28);
+  box-shadow: var(--gloss), var(--sh-top);
   height: var(--header-h); display: flex; align-items: center; gap: 16px;
   padding: 0 18px; position: sticky; top: 0; z-index: 60;
 }
-.gh-top .logo-link { display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 650; }
+.gh-top .logo-link { display: flex; align-items: center; gap: 9px; color: var(--text); font-weight: 650; }
 .gh-top .logo-link:hover { text-decoration: none; opacity: .82; }
 .gh-top .top-nav { display: flex; gap: 6px; margin-left: 6px; }
 .gh-top .top-nav a {
@@ -139,7 +212,7 @@ pre {
   display: flex; align-items: center; gap: 8px; transition: .18s;
 }
 .gh-search:focus-within {
-  background: rgba(255, 255, 255, .11); border-color: var(--accent); box-shadow: var(--ring);
+  background: var(--canvas-inset); border-color: var(--accent); box-shadow: var(--ring);
 }
 .gh-search svg { flex: 0 0 auto; opacity: .8; }
 /* Aniqroq selektor: quyidagi umumiy input qoidasidan ustun tursin */
@@ -160,7 +233,7 @@ pre {
   width: min(360px, 84vw); overflow: hidden; padding: 5px;
   border-radius: 14px; border: 1px solid var(--border);
   background: var(--surface);
-  box-shadow: 0 18px 46px rgba(0, 0, 0, .55);
+  box-shadow: var(--sh-drawer);
 }
 .top-hits-head {
   font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
@@ -324,13 +397,13 @@ pre {
   background: var(--btn); color: var(--text); font-size: 14px; font-weight: 600;
   cursor: pointer; white-space: nowrap; line-height: 20px; min-height: 38px;
   -webkit-backdrop-filter: var(--blur-sm); backdrop-filter: var(--blur-sm);
-  box-shadow: var(--gloss), 0 2px 10px rgba(0, 0, 0, .22);
+  box-shadow: var(--gloss), var(--sh-raised);
   transition: transform .16s cubic-bezier(.3, .9, .3, 1), background .16s, box-shadow .16s, border-color .16s;
 }
 .btn:hover {
-  background: var(--btn-hover); border-color: rgba(255, 255, 255, .24);
+  background: var(--btn-hover); border-color: var(--veil-strong);
   text-decoration: none; transform: translateY(-1px);
-  box-shadow: var(--gloss-strong), 0 8px 22px rgba(0, 0, 0, .32);
+  box-shadow: var(--gloss-strong), var(--sh-raised-hover);
 }
 .btn:active { transform: translateY(0) scale(.985); }
 .btn-primary { background: var(--green); border-color: transparent; color: #fff; }
@@ -378,7 +451,7 @@ pre {
   display: inline-grid; place-items: center; color: #fff; font-size: 11px;
   font-weight: 650; object-fit: cover; overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 2px 8px rgba(0, 0, 0, .3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), var(--sh-raised);
 }
 .avatar.sm { width: 20px; height: 20px; font-size: 9px; }
 .avatar.lg { width: 56px; height: 56px; font-size: 18px; }
@@ -438,24 +511,37 @@ label { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 7px;
    aks holda ular boshqalardan tor bolib qoladi. */
 input:not([type]),
 input[type=text], input[type=email], input[type=password], input[type=url],
-input[type=number], input[type=date], input[type=search], select, textarea {
+input[type=number], input[type=date], input[type=search],
+/* `datetime-local` ro'yxatda yo'q edi - brauzerning standart tor maydoni
+   chiqib, qolgan maydonlardan ajralib turardi. */
+input[type=datetime-local], input[type=time], input[type=month],
+select, textarea {
   width: 100%; padding: 9px 14px; border: 1px solid var(--border);
   border-radius: 12px; font-size: 14px; font-family: inherit; line-height: 20px;
   background: var(--canvas-inset); color: var(--text); min-height: 40px;
   -webkit-backdrop-filter: var(--blur-sm); backdrop-filter: var(--blur-sm);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3);
+  box-shadow: var(--sh-inset);
   transition: border-color .16s, box-shadow .16s, background .16s;
 }
-input:hover, select:hover, textarea:hover { border-color: rgba(255, 255, 255, .2); }
+input:hover, select:hover, textarea:hover { border-color: var(--veil-strong); }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--accent);
   background: var(--canvas-inset);
-  box-shadow: var(--ring), inset 0 1px 2px rgba(0, 0, 0, .3);
+  box-shadow: var(--ring), var(--sh-inset);
 }
 input::placeholder, textarea::placeholder { color: var(--subtle); }
 select { cursor: pointer; }
-select option { background: #10141f; color: var(--text); }
+select option { background: var(--surface); color: var(--text); }
 input[type=checkbox], input[type=radio] { accent-color: var(--accent); cursor: pointer; }
+/* Sana/vaqt maydonidagi taqvim belgisi: kechki rejimda ko'rinmay qolmasin */
+input[type=date]::-webkit-calendar-picker-indicator,
+input[type=datetime-local]::-webkit-calendar-picker-indicator,
+input[type=time]::-webkit-calendar-picker-indicator {
+  cursor: pointer; opacity: .65; transition: opacity .15s;
+}
+input[type=date]::-webkit-calendar-picker-indicator:hover,
+input[type=datetime-local]::-webkit-calendar-picker-indicator:hover,
+input[type=time]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .field { margin-bottom: 18px; }
 .field .help { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
@@ -533,7 +619,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 
 .progress {
   height: 9px; background: var(--surface-3); border-radius: 20px;
-  overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3);
+  overflow: hidden; box-shadow: var(--sh-inset);
 }
 .progress > span {
   display: block; height: 100%; border-radius: 20px;
@@ -544,6 +630,13 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 
 /* ============ KANBAN ============ */
 .board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 18px; align-items: flex-start; }
+/* Doska tepasidagi umumiy hujjatlar tasmasi */
+.board-files {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-bottom: 14px; font-size: 12.5px;
+}
+.board-files .chip { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-files a.chip:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
 .column {
   flex: 0 0 306px; width: 306px; background: var(--surface);
   border-radius: var(--radius-lg); border: 1px solid var(--border);
@@ -572,13 +665,13 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .tcard {
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 13px; padding: 11px 13px; margin-bottom: 9px; cursor: pointer;
-  display: block; color: inherit; box-shadow: var(--gloss), 0 2px 10px rgba(0, 0, 0, .22);
+  display: block; color: inherit; box-shadow: var(--gloss), var(--sh-raised);
   transition: transform .16s cubic-bezier(.3, .9, .3, 1), background .16s, box-shadow .16s, border-color .16s;
 }
 .tcard:hover {
-  border-color: rgba(255, 255, 255, .26); text-decoration: none;
+  border-color: var(--veil-strong); text-decoration: none;
   background: var(--surface-3); transform: translateY(-2px);
-  box-shadow: var(--gloss-strong), 0 10px 26px rgba(0, 0, 0, .34);
+  box-shadow: var(--gloss-strong), var(--sh-raised-hover);
 }
 .tcard.dragging { opacity: .4; transform: rotate(1.5deg) scale(.98); }
 .tcard .code { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
@@ -595,13 +688,13 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .tl-item { position: relative; padding: 0 0 20px 6px; }
 .tl-item::before {
   content: ""; position: absolute; left: -22px; top: 6px; width: 12px; height: 12px;
-  border-radius: 50%; background: #0b0f1a; border: 2px solid var(--accent);
-  box-shadow: 0 0 0 4px rgba(11, 15, 26, .9), 0 0 12px rgba(95, 131, 232, .55);
+  border-radius: 50%; background: var(--canvas); border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--accent-soft);
 }
-.tl-item.cat-review::before { border-color: var(--success); box-shadow: 0 0 0 4px rgba(11, 15, 26, .9), 0 0 12px rgba(79, 168, 111, .5); }
+.tl-item.cat-review::before { border-color: var(--success); box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--success-soft); }
 .tl-item.cat-member::before { border-color: var(--accent); }
-.tl-item.cat-project::before { border-color: var(--attention); box-shadow: 0 0 0 4px rgba(11, 15, 26, .9), 0 0 12px rgba(207, 160, 75, .5); }
-.tl-item.cat-task::before { border-color: var(--done); box-shadow: 0 0 0 4px rgba(11, 15, 26, .9), 0 0 12px rgba(143, 134, 216, .5); }
+.tl-item.cat-project::before { border-color: var(--attention); box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--attention-soft); }
+.tl-item.cat-task::before { border-color: var(--done); box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--done-soft); }
 .tl-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tl-sum { font-weight: 550; font-size: 14px; }
 .tl-detail {
@@ -642,7 +735,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   border: 1px solid var(--border); background: var(--border-muted);
   transition: border-color .16s, background .16s;
 }
-.choice:hover { border-color: rgba(255, 255, 255, .28); }
+.choice:hover { border-color: var(--veil-strong); }
 .choice.on { border-color: var(--accent); background: var(--accent-soft); }
 .choice input[type="radio"] { width: auto; min-height: 0; margin-top: 3px; flex: 0 0 auto; }
 .choice > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -653,7 +746,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .chip-x {
   display: grid; place-items: center; padding: 0; min-height: 0;
   width: 15px; height: 15px; border: 0; border-radius: 50%; cursor: pointer;
-  background: rgba(255, 255, 255, .12); color: var(--muted);
+  background: var(--veil); color: var(--muted);
   margin-right: -4px;
 }
 .chip-x:hover { background: var(--danger, #f85149); color: #fff; }
@@ -687,7 +780,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 }
 
 .spinner {
-  width: 24px; height: 24px; border: 2px solid rgba(255, 255, 255, .12);
+  width: 24px; height: 24px; border: 2px solid var(--veil);
   border-top-color: var(--accent); border-radius: 50%;
   animation: spin .7s linear infinite; margin: 44px auto;
 }
@@ -712,7 +805,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 /* ============ LANDING ============ */
 .lp-wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
 .lp-header {
-  background: rgba(10, 14, 24, .55); border-bottom: 1px solid var(--border);
+  background: var(--canvas); border-bottom: 1px solid var(--border);
   -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
   box-shadow: var(--gloss); position: sticky; top: 0; z-index: 50;
 }
@@ -727,8 +820,8 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .hero { position: relative; overflow: hidden; padding: 100px 0 84px; text-align: center; }
 .hero::before {
   content: ""; position: absolute; inset: 0; opacity: .3; pointer-events: none;
-  background-image: linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px);
+  background-image: linear-gradient(var(--veil-soft) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--veil-soft) 1px, transparent 1px);
   background-size: 58px 58px;
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000, transparent 75%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000, transparent 75%);
@@ -739,12 +832,12 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2);
   font-size: 13px; color: var(--muted); margin-bottom: 28px;
   -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
-  box-shadow: var(--gloss), 0 4px 18px rgba(0, 0, 0, .25);
+  box-shadow: var(--gloss), var(--sh-raised);
 }
 .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success); }
 .hero h1 {
   font-size: 66px; line-height: 1.06; margin: 0 0 22px; font-weight: 800; letter-spacing: -.035em;
-  background: linear-gradient(180deg, #fff 28%, #9fb0c8);
+  background: linear-gradient(180deg, var(--text) 28%, var(--muted));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .hero .lead { font-size: 20px; color: var(--muted); max-width: 690px; margin: 0 auto 36px; }
@@ -787,7 +880,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   transition: transform .22s cubic-bezier(.3, .9, .3, 1), box-shadow .22s, border-color .22s;
 }
 .lp-card:hover {
-  border-color: rgba(255, 255, 255, .24); transform: translateY(-4px);
+  border-color: var(--veil-strong); transform: translateY(-4px);
   box-shadow: var(--gloss-strong), var(--shadow-lg);
 }
 .lp-card .ico {
@@ -848,9 +941,30 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .lp-footer .lp-wrap { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
 .lp-footer a { color: var(--muted); }
 
-/* ============ MOSLASHUV ============ */
+/* ============ MOSLASHUV (telefon va planshet) ============
+   Yondashuv: kichik ekranda hech qanday bo'lim yo'qolmaydi. Yon panel
+   avval butunlay yashirilardi - shu bilan telefondan "Bosh panel",
+   "Mening ishim" va "Tarix" ga o'tib bo'lmasdi. Endi u chetdan chiqadigan
+   tortma bo'ldi: tepadagi menyu tugmasi ochadi. */
+
+/* Menyu tugmasi faqat tortma ishlaydigan kenglikda ko'rinadi */
+.menu-btn { display: none; }
+/* Tortma ochilganda orqadagi sahifani yopadigan qoraytirgich */
+.scrim {
+  display: none; position: fixed; inset: var(--header-h) 0 0 0; z-index: 70;
+  background: rgba(8, 11, 16, .55); border: 0; width: 100%; cursor: pointer;
+}
+
 @media (max-width: 900px) {
-  .sidebar { display: none; }
+  .menu-btn { display: grid; }
+  .scrim { display: block; }
+  .sidebar {
+    position: fixed; top: var(--header-h); left: 0; bottom: 0; z-index: 75;
+    width: min(298px, 86vw); flex-basis: auto; height: auto;
+    border-right: 1px solid var(--border); box-shadow: var(--sh-drawer);
+    transform: translateX(-102%); transition: transform .22s ease;
+  }
+  .sidebar.open { transform: none; }
   .content { padding: 16px 16px 48px; }
   .page-head { padding: 14px 16px 0; }
   .gh-search, .gh-top .top-nav { display: none; }
@@ -861,6 +975,46 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   .lp-nav { display: none; }
   .flow .step { border-right: none; border-bottom: 1px solid var(--border-muted); }
   .btn { min-height: 42px; }        /* barmoq bilan bosish qulay boʻlsin */
+
+  /* Doska: ustunlar barmoq bilan surilib, bittalab to'xtaydi */
+  .board { scroll-snap-type: x mandatory; gap: 12px; }
+  .column { flex: 0 0 86vw; width: 86vw; max-height: none; scroll-snap-align: start; }
+  .column-body { max-height: 62vh; }
+  .chat-body { max-height: 62vh; }
+  .filters { padding: 13px 14px; }
+  .filters .f { min-width: 0; flex: 1 1 150px; }
+  .filters .f select, .filters .f input { width: 100%; }
+  .form-actions { flex-wrap: wrap; }
+  .form-actions .btn { flex: 1 1 160px; }
+  .dropzone { padding: 20px 12px; }
+  .table th, .table td { padding: 9px 11px; }
+}
+
+/* Telefon: joy juda tor - sarlavhadagi ikkilamchi ikonkalar tortmada bor */
+@media (max-width: 620px) {
+  .gh-top { gap: 8px; padding: 0 11px; }
+  .gh-top .logo-link span { display: none; }
+  .hide-sm { display: none; }
+  .content { padding: 14px 13px 44px; }
+  .page-head { padding: 12px 13px 0; }
+  .page-head h1 { font-size: 18.5px; }
+  .card-body { padding: 14px 15px; }
+  .column { flex: 0 0 92vw; width: 92vw; }
+  .hero h1 { font-size: 32px; }
+  .hero .lead { font-size: 17px; }
+  .lp-section { padding: 54px 0; }
+  .stat .v { font-size: 22px; }
+  .theme-float { top: 12px; right: 12px; }
+  /* Uzun matnli tugmalar ikki qatorga sig'sin */
+  .table .row-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* iOS'da 16px dan kichik maydon fokuslanganda sahifani o'zi kattalashtiradi -
+   shundan keyin foydalanuvchi qo'li bilan qaytarishga majbur bo'ladi. */
+@media (max-width: 760px) {
+  input:not([type]), input[type=text], input[type=email], input[type=password],
+  input[type=url], input[type=number], input[type=date], input[type=search],
+  input[type=datetime-local], select, textarea { font-size: 16px; }
 }
 
 /* Harakat kamaytirilgan rejim - animatsiyalarsiz */
@@ -872,11 +1026,11 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 
 /* backdrop-filter qoʻllab-quvvatlanmasa - qattiq sathlarga qaytamiz */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .gh-top, .sidebar, .lp-header, .page-head { background: #0d1119; }
-  .card, .stat, .filters, .lp-card, .flow, .demo, .auth-box { background: #151a24; }
-  .column { background: #11151e; }
-  .tcard { background: #1a1f2b; }
-  input, select, textarea, pre, .terminal { background: #0b0e16; }
+  .gh-top, .sidebar, .lp-header, .page-head { background: var(--surface); }
+  .card, .stat, .filters, .lp-card, .flow, .demo, .auth-box { background: var(--surface); }
+  .column { background: var(--canvas); }
+  .tcard { background: var(--surface-2); }
+  input, select, textarea, pre, .terminal { background: var(--canvas-inset); }
 }
 
 /* ============ POPOVER (bildirishnoma paneli) ============ */
@@ -913,7 +1067,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 /* Jonli ulanish belgisi */
 .live {
   position: absolute; bottom: -2px; right: -2px; width: 8px; height: 8px;
-  border-radius: 50%; background: var(--subtle); border: 2px solid #0b0f1a;
+  border-radius: 50%; background: var(--subtle); border: 2px solid var(--canvas);
 }
 .live.on { background: var(--success); box-shadow: 0 0 8px var(--success); }
 .live-tag {
@@ -971,6 +1125,30 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   display: flex; align-items: center; gap: 12px; padding: 12px 14px;
   border: 1px solid rgba(95, 131, 232, .35); border-radius: 14px;
   background: var(--accent-soft); box-shadow: var(--gloss);
+}
+
+/* Loyiha yaratishda: kimni chaqiramiz va unga qanday vazifa beramiz */
+.pick {
+  display: grid; gap: 9px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+}
+.pick-tasks {
+  display: grid; gap: 7px; padding-top: 9px;
+  border-top: 1px dashed var(--border-muted);
+}
+.pick-task { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+.pick-task-title {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pick-add { display: grid; gap: 7px; }
+.pick-add input, .pick-add select { min-height: 34px; padding: 5px 11px; font-size: 13px; }
+.pick-add .err { color: var(--danger); font-size: 12px; }
+.pick-date { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 132px; }
+.pick-date small { font-size: 11px; }
+.pick-files { display: flex; flex-wrap: wrap; gap: 6px; }
+.pick-files .chip { max-width: 100%; font-size: 11.5px; padding: 2px 9px; }
+.pick-file-name {
+  max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 /* ============ SHAXSIY YOZISHMALAR ============ */

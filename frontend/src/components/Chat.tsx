@@ -125,7 +125,6 @@ export default function Chat({
           {live ? "jonli" : "ulanmoqda…"}
         </span>
         <span className="spacer" />
-        <small className="muted">Enter — yuborish, Shift+Enter — yangi qator</small>
       </div>
 
       <div className="chat-body" ref={bodyRef} style={{ height }}>

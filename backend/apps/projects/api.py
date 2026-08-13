@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
-from apps.core.permissions import ProjectAccess, check_access
+from apps.core.permissions import CanCreateProject, ProjectAccess, check_access
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many
 from apps.core.queries import related_count
@@ -85,6 +85,8 @@ def resolve_workspace(user):
 
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
+    # Loyiha ochish - faqat loyiha menejeri va admin (`CanCreateProject`).
+    permission_classes = [permissions.IsAuthenticated, CanCreateProject]
     search_fields = ["name", "key", "description"]
     ordering_fields = ["updated_at", "name", "due_date"]
     ordering = ["-updated_at"]
@@ -177,8 +179,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
             summary="Loyiha sozlamalari yangilandi")
 
     def perform_destroy(self, instance):
-        if not self.request.user.is_platform_admin:
-            raise PermissionDenied("Loyihani faqat admin ochira oladi.")
+        """Loyihani o'chirish - loyiha menejeri yoki tizim admini.
+
+        Loyiha admini o'chira olmaydi: u kundalik boshqaruv uchun, butun
+        loyihani yo'q qilish esa egasining qarori.
+        """
+        access = ProjectAccess(self.request.user, instance)
+        if not (access.is_admin or access.is_manager):
+            raise PermissionDenied("Loyihani faqat loyiha menejeri yoki admin ochira oladi.")
+        log(actor=self.request.user, verb="project.deleted", workspace=instance.workspace,
+            summary="Loyiha ochirildi: " + instance.name)
         instance.delete()
 
     # ------------------------------------------------------------ brif

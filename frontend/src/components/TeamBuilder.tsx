@@ -99,13 +99,6 @@ export default function TeamBuilder({
         </div>
       )}
 
-      {project && !active.length && !requests.length && (
-        <div className="callout mb">
-          <strong>{project.name}</strong> hali boʻsh. Pastdan odamni email yoki
-          ism-familiyasi boʻyicha topib taklif yuboring — u tasdiqlagach aʼzo boʻladi.
-        </div>
-      )}
-
       {/* 1. Taklif qilish - qidiruv shu komponent ichida */}
       {project && acc?.can_manage && (
         <InviteBox

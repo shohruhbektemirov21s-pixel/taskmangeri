@@ -106,7 +106,7 @@ export default function InviteBox({
           search={search}
           onPick={setPicked}
           placeholder="Email yoki ism bo'yicha qidiring"
-          emptyText="Mos odam topilmadi — u allaqachon jamoada yoki taklif javobini kutmoqda."
+          emptyText="Mos odam topilmadi"
         />
       ) : (
         <form onSubmit={send}>

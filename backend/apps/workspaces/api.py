@@ -1,10 +1,11 @@
 from django.db.models import Count, Exists, OuterRef, Q
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.activity.services import log
+from apps.core.permissions import CanCreateProject
 from apps.core.queries import related_count
 from apps.projects.models import Project
 
@@ -15,6 +16,9 @@ from .serializers import WorkspaceDetailSerializer, WorkspaceSerializer
 class WorkspaceViewSet(viewsets.ModelViewSet):
     """Ish maydonlari - GitHub organization ekvivalenti."""
 
+    # Maydon ochish ham loyiha menejeri va adminning ishi: loyiha ocha
+    # olmaydigan odamga bo'sh maydonning keragi yo'q.
+    permission_classes = [permissions.IsAuthenticated, CanCreateProject]
     lookup_field = "slug"
     search_fields = ["name", "description"]
 

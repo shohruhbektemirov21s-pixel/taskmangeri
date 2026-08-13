@@ -27,12 +27,6 @@ export default function Onboarding({ project }: { project: Project }) {
 
   return (
     <>
-      <div className="callout mb">
-        <strong>Bu sahifa nima uchun:</strong> yangi kelgan dasturchi (yoki agent) loyihani
-        10 daqiqada tushunishi uchun. Avvalgi dasturchilar nima qilgani, qanday qaror qabul
-        qilingani va qayerda xato qilingani shu yerda jamlangan.
-      </div>
-
       <div className="split">
         <div>
           <Card title="1. Loyiha nima qiladi">
@@ -75,7 +69,7 @@ export default function Onboarding({ project }: { project: Project }) {
                   );
                 })}
                 {d.brief.filled_ratio === 0 && (
-                  <p className="muted">Brif hali toldirilmagan — menejerdan toldirishni soranng.</p>
+                  <p className="muted">Brif toldirilmagan.</p>
                 )}
               </div>
             ) : <p className="muted">Brif yaratilmagan.</p>}
@@ -83,9 +77,6 @@ export default function Onboarding({ project }: { project: Project }) {
 
           <Card title="3. Muhim qarorlar va eslatmalar"
                 badge={<span className="badge">{d.key_notes.length}</span>}>
-            <p className="muted" style={{ fontSize: 13 }}>
-              Dasturchilarning ish jurnallaridan: nima qilingan va nega shunday qilingan.
-            </p>
             <ul className="list-plain">
               {d.key_notes.map((w) => (
                 <li key={w.id}>
@@ -105,9 +96,6 @@ export default function Onboarding({ project }: { project: Project }) {
 
           <Card title="4. Takrorlanmasligi kerak bolgan xatolar"
                 badge={<span className="badge badge-danger">{d.lessons.length}</span>}>
-            <p className="muted" style={{ fontSize: 13 }}>
-              Tekshiruvda qaytarilgan ishlar — shu xatolarni takrorlamang.
-            </p>
             <ul className="list-plain">
               {d.lessons.map((r) => (
                 <li key={r.id}>

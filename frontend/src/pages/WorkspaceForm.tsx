@@ -30,9 +30,6 @@ export default function WorkspaceForm() {
       <PageHead title={<strong>Yangi ish maydoni</strong>} />
       <div className="content" style={{ maxWidth: 640 }}>
         <ErrorMsg error={error} />
-        <div className="callout mb">
-          Ish maydoni — GitHub organization ekvivalenti. Loyihalar shu maydon ichida joylashadi.
-        </div>
         <Card title="Maydon maʼlumotlari">
           <form onSubmit={submit}>
             <div className="field">
