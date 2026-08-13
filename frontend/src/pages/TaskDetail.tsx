@@ -8,7 +8,7 @@ import TaskSubmission from "@/components/TaskSubmission";
 import Timeline from "@/components/Timeline";
 import {
   Avatar, AvatarStack, Card, ErrorMsg, Loading, Priority, StatusBadge,
-  fmtDate, fmtDateTime, timeAgo,
+  fmtDate, fmtDateTime, fromDateTimeInput, timeAgo, toDateTimeInput,
 } from "@/components/ui";
 
 const FILE_ICON: Record<string, string> = {
@@ -31,6 +31,8 @@ export default function TaskDetail() {
   const [log, setLog] = useState({ hours: "1", note: "", work_date: new Date().toISOString().slice(0, 10) });
   const [review, setReview] = useState({ verdict: "APPROVED", comment: "" });
   const [blockReason, setBlockReason] = useState("");
+  const [editDue, setEditDue] = useState(false);
+  const [due, setDue] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -89,6 +91,8 @@ export default function TaskDetail() {
   if (!task) return <div className="content"><Loading /></div>;
 
   const acc = task.access!;
+  // Muddatni menejer (yoki ijrochining o'zi) qo'yadi - tahrirlash huquqi bilan bir xil.
+  const canEdit = acc.can_create_task || task.assignees.some((a) => a.id === user?.id);
   const transitions = task.allowed_transitions || [];
   const attachments = task.attachments || [];
 
@@ -129,11 +133,31 @@ export default function TaskDetail() {
           <Priority task={task} />
           <span className="badge">{task.type_display}</span>
           {task.specialty_label && <span className="badge badge-brand">{task.specialty_label}</span>}
-          {task.due_date && (
+          {task.due_date && !editDue && (
             <span className={`badge ${task.is_overdue ? "badge-danger" : ""}`}>
-              Muddat: {fmtDate(task.due_date)}
+              Muddat: {fmtDateTime(task.due_date)}
             </span>
           )}
+          {/* Muddatni shu yerning o'zida qo'yish - vazifa formasiga o'tmasdan.
+              Soat bilan: "13.08.2026 13:00 gacha tugatilsin". */}
+          {canEdit && (editDue ? (
+            <span className="row" style={{ gap: 6 }}>
+              <input type="datetime-local" style={{ width: 210, minHeight: 0 }}
+                     value={due} onChange={(e) => setDue(e.target.value)} />
+              <button className="btn btn-sm btn-primary" onClick={() => void run(async () => {
+                await api.patch(`/tasks/${task.id}/`, { due_date: fromDateTimeInput(due) });
+                setEditDue(false);
+              })}>Saqlash</button>
+              <button className="btn btn-sm" onClick={() => setEditDue(false)}>Bekor</button>
+            </span>
+          ) : (
+            <button className="btn btn-sm" onClick={() => {
+              setDue(toDateTimeInput(task.due_date));
+              setEditDue(true);
+            }}>
+              {task.due_date ? "Muddatni ozgartirish" : "Muddat qoyish"}
+            </button>
+          ))}
           {task.review_round > 0 && (
             <span className="badge badge-info">{task.review_round}-tekshiruv aylanasi</span>
           )}
@@ -316,8 +340,9 @@ export default function TaskDetail() {
                   });
                 }}>
                   <div className="row">
-                    <div className="field" style={{ width: 110 }}>
-                      <label>Soat</label>
+                    <div className="field" style={{ width: 150 }}>
+                      {/* "Soat" deb yozilsa muddat soati bilan chalkashardi */}
+                      <label>Sarflangan soat</label>
                       <input type="number" step="0.5" min="0" value={log.hours}
                              onChange={(e) => setLog({ ...log, hours: e.target.value })} />
                     </div>

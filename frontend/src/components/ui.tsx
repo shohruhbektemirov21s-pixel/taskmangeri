@@ -213,7 +213,7 @@ export function TaskCard({ task, draggable = false, onDragStart }: {
         <span className="badge">{task.type_display}</span>
         {task.specialty_label && <span className="badge badge-brand">{task.specialty_label}</span>}
         {task.due_date && (
-          <span className={`badge ${task.is_overdue ? "badge-danger" : ""}`}>{fmtDate(task.due_date)}</span>
+          <span className={`badge ${task.is_overdue ? "badge-danger" : ""}`}>{fmtDateTime(task.due_date)}</span>
         )}
         <span className="spacer" />
         <AvatarStack users={task.assignees} />
@@ -242,7 +242,7 @@ export function TaskRow({ task, showProject = false }: { task: Task; showProject
       <td><AvatarStack users={task.assignees} /></td>
       <td className="nowrap">
         {task.due_date ? (
-          <span className={task.is_overdue ? "badge badge-danger" : "muted"}>{fmtDate(task.due_date)}</span>
+          <span className={task.is_overdue ? "badge badge-danger" : "muted"}>{fmtDateTime(task.due_date)}</span>
         ) : (
           <span className="muted">—</span>
         )}
@@ -256,6 +256,27 @@ export function fmtDate(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   return d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+/**
+ * ISO vaqtni `<input type="datetime-local">` tushunadigan mahalliy formatga
+ * o'giradi: "2026-08-13T21:00". Brauzer maydoni mintaqasiz qiymat kutadi,
+ * server esa mintaqali ISO yuboradi - shuning uchun o'girish kerak.
+ */
+export function toDateTimeInput(value?: string | null) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    + `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Maydondagi mahalliy qiymatni serverga yuboriladigan ISO ga qaytaradi. */
+export function fromDateTimeInput(value: string) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 export function fmtDateTime(value?: string | null) {

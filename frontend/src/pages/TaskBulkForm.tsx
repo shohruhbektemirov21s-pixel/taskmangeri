@@ -4,7 +4,7 @@ import { ApiError, api } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Avatar, Card, ErrorMsg, Loading } from "@/components/ui";
+import { Avatar, Card, ErrorMsg, Loading, fromDateTimeInput } from "@/components/ui";
 
 export default function TaskBulkForm() {
   const { id } = useParams();
@@ -63,7 +63,7 @@ export default function TaskBulkForm() {
         priority: Number(f.priority),
         task_type: f.task_type,
         status: f.status,
-        due_date: f.due_date || null,
+        due_date: fromDateTimeInput(f.due_date),
         acceptance_criteria: f.acceptance_criteria,
       });
       nav(`/loyiha/${id}/doska`);
@@ -191,8 +191,9 @@ export default function TaskBulkForm() {
                 </div>
                 <div className="field">
                   <label>Umumiy muddat</label>
-                  <input type="date" value={f.due_date}
+                  <input type="datetime-local" value={f.due_date}
                          onChange={(e) => setF({ ...f, due_date: e.target.value })} />
+                  <div className="help">Kun va soat: masalan 13.08.2026 21:00</div>
                 </div>
                 <div className="field">
                   <label>Umumiy tayyorlik mezoni</label>

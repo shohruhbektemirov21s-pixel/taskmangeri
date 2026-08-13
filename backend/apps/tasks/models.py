@@ -103,7 +103,9 @@ class Task(models.Model):
                                related_name="subtasks", verbose_name="Asosiy task")
     labels = models.ManyToManyField(Label, blank=True, related_name="tasks", verbose_name="Teglar")
 
-    due_date = models.DateField("Muddat", null=True, blank=True)
+    # Muddat aniq daqiqagacha: "13.08.2026 21:00". Faqat kun bo'lsa
+    # "bugun tugatilsin" va "bugun ish kuni oxirigacha" farqlanmasdi.
+    due_date = models.DateTimeField("Muddat", null=True, blank=True)
     estimate_hours = models.DecimalField("Rejalashtirilgan soat", max_digits=6, decimal_places=1,
                                          null=True, blank=True)
     branch_name = models.CharField("Branch", max_length=120, blank=True)
@@ -154,7 +156,7 @@ class Task(models.Model):
 
     @property
     def is_overdue(self):
-        return bool(self.due_date and self.is_open and self.due_date < timezone.localdate())
+        return bool(self.due_date and self.is_open and self.due_date < timezone.now())
 
     @property
     def priority_label(self):

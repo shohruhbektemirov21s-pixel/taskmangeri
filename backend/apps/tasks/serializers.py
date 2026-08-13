@@ -29,10 +29,10 @@ class AttachmentSerializer(serializers.ModelSerializer):
         read_only_fields = ["original_name", "size", "content_type", "uploaded_by", "created_at"]
 
     def get_url(self, obj):
-        if not obj.file:
-            return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(obj.file.url) if request else obj.file.url
+        # Nisbiy manzil: proksi Host ni almashtirsa ham brauzer ocha oladi.
+        from apps.core.media import media_url
+
+        return media_url(obj.file)
 
     def validate_file(self, value):
         limit = 25 * 1024 * 1024
@@ -200,7 +200,7 @@ class BulkTaskSerializer(serializers.Serializer):
     match_by_specialty = serializers.BooleanField(
         default=False,
         help_text="Belgilansa vazifalar faqat mos mutaxassislarga taqsimlanadi")
-    due_date = serializers.DateField(required=False, allow_null=True)
+    due_date = serializers.DateTimeField(required=False, allow_null=True)
     acceptance_criteria = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_titles(self, value):

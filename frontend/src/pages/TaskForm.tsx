@@ -6,7 +6,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { IconSearch } from "@/components/icons";
-import { Avatar, Card, ErrorMsg, Loading } from "@/components/ui";
+import { Avatar, Card, ErrorMsg, Loading, fromDateTimeInput, toDateTimeInput }
+  from "@/components/ui";
 
 interface Suggestion {
   user: UserBrief;
@@ -51,7 +52,8 @@ export default function TaskForm() {
         setF({
           title: t.title, description: t.description, acceptance_criteria: t.acceptance_criteria,
           task_type: t.task_type, priority: t.priority, status: t.status,
-          required_specialty: t.required_specialty || "", due_date: t.due_date || "",
+          required_specialty: t.required_specialty || "",
+          due_date: toDateTimeInput(t.due_date),
           estimate_hours: t.estimate_hours || "", branch_name: t.branch_name,
           pr_url: t.pr_url, reviewer_id: t.reviewer ? String(t.reviewer.id) : "",
         });
@@ -85,7 +87,7 @@ export default function TaskForm() {
       project: Number(projectId),
       priority: Number(f.priority),
       assignee_ids: assignees,
-      due_date: f.due_date || null,
+      due_date: fromDateTimeInput(f.due_date),
       estimate_hours: f.estimate_hours || null,
       reviewer_id: f.reviewer_id ? Number(f.reviewer_id) : null,
     };
@@ -277,8 +279,9 @@ export default function TaskForm() {
                 <div className="row">
                   <div className="field" style={{ flex: 1 }}>
                     <label>Muddat</label>
-                    <input type="date" value={f.due_date}
+                    <input type="datetime-local" value={f.due_date}
                            onChange={(e) => set("due_date", e.target.value)} />
+                    <div className="help">Kun va soat: masalan 13.08.2026 21:00</div>
                   </div>
                   <div className="field" style={{ width: 120 }}>
                     <label>Reja (soat)</label>

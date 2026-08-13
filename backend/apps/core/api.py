@@ -32,7 +32,7 @@ def dashboard(request):
     returned = my_tasks.filter(status=TaskStatus.CHANGES_REQUESTED)
     blocked = my_tasks.filter(status=TaskStatus.BLOCKED)
     waiting_review = my_tasks.filter(status=TaskStatus.IN_REVIEW)
-    overdue = focus_queue.filter(due_date__lt=now.date())
+    overdue = focus_queue.filter(due_date__lt=now)
 
     my_projects = (Project.objects.filter(memberships__user=user, memberships__is_active=True)
                    .select_related("workspace", "manager")

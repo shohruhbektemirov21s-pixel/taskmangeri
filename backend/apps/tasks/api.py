@@ -126,7 +126,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             qs = qs.exclude(status__in=[TaskStatus.DONE, TaskStatus.CANCELLED])
         if p.get("overdue") == "1":
             from django.utils import timezone
-            qs = qs.filter(due_date__lt=timezone.localdate()).exclude(
+            qs = qs.filter(due_date__lt=timezone.now()).exclude(
                 status__in=[TaskStatus.DONE, TaskStatus.CANCELLED])
         return qs.distinct()
 
