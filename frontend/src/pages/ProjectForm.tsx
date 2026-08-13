@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
+import FilePicker, { uploadFiles } from "@/components/FilePicker";
+import TeamPicker, { sendInvites } from "@/components/TeamPicker";
+import type { Pick as TeamPick } from "@/components/TeamPicker";
 import type { Project, Workspace } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
@@ -9,7 +12,7 @@ import { Card, ErrorMsg, Loading } from "@/components/ui";
 export default function ProjectForm() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { meta } = useAuth();
+  const { meta, user } = useAuth();
   const editing = Boolean(id);
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -17,10 +20,16 @@ export default function ProjectForm() {
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  // Fayllar loyiha yaratilgandan keyin yuklanadi - avval id kerak.
+  const [files, setFiles] = useState<File[]>([]);
+  const [fileNote, setFileNote] = useState("");
+  // Takliflar ham loyiha yaratilgandan keyin yuboriladi.
+  const [invites, setInvites] = useState<TeamPick[]>([]);
+  const [inviteNote, setInviteNote] = useState("");
 
   const [f, setF] = useState({
     workspace: "", name: "", description: "",
-    status: "ACTIVE", repo_url: "", docs_url: "", start_date: "", due_date: "",
+    status: "ACTIVE", repo_url: "", start_date: "", due_date: "",
     is_public: true, auto_accept: false,
   });
 
@@ -33,7 +42,7 @@ export default function ProjectForm() {
         const p = await api.get<Project>(`/projects/${id}/`);
         setF({
           workspace: String(p.workspace), name: p.name, description: p.description,
-          status: p.status, repo_url: p.repo_url, docs_url: p.docs_url,
+          status: p.status, repo_url: p.repo_url,
           start_date: p.start_date || "", due_date: p.due_date || "",
           is_public: p.is_public, auto_accept: p.auto_accept,
         });
@@ -61,6 +70,32 @@ export default function ProjectForm() {
       const saved = editing
         ? await api.patch<Project>(`/projects/${id}/`, body)
         : await api.post<Project>("/projects/", body);
+
+      // Loyiha saqlandi. Fayl yuklanmasa ham loyiha yo'qolmasin: xato aytiladi,
+      // odam fayllarni "Fayllar" bo'limidan qayta yuklay oladi.
+      if (files.length) {
+        try {
+          await uploadFiles(`/projects/${saved.id}/files/`, files, fileNote);
+        } catch {
+          setBusy(false);
+          setError("Loyiha yaratildi, lekin fayllarni yuklab bolmadi — "
+                   + "ularni «Fayllar» bolimidan qayta yuklang.");
+          nav(`/loyiha/${saved.id}/fayllar`);
+          return;
+        }
+      }
+      // Taklif yuborilmasa ham loyiha qoladi - kim qolib ketganini aytamiz.
+      if (invites.length) {
+        const failed = await sendInvites(saved.id, invites, inviteNote);
+        if (failed.length) {
+          setBusy(false);
+          setError("Loyiha yaratildi, lekin taklif yuborilmadi: " + failed.join(", ")
+                   + " — «Jamoa» bolimidan qayta urinib koring.");
+          nav(`/loyiha/${saved.id}/jamoa`);
+          return;
+        }
+      }
+
       nav(`/loyiha/${saved.id}/brif`);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -87,6 +122,8 @@ export default function ProjectForm() {
         )}
         <form onSubmit={submit}>
           <div className="split">
+            {/* Chap ustun: asosiy maydonlar va boshlang'ich fayllar */}
+            <div>
             <Card title="Asosiy maʼlumot">
               <div className="field">
                 <label>Ish maydoni</label>
@@ -129,6 +166,25 @@ export default function ProjectForm() {
               </div>
             </Card>
 
+            {/* Tahrirlashda fayllar alohida «Fayllar» bolimida boshqariladi -
+                bu yerda faqat yangi loyiha uchun boshlangich hujjatlar. */}
+            {!editing && (
+              <Card title="Boshlangich fayllar">
+                <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+                  Texnik topshiriq, dizayn, shartnoma — loyiha bilan birga yuklanadi va
+                  jamoaga darrov korinadi. Keyin «Fayllar» bolimidan qoshsa ham boladi.
+                </p>
+                <FilePicker
+                  files={files}
+                  onChange={setFiles}
+                  withDescription
+                  description={fileNote}
+                  onDescription={setFileNote}
+                />
+              </Card>
+            )}
+            </div>
+
             <div>
               <Card title="Qoshilish va holat">
                 <div className="field">
@@ -155,11 +211,24 @@ export default function ProjectForm() {
                   <input value={f.repo_url} onChange={(e) => set("repo_url", e.target.value)}
                          placeholder="https://github.com/..." />
                 </div>
-                <div className="field">
-                  <label>Hujjatlar</label>
-                  <input value={f.docs_url} onChange={(e) => set("docs_url", e.target.value)} />
-                </div>
               </Card>
+
+              {/* Tahrirlashda jamoa «Jamoa» bolimida boshqariladi - bu yerda
+                  faqat yangi loyihaga chaqiriladigan odamlar. */}
+              {!editing && (
+                <Card title="Jamoaga taklif">
+                  <TeamPicker
+                    picks={invites}
+                    onChange={setInvites}
+                    /* Menejer siz bolasiz - bu royxatdan menejer roli berilmaydi */
+                    roles={(meta?.project_role || []).filter((r) => r.value !== "MANAGER")}
+                    defaultRole="DEVELOPER"
+                    excludeId={user?.id}
+                    note={inviteNote}
+                    onNote={setInviteNote}
+                  />
+                </Card>
+              )}
             </div>
           </div>
 
