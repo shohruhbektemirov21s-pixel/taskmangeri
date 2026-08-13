@@ -24,7 +24,17 @@ export function Avatar({ user, size = "" }: { user?: UserBrief | null; size?: "s
  * alohida sahifaga o'tish yoki yuklab olish shart emas. Esc yoki fon bosilsa
  * yopiladi; ochiq turganda sahifa orqada siljib ketmaydi.
  */
-export function PhotoView({ src, alt, onClose }: { src: string; alt?: string; onClose: () => void }) {
+export function PhotoView({
+  src, alt, title, subtitle, onClose,
+}: {
+  src: string;
+  alt?: string;
+  /** Pastda chapda: nima ochilgani ("Profil rasmi") */
+  title?: string;
+  /** Uning ostida: kimniki */
+  subtitle?: string;
+  onClose: () => void;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -37,8 +47,19 @@ export function PhotoView({ src, alt, onClose }: { src: string; alt?: string; on
   }, [onClose]);
 
   return (
-    <div className="photo-view" onClick={onClose} role="dialog" aria-modal="true" aria-label={alt || "Rasm"}>
-      <button className="photo-close" type="button" onClick={onClose} aria-label="Yopish">×</button>
+    <div className="photo-view" onClick={onClose} role="dialog" aria-modal="true"
+         aria-label={alt || "Rasm"}>
+      <div className="photo-bar" onClick={(e) => e.stopPropagation()}>
+        <div className="photo-meta">
+          {title && <strong>{title}</strong>}
+          {subtitle && <span>{subtitle}</span>}
+        </div>
+        <span className="spacer" />
+        <a className="photo-btn" href={src} download target="_blank" rel="noreferrer"
+           title="Yuklab olish" aria-label="Yuklab olish">↓</a>
+        <button className="photo-btn" type="button" onClick={onClose}
+                title="Yopish (Esc)" aria-label="Yopish">×</button>
+      </div>
       {/* Rasmning o'ziga bosilganda yopilmasin - odam kattalashtirib qarayotgan bo'lishi mumkin */}
       <img src={src} alt={alt || ""} onClick={(e) => e.stopPropagation()} />
     </div>
@@ -55,7 +76,11 @@ export function AvatarViewable({ user, size = "" }: { user?: UserBrief | null; s
               title="Rasmni to'liq ko'rish">
         <Avatar user={user} size={size} />
       </button>
-      {open && <PhotoView src={user.avatar} alt={user.full_name} onClose={() => setOpen(false)} />}
+      {open && (
+        <PhotoView src={user.avatar} alt={user.full_name}
+                   title="Profil rasmi" subtitle={user.full_name}
+                   onClose={() => setOpen(false)} />
+      )}
     </>
   );
 }
