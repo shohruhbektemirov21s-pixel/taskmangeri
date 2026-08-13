@@ -148,7 +148,9 @@ pre {
 /* Tepadagi qidiruv: odamlar ro'yxati shu yerda ochiladi */
 .top-search { position: relative; }
 .top-hits {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 90;
+  /* Qidiruv o'ng tarafda turadi - ro'yxat ham o'ngga tekislanadi, aks holda
+     ekrandan chiqib ketardi. */
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 90;
   width: min(360px, 84vw); overflow: hidden; padding: 5px;
   border-radius: 14px; border: 1px solid var(--border);
   background: rgba(18, 23, 34, .97); backdrop-filter: blur(14px);
@@ -396,27 +398,38 @@ pre {
 .avatar-btn:hover .avatar { filter: brightness(1.12); }
 .avatar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* To'liq ekranli rasm ko'rgich (Telegram uslubida): qorong'i fon, markazda
+   katta rasm, tepada nom va amallar. */
 .photo-view {
   position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
-  padding: 32px; background: rgba(4, 7, 14, .86);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 72px 24px 32px; background: rgba(4, 7, 14, .93);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   animation: photo-in .14s ease-out;
 }
 .photo-view img {
-  max-width: min(880px, 92vw); max-height: 86vh; border-radius: 14px;
+  max-width: min(1100px, 94vw); max-height: 88vh; border-radius: 10px;
   object-fit: contain; cursor: default;
-  border: 1px solid rgba(255, 255, 255, .16);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .7);
+  animation: photo-zoom .16s cubic-bezier(.3, .9, .3, 1);
 }
-.photo-close {
-  position: absolute; top: 18px; right: 22px; width: 38px; height: 38px;
+.photo-bar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 1;
+  display: flex; align-items: center; gap: 10px; padding: 14px 20px;
+  background: linear-gradient(rgba(0, 0, 0, .55), transparent);
+}
+.photo-meta { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.photo-meta strong { color: #fff; font-size: 14px; }
+.photo-meta span { color: rgba(255, 255, 255, .62); font-size: 12.5px; }
+.photo-btn {
+  width: 38px; height: 38px; flex: 0 0 38px;
   display: grid; place-items: center; min-height: 0; padding: 0;
-  font-size: 24px; line-height: 1; color: #e6edf3; cursor: pointer;
-  border-radius: 50%; border: 1px solid rgba(255, 255, 255, .18);
-  background: rgba(255, 255, 255, .08);
+  font-size: 20px; line-height: 1; color: #e6edf3; cursor: pointer;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .08); text-decoration: none;
 }
-.photo-close:hover { background: rgba(255, 255, 255, .16); }
+.photo-btn:hover { background: rgba(255, 255, 255, .2); color: #fff; }
 @keyframes photo-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes photo-zoom { from { transform: scale(.94); opacity: .4 } to { transform: none; opacity: 1 } }
 
 /* Profil rasmini boshqarish */
 .avatar-edit { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -624,6 +637,21 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   background: rgba(255, 255, 255, .08); border: 1px solid var(--border);
   border-radius: 20px; font-size: 12.5px;
 }
+/* Ikki variantdan bittasini tanlash (masalan: loyiha ochiq yoki yopiq) */
+.choice-list { display: grid; gap: 8px; }
+.choice {
+  display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
+  padding: 11px 13px; border-radius: 12px; font-weight: 400;
+  border: 1px solid var(--border); background: rgba(255, 255, 255, .03);
+  transition: border-color .16s, background .16s;
+}
+.choice:hover { border-color: rgba(255, 255, 255, .28); }
+.choice.on { border-color: var(--accent); background: var(--accent-soft); }
+.choice input[type="radio"] { width: auto; min-height: 0; margin-top: 3px; flex: 0 0 auto; }
+.choice > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.choice strong { font-size: 14px; }
+.choice small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+
 /* Ko'nikma muharriri: olib tashlash tugmasi va bosiladigan taklif */
 .chip-x {
   display: grid; place-items: center; padding: 0; min-height: 0;

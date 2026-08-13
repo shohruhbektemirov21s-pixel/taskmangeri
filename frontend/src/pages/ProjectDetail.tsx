@@ -65,6 +65,13 @@ export default function ProjectDetail() {
               {project.status_display}
             </span>
             <span className="badge">{acc.role_label}</span>
+            {/* Yopiq loyihada ishlayotganini odam bilib tursin */}
+            {!project.is_public && (
+              <span className="badge badge-warn"
+                    title="Bu loyihani faqat jamoa azolari koradi">
+                yopiq
+              </span>
+            )}
           </>
         }
         actions={

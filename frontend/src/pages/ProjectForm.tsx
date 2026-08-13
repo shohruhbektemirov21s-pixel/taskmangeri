@@ -195,11 +195,36 @@ export default function ProjectForm() {
                     ))}
                   </select>
                 </div>
-                <label className="row" style={{ fontWeight: 400 }}>
-                  <input type="checkbox" checked={f.is_public} style={{ width: "auto", minHeight: 0 }}
-                         onChange={(e) => set("is_public", e.target.checked)} />
-                  Ochiq — hamma korib, sorov yubora oladi
-                </label>
+                {/* Belgilash katakchasi orniga ikkita aniq variant: odam nima
+                    tanlayotganini va oqibati nima ekanini korib tursin. */}
+                <div className="field">
+                  <label>Kim korishi mumkin</label>
+                  <div className="choice-list">
+                    <label className={`choice ${f.is_public ? "on" : ""}`}>
+                      <input type="radio" name="visibility" checked={f.is_public}
+                             onChange={() => set("is_public", true)} />
+                      <span>
+                        <strong>Ochiq</strong>
+                        <small>
+                          Platformadagi hamma koradi va qoshilish sorovi yubora oladi.
+                          Vazifalar korinadi, fayllar esa faqat jamoaga.
+                        </small>
+                      </span>
+                    </label>
+                    <label className={`choice ${!f.is_public ? "on" : ""}`}>
+                      <input type="radio" name="visibility" checked={!f.is_public}
+                             onChange={() => set("is_public", false)} />
+                      <span>
+                        <strong>Yopiq</strong>
+                        <small>
+                          Faqat jamoa azolari koradi. Loyiha royxatlarda, qidiruvda va
+                          ochiq sahifalarda umuman chiqmaydi — begona odam manzilni
+                          bilsa ham kira olmaydi. Qoshilish faqat taklif yoki kod bilan.
+                        </small>
+                      </span>
+                    </label>
+                  </div>
+                </div>
                 <label className="row" style={{ fontWeight: 400, marginTop: 8 }}>
                   <input type="checkbox" checked={f.auto_accept} style={{ width: "auto", minHeight: 0 }}
                          onChange={(e) => set("auto_accept", e.target.checked)} />
