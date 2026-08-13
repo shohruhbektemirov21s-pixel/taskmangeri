@@ -7,7 +7,7 @@ import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
 import {
   IconBell, IconBoard, IconChat, IconDashboard, IconHistory, IconInbox, IconLogout, IconMail,
-  IconPlus, IconReview, IconSearch, IconTasks, IconWorkspace,
+  IconPlus, IconReview, IconSearch, IconTasks,
 } from "./icons";
 import NotificationBell from "./NotificationBell";
 import { Avatar, SpecialtyTag } from "./ui";
@@ -87,7 +87,6 @@ export default function Layout() {
         <nav className="top-nav">
           <Link to="/loyihalar">Loyihalar</Link>
           <Link to="/mening-ishim">Mening ishim</Link>
-          <Link to="/ish-maydonlari">Ish maydonlari</Link>
         </nav>
 
         <span className="spacer" />
@@ -183,12 +182,6 @@ export default function Layout() {
             <div className="nav-title">Loyihalar</div>
             {item("/loyihalar", <IconBoard />, "Barchasi")}
             {item("/qoshilish", <IconSearch />, "Loyihaga qoshilish")}
-          </div>
-
-          <div className="nav-section">
-            <div className="nav-title">Ish maydonlari</div>
-            {item("/ish-maydonlari", <IconWorkspace />, "Royxat")}
-            {item("/ish-maydoni/yangi", <IconPlus />, "Yangi maydon")}
           </div>
 
           <div className="sidebar-footer">

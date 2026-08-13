@@ -8,8 +8,8 @@ import {
 } from "@/components/icons";
 
 const FEATURES = [
-  { cls: "", ico: <IconWorkspace size={20} />, h: "Ish maydoni va loyihalar",
-    p: "GitHub organization kabi ish maydoni. Ichida bir nechta loyiha, har birida oz kaliti (PAY-12), doskasi va jamoasi bor." },
+  { cls: "", ico: <IconWorkspace size={20} />, h: "Loyihalar",
+    p: "Har bir loyihada oz kaliti (PAY-12), kanban doskasi, jamoasi va ozgarmas tarixi bor." },
   { cls: "g", ico: <IconUsers size={20} />, h: "Mutaxassislik boyicha qoshilish",
     p: "Royxatdan otishda mutaxassislik tanlanadi. Tizim sizga mos loyihalarni korsatadi va menejer mos odamni tanlaydi." },
   { cls: "p", ico: <IconBoard size={20} />, h: "Kanban doska",
@@ -108,7 +108,7 @@ export default function Landing() {
 
       <div className="hero">
         <div className="lp-wrap">
-          <span className="pill"><span className="dot" /> Ish maydoni · Loyiha · Vazifa · Tekshiruv · Tarix</span>
+          <span className="pill"><span className="dot" /> Loyiha · Vazifa · Tekshiruv · Tarix</span>
           <h1>Jamoangiz bir joyda<br />ishlaydigan platforma</h1>
           <p className="lead">
             Loyiha oching, jamoani mutaxassisligi boyicha qabul qiling, vazifa taqsimlang va

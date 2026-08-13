@@ -103,7 +103,7 @@ export default function Invitations() {
             title={box === "incoming" ? "Taklif yo'q" : "Hali taklif yubormagansiz"}
             text={box === "incoming"
               ? "Sizni jamoaga chaqirishsa, shu yerda ko'rinadi va bildirishnoma keladi."
-              : "Loyiha yoki ish maydoni sahifasidagi «A'zo qo'shish» orqali taklif yuboring."}
+              : "Loyihaning «Jamoa» bolimidagi «A'zo qo'shish» orqali taklif yuboring."}
           />
         )}
 

@@ -145,7 +145,6 @@ export default function PublicProject() {
 
             <Card title="Ma'lumot">
               <ul className="list-plain" style={{ fontSize: 13 }}>
-                <li><span className="muted">Ish maydoni:</span> {project.workspace_name}</li>
                 {project.manager_name && (
                   <li><span className="muted">Menejer:</span> {project.manager_name}</li>
                 )}

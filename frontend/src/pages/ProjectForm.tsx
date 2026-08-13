@@ -4,7 +4,7 @@ import { ApiError, api, listOf } from "@/api/client";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import TeamPicker, { sendInvites } from "@/components/TeamPicker";
 import type { Pick as TeamPick } from "@/components/TeamPicker";
-import type { Project, Workspace } from "@/api/types";
+import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { Card, ErrorMsg, Loading } from "@/components/ui";
@@ -15,7 +15,6 @@ export default function ProjectForm() {
   const { meta, user } = useAuth();
   const editing = Boolean(id);
 
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loaded, setLoaded] = useState(!editing);
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -25,23 +24,19 @@ export default function ProjectForm() {
   const [fileNote, setFileNote] = useState("");
   // Takliflar ham loyiha yaratilgandan keyin yuboriladi.
   const [invites, setInvites] = useState<TeamPick[]>([]);
-  const [inviteNote, setInviteNote] = useState("");
 
   const [f, setF] = useState({
-    workspace: "", name: "", description: "",
+    name: "", description: "",
     status: "ACTIVE", repo_url: "", start_date: "", due_date: "",
     is_public: true, auto_accept: false,
   });
 
   useEffect(() => {
     void (async () => {
-      const ws = listOf<Workspace>(await api.get<any>("/workspaces/", { scope: "mine" }));
-      setWorkspaces(ws);
-      if (!editing && ws.length) setF((p) => ({ ...p, workspace: String(ws[0].id) }));
       if (editing) {
         const p = await api.get<Project>(`/projects/${id}/`);
         setF({
-          workspace: String(p.workspace), name: p.name, description: p.description,
+          name: p.name, description: p.description,
           status: p.status, repo_url: p.repo_url,
           start_date: p.start_date || "", due_date: p.due_date || "",
           is_public: p.is_public, auto_accept: p.auto_accept,
@@ -60,9 +55,9 @@ export default function ProjectForm() {
     setBusy(true);
     setError(null);
     setErrors({});
+    // Ish maydoni yuborilmaydi - server o'zi tanlaydi (`resolve_workspace`).
     const body = {
       ...f,
-      workspace: Number(f.workspace),
       start_date: f.start_date || null,
       due_date: f.due_date || null,
     };
@@ -86,7 +81,7 @@ export default function ProjectForm() {
       }
       // Taklif yuborilmasa ham loyiha qoladi - kim qolib ketganini aytamiz.
       if (invites.length) {
-        const failed = await sendInvites(saved.id, invites, inviteNote);
+        const failed = await sendInvites(saved.id, invites);
         if (failed.length) {
           setBusy(false);
           setError("Loyiha yaratildi, lekin taklif yuborilmadi: " + failed.join(", ")
@@ -114,24 +109,11 @@ export default function ProjectForm() {
       <PageHead title={<strong>{editing ? "Loyiha sozlamalari" : "Yangi loyiha"}</strong>} />
       <div className="content">
         <ErrorMsg error={error} />
-        {!workspaces.length && (
-          <div className="callout warn mb">
-            Avval ish maydoni yarating — loyiha ish maydoni ichida joylashadi.{" "}
-            <a href="/ish-maydoni/yangi">Ish maydoni yaratish</a>
-          </div>
-        )}
         <form onSubmit={submit}>
           <div className="split">
             {/* Chap ustun: asosiy maydonlar va boshlang'ich fayllar */}
             <div>
             <Card title="Asosiy maʼlumot">
-              <div className="field">
-                <label>Ish maydoni</label>
-                <select value={f.workspace} onChange={(e) => set("workspace", e.target.value)} required>
-                  <option value="">Tanlang</option>
-                  {workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              </div>
               <div className="field">
                 <label>Loyiha nomi</label>
                 <input value={f.name} required onChange={(e) => set("name", e.target.value)}
@@ -249,8 +231,6 @@ export default function ProjectForm() {
                     roles={(meta?.project_role || []).filter((r) => r.value !== "MANAGER")}
                     defaultRole="DEVELOPER"
                     excludeId={user?.id}
-                    note={inviteNote}
-                    onNote={setInviteNote}
                   />
                 </Card>
               )}
@@ -258,7 +238,7 @@ export default function ProjectForm() {
           </div>
 
           <div className="form-actions">
-            <button className="btn btn-primary" disabled={busy || !workspaces.length}>
+            <button className="btn btn-primary" disabled={busy}>
               {busy ? "Saqlanmoqda..." : editing ? "Saqlash" : "Loyiha yaratish"}
             </button>
             <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>

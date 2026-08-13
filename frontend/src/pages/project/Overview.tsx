@@ -97,7 +97,6 @@ export default function Overview({ project, onChange }: { project: Project; onCh
 
         <Card title="Maʼlumotlar">
           <ul className="list-plain" style={{ fontSize: 13 }}>
-            <li><span className="muted">Ish maydoni:</span> {project.workspace_name}</li>
             <li><span className="muted">Menejer:</span> {project.manager?.full_name || "—"}</li>
             <li><span className="muted">Muddat:</span> {project.due_date || "—"}</li>
             {project.access.can_manage && (

@@ -80,6 +80,9 @@ class ProjectSerializer(serializers.ModelSerializer):
                   "needed_specialties", "needed_specialty_labels", "team_composition",
                   "specialty_gaps", "matches_my_specialty"]
         read_only_fields = ["join_code", "created_by", "key", "color"]
+        # Ish maydoni forma orqali so'ralmaydi - yuborilmasa server o'zi tanlaydi
+        # (`api.resolve_workspace`). Yuborilsa esa oldingidek ishlaydi.
+        extra_kwargs = {"workspace": {"required": False}}
 
     def validate(self, attrs):
         """Tugash sanasi boshlanishdan oldin bo'lib qolmasin.

@@ -14,7 +14,7 @@ from apps.core.permissions import ProjectAccess, check_access
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify
 from apps.tasks.models import TaskAssignment, TaskStatus
-from apps.workspaces.models import WorkspaceMember, WorkspaceRole
+from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
 
 from .models import (JoinRequest, Project, ProjectBrief, ProjectFile, ProjectMember,
                      ProjectRole, RequestStatus)
@@ -23,6 +23,34 @@ from .serializers import (JoinRequestSerializer, ProjectBriefSerializer,
                           ProjectMemberSerializer, ProjectSerializer)
 
 User = get_user_model()
+
+
+def resolve_workspace(user):
+    """Loyiha uchun ish maydonini o'zimiz tanlaymiz.
+
+    Loyiha ish maydonisiz mavjud bo'la olmaydi (modelda majburiy bog'lanish):
+    kalit takrorlanmasligi, rang tanlash, a'zolik va maydon suhbati - hammasi
+    shunga tayanadi. Lekin foydalanuvchi buni forma to'ldirayotganda tanlab
+    o'tirmasligi kerak, shuning uchun:
+
+      1) o'zi egasi bo'lgan eng so'nggi maydon;
+      2) bo'lmasa - a'zo bo'lgan maydon;
+      3) u ham bo'lmasa - nomiga qarab yangisi ochiladi.
+    """
+    ws = Workspace.objects.filter(owner=user).order_by("-updated_at").first()
+    if ws:
+        return ws
+
+    member = (WorkspaceMember.objects.filter(user=user)
+              .select_related("workspace").order_by("-workspace__updated_at").first())
+    if member:
+        return member.workspace
+
+    ws = Workspace.objects.create(
+        name="{} maydoni".format(user.get_short_name() or "Ish"), owner=user)
+    WorkspaceMember.objects.get_or_create(
+        workspace=ws, user=user, defaults={"role": WorkspaceRole.OWNER})
+    return ws
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -87,7 +115,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         manager_id = serializer.validated_data.pop("manager_id", None) or user.id
-        project = serializer.save(created_by=user, manager_id=manager_id)
+        # Forma ish maydonini so'ramaydi - yuborilmagan bo'lsa o'zimiz topamiz.
+        workspace = serializer.validated_data.get("workspace") or resolve_workspace(user)
+        project = serializer.save(created_by=user, manager_id=manager_id,
+                                  workspace=workspace)
 
         ProjectBrief.objects.get_or_create(project=project, defaults={"updated_by": user})
         ProjectMember.objects.get_or_create(
