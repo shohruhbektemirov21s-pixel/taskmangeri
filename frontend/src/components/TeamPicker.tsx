@@ -25,7 +25,7 @@ export interface Pick {
  * Yig'ilgan odamlarga taklif yuboradi.
  * Yuborib bo'lmaganlarning ismini qaytaradi — chaqiruvchi shuni aytadi.
  */
-export async function sendInvites(projectId: number, picks: Pick[], message = "") {
+export async function sendInvites(projectId: number, picks: Pick[]) {
   const failed: string[] = [];
   for (const p of picks) {
     try {
@@ -34,7 +34,6 @@ export async function sendInvites(projectId: number, picks: Pick[], message = ""
         workspace: null,
         user_id: p.user.id,
         role: p.role,
-        message,
       });
     } catch {
       failed.push(p.user.full_name);
@@ -50,13 +49,10 @@ interface Props {
   defaultRole?: string;
   /** O'zini taklif qilib bo'lmaydi — ro'yxatdan chiqarib tashlanadi. */
   excludeId?: number;
-  /** Taklif xabari ota-komponentda turadi: `sendInvites` ga o'sha uzatadi. */
-  note: string;
-  onNote: (value: string) => void;
 }
 
 export default function TeamPicker({
-  picks, onChange, roles, defaultRole = "DEVELOPER", excludeId, note, onNote,
+  picks, onChange, roles, defaultRole = "DEVELOPER", excludeId,
 }: Props) {
 
   const search = useCallback(async (q: string) => {
@@ -106,11 +102,6 @@ export default function TeamPicker({
             </div>
           ))}
 
-          <div className="field" style={{ marginTop: 4 }}>
-            <label>Taklif xabari (ixtiyoriy)</label>
-            <input type="text" value={note} placeholder="Nima uchun chaqirayotganingiz"
-                   onChange={(e) => onNote(e.target.value)} />
-          </div>
           <small className="muted">
             {picks.length} ta odamga taklif yuboriladi.
           </small>

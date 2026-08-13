@@ -27,6 +27,8 @@ export default function Feed() {
   const category = params.get("category") || "";
   const days = params.get("days") || "";
   const project = params.get("project") || "";
+  // "1" bo'lsa faqat o'z harakatlari ko'rsatiladi (backend `?actor=<id>`).
+  const onlyMine = params.get("mine") === "1";
 
   // Filtr ro'yxati: admin hammasini, qolganlar o'z loyihalarini ko'radi.
   useEffect(() => {
@@ -38,10 +40,14 @@ export default function Feed() {
   useEffect(() => {
     setItems(null);
     // `project` bo'sh bo'lsa yuborilmaydi - u holda butun tarix qaytadi.
-    void api.get<any>("/activity/", { search, category, days, project, page, page_size: 50 })
+    void api.get<any>("/activity/", {
+      search, category, days, project,
+      actor: onlyMine && user ? user.id : "",
+      page, page_size: 50,
+    })
       .then((d) => { setItems(d.results || []); setCount(d.count || 0); })
       .catch(() => { setItems([]); setCount(0); });
-  }, [search, category, days, project, page]);
+  }, [search, category, days, project, onlyMine, user, page]);
 
   function set(k: string, v: string) {
     const next = new URLSearchParams(params);
@@ -78,6 +84,13 @@ export default function Feed() {
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
+            </select>
+          </div>
+          <div className="f">
+            <label>Kim</label>
+            <select value={onlyMine ? "1" : ""} onChange={(e) => set("mine", e.target.value)}>
+              <option value="">Hamma</option>
+              <option value="1">Faqat men</option>
             </select>
           </div>
           <div className="f">
