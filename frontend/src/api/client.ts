@@ -38,7 +38,7 @@ export class ApiError extends Error {
   /** DRF xatolik javobini o'qiladigan matnga aylantiradi */
   static readable(data: any): string {
     if (!data) return "";
-    if (typeof data === "string") return data;
+    if (typeof data === "string") return ApiError.fromText(data);
     if (data.detail) return String(data.detail);
     const parts: string[] = [];
     for (const [key, val] of Object.entries(data)) {
@@ -46,6 +46,23 @@ export class ApiError extends Error {
       parts.push(key === "non_field_errors" ? text : `${key}: ${text}`);
     }
     return parts.join(" | ");
+  }
+
+  /**
+   * Matnli javobni qisqa xabarga aylantiradi.
+   *
+   * Server 500 qaytarganda Django to'liq HTML sahifa (bir necha o'n kilobayt
+   * traceback) yuboradi. Uni o'z holicha ko'rsatish sahifani buzadi va ichki
+   * ma'lumotni ochib qo'yadi. Shuning uchun HTML dan faqat sarlavhani olamiz -
+   * u Django da aynan xatolik nomi bo'ladi ("AttributeError at /api/...").
+   */
+  static fromText(text: string): string {
+    const trimmed = text.trim();
+    if (!/^<(!doctype|html)/i.test(trimmed)) return trimmed;
+    const title = trimmed.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim();
+    return title
+      ? `Serverda xatolik: ${title}`
+      : "Serverda kutilmagan xatolik. Backend loglarini tekshiring.";
   }
 
   /** Maydon bo'yicha xatoliklar (formalarda ko'rsatish uchun) */

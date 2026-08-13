@@ -171,10 +171,10 @@ class ProjectFileSerializer(serializers.ModelSerializer):
         read_only_fields = ["original_name", "size", "content_type", "uploaded_by", "created_at"]
 
     def get_url(self, obj):
-        if not obj.file:
-            return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(obj.file.url) if request else obj.file.url
+        # Nisbiy manzil: proksi Host ni almashtirsa ham brauzer ocha oladi.
+        from apps.core.media import media_url
+
+        return media_url(obj.file)
 
     def validate_file(self, value):
         limit = 25 * 1024 * 1024
