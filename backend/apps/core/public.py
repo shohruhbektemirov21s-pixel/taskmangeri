@@ -66,11 +66,16 @@ def public_projects(request):
 
     Bosh sahifadagi qidiruv shu yerga murojaat qiladi.
     """
+    from apps.core.queries import related_count
+    from apps.projects.models import ProjectMember
+    from apps.tasks.models import Task
+
+    open_statuses = [s for s in TaskStatus.values
+                     if s not in (TaskStatus.DONE, TaskStatus.CANCELLED)]
     qs = visible_projects().annotate(
-        member_count=Count("memberships", filter=Q(memberships__is_active=True), distinct=True),
-        open_tasks=Count("tasks", distinct=True, filter=~Q(
-            tasks__status__in=[TaskStatus.DONE, TaskStatus.CANCELLED])),
-        done_tasks=Count("tasks", distinct=True, filter=Q(tasks__status=TaskStatus.DONE)),
+        member_count=related_count(ProjectMember, group_by="project", is_active=True),
+        open_tasks=related_count(Task, group_by="project", status__in=open_statuses),
+        done_tasks=related_count(Task, group_by="project", status=TaskStatus.DONE),
     )
 
     q = (request.query_params.get("q") or "").strip()

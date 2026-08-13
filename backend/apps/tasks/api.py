@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -11,7 +11,7 @@ from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
 from apps.core.permissions import ProjectAccess, check_access
 from apps.notifications.models import NotificationKind
-from apps.notifications.services import notify_many
+from apps.notifications.services import notify, notify_many, send_to_users
 from apps.projects.models import Project, ProjectRole
 
 from .models import (BOARD_COLUMNS, Attachment, Label, Review, ReviewVerdict, Submission,
@@ -51,6 +51,44 @@ def send_to_review(task, access):
     return True
 
 
+def project_people(project, roles=None):
+    """Loyihaning faol a'zolari (kerak bo'lsa faqat kerakli rollari)."""
+    qs = project.memberships.filter(is_active=True).select_related("user")
+    if roles:
+        qs = qs.filter(role__in=roles)
+    return [m.user for m in qs]
+
+
+def task_watchers(task):
+    """Vazifa taqdiri qiziqadigan odamlar: ijrochilar, tekshiruvchi va muallif."""
+    people = list(task.assignee_list)
+    if task.reviewer_id:
+        people.append(task.reviewer)
+    if task.created_by_id:
+        people.append(task.created_by)
+    return people
+
+
+def live_task(task, action, actor=None, **extra):
+    """Loyiha a'zolarining ochiq sahifalariga "vazifa o'zgardi" signali.
+
+    Bildirishnomadan farqi: bazaga yozilmaydi, qo'ng'iroqni chalmaydi. Doska,
+    vazifalar ro'yxati va vazifa sahifasi shu signalni eshitib o'zini
+    jimgina yangilaydi - odam F5 bosib o'tirmaydi.
+    """
+    payload = {
+        "event": "task.update",
+        "action": action,
+        "project": task.project_id,
+        "task": task.pk,
+        "code": task.code,
+        "status": task.status,
+        "actor": getattr(actor, "pk", None),
+    }
+    payload.update(extra)
+    send_to_users(project_people(task.project), payload)
+
+
 def sync_assignees(task, user_ids, actor):
     """Ijrochilar ro'yxatini yangilaydi va tarixga yozadi."""
     wanted = set(user_ids or [])
@@ -85,6 +123,12 @@ def sync_assignees(task, user_ids, actor):
         log(actor=actor, verb="task.assigned", task=task,
             summary="{}: {} biriktirildi".format(task.code,
                                                  ", ".join(u.full_name for u in added)))
+        # Ish tekkanini odam darrov bilsin - navbatdagi kirishini kutmasin.
+        notify_many(added, NotificationKind.TASK_ASSIGNED,
+                    title="{} sizga biriktirildi".format(task.code),
+                    body=task.title[:150],
+                    url="/vazifa/{}".format(task.pk), actor=actor,
+                    meta={"task": task.pk, "project": task.project_id})
     if removed:
         log(actor=actor, verb="task.unassigned", task=task,
             summary="{}: {} olib tashlandi".format(task.code,
@@ -105,9 +149,9 @@ class TaskViewSet(viewsets.ModelViewSet):
               .prefetch_related("assignments__user", "labels"))
 
         if not user.is_platform_admin:
-            qs = qs.filter(Q(project__memberships__user=user,
-                             project__memberships__is_active=True)
-                           | Q(project__is_public=True))
+            from apps.projects.models import ProjectMember
+            qs = qs.filter(Q(project__is_public=True) | Exists(ProjectMember.objects.filter(
+                project=OuterRef("project_id"), user=user, is_active=True)))
 
         p = self.request.query_params
         if p.get("project"):
@@ -118,17 +162,17 @@ class TaskViewSet(viewsets.ModelViewSet):
             qs = qs.filter(task_type=p["task_type"])
         if p.get("priority"):
             qs = qs.filter(priority=p["priority"])
-        if p.get("assignee") == "me":
-            qs = qs.filter(assignments__user=user, assignments__is_active=True)
-        elif p.get("assignee"):
-            qs = qs.filter(assignments__user_id=p["assignee"], assignments__is_active=True)
+        if p.get("assignee"):
+            who = user.pk if p["assignee"] == "me" else p["assignee"]
+            qs = qs.filter(Exists(TaskAssignment.objects.filter(
+                task=OuterRef("pk"), user_id=who, is_active=True)))
         if p.get("open") == "1":
             qs = qs.exclude(status__in=[TaskStatus.DONE, TaskStatus.CANCELLED])
         if p.get("overdue") == "1":
             from django.utils import timezone
             qs = qs.filter(due_date__lt=timezone.now()).exclude(
                 status__in=[TaskStatus.DONE, TaskStatus.CANCELLED])
-        return qs.distinct()
+        return qs
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "create", "update", "partial_update"):
@@ -165,6 +209,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             detail=task.description[:500],
             meta={"priority": task.priority_label, "type": task.get_task_type_display(),
                   "specialty": task.required_specialty or None})
+        live_task(task, "created", request.user, title=task.title[:120])
         return Response(TaskDetailSerializer(task, context=self.get_serializer_context()).data,
                         status=201)
 
@@ -198,6 +243,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             if before[f] != getattr(obj, f):
                 changes[str(obj._meta.get_field(f).verbose_name)] = (before[f], getattr(obj, f))
         log_field_changes(request.user, obj, changes)
+        live_task(obj, "updated", request.user, title=obj.title[:120])
 
         return Response(TaskDetailSerializer(obj, context=self.get_serializer_context()).data)
 
@@ -206,6 +252,8 @@ class TaskViewSet(viewsets.ModelViewSet):
         check_access(request.user, task.project, "manage")
         log(actor=request.user, verb="task.deleted", project=task.project,
             summary="{} ochirildi: {}".format(task.code, task.title))
+        # Signal o'chirishdan OLDIN: keyin `task.pk` va `code` yo'q bo'ladi.
+        live_task(task, "deleted", request.user)
         task.delete()
         return Response(status=204)
 
@@ -234,6 +282,8 @@ class TaskViewSet(viewsets.ModelViewSet):
                 assignees = list(spec_ok)
 
         created = []
+        # Kimga qaysi vazifa tekkani - xabarni odam boshiga bir marta yuborish uchun.
+        given = {}
         for idx, title in enumerate(d["titles"]):
             task = Task(project=project, title=title[:250], created_by=request.user,
                         priority=d["priority"], task_type=d["task_type"], status=d["status"],
@@ -246,12 +296,24 @@ class TaskViewSet(viewsets.ModelViewSet):
                 for uid in targets:
                     TaskAssignment.objects.create(task=task, user_id=uid,
                                                   assigned_by=request.user)
+                    given.setdefault(uid, []).append(task.code)
             created.append(task)
 
         log(actor=request.user, verb="task.created", project=project,
             summary="{} ta task yaratildi".format(len(created)),
             detail="\n".join("{} - {}".format(t.code, t.title) for t in created[:50]),
             meta={"count": len(created), "codes": [t.code for t in created[:50]]})
+
+        # 20 ta vazifa 20 ta qo'ng'iroq bo'lmasin: har kimga bitta yig'ma xabar.
+        by_id = {m.user_id: m.user for m in members}
+        for uid, codes in given.items():
+            notify(by_id.get(uid), NotificationKind.TASK_ASSIGNED,
+                   title="{} ta yangi vazifa biriktirildi".format(len(codes)),
+                   body="{} - {}".format(project.name, ", ".join(codes[:10])),
+                   url="/mening-ishim", actor=request.user,
+                   meta={"project": project.pk, "codes": codes[:20]})
+        if created:
+            live_task(created[0], "created", request.user, count=len(created))
         return Response({
             "created": len(created),
             "skipped_assignees": skipped,
@@ -312,6 +374,8 @@ class TaskViewSet(viewsets.ModelViewSet):
             summary="{}: {} -> {}".format(task.code, old_label, task.get_status_display()),
             detail=task.blocked_reason,
             meta={"from": old_label, "to": task.get_status_display()})
+        live_task(task, "status", request.user,
+                  status_display=task.get_status_display(), previous=old_label)
 
         return Response(TaskDetailSerializer(task,
                                              context=self.get_serializer_context()).data)
@@ -325,6 +389,13 @@ class TaskViewSet(viewsets.ModelViewSet):
         comment = s.save(task=task, author=request.user)
         log(actor=request.user, verb="task.commented", task=task,
             summary="{} ga izoh qoldirdi".format(task.code), detail=comment.body[:500])
+        # `collapse=True`: ketma-ket izohlar bitta qo'ng'iroqqa yig'iladi.
+        notify_many(task_watchers(task), NotificationKind.TASK_COMMENT,
+                    title="{} ga yangi izoh".format(task.code),
+                    body="{}: {}".format(request.user.full_name, comment.body[:120]),
+                    url="/vazifa/{}".format(task.pk), actor=request.user,
+                    meta={"task": task.pk}, collapse=True)
+        live_task(task, "comment", request.user)
         return Response(CommentSerializer(comment, context={"request": request}).data, status=201)
 
     @action(detail=True, methods=["post"], url_path="worklogs")
@@ -401,6 +472,8 @@ class TaskViewSet(viewsets.ModelViewSet):
                     title="{} tekshiruvga topshirildi".format(task.code),
                     body="{}: {}".format(request.user.full_name, task.title[:100]),
                     url="/vazifa/{}".format(task.pk), actor=request.user)
+
+        live_task(task, "submitted", request.user)
 
         payload = SubmissionSerializer(
             submission, context=self.get_serializer_context()).data
@@ -504,10 +577,11 @@ class TaskViewSet(viewsets.ModelViewSet):
         user = request.user
         qs = Task.objects.filter(status=TaskStatus.IN_REVIEW)
         if not user.is_platform_admin:
+            from apps.projects.models import ProjectMember
             managed = Project.objects.filter(
-                Q(manager=user) | Q(memberships__user=user,
-                                    memberships__role=ProjectRole.MANAGER,
-                                    memberships__is_active=True)).distinct()
+                Q(manager=user) | Exists(ProjectMember.objects.filter(
+                    project=OuterRef("pk"), user=user, is_active=True,
+                    role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN])))
             qs = qs.filter(project__in=managed)
         qs = (qs.select_related("project", "created_by")
               .prefetch_related("assignments__user", "labels").order_by("submitted_at"))
@@ -540,6 +614,15 @@ class TaskViewSet(viewsets.ModelViewSet):
                                                  review.round_no),
             detail=review.comment[:1000],
             meta={"verdict": review.verdict, "round": review.round_no})
+
+        # Natijani birinchi bo'lib ishni qilgan odam bilishi kerak.
+        notify_many(task.assignee_list, NotificationKind.TASK_DECIDED,
+                    title="{} - {}".format(task.code, review.get_verdict_display()),
+                    body=(review.comment[:150] or task.title[:150]),
+                    url="/vazifa/{}".format(task.pk), actor=request.user,
+                    meta={"task": task.pk, "verdict": review.verdict})
+        live_task(task, "review", request.user,
+                  verdict=review.verdict, status_display=task.get_status_display())
 
         return Response(TaskDetailSerializer(task,
                                              context=self.get_serializer_context()).data)

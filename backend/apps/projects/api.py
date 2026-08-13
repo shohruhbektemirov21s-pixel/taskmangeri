@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import viewsets
@@ -12,17 +12,47 @@ from apps.accounts.models import GlobalRole
 from apps.activity.services import log
 from apps.core.permissions import ProjectAccess, check_access
 from apps.notifications.models import NotificationKind
-from apps.notifications.services import notify
-from apps.tasks.models import TaskAssignment, TaskStatus
+from apps.notifications.services import notify, notify_many
+from apps.core.queries import related_count
+from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
 
 from .models import (JoinRequest, Project, ProjectBrief, ProjectFile, ProjectMember,
-                     ProjectRole, RequestStatus)
+                     ProjectRole, ProjectSpecialty, RequestStatus)
 from .serializers import (JoinRequestSerializer, ProjectBriefSerializer,
                           ProjectDetailSerializer, ProjectFileSerializer,
                           ProjectMemberSerializer, ProjectSerializer)
 
 User = get_user_model()
+
+
+def _managers_of(project):
+    """Loyihani boshqaradiganlar - so'rov va a'zolik xabarlari shularga boradi."""
+    return [m.user for m in project.memberships.filter(
+        is_active=True, role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN]).select_related("user")]
+
+
+def _role_label(role):
+    return dict(ProjectRole.choices).get(role, role)
+
+
+OPEN_STATUSES = [s for s in TaskStatus.values
+                 if s not in (TaskStatus.DONE, TaskStatus.CANCELLED)]
+
+
+def project_counters(user):
+    """Loyiha kartochkasidagi raqamlar.
+
+    `annotate(Count(...))` o'rniga ichki so'rov: tashqi so'rovga GROUP BY
+    qo'shilmaydi, ya'ni Db2 dagi CLOB cheklovi (SQL0134N) chetlab o'tiladi.
+    """
+    return {
+        "member_count": related_count(ProjectMember, group_by="project", is_active=True),
+        "open_tasks": related_count(Task, group_by="project", status__in=OPEN_STATUSES),
+        "done_tasks": related_count(Task, group_by="project", status=TaskStatus.DONE),
+        "my_tasks": related_count(Task, group_by="project",
+                                  assignments__user=user, assignments__is_active=True),
+    }
 
 
 def resolve_workspace(user):
@@ -63,40 +93,42 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Project.objects.select_related("workspace", "manager", "created_by").annotate(
-            member_count=Count("memberships", filter=Q(memberships__is_active=True), distinct=True),
-            open_tasks=Count("tasks", filter=~Q(tasks__status__in=[TaskStatus.DONE,
-                                                                   TaskStatus.CANCELLED]),
-                             distinct=True),
-            done_tasks=Count("tasks", filter=Q(tasks__status=TaskStatus.DONE), distinct=True),
-            my_tasks=Count("tasks", filter=Q(tasks__assignments__user=user,
-                                             tasks__assignments__is_active=True), distinct=True),
-        )
+            **project_counters(user))
         scope = self.request.query_params.get("scope", "mine")
 
+        # Ko'p-ga-ko'p bog'lanish bo'yicha filtrlash qatorlarni takrorlaydi va
+        # odatda `.distinct()` bilan tozalanadi. Bu yerda `Exists()` ishlatiladi:
+        # takror umuman paydo bo'lmaydi, ya'ni DISTINCT kerak emas. IBM Db2
+        # DISTINCT da CLOB ustunini qo'llamaydi, `description` esa aynan shunday -
+        # `.distinct()` u yerda SQL0134N bilan yiqilardi.
+        def member_of(**extra):
+            return Exists(ProjectMember.objects.filter(
+                project=OuterRef("pk"), user=user, is_active=True, **extra))
+
+        def needs(value):
+            return Exists(ProjectSpecialty.objects.filter(
+                project=OuterRef("pk"), value=value))
+
         if scope == "discover":
-            joined = ProjectMember.objects.filter(user=user, is_active=True)\
-                .values_list("project_id", flat=True)
-            qs = qs.filter(is_public=True).exclude(status="ARCHIVED").exclude(id__in=joined)
+            qs = qs.filter(is_public=True).exclude(status="ARCHIVED").exclude(member_of())
         elif scope == "managed":
-            qs = qs.filter(Q(manager=user) | Q(memberships__user=user,
-                                               memberships__role=ProjectRole.MANAGER,
-                                               memberships__is_active=True))
+            qs = qs.filter(Q(manager=user) | member_of(role=ProjectRole.MANAGER))
         elif scope == "all" and user.is_platform_admin:
             pass
         else:  # mine
-            qs = qs.filter(memberships__user=user, memberships__is_active=True)
+            qs = qs.filter(member_of())
 
         if self.request.query_params.get("matching") == "1":
-            qs = qs.filter(specialties__value=user.specialty)
+            qs = qs.filter(needs(user.specialty))
 
         specialty = self.request.query_params.get("specialty")
         if specialty:
-            qs = qs.filter(specialties__value=specialty)
+            qs = qs.filter(needs(specialty))
 
         ws = self.request.query_params.get("workspace")
         if ws:
             qs = qs.filter(workspace__slug=ws) if not ws.isdigit() else qs.filter(workspace_id=ws)
-        return qs.distinct()
+        return qs
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "create", "update", "partial_update"):
@@ -600,11 +632,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 defaults={"role": WorkspaceRole.MEMBER})
             log(actor=request.user, verb="member.approved", project=project, target=request.user,
                 summary="{} loyihaga qoshildi (avtomatik)".format(request.user.full_name))
+            notify_many(_managers_of(project), NotificationKind.MEMBER_JOINED,
+                        title="Jamoaga yangi a'zo qoshildi",
+                        body="{} - {} ({})".format(project.name, request.user.full_name,
+                                                   _role_label(req.desired_role)),
+                        url="/loyiha/{}/jamoa".format(project.pk), actor=request.user,
+                        meta={"project": project.pk})
             return Response({"joined": True, "request": JoinRequestSerializer(req).data}, status=201)
 
         log(actor=request.user, verb="member.requested", project=project, target=request.user,
             summary="{} qoshilish sorovi yubordi".format(request.user.full_name),
             detail=req.message[:500])
+        # So'rov javobsiz qolib ketmasin - menejer darrov ko'rsin.
+        notify_many(_managers_of(project), NotificationKind.JOIN_REQUEST,
+                    title="Qoshilish sorovi: {}".format(project.name),
+                    body="{} - {}".format(request.user.full_name,
+                                          _role_label(req.desired_role)),
+                    url="/loyiha/{}/jamoa".format(project.pk), actor=request.user,
+                    meta={"project": project.pk, "request": req.pk})
         return Response({"joined": False, "request": JoinRequestSerializer(req).data}, status=201)
 
     @action(detail=True, methods=["get"], url_path="requests")
@@ -645,11 +690,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
             log(actor=request.user, verb="member.approved", project=project, target=req.user,
                 summary="{} loyihaga qabul qilindi ({})".format(
                     req.user.full_name, dict(ProjectRole.choices)[role]), detail=note)
+            notify(req.user, NotificationKind.MEMBER_JOINED,
+                   title="Loyihaga qabul qilindingiz",
+                   body="{} - {}".format(project.name, _role_label(role)),
+                   url="/loyiha/{}/brif".format(project.pk), actor=request.user,
+                   meta={"project": project.pk})
         else:
             req.status = RequestStatus.REJECTED
             req.save()
             log(actor=request.user, verb="member.rejected", project=project, target=req.user,
                 summary="{} sorovi rad etildi".format(req.user.full_name), detail=note)
+            notify(req.user, NotificationKind.JOIN_REQUEST,
+                   title="Qoshilish sorovi rad etildi",
+                   body="{}{}".format(project.name, " - " + note if note else ""),
+                   url="/qoshilish", actor=request.user, meta={"project": project.pk})
 
         return Response(JoinRequestSerializer(req, context={"request": request}).data)
 

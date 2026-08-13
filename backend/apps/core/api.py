@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -6,9 +6,11 @@ from rest_framework.response import Response
 
 from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
-from apps.projects.models import JoinRequest, Project, ProjectRole, RequestStatus
+from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
+                                  RequestStatus)
+from apps.projects.api import project_counters
 from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
-from apps.tasks.models import Task, TaskStatus
+from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.tasks.serializers import TaskSerializer
 
 
@@ -20,9 +22,15 @@ def dashboard(request):
     now = timezone.now()
     ctx = {"request": request}
 
-    my_tasks = (Task.objects.filter(assignments__user=user, assignments__is_active=True)
+    # `Exists()` - `.distinct()` o'rniga. Db2 DISTINCT da CLOB ustunini
+    # qo'llamaydi (`description` kabi matn maydonlari), shuning uchun takrorni
+    # tozalash emas, umuman paydo qilmaslik to'g'riroq.
+    mine = Exists(TaskAssignment.objects.filter(
+        task=OuterRef("pk"), user=user, is_active=True))
+
+    my_tasks = (Task.objects.filter(mine)
                 .select_related("project", "created_by")
-                .prefetch_related("assignments__user").distinct())
+                .prefetch_related("assignments__user"))
 
     focus_queue = my_tasks.filter(
         status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS]
@@ -34,20 +42,13 @@ def dashboard(request):
     waiting_review = my_tasks.filter(status=TaskStatus.IN_REVIEW)
     overdue = focus_queue.filter(due_date__lt=now)
 
-    my_projects = (Project.objects.filter(memberships__user=user, memberships__is_active=True)
+    member_of = Exists(ProjectMember.objects.filter(
+        project=OuterRef("pk"), user=user, is_active=True))
+
+    my_projects = (Project.objects.filter(member_of)
                    .select_related("workspace", "manager")
-                   .annotate(
-                       member_count=Count("memberships",
-                                          filter=Q(memberships__is_active=True), distinct=True),
-                       open_tasks=Count("tasks", filter=~Q(
-                           tasks__status__in=[TaskStatus.DONE, TaskStatus.CANCELLED]),
-                           distinct=True),
-                       done_tasks=Count("tasks", filter=Q(tasks__status=TaskStatus.DONE),
-                                        distinct=True),
-                       my_tasks=Count("tasks", filter=Q(tasks__assignments__user=user,
-                                                        tasks__assignments__is_active=True),
-                                      distinct=True))
-                   .distinct().order_by("-updated_at"))
+                   .annotate(**project_counters(user))
+                   .order_by("-updated_at"))
 
     if user.is_platform_admin:
         managed = Project.objects.select_related("manager").order_by("-updated_at")
@@ -56,14 +57,16 @@ def dashboard(request):
         feed = Activity.objects.timeline()[:20]
     else:
         managed = Project.objects.filter(
-            Q(manager=user) | Q(memberships__user=user, memberships__role=ProjectRole.MANAGER,
-                                memberships__is_active=True)).distinct()
+            Q(manager=user) | Exists(ProjectMember.objects.filter(
+                project=OuterRef("pk"), user=user, is_active=True,
+                role=ProjectRole.MANAGER)))
         review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
         join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING, project__in=managed)
         feed = (Activity.objects.filter(
-            Q(project__memberships__user=user, project__memberships__is_active=True)
-            | Q(actor=user)).select_related("actor", "project", "task")
-            .distinct().order_by("-created_at")[:20])
+            Q(actor=user) | Exists(ProjectMember.objects.filter(
+                project=OuterRef("project_id"), user=user, is_active=True)))
+            .select_related("actor", "project", "task")
+            .order_by("-created_at")[:20])
 
     review_qs = (review_qs.select_related("project")
                  .prefetch_related("assignments__user").order_by("submitted_at")[:10])
@@ -100,8 +103,9 @@ def my_work(request):
     """Menga biriktirilgan barcha vazifalar - status bo'yicha guruhlangan."""
     user = request.user
     ctx = {"request": request}
-    qs = (Task.objects.filter(assignments__user=user, assignments__is_active=True)
-          .select_related("project").prefetch_related("assignments__user").distinct())
+    qs = (Task.objects.filter(Exists(TaskAssignment.objects.filter(
+              task=OuterRef("pk"), user=user, is_active=True)))
+          .select_related("project").prefetch_related("assignments__user"))
 
     project_id = request.query_params.get("project")
     if project_id:
@@ -119,8 +123,9 @@ def my_work(request):
                 "tasks": TaskSerializer(items, many=True, context=ctx).data,
             })
 
-    projects = (Project.objects.filter(memberships__user=user, memberships__is_active=True)
-                .distinct().order_by("name"))
+    projects = (Project.objects.filter(Exists(ProjectMember.objects.filter(
+                    project=OuterRef("pk"), user=user, is_active=True)))
+                .order_by("name"))
     return Response({
         "groups": groups,
         "projects": [{"id": p.id, "name": p.name, "key": p.key, "color": p.color}

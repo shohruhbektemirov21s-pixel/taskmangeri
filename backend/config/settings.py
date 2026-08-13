@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     "django_filters",
     "channels",
     # loyiha ilovalari
+    # `apps.core` da model yo'q - u ruxsatlar, umumiy maydonlar va
+    # `switch_db` buyrug'i uchun. Buyruq topilishi uchun ro'yxatda turadi.
+    "apps.core",
     "apps.accounts",
     "apps.workspaces",
     "apps.projects",
@@ -88,7 +91,9 @@ DB_ENGINE = os.getenv("DB_ENGINE", "postgres").lower()
 if DB_ENGINE == "db2":
     DATABASES = {
         "default": {
-            "ENGINE": "ibm_db_django",
+            # `ibm_db_django` ustidagi tuzatish qatlami (apps/core/db2/base.py):
+            # adapter mintaqali vaqtni Db2 tushunmaydigan ko'rinishda uzatadi.
+            "ENGINE": "apps.core.db2",
             "NAME": os.getenv("DB2_DB", "TEAMFLOW"),
             "USER": os.getenv("DB2_USER", "db2inst1"),
             "PASSWORD": os.getenv("DB2_PASSWORD", "teamflow"),

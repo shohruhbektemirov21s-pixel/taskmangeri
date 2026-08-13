@@ -1,10 +1,12 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.activity.services import log
+from apps.core.queries import related_count
+from apps.projects.models import Project
 
 from .models import Workspace, WorkspaceMember, WorkspaceRole
 from .serializers import WorkspaceDetailSerializer, WorkspaceSerializer
@@ -19,17 +21,21 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Workspace.objects.select_related("owner").annotate(
-            member_count=Count("memberships", distinct=True),
-            project_count=Count("projects", distinct=True),
+            member_count=related_count(WorkspaceMember, group_by="workspace"),
+            project_count=related_count(Project, group_by="workspace"),
         )
+        # `Exists()` - `.distinct()` o'rniga: takror qator paydo bo'lmaydi.
+        # Db2 `DISTINCT` da CLOB (bu yerda `description`) ni qo'llamaydi.
+        mine = Exists(WorkspaceMember.objects.filter(workspace=OuterRef("pk"), user=user))
+
         scope = self.request.query_params.get("scope", "")
         if scope == "mine":
-            qs = qs.filter(memberships__user=user)
+            qs = qs.filter(mine)
         elif scope == "open":
-            qs = qs.filter(is_open=True).exclude(memberships__user=user)
+            qs = qs.filter(is_open=True).exclude(mine)
         elif not user.is_platform_admin:
-            qs = qs.filter(Q(is_open=True) | Q(memberships__user=user))
-        return qs.distinct().order_by("name")
+            qs = qs.filter(Q(is_open=True) | mine)
+        return qs.order_by("name")
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "create", "update", "partial_update"):

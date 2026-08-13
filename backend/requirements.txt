@@ -9,6 +9,9 @@ psycopg[binary]==3.2.9
 # tizimga alohida drayver o'rnatish shart emas.
 ibm_db==3.3.0
 ibm_db_django==1.6.0.0
+# ibm_db_django 1.6.0.0 `schemaEditor.py` da jinja2 ni import qiladi, lekin
+# uni bogliqlik sifatida elon qilmagan (paketlash xatosi) - ozimiz qoshamiz.
+jinja2==3.1.6
 python-dotenv==1.1.1
 gunicorn==23.0.0
 whitenoise==6.9.0

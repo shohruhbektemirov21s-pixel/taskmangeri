@@ -238,5 +238,5 @@ class InvitationViewSet(mixins.ListModelMixin,
 
         from apps.accounts.serializers import UserBriefSerializer
 
-        data = UserBriefSerializer(qs.distinct().order_by("full_name")[:100], many=True).data
+        data = UserBriefSerializer(qs.order_by("full_name")[:100], many=True).data
         return Response(data)

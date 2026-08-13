@@ -9,7 +9,7 @@ va GitHub uslubidagi ish maydonlari (workspaces) birlashtirilgan.
 |------|-------------|--------|
 | Backend | Python 3.12 · Django 5.2 · Django REST Framework · JWT | http://localhost:8010/api |
 | Frontend | Node 22 · React 19 · TypeScript · Vite 7 | http://localhost:5183 |
-| Ma'lumotlar bazasi | PostgreSQL 16 | localhost:5443 |
+| Ma'lumotlar bazasi | PostgreSQL 16 (yoki IBM Db2) | localhost:5443 / 50000 |
 | Real-time | Django Channels · Redis 7 · WebSocket | ws://localhost:5183/ws/ |
 | Konteynerlar | Docker Compose (4 servis) | — |
 
@@ -367,7 +367,40 @@ docker compose exec frontend npm run build       # prod build
 docker compose down -v                    # hammasini o'chirish (baza bilan)
 ```
 
+## Ma'lumotlar bazasi
+
+Standart holatda PostgreSQL. `DB_ENGINE=db2` qo'yilsa IBM Db2 ga o'tadi —
+**bir xil migratsiyalar bilan**, kod o'zgartirmasdan:
+
+```bash
+# backend/.env
+DB_ENGINE=db2
+DB2_DB=TEAMFLOW
+DB2_USER=db2inst1
+DB2_PASSWORD=teamflow
+DB2_HOST=db2
+DB2_PORT=50000
+```
+
+Buning uchun loyihada bazaga xos maydon qoldirilmadi:
+
+- **JSON** `apps/core/fields.py` → `JSONTextField` orqali oddiy matn ustunida
+  saqlanadi. Db2 Django ning `JSONField` ini qo'llamaydi
+  (`supports_json_field = False`) va u bo'lsa `fields.E180` bilan migratsiya
+  umuman ishlamaydi. Kod uchun farq yo'q: `obj.meta["kalit"]` oldingidek.
+- **Kerakli mutaxassisliklar** JSON ro'yxat emas, alohida jadval
+  (`projects.ProjectSpecialty`). Bu maydon bo'yicha qidiruv bor edi
+  (`?matching=1`, mutaxassislik filtri, ochiq qidiruv) — jadvalda u indeks
+  ustidan ketadi, matn ichidan qidirishga qaraganda tez va aniq.
+  `project.needed_specialties` esa oldingidek ro'yxat qaytaradi (xossa),
+  ya'ni API javobi va chaqiruv joylari o'zgarmadi.
+
+Db2 konteyneri og'ir: ~4 GB obraz, `privileged` rejim va birinchi ishga
+tushishi bir necha daqiqa (instans va jurnal fayllari yaratiladi).
+
+---
+
 ## Portlar
 
-Standart portlar band bo'lgani uchun: **8010** (API), **5183** (interfeys), **5443** (Postgres).
+Standart portlar band bo'lgani uchun: **8010** (API), **5183** (interfeys), **5443** (Postgres), **50000** (Db2).
 O'zgartirish — `docker-compose.yml` va `backend/.env` dagi CORS/CSRF ro'yxatlari.

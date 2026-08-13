@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import viewsets
@@ -11,7 +11,8 @@ from apps.accounts.serializers import UserBriefSerializer
 from apps.core.permissions import check_access
 from apps.projects.models import Project, ProjectMember
 from apps.projects.serializers import ProjectBriefSerializer, ProjectMemberSerializer
-from apps.tasks.models import Review, ReviewVerdict, Task, TaskStatus, WorkLog
+from apps.tasks.models import (Review, ReviewVerdict, Task, TaskAssignment, TaskStatus,
+                               WorkLog)
 from apps.tasks.serializers import ReviewSerializer, TaskSerializer, WorkLogSerializer
 
 from .models import VERB_META, Activity
@@ -38,9 +39,9 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(project=project)
         elif not user.is_platform_admin:
             qs = qs.filter(
-                Q(project__memberships__user=user, project__memberships__is_active=True)
-                | Q(actor=user)
-            ).distinct()
+                Q(actor=user) | Exists(ProjectMember.objects.filter(
+                    project=OuterRef("project_id"), user=user, is_active=True))
+            )
 
         actor = self.request.query_params.get("actor")
         if actor:
@@ -74,8 +75,9 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
         dev = get_object_or_404(User, pk=user_id)
         membership = ProjectMember.objects.filter(project=project, user=dev).first()
 
-        tasks = (Task.objects.filter(project=project, assignments__user=dev)
-                 .prefetch_related("assignments__user").distinct())
+        tasks = (Task.objects.filter(project=project, pk__in=TaskAssignment.objects.filter(
+                     user=dev).values("task_id"))
+                 .prefetch_related("assignments__user"))
         by_status = {row["status"]: row["c"]
                      for row in tasks.values("status").annotate(c=Count("id"))}
 
@@ -85,7 +87,7 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
                        .aggregate(s=Sum("hours"))["s"] or 0)
 
         reviews = (Review.objects.filter(task__project=project, task__assignments__user=dev)
-                   .select_related("task", "reviewer").distinct().order_by("-created_at")[:30])
+                   .select_related("task", "reviewer").order_by("-created_at")[:30])
         review_map = {r["verdict"]: r["c"] for r in
                       Review.objects.filter(task__project=project, task__assignments__user=dev)
                       .values("verdict").annotate(c=Count("id"))}
@@ -132,7 +134,8 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 
         contributions = []
         for m in ProjectMember.objects.filter(project=project).select_related("user"):
-            t = Task.objects.filter(project=project, assignments__user=m.user).distinct()
+            t = Task.objects.filter(project=project, pk__in=TaskAssignment.objects.filter(
+                user=m.user).values("task_id"))
             contributions.append({
                 "member": ProjectMemberSerializer(m, context=ctx).data,
                 "done": t.filter(status=TaskStatus.DONE).count(),

@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import ValidationError
@@ -147,14 +147,16 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["-date_joined"]
 
     def get_queryset(self):
+        from apps.core.queries import related_count
+        from apps.projects.models import ProjectMember
+        from apps.tasks.models import TaskAssignment
+
         qs = User.objects.annotate(
-            project_count=Count("project_memberships",
-                                filter=Q(project_memberships__is_active=True), distinct=True),
-            open_tasks=Count("assignments", filter=Q(
-                assignments__is_active=True,
-                assignments__task__status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS,
-                                               TaskStatus.IN_REVIEW],
-            ), distinct=True),
+            project_count=related_count(ProjectMember, group_by="user", is_active=True),
+            open_tasks=related_count(
+                TaskAssignment, group_by="user", is_active=True,
+                task__status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS,
+                                  TaskStatus.IN_REVIEW]),
         )
         role = self.request.query_params.get("role")
         if role:
@@ -192,25 +194,33 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             if wide:
                 return qs
             f = lambda name: prefix + name  # noqa: E731
+            from apps.projects.models import ProjectMember
+
             return qs.filter(
-                Q(**{f("is_public"): True})
-                | Q(**{f("memberships__user"): me, f("memberships__is_active"): True})
+                Q(**{f("is_public"): True}) | Exists(ProjectMember.objects.filter(
+                    project=OuterRef("pk"), user=me, is_active=True))
             )
 
+        from apps.projects.models import ProjectMember
+
         projects = limit(
-            Project.objects.filter(memberships__user=target, memberships__is_active=True)
-        ).distinct().select_related("workspace").order_by("-updated_at")[:30]
+            Project.objects.filter(Exists(ProjectMember.objects.filter(
+                project=OuterRef("pk"), user=target, is_active=True)))
+        ).select_related("workspace").order_by("-updated_at")[:30]
 
         roles = {m.project_id: m.get_role_display() for m in
                  target.project_memberships.filter(is_active=True)}
 
-        tasks = Task.objects.filter(assignments__user=target, assignments__is_active=True)
+        from apps.tasks.models import TaskAssignment
+
+        tasks = Task.objects.filter(Exists(TaskAssignment.objects.filter(
+            task=OuterRef("pk"), user=target, is_active=True)))
         if not wide:
             tasks = tasks.filter(
-                Q(project__is_public=True)
-                | Q(project__memberships__user=me, project__memberships__is_active=True)
+                Q(project__is_public=True) | Exists(ProjectMember.objects.filter(
+                    project=OuterRef("project_id"), user=me, is_active=True))
             )
-        tasks = tasks.select_related("project").distinct()
+        tasks = tasks.select_related("project")
 
         by_status = {row["status"]: row["c"]
                      for row in tasks.values("status").annotate(c=Count("id"))}
@@ -220,8 +230,8 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         activity = Activity.objects.timeline().filter(actor=target)
         if not wide:
             activity = activity.filter(
-                Q(project__is_public=True)
-                | Q(project__memberships__user=me, project__memberships__is_active=True)
+                Q(project__is_public=True) | Exists(ProjectMember.objects.filter(
+                    project=OuterRef("project_id"), user=me, is_active=True))
             )
 
         return Response({
@@ -243,7 +253,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             "tasks": TaskSerializer(
                 tasks.exclude(status=TaskStatus.CANCELLED).order_by("-updated_at")[:20],
                 many=True, context=ctx).data,
-            "activity": ActivitySerializer(activity.distinct()[:25], many=True, context=ctx).data,
+            "activity": ActivitySerializer(activity[:25], many=True, context=ctx).data,
             "limited": not wide,
         })
 
