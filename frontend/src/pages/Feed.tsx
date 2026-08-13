@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api } from "@/api/client";
-import type { Activity } from "@/api/types";
+import { api, listOf } from "@/api/client";
+import type { Activity, Project } from "@/api/types";
+import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import Timeline from "@/components/Timeline";
 import { Card, Loading } from "@/components/ui";
@@ -12,24 +13,35 @@ const CATEGORIES = [
   { value: "review", label: "Tekshiruvlar" },
   { value: "member", label: "Jamoa" },
   { value: "project", label: "Loyiha" },
-  { value: "workspace", label: "Ish maydoni" },
 ];
 
 export default function Feed() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<Activity[] | null>(null);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   const search = params.get("q") || "";
   const category = params.get("category") || "";
   const days = params.get("days") || "";
+  const project = params.get("project") || "";
+
+  // Filtr ro'yxati: admin hammasini, qolganlar o'z loyihalarini ko'radi.
+  useEffect(() => {
+    void api.get<any>("/projects/", {
+      scope: user?.is_platform_admin ? "all" : "mine", page_size: 100,
+    }).then((d) => setProjects(listOf<Project>(d))).catch(() => setProjects([]));
+  }, [user?.is_platform_admin]);
 
   useEffect(() => {
     setItems(null);
-    void api.get<any>("/activity/", { search, category, days, page, page_size: 50 })
-      .then((d) => { setItems(d.results || []); setCount(d.count || 0); });
-  }, [search, category, days, page]);
+    // `project` bo'sh bo'lsa yuborilmaydi - u holda butun tarix qaytadi.
+    void api.get<any>("/activity/", { search, category, days, project, page, page_size: 50 })
+      .then((d) => { setItems(d.results || []); setCount(d.count || 0); })
+      .catch(() => { setItems([]); setCount(0); });
+  }, [search, category, days, project, page]);
 
   function set(k: string, v: string) {
     const next = new URLSearchParams(params);
@@ -57,6 +69,15 @@ export default function Feed() {
             <label>Turkum</label>
             <select value={category} onChange={(e) => set("category", e.target.value)}>
               {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+          <div className="f">
+            <label>Loyiha</label>
+            <select value={project} onChange={(e) => set("project", e.target.value)}>
+              <option value="">Barcha loyihalar</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
             </select>
           </div>
           <div className="f">

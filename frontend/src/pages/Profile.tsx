@@ -4,6 +4,7 @@ import { ApiError, api } from "@/api/client";
 import type { User, UserWork } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
+import SkillEditor from "@/components/SkillEditor";
 import { IconChat } from "@/components/icons";
 import Timeline from "@/components/Timeline";
 import {
@@ -93,7 +94,6 @@ export default function Profile() {
 
   if (!target) return <div className="content">{error ? <div className="msg msg-error">{error}</div> : <Loading />}</div>;
 
-  const spec = meta?.specialties?.find((s) => s.value === target.specialty);
   const stats = work?.stats;
   const tasks = work?.tasks || [];
 
@@ -158,6 +158,11 @@ export default function Profile() {
                   {target.bio && <p className="pre-wrap" style={{ marginTop: 10 }}>{target.bio}</p>}
                   <div className="row wrap" style={{ gap: 6, marginTop: 10 }}>
                     {target.skill_list.map((s) => <span className="chip" key={s}>{s}</span>)}
+                    {!target.skill_list.length && isSelf && !edit && (
+                      <button type="button" className="btn btn-sm" onClick={() => setEdit(true)}>
+                        Konikma qoshish
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -169,7 +174,6 @@ export default function Profile() {
                   {[
                     ["full_name", "F.I.Sh.", "text"],
                     ["job_title", "Lavozim", "text"],
-                    ["skills", "Konikmalar (vergul bilan)", "text"],
                     ["github_username", "GitHub username", "text"],
                     ["telegram", "Telegram", "text"],
                   ].map(([k, label]) => (
@@ -179,6 +183,15 @@ export default function Profile() {
                              onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
                     </div>
                   ))}
+                  <div className="field">
+                    <label>Konikmalar</label>
+                    <SkillEditor
+                      value={form.skills || ""}
+                      onChange={(v) => setForm({ ...form, skills: v })}
+                      suggestions={target.suggested_skills || []}
+                    />
+                  </div>
+
                   <div className="row">
                     <div className="field" style={{ flex: 1 }}>
                       <label>Daraja</label>
@@ -254,22 +267,6 @@ export default function Profile() {
               <Stat value={stats?.in_review ?? 0} label="Tekshiruvda" tone="done" />
               <Stat value={stats?.hours ?? 0} label="Sarflangan soat" tone="warn" />
             </div>
-
-            {spec && (
-              <Card title="Mutaxassislik xususiyatlari">
-                <p className="muted" style={{ fontSize: 13 }}>{spec.focus}</p>
-                <div className="divider" />
-                <strong style={{ fontSize: 13 }}>Sifat royxati</strong>
-                <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 13 }}>
-                  {spec.checklist.map((c) => <li key={c}>{c}</li>)}
-                </ul>
-                <div className="divider" />
-                <strong style={{ fontSize: 13 }}>Tavsiya etilgan vazifa turlari</strong>
-                <div className="row wrap" style={{ marginTop: 8, gap: 6 }}>
-                  {spec.task_types.map((t) => <span className="badge" key={t}>{t}</span>)}
-                </div>
-              </Card>
-            )}
 
             {!!work?.projects?.length && (
               <Card title={isSelf ? "Loyihalarim" : "Loyihalari"} padded={false}

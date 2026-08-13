@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
-import type { Project, UserBrief } from "@/api/types";
+import type { UserBrief } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
@@ -17,7 +17,6 @@ export default function Layout() {
   const { subscribe } = useRealtime();
   const nav = useNavigate();
   const loc = useLocation();
-  const [projects, setProjects] = useState<Project[]>([]);
   const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0, invites: 0 });
   const [q, setQ] = useState("");
   const [tick, setTick] = useState(0);
@@ -27,10 +26,6 @@ export default function Layout() {
 
   useEffect(() => {
     void (async () => {
-      try {
-        const data = await api.get<any>("/projects/", { scope: "mine", page_size: 12 });
-        setProjects(listOf<Project>(data));
-      } catch { /* jim */ }
       try {
         const d = await api.get<any>("/dashboard/");
         let invites = 0;
@@ -111,11 +106,14 @@ export default function Layout() {
           </form>
 
           {openHits && q.trim().length >= 2 && (
-            <div className="top-hits">
+            /* Sichqoncha bosilganda maydon fokusni yo'qotmasin: aks holda blur
+               ro'yxatni yopadi va havola bosilishga ulgurmaydi (mousedown bilan
+               mouseup orasida 160 ms dan ko'p vaqt o'tsa - odatiy hol). */
+            <div className="top-hits" onMouseDown={(e) => e.preventDefault()}>
               {people.length > 0 && <div className="top-hits-head">Odamlar</div>}
               {people.map((u) => (
                 <Link key={u.id} className="top-hit" to={`/profil/${u.id}`}
-                      onClick={() => setOpenHits(false)}>
+                      onClick={() => { setOpenHits(false); setQ(""); }}>
                   <Avatar user={u} size="sm" />
                   <span className="top-hit-text">
                     <strong>{u.full_name}</strong>
@@ -130,7 +128,6 @@ export default function Layout() {
                 </div>
               )}
               <button type="button" className="top-hit top-hit-all"
-                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => { setOpenHits(false); nav(`/tarix?q=${encodeURIComponent(q)}`); }}>
                 «{q.trim()}» bo'yicha tarix va loyihalarni qidirish
               </button>
@@ -181,20 +178,9 @@ export default function Layout() {
           <div className="nav-section">
             {/* «Yangi» havolasi bu yerdan olib tashlandi: loyiha yaratish
                 «Barchasi» sahifasining o'z tugmasida turibdi. */}
+            {/* Loyihalar birma-bir sanalmaydi - hammasi «Barchasi» ichida.
+                Jamoa kattalashganda yon panel uzayib ketmasin. */}
             <div className="nav-title">Loyihalar</div>
-            {projects.map((p) => (
-              <NavLink
-                key={p.id}
-                to={`/loyiha/${p.id}`}
-                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-              >
-                <span className="ico">
-                  <span className="lang-dot" style={{ background: p.color, width: 10, height: 10 }} />
-                </span>
-                <span className="label">{p.name}</span>
-              </NavLink>
-            ))}
-            {!projects.length && <div className="nav-item muted">Hali loyiha yoq</div>}
             {item("/loyihalar", <IconBoard />, "Barchasi")}
             {item("/qoshilish", <IconSearch />, "Loyihaga qoshilish")}
           </div>

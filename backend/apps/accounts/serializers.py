@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import GlobalRole
-from .specialties import Seniority, Specialty, profile_for, specialty_catalog
+from .specialties import Seniority, Specialty, specialty_catalog
 
 User = get_user_model()
 
@@ -18,6 +18,8 @@ class UserBriefSerializer(serializers.ModelSerializer):
     specialty_icon = serializers.CharField(read_only=True)
     specialty_color = serializers.CharField(read_only=True)
     seniority_display = serializers.CharField(source="get_seniority_display", read_only=True)
+    # Nisbiy manzil: proksi Host ni almashtirsa ham brauzer rasmni ocha oladi.
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -25,6 +27,11 @@ class UserBriefSerializer(serializers.ModelSerializer):
                   "is_platform_admin",
                   "specialty", "specialty_display", "specialty_icon", "specialty_color",
                   "seniority", "seniority_display"]
+
+    def get_avatar(self, obj):
+        from apps.core.media import media_url
+
+        return media_url(obj.avatar)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -43,6 +50,8 @@ class UserSerializer(serializers.ModelSerializer):
     suggested_skills = serializers.ListField(read_only=True)
     quality_checklist = serializers.ListField(read_only=True)
     default_project_role = serializers.CharField(read_only=True)
+    # Rasm /api/auth/me/avatar/ orqali yuklanadi, bu yerda faqat o'qiladi.
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -56,6 +65,11 @@ class UserSerializer(serializers.ModelSerializer):
             "initials", "avatar_color", "is_platform_admin", "is_active", "date_joined",
         ]
         read_only_fields = ["email", "global_role", "is_active", "date_joined"]
+
+    def get_avatar(self, obj):
+        from apps.core.media import media_url
+
+        return media_url(obj.avatar)
 
 
 class UserAdminSerializer(UserSerializer):
@@ -101,14 +115,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Tanlangan mutaxassislikka qarab profil avtomatik toldiriladi."""
+        """Lavozim mutaxassislikdan olinadi, ko'nikmalar esa - yo'q.
+
+        Ilgari tanlangan yo'nalishga qarab ko'nikmalar ham to'ldirilardi
+        (Backend -> Python, Django, PostgreSQL...). Bu noto'g'ri edi: odam
+        o'zi aytmagan narsa profilida bilaman deb turardi. Endi ko'nikmalarni
+        faqat egasi qo'shadi - katalogdagi ro'yxat esa profil tahririda
+        bosib qo'shiladigan taklif sifatida qoladi (`suggested_skills`).
+        """
         specialty = validated_data.get("specialty")
-        prof = profile_for(specialty)
 
         if not (validated_data.get("job_title") or "").strip():
             validated_data["job_title"] = dict(Specialty.choices).get(specialty, "")
-        if not (validated_data.get("skills") or "").strip():
-            validated_data["skills"] = ", ".join(prof["skills"])
         # Loyiha menejeri mutaxassisligi tanlansa tizim roli ham menejer boladi
         if specialty == Specialty.PM:
             validated_data["global_role"] = GlobalRole.MANAGER
