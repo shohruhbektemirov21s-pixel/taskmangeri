@@ -80,7 +80,7 @@ def public_projects(request):
 
     specialty = (request.query_params.get("specialty") or "").strip()
     if specialty:
-        qs = qs.filter(needed_specialties__contains=[specialty])
+        qs = qs.filter(specialties__value=specialty)
 
     qs = qs.order_by("-updated_at")[:40]
     return Response({

@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from apps.core.fields import JSONTextField
+
 
 class NotificationKind(models.TextChoices):
     INVITE_RECEIVED = "invite.received", "Taklif keldi"
@@ -36,7 +38,7 @@ class Notification(models.Model):
     body = models.CharField("Matn", max_length=400, blank=True)
     url = models.CharField("Havola", max_length=300, blank=True,
                            help_text="Interfeys ichidagi manzil, masalan /vazifa/12")
-    meta = models.JSONField("Qo'shimcha", default=dict, blank=True)
+    meta = JSONTextField("Qo'shimcha", default=dict, blank=True)
 
     is_read = models.BooleanField("O'qilgan", default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

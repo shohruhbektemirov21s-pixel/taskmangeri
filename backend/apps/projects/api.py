@@ -87,11 +87,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
             qs = qs.filter(memberships__user=user, memberships__is_active=True)
 
         if self.request.query_params.get("matching") == "1":
-            qs = qs.filter(needed_specialties__contains=[user.specialty])
+            qs = qs.filter(specialties__value=user.specialty)
 
         specialty = self.request.query_params.get("specialty")
         if specialty:
-            qs = qs.filter(needed_specialties__contains=[specialty])
+            qs = qs.filter(specialties__value=specialty)
 
         ws = self.request.query_params.get("workspace")
         if ws:

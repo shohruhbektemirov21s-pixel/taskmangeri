@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from apps.core.fields import JSONTextField
+
 # verb -> (belgi, matn shabloni uchun kategoriya)
 VERB_META = {
     "user.registered": ("+", "user"),
@@ -65,7 +67,7 @@ class Activity(models.Model):
     verb = models.CharField("Amal", max_length=50, db_index=True)
     summary = models.CharField("Qisqacha", max_length=300)
     detail = models.TextField("Batafsil", blank=True)
-    meta = models.JSONField("Qoshimcha", default=dict, blank=True)
+    meta = JSONTextField("Qoshimcha", default=dict, blank=True)
 
     target_label = models.CharField("Obyekt", max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

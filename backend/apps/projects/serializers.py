@@ -69,6 +69,10 @@ class ProjectSerializer(serializers.ModelSerializer):
     team_composition = serializers.SerializerMethodField()
     specialty_gaps = serializers.SerializerMethodField()
     matches_my_specialty = serializers.SerializerMethodField()
+    # Model maydoni emas, xossa (alohida jadvalga yoziladi) - shuning uchun
+    # ochiq e'lon qilinadi. Tashqi ko'rinish oldingidek oddiy ro'yxat.
+    needed_specialties = serializers.ListField(
+        child=serializers.CharField(max_length=20), required=False)
 
     class Meta:
         model = Project

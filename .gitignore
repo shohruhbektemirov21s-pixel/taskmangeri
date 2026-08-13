@@ -12,3 +12,6 @@ frontend/tsconfig.tsbuildinfo
 *.tsbuildinfo
 backend/.env
 backend/.env.local
+
+# Ma'lumot zaxiralari (D: da, git ga tushmaydi)
+.backup/

@@ -67,9 +67,6 @@ class Project(models.Model):
     start_date = models.DateField("Boshlanish", null=True, blank=True)
     due_date = models.DateField("Muddat", null=True, blank=True)
 
-    needed_specialties = models.JSONField(
-        "Kerakli mutaxassisliklar", default=list, blank=True,
-        help_text="Loyihaga qaysi yonalish mutaxassislari kerakligi - qidiruvda korsatiladi")
 
     is_public = models.BooleanField("Ish maydoni ichida ochiq", default=True,
                                     help_text="Ochiq bolsa hamma korib, qoshilish sorovi yubora oladi")
@@ -95,6 +92,10 @@ class Project(models.Model):
         if not (self.color or "").strip():
             self.color = self.pick_color()
         super().save(*args, **kwargs)
+        pending = getattr(self, "_pending_specialties", None)
+        if pending is not None:
+            self._write_specialties(pending)
+            del self._pending_specialties
 
     def generate_key(self):
         """Loyiha nomidan qisqa kalit yasaydi: 'Tolov tizimi' -> 'TT', 'Mobil' -> 'MOB'.
@@ -145,6 +146,40 @@ class Project(models.Model):
         seed = "{}:{}".format(self.workspace_id, self.name or "")
         digest = hashlib.md5(seed.encode("utf-8")).hexdigest()
         return PROJECT_COLORS[int(digest, 16) % len(PROJECT_COLORS)]
+
+    # ------------------------------------------------------------ mutaxassisliklar
+    # Ilgari bu JSON royxat edi. Db2 JSON maydonini qollamagani uchun alohida
+    # jadvalga (`ProjectSpecialty`) chiqarildi. Kod uchun hech narsa ozgarmadi:
+    # `project.needed_specialties` oldingidek royxat qaytaradi va royxat
+    # berilsa ozini yangilaydi.
+    @property
+    def needed_specialties(self):
+        if self.pk is None:
+            return list(getattr(self, "_pending_specialties", []))
+        return [row.value for row in self.specialties.all()]
+
+    @needed_specialties.setter
+    def needed_specialties(self, values):
+        clean, seen = [], set()
+        for v in (values or []):
+            v = str(v).strip()
+            if v and v not in seen:
+                seen.add(v)
+                clean.append(v)
+        if self.pk is None:
+            # Hali saqlanmagan - `save()` dan keyin yoziladi.
+            self._pending_specialties = clean
+            return
+        self._write_specialties(clean)
+
+    def _write_specialties(self, values):
+        current = {row.value: row for row in self.specialties.all()}
+        for v in values:
+            if v not in current:
+                ProjectSpecialty.objects.create(project=self, value=v)
+        for v, row in current.items():
+            if v not in values:
+                row.delete()
 
     def get_absolute_url(self):
         return reverse("projects:detail", args=[self.pk])
@@ -206,6 +241,30 @@ class Project(models.Model):
     def next_task_number(self):
         last = self.tasks.order_by("-number").values_list("number", flat=True).first()
         return (last or 0) + 1
+
+
+class ProjectSpecialty(models.Model):
+    """Loyihaga kerakli yonalish - bitta qator, bitta qiymat.
+
+    Ilgari bu `Project.needed_specialties` JSON royxati edi va qidiruv
+    `needed_specialties__contains=[...]` bilan bajarilardi. IBM Db2 JSON
+    maydonini qollamaydi, shuning uchun normal jadvalga chiqarildi. Yutuq
+    shundaki, endi qidiruv aniq va indeks ustidan ketadi - JSON matn ichidan
+    qidirishga qaraganda tez va xatosiz.
+    """
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE,
+                                related_name="specialties")
+    value = models.CharField("Mutaxassislik", max_length=20, db_index=True)
+
+    class Meta:
+        verbose_name = "Kerakli mutaxassislik"
+        verbose_name_plural = "Kerakli mutaxassisliklar"
+        unique_together = [("project", "value")]
+        ordering = ["value"]
+
+    def __str__(self):
+        return "{} - {}".format(self.project.name, self.value)
 
 
 class ProjectMember(models.Model):

@@ -78,17 +78,38 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "teamflow"),
-        "USER": os.getenv("POSTGRES_USER", "teamflow"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "teamflow"),
-        "HOST": os.getenv("POSTGRES_HOST", "db"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
-        "CONN_MAX_AGE": 60,
+# ---------------------------------------------------------------- Baza
+# `DB_ENGINE=db2` bo'lsa IBM Db2, aks holda PostgreSQL. Ikkalasi ham bir xil
+# migratsiyalar bilan ishlaydi: loyihada bazaga xos maydon qolmagan
+# (JSON `apps.core.fields.JSONTextField` orqali matnda saqlanadi, kerakli
+# mutaxassisliklar esa alohida jadvalda).
+DB_ENGINE = os.getenv("DB_ENGINE", "postgres").lower()
+
+if DB_ENGINE == "db2":
+    DATABASES = {
+        "default": {
+            "ENGINE": "ibm_db_django",
+            "NAME": os.getenv("DB2_DB", "TEAMFLOW"),
+            "USER": os.getenv("DB2_USER", "db2inst1"),
+            "PASSWORD": os.getenv("DB2_PASSWORD", "teamflow"),
+            "HOST": os.getenv("DB2_HOST", "db2"),
+            "PORT": os.getenv("DB2_PORT", "50000"),
+            "PCONNECT": True,        # ulanishni qayta ishlatish
+            "CONN_MAX_AGE": 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB", "teamflow"),
+            "USER": os.getenv("POSTGRES_USER", "teamflow"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "teamflow"),
+            "HOST": os.getenv("POSTGRES_HOST", "db"),
+            "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": 60,
+        }
+    }
 
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = ["apps.accounts.backends.EmailBackend"]
