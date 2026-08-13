@@ -7,7 +7,7 @@ import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
 import {
   IconBell, IconBoard, IconChat, IconDashboard, IconHistory, IconInbox, IconLogout, IconMail,
-  IconPlus, IconReview, IconSearch, IconSettings, IconTasks, IconUsers, IconWorkspace,
+  IconPlus, IconReview, IconSearch, IconTasks, IconWorkspace,
 } from "./icons";
 import NotificationBell from "./NotificationBell";
 import { Avatar, SpecialtyTag } from "./ui";
@@ -84,6 +84,14 @@ export default function Layout() {
           <span>TeamFlow</span>
         </Link>
 
+        <nav className="top-nav">
+          <Link to="/loyihalar">Loyihalar</Link>
+          <Link to="/mening-ishim">Mening ishim</Link>
+          <Link to="/ish-maydonlari">Ish maydonlari</Link>
+        </nav>
+
+        <span className="spacer" />
+
         <div className="top-search">
           <form
             className="gh-search"
@@ -135,14 +143,6 @@ export default function Layout() {
           )}
         </div>
 
-        <nav className="top-nav">
-          <Link to="/loyihalar">Loyihalar</Link>
-          <Link to="/mening-ishim">Mening ishim</Link>
-          <Link to="/ish-maydonlari">Ish maydonlari</Link>
-        </nav>
-
-        <span className="spacer" />
-
         <NotificationBell />
         <Link className="top-icon" to="/xabarlar" title="Xabarlar">
           <IconChat size={17} />
@@ -190,17 +190,6 @@ export default function Layout() {
             {item("/ish-maydonlari", <IconWorkspace />, "Royxat")}
             {item("/ish-maydoni/yangi", <IconPlus />, "Yangi maydon")}
           </div>
-
-          {user?.is_platform_admin && (
-            <div className="nav-section">
-              <div className="nav-title">Boshqaruv</div>
-              {item("/jamoa", <IconUsers />, "Foydalanuvchilar")}
-              <a className="nav-item" href="/django-admin/" target="_blank" rel="noreferrer">
-                <span className="ico"><IconSettings /></span>
-                <span className="label">Django admin</span>
-              </a>
-            </div>
-          )}
 
           <div className="sidebar-footer">
             <Link to="/profil" className="sidebar-user">
