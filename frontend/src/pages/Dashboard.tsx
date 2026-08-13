@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { DashboardData } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
+import TeamBuilder from "@/components/TeamBuilder";
 import Timeline from "@/components/Timeline";
 import {
-  AvatarStack, Avatar, Card, Empty, Loading, Priority, Progress,
+  AvatarStack, Card, Empty, Loading, Priority, Progress,
   Stat, StatusBadge, fmtDate, timeAgo,
 } from "@/components/ui";
 
@@ -13,9 +14,11 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [d, setD] = useState<DashboardData | null>(null);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     void api.get<DashboardData>("/dashboard/").then(setD).catch(() => setD(null));
   }, []);
+
+  useEffect(() => { reload(); }, [reload]);
 
   if (!d) return <div className="content"><Loading text="Panel yuklanmoqda..." /></div>;
 
@@ -139,27 +142,12 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {d.join_queue.length > 0 && (
-            <Card title="Qoshilish sorovlari" padded={false}
-                  badge={<span className="badge badge-warn">{d.join_queue.length}</span>}>
-              <div className="card-list">
-                {d.join_queue.map((r) => (
-                  <div className="card-body tight row" key={r.id}>
-                    <Avatar user={r.user} />
-                    <div>
-                      <strong>{r.user.full_name}</strong>{" "}
-                      <span className="muted">→ {r.project_name}</span>
-                      <br />
-                      <small className="muted">
-                        {r.user.specialty_display} · {r.desired_role_display} · {timeAgo(r.created_at)}
-                      </small>
-                    </div>
-                    <span className="spacer" />
-                    <Link className="btn btn-sm" to={`/loyiha/${r.project}/jamoa`}>Korib chiqish</Link>
-                  </div>
-                ))}
-              </div>
-            </Card>
+          {/* Menejer jamoani nol holatdan shu yerda yig'adi: qidirib taklif
+              qilish, so'rovni qabul qilish, a'zoni chiqarish. */}
+          {d.managed_projects.length > 0 && (
+            <div className="mb">
+              <TeamBuilder projects={d.managed_projects} onChange={reload} />
+            </div>
           )}
 
           <Card title="Songgi harakatlar"
