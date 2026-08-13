@@ -179,10 +179,9 @@ export default function Layout() {
           </div>
 
           <div className="nav-section">
-            <div className="nav-title">
-              Loyihalar <span className="spacer" />
-              <Link to="/loyiha/yangi">Yangi</Link>
-            </div>
+            {/* «Yangi» havolasi bu yerdan olib tashlandi: loyiha yaratish
+                «Barchasi» sahifasining o'z tugmasida turibdi. */}
+            <div className="nav-title">Loyihalar</div>
             {projects.map((p) => (
               <NavLink
                 key={p.id}

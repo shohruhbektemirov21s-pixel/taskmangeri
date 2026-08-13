@@ -41,7 +41,6 @@ export default function DeveloperReport() {
               <h2 style={{ margin: 0 }}>{d.developer.full_name}</h2>
               <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
                 <span className="badge" style={{ color: d.developer.specialty_color }}>
-                  <span className="mono">{d.developer.specialty_icon}</span>{" "}
                   {d.developer.specialty_display}
                 </span>
                 <span className="badge">{d.developer.seniority_display}</span>

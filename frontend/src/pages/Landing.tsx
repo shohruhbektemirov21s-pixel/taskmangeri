@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { api } from "@/api/client";
 import { Logo } from "@/components/Logo";
 import {
   IconBoard, IconFile, IconHistory, IconReview, IconSearch, IconTasks, IconUsers,
@@ -23,6 +24,11 @@ const FEATURES = [
     p: "Skrinshot, hujjat, log yoki arxivni vazifa ostiga sudrab tashlang. Rasmlar darrov korinadi." },
 ];
 
+/** Raqam kelmaguncha - chiziqcha. Yolg'on raqam ko'rsatmaymiz. */
+function num(value?: number | null) {
+  return typeof value === "number" ? value.toLocaleString("uz-UZ") : "—";
+}
+
 const FLOW = [
   { n: 1, h: "Dasturchi qoshiladi",
     p: "Royxatdan otadi, mutaxassisligini tanlaydi va mos loyihaga sorov yuboradi. Qabul qilingach Loyihaga kirish sahifasini oqiydi." },
@@ -34,10 +40,27 @@ const FLOW = [
     p: "Qabul qiladi yoki aniq izoh bilan tuzatishga qaytaradi. Har bir aylana tarixda saqlanadi." },
 ];
 
+interface PublicStats {
+  projects: number;
+  workspaces: number;
+  people: number;
+  tasks_done: number;
+}
+
 export default function Landing() {
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
+  // Raqamlar qo'lda yozilmaydi - ochiq endpointdan olinadi, hisobsiz ham ishlaydi.
+  const [stats, setStats] = useState<PublicStats | null>(null);
+  const [specialtyCount, setSpecialtyCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    void api.get<PublicStats>("/public/stats/").then(setStats).catch(() => setStats(null));
+    void api.get<{ specialties: unknown[] }>("/auth/specialties/")
+      .then((d) => setSpecialtyCount((d.specialties || []).length))
+      .catch(() => setSpecialtyCount(null));
+  }, []);
 
   // "/" bosilganda qidiruv ochiladi - headerdagi ishora shuni va'da qiladi.
   useEffect(() => {
@@ -225,10 +248,22 @@ export default function Landing() {
       <section className="lp-section">
         <div className="lp-wrap">
           <div className="lp-stats">
-            <div><div className="v c-blue">11</div><div className="k">mutaxassislik yonalishi</div></div>
-            <div><div className="v c-green">8</div><div className="k">vazifa holati</div></div>
-            <div><div className="v c-purple">100</div><div className="k">tagacha task bir urinishda</div></div>
-            <div><div className="v" style={{ color: "var(--attention)" }}>∞</div><div className="k">tarix chuqurligi</div></div>
+            <div>
+              <div className="v c-blue">{num(stats?.projects)}</div>
+              <div className="k">ochiq loyiha</div>
+            </div>
+            <div>
+              <div className="v c-green">{num(stats?.people)}</div>
+              <div className="k">royxatdan otgan odam</div>
+            </div>
+            <div>
+              <div className="v c-purple">{num(stats?.tasks_done)}</div>
+              <div className="k">bajarilgan vazifa</div>
+            </div>
+            <div>
+              <div className="v" style={{ color: "var(--attention)" }}>{num(specialtyCount)}</div>
+              <div className="k">mutaxassislik yonalishi</div>
+            </div>
           </div>
         </div>
       </section>

@@ -38,8 +38,11 @@ export default function Search() {
   useEffect(() => {
     void (async () => {
       try {
-        const rows = await api.get<any[]>("/auth/specialties/");
-        setSpecialties(rows.map((s) => ({ value: String(s.value), label: s.label })));
+        // Endpoint {specialties, seniority} obyektini qaytaradi - massiv emas.
+        const data = await api.get<{ specialties: { value: string; label: string }[] }>(
+          "/auth/specialties/");
+        setSpecialties((data.specialties || []).map(
+          (s) => ({ value: String(s.value), label: s.label })));
       } catch { /* filtr bo'lmasa ham qidiruv ishlaydi */ }
     })();
   }, []);

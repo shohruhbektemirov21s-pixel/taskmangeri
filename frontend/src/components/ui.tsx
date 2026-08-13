@@ -83,10 +83,13 @@ export function Priority({ task }: { task: Pick<Task, "priority" | "priority_lab
 
 export function SpecialtyTag({ user, compact = false }: { user?: UserBrief | null; compact?: boolean }) {
   if (!user?.specialty) return null;
+  // `compact` da faqat belgi ko'rsatilardi ({ }, </>, = >). Belgilar o'qilmasdi
+  // va ro'yxatlarni chalkashtirardi - endi qisqa ko'rinishda hech narsa
+  // chizilmaydi, to'liq ko'rinishda esa yo'nalish nomi yoziladi.
+  if (compact) return null;
   return (
     <span className="badge" style={{ color: user.specialty_color, borderColor: user.specialty_color + "66" }}>
-      <span className="mono">{user.specialty_icon}</span>
-      {!compact && user.specialty_display}
+      {user.specialty_display}
     </span>
   );
 }

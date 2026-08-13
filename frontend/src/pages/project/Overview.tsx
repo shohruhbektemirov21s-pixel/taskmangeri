@@ -75,9 +75,6 @@ export default function Overview({ project, onChange }: { project: Project; onCh
                   <small className="muted">{m.role_display} · {m.user.specialty_display}</small>
                 </div>
                 <span className="spacer" />
-                <span className="mono" style={{ color: m.user.specialty_color }}>
-                  {m.user.specialty_icon}
-                </span>
               </div>
             ))}
             {!(project.members || []).length && <Empty title="Jamoa bosh" />}

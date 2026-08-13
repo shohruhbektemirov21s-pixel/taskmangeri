@@ -132,7 +132,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
                     </td>
                     <td>
                       <span className="badge" style={{ color: m.user.specialty_color }}>
-                        <span className="mono">{m.user.specialty_icon}</span> {m.user.specialty_display}
+                        {m.user.specialty_display}
                       </span>
                       <br /><small className="muted">{m.user.seniority_display}</small>
                     </td>
