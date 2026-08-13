@@ -81,6 +81,20 @@ class ProjectSerializer(serializers.ModelSerializer):
                   "specialty_gaps", "matches_my_specialty"]
         read_only_fields = ["join_code", "created_by", "key", "color"]
 
+    def validate(self, attrs):
+        """Tugash sanasi boshlanishdan oldin bo'lib qolmasin.
+
+        Interfeys ham buni to'sadi, lekin API to'g'ridan-to'g'ri chaqirilsa
+        teskari sanalar muddat bashoratini ma'nosiz qilib qo'yardi.
+        """
+        start = attrs.get("start_date", getattr(self.instance, "start_date", None))
+        due = attrs.get("due_date", getattr(self.instance, "due_date", None))
+        if start and due and due < start:
+            raise serializers.ValidationError({
+                "due_date": "Tugash sanasi boshlanish sanasidan oldin bo'la olmaydi."
+            })
+        return attrs
+
     def get_progress(self, obj):
         return obj.progress()
 

@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Q, Sum
 from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -70,9 +72,54 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_object(self):
         return self.request.user
+
+
+class AvatarView(generics.GenericAPIView):
+    """POST/DELETE /api/auth/me/avatar/ - o'z rasmini qo'yish, almashtirish, o'chirish.
+
+    Nega alohida endpoint: rasm `multipart/form-data` bilan keladi, o'chirish esa
+    bo'sh qiymat yuborish bilan emas - aniq DELETE bilan bo'lishi kerak. Aks holda
+    profil formasi rasm maydonini yubormay qolsa, rasm bexosdan o'chib ketardi.
+
+    Eski fayl har safar diskdan olib tashlanadi - almashtirilgan rasmlar
+    media papkasida yig'ilib qolmasin.
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    MAX_BYTES = 5 * 1024 * 1024
+    ALLOWED = ("image/jpeg", "image/png", "image/webp", "image/gif")
+
+    def post(self, request):
+        image = request.FILES.get("avatar") or request.FILES.get("file")
+        if not image:
+            raise ValidationError({"avatar": "Rasm tanlanmagan."})
+        if image.size > self.MAX_BYTES:
+            raise ValidationError({"avatar": "Rasm hajmi 5 MB dan oshmasligi kerak."})
+        content_type = (getattr(image, "content_type", "") or "").lower()
+        if content_type and content_type not in self.ALLOWED:
+            raise ValidationError({"avatar": "Faqat JPEG, PNG, WEBP yoki GIF rasm bo'lishi mumkin."})
+
+        user = request.user
+        if user.avatar:
+            user.avatar.delete(save=False)
+        user.avatar = image
+        user.save(update_fields=["avatar"])
+        return Response(UserSerializer(user, context={"request": request}).data)
+
+    def delete(self, request):
+        user = request.user
+        if user.avatar:
+            user.avatar.delete(save=False)
+            user.avatar = None
+            user.save(update_fields=["avatar"])
+        return Response(UserSerializer(user, context={"request": request}).data)
 
 
 class ChangePasswordView(generics.GenericAPIView):

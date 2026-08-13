@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Task, UserBrief } from "@/api/types";
@@ -14,6 +14,49 @@ export function Avatar({ user, size = "" }: { user?: UserBrief | null; size?: "s
     <span className={`avatar ${size}`} style={{ background: user.avatar_color }} title={user.full_name}>
       {user.initials}
     </span>
+  );
+}
+
+/**
+ * Rasmni to'liq holda ko'rsatuvchi oyna.
+ *
+ * Odam profilga kirgach rasmni ko'rmoqchi bo'lsa **bitta bosish yetadi** -
+ * alohida sahifaga o'tish yoki yuklab olish shart emas. Esc yoki fon bosilsa
+ * yopiladi; ochiq turganda sahifa orqada siljib ketmaydi.
+ */
+export function PhotoView({ src, alt, onClose }: { src: string; alt?: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="photo-view" onClick={onClose} role="dialog" aria-modal="true" aria-label={alt || "Rasm"}>
+      <button className="photo-close" type="button" onClick={onClose} aria-label="Yopish">×</button>
+      {/* Rasmning o'ziga bosilganda yopilmasin - odam kattalashtirib qarayotgan bo'lishi mumkin */}
+      <img src={src} alt={alt || ""} onClick={(e) => e.stopPropagation()} />
+    </div>
+  );
+}
+
+/** Rasmi bor avatarni bosib to'liq ko'rish uchun o'ram. */
+export function AvatarViewable({ user, size = "" }: { user?: UserBrief | null; size?: "sm" | "lg" | "xl" | "" }) {
+  const [open, setOpen] = useState(false);
+  if (!user?.avatar) return <Avatar user={user} size={size} />;
+  return (
+    <>
+      <button type="button" className="avatar-btn" onClick={() => setOpen(true)}
+              title="Rasmni to'liq ko'rish">
+        <Avatar user={user} size={size} />
+      </button>
+      {open && <PhotoView src={user.avatar} alt={user.full_name} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

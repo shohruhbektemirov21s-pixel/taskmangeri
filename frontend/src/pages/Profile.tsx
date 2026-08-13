@@ -7,7 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { IconChat } from "@/components/icons";
 import Timeline from "@/components/Timeline";
 import {
-  Avatar, Card, ErrorMsg, Loading, OkMsg, Priority, Stat, StatusBadge, fmtDate,
+  AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Priority, Stat, StatusBadge, fmtDate,
 } from "@/components/ui";
 
 export default function Profile() {
@@ -22,6 +22,7 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -37,6 +38,40 @@ export default function Profile() {
       setWork(await api.get<UserWork>(`/users/${u.id}/work/`));
     })().catch(() => setError("Profilni ochib bolmadi"));
   }, [userId, isSelf]);
+
+  /** Rasm yuklash yoki almashtirish. Fayl `multipart` bilan boradi. */
+  async function uploadPhoto(file: File) {
+    setPhotoBusy(true);
+    setError(null);
+    setSaved(null);
+    try {
+      const body = new FormData();
+      body.append("avatar", file);
+      setTarget(await api.post<User>("/auth/me/avatar/", body));
+      setSaved("Profil rasmi yangilandi.");
+      await refreshUser();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Rasmni yuklab bolmadi");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function removePhoto() {
+    if (!window.confirm("Profil rasmi ochirilsinmi?")) return;
+    setPhotoBusy(true);
+    setError(null);
+    setSaved(null);
+    try {
+      setTarget(await api.delete<User>("/auth/me/avatar/"));
+      setSaved("Profil rasmi ochirildi.");
+      await refreshUser();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Rasmni ochirib bolmadi");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -89,7 +124,29 @@ export default function Profile() {
           <div>
             <div className="card mb">
               <div className="card-body row wrap">
-                <Avatar user={target} size="xl" />
+                <div>
+                  {/* Bitta bosish yetadi: rasm to'liq holda ochiladi */}
+                  <AvatarViewable user={target} size="xl" />
+                  {isSelf && (
+                    <div className="avatar-edit" style={{ marginTop: 10 }}>
+                      <label className="btn btn-sm" style={{ marginBottom: 0 }}>
+                        {target.avatar ? "Almashtirish" : "Rasm qoyish"}
+                        <input type="file" accept="image/*" disabled={photoBusy}
+                               onChange={(e) => {
+                                 const file = e.target.files?.[0];
+                                 e.target.value = "";
+                                 if (file) void uploadPhoto(file);
+                               }} />
+                      </label>
+                      {target.avatar && (
+                        <button type="button" className="btn btn-sm btn-danger"
+                                disabled={photoBusy} onClick={() => void removePhoto()}>
+                          Ochirish
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div style={{ minWidth: 0 }}>
                   <h2 style={{ margin: 0 }}>{target.full_name}</h2>
                   <p className="muted" style={{ margin: "4px 0" }}>{target.job_title}</p>

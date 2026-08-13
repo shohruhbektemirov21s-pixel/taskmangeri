@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
-import type { Project } from "@/api/types";
+import type { Project, UserBrief } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
@@ -10,7 +10,7 @@ import {
   IconPlus, IconReview, IconSearch, IconSettings, IconTasks, IconUsers, IconWorkspace,
 } from "./icons";
 import NotificationBell from "./NotificationBell";
-import { Avatar } from "./ui";
+import { Avatar, SpecialtyTag } from "./ui";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -21,6 +21,9 @@ export default function Layout() {
   const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0, invites: 0 });
   const [q, setQ] = useState("");
   const [tick, setTick] = useState(0);
+  // Tepadagi qidiruv odamni ham topadi: ism, familiya yoki email bo'yicha.
+  const [people, setPeople] = useState<UserBrief[]>([]);
+  const [openHits, setOpenHits] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -52,6 +55,24 @@ export default function Layout() {
     }
   }), [subscribe]);
 
+  // Yozish to'xtagach odam qidiriladi - har harfda so'rov yubormaymiz.
+  useEffect(() => {
+    const needle = q.trim();
+    if (needle.length < 2) {
+      setPeople([]);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void api.get<any>("/users/", { search: needle, page_size: 6 })
+        .then((d) => setPeople(listOf<UserBrief>(d)))
+        .catch(() => setPeople([]));
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [q]);
+
+  // Sahifa almashsa qidiruv oynasi yopilsin.
+  useEffect(() => { setOpenHits(false); }, [loc.pathname]);
+
   const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) => (
     <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`} end>
       <span className="ico">{icon}</span>
@@ -68,21 +89,54 @@ export default function Layout() {
           <span>TeamFlow</span>
         </Link>
 
-        <form
-          className="gh-search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            nav(`/tarix?q=${encodeURIComponent(q)}`);
-          }}
-        >
-          <IconSearch size={14} />
-          <input
-            type="search"
-            placeholder="Tarix va loyihalardan qidirish"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </form>
+        <div className="top-search">
+          <form
+            className="gh-search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setOpenHits(false);
+              nav(`/tarix?q=${encodeURIComponent(q)}`);
+            }}
+          >
+            <IconSearch size={14} />
+            <input
+              type="search"
+              placeholder="Odam, tarix va loyihalardan qidirish"
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setOpenHits(true); }}
+              onFocus={() => setOpenHits(true)}
+              /* Havolaga bosilguncha ro'yxat yopilib qolmasin */
+              onBlur={() => window.setTimeout(() => setOpenHits(false), 160)}
+            />
+          </form>
+
+          {openHits && q.trim().length >= 2 && (
+            <div className="top-hits">
+              {people.length > 0 && <div className="top-hits-head">Odamlar</div>}
+              {people.map((u) => (
+                <Link key={u.id} className="top-hit" to={`/profil/${u.id}`}
+                      onClick={() => setOpenHits(false)}>
+                  <Avatar user={u} size="sm" />
+                  <span className="top-hit-text">
+                    <strong>{u.full_name}</strong>
+                    <span className="muted mono">{u.email}</span>
+                  </span>
+                  <SpecialtyTag user={u} compact />
+                </Link>
+              ))}
+              {!people.length && (
+                <div className="muted" style={{ padding: "10px 12px", fontSize: 13 }}>
+                  Bu ism bo'yicha odam topilmadi.
+                </div>
+              )}
+              <button type="button" className="top-hit top-hit-all"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setOpenHits(false); nav(`/tarix?q=${encodeURIComponent(q)}`); }}>
+                «{q.trim()}» bo'yicha tarix va loyihalarni qidirish
+              </button>
+            </div>
+          )}
+        </div>
 
         <nav className="top-nav">
           <Link to="/loyihalar">Loyihalar</Link>

@@ -12,5 +12,6 @@ urlpatterns = [
     path("verify/", TokenVerifyView.as_view(), name="verify"),
     path("register/", api.RegisterView.as_view(), name="register"),
     path("me/", api.MeView.as_view(), name="me"),
+    path("me/avatar/", api.AvatarView.as_view(), name="me_avatar"),
     path("change-password/", api.ChangePasswordView.as_view(), name="change_password"),
 ]

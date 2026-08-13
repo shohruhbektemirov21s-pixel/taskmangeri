@@ -4,6 +4,7 @@ import { ApiError, api } from "@/api/client";
 import type { Project, Task, UserBrief } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
+import { IconSearch } from "@/components/icons";
 import { Avatar, Card, ErrorMsg, Loading } from "@/components/ui";
 
 interface Suggestion {
@@ -22,6 +23,8 @@ export default function TaskForm() {
   const [project, setProject] = useState<Project | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [assignees, setAssignees] = useState<number[]>([]);
+  // Jamoa kattalashganda uzun ro'yxatdan odam topib bo'lmaydi - shuning uchun qidiruv.
+  const [who, setWho] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -102,6 +105,16 @@ export default function TaskForm() {
 
   const specialtyInfo = meta?.specialties?.find((s) => s.value === f.required_specialty);
 
+  // Ism, familiya yoki email bo'yicha filtr. Tanlangan a'zo qidiruvdan tushib
+  // qolsa ham tanlovi saqlanadi - pastda nechtasi yashiringani aytiladi.
+  const needle = who.trim().toLowerCase();
+  const shown = needle
+    ? suggestions.filter((s) =>
+        `${s.user.full_name} ${s.user.email}`.toLowerCase().includes(needle))
+    : suggestions;
+  const hiddenPicked = assignees.filter(
+    (id) => !shown.some((s) => s.user.id === id)).length;
+
   return (
     <>
       <PageHead
@@ -149,8 +162,13 @@ export default function TaskForm() {
                     Faqat <b>{specialtyInfo?.label}</b> yonalishidagi aʼzolar korsatilmoqda.
                   </div>
                 )}
+                <div className="gh-search mb" style={{ width: "100%" }}>
+                  <IconSearch size={14} />
+                  <input type="search" value={who} placeholder="Ism, familiya yoki email bo'yicha qidiring"
+                         onChange={(e) => setWho(e.target.value)} />
+                </div>
                 <div className="stack">
-                  {suggestions.map((s) => (
+                  {shown.map((s) => (
                     <label key={s.user.id} className="row"
                            style={{
                              fontWeight: 400, cursor: "pointer", padding: "8px 10px",
@@ -173,9 +191,17 @@ export default function TaskForm() {
                       {!s.matches && <span className="badge badge-warn">mos emas</span>}
                     </label>
                   ))}
+                  {!shown.length && !!suggestions.length && (
+                    <p className="muted">«{who}» boyicha hech kim topilmadi.</p>
+                  )}
                   {!suggestions.length && (
                     <p className="muted">
                       Bu yonalishda jamoada aʼzo yoq. Avval mos mutaxassisni qoshing.
+                    </p>
+                  )}
+                  {!!hiddenPicked && (
+                    <p className="muted" style={{ fontSize: 12 }}>
+                      Yana {hiddenPicked} ta tanlangan aʼzo qidiruvdan tashqarida — tanlovi saqlanadi.
                     </p>
                   )}
                 </div>

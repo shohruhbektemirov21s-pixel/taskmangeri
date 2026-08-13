@@ -5,7 +5,7 @@ import type { DashboardData } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import Timeline from "@/components/Timeline";
 import {
-  AvatarStack, Avatar, Card, Empty, Loading, Priority, Progress, SpecialtyTag,
+  AvatarStack, Avatar, Card, Empty, Loading, Priority, Progress,
   Stat, StatusBadge, fmtDate, timeAgo,
 } from "@/components/ui";
 
@@ -27,7 +27,6 @@ export default function Dashboard() {
         <div>
           <h1 style={{ margin: 0 }}>Salom, {user?.full_name.split(" ")[0]}</h1>
           <div className="row" style={{ marginTop: 4 }}>
-            <SpecialtyTag user={user} />
             <span className="muted">{user?.seniority_display}</span>
           </div>
         </div>

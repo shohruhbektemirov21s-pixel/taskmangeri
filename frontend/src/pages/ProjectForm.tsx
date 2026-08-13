@@ -108,13 +108,24 @@ export default function ProjectForm() {
               </div>
               <div className="row">
                 <div className="field" style={{ flex: 1 }}>
-                  <label>Boshlanish</label>
-                  <input type="date" value={f.start_date} onChange={(e) => set("start_date", e.target.value)} />
+                  <label>Boshlanish sanasi</label>
+                  <input type="date" value={f.start_date}
+                         max={f.due_date || undefined}
+                         onChange={(e) => set("start_date", e.target.value)} />
+                  {errors.start_date && <div className="err">{errors.start_date}</div>}
                 </div>
                 <div className="field" style={{ flex: 1 }}>
-                  <label>Muddat</label>
-                  <input type="date" value={f.due_date} onChange={(e) => set("due_date", e.target.value)} />
+                  <label>Tugash sanasi (muddat)</label>
+                  {/* min: tugash boshlanishdan oldin bo'lib qolmasin */}
+                  <input type="date" value={f.due_date}
+                         min={f.start_date || undefined}
+                         onChange={(e) => set("due_date", e.target.value)} />
+                  {errors.due_date && <div className="err">{errors.due_date}</div>}
                 </div>
+              </div>
+              <div className="help">
+                Ikkalasi ham ixtiyoriy, lekin qoyilsa muddat bashorati aniqroq boladi —
+                «Muddatlar» bolimi shu sanalarga qarab kechikishni belgilaydi.
               </div>
             </Card>
 
