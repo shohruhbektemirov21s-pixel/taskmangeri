@@ -1,11 +1,23 @@
 #!/bin/sh
 set -e
 
-echo "==> Postgres kutilmoqda..."
-until pg_isready -h "${POSTGRES_HOST:-db}" -p "${POSTGRES_PORT:-5432}" -U "${POSTGRES_USER:-teamflow}" >/dev/null 2>&1; do
-  sleep 1
+# Db2 konteyneri "tayyor" bo'lgach ham port bir necha soniya kechikib ochiladi,
+# shuning uchun compose dagi healthcheck ustiga yana bir bor tekshiramiz.
+echo "==> Db2 kutilmoqda..."
+until python -c "
+import socket, sys, os
+s = socket.socket()
+s.settimeout(3)
+try:
+    s.connect((os.getenv('DB2_HOST', 'db2'), int(os.getenv('DB2_PORT', '50000'))))
+except Exception:
+    sys.exit(1)
+finally:
+    s.close()
+" >/dev/null 2>&1; do
+  sleep 2
 done
-echo "==> Postgres tayyor."
+echo "==> Db2 tayyor."
 
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
