@@ -4,6 +4,7 @@ import { ApiError, api } from "@/api/client";
 import type { Project, Task, UserBrief } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
+import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { IconSearch } from "@/components/icons";
 import { Avatar, Card, ErrorMsg, Loading } from "@/components/ui";
 
@@ -25,6 +26,8 @@ export default function TaskForm() {
   const [assignees, setAssignees] = useState<number[]>([]);
   // Jamoa kattalashganda uzun ro'yxatdan odam topib bo'lmaydi - shuning uchun qidiruv.
   const [who, setWho] = useState("");
+  // Fayllar vazifa yaratilgandan keyin biriktiriladi - avval id kerak.
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -90,6 +93,20 @@ export default function TaskForm() {
       const saved = editing
         ? await api.patch<Task>(`/tasks/${taskId}/`, body)
         : await api.post<Task>("/tasks/", body);
+
+      // Vazifa saqlandi. Fayl yuklanmasa ham vazifa yo'qolmasin - odam
+      // vazifa sahifasida fayllarni qayta biriktira oladi.
+      if (files.length) {
+        try {
+          await uploadFiles(`/tasks/${saved.id}/attachments/`, files);
+        } catch {
+          setBusy(false);
+          setError("Vazifa yaratildi, lekin fayllarni biriktirib bolmadi — "
+                   + "ularni vazifa sahifasidan qayta yuklang.");
+          nav(`/vazifa/${saved.id}`);
+          return;
+        }
+      }
       nav(`/vazifa/${saved.id}`);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -206,6 +223,18 @@ export default function TaskForm() {
                   )}
                 </div>
               </Card>
+
+              {/* Tahrirlashda fayllar vazifa sahifasida boshqariladi - bu yerda
+                  faqat yangi vazifaga biriktiriladigan boshlangich fayllar. */}
+              {!editing && (
+                <Card title="Fayllar">
+                  <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+                    Skrinshot, maket, log yoki namuna hujjat — vazifa bilan birga
+                    biriktiriladi, ijrochi darrov koradi.
+                  </p>
+                  <FilePicker files={files} onChange={setFiles} />
+                </Card>
+              )}
             </div>
 
             <div>
