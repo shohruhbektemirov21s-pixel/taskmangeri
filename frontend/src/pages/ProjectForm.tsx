@@ -5,7 +5,7 @@ import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import TeamPicker, { createPickedTasks, sendInvites, taskCount }
   from "@/components/TeamPicker";
 import type { Pick as TeamPick } from "@/components/TeamPicker";
-import type { Project } from "@/api/types";
+import type { Access, Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { Card, ErrorMsg, Loading } from "@/components/ui";
@@ -25,6 +25,8 @@ export default function ProjectForm() {
   const [fileNote, setFileNote] = useState("");
   // Takliflar ham loyiha yaratilgandan keyin yuboriladi.
   const [invites, setInvites] = useState<TeamPick[]>([]);
+  // Tahrirlashda loyihaning ruxsatlari kerak: o'chirish faqat menejer va adminda.
+  const [acc, setAcc] = useState<Access | null>(null);
 
   const [f, setF] = useState({
     name: "", description: "",
@@ -35,6 +37,7 @@ export default function ProjectForm() {
     void (async () => {
       if (editing) {
         const p = await api.get<Project>(`/projects/${id}/`);
+        setAcc(p.access);
         setF({
           name: p.name, description: p.description,
           status: p.status,
@@ -116,6 +119,28 @@ export default function ProjectForm() {
     }
   }
 
+  /** Loyihani butunlay o'chirish - nomini yozib tasdiqlagandan keyin. */
+  async function removeProject() {
+    const typed = window.prompt(
+      `Loyiha vazifalari, fayllari va tarixi bilan butunlay ochiriladi.
+Bu amalni qaytarib bolmaydi. Tasdiqlash uchun loyiha nomini yozing:`,
+      "");
+    if (typed === null) return;
+    if (typed.trim() !== f.name.trim()) {
+      setError("Nom mos kelmadi — loyiha ochirilmadi.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.delete(`/projects/${id}/`);
+      nav("/loyihalar");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Loyihani ochirib bolmadi");
+      setBusy(false);
+    }
+  }
+
   if (!loaded) return <div className="content"><Loading /></div>;
 
   return (
@@ -189,6 +214,17 @@ export default function ProjectForm() {
                   </select>
                 </div>
               </Card>
+
+              {/* O'chirish - faqat loyiha menejeri va admin uchun (serverda ham
+                  shunday tekshiriladi). */}
+              {editing && (acc?.is_manager || acc?.is_admin) && (
+                <Card title="Loyihani ochirish">
+                  <button type="button" className="btn btn-danger btn-block" disabled={busy}
+                          onClick={() => void removeProject()}>
+                    Loyihani butunlay ochirish
+                  </button>
+                </Card>
+              )}
 
               {/* Tahrirlashda jamoa «Jamoa» bolimida boshqariladi - bu yerda
                   faqat yangi loyihaga chaqiriladigan odamlar. */}

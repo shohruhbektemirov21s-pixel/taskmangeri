@@ -124,3 +124,26 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 export function useRealtime() {
   return useContext(Ctx);
 }
+
+/**
+ * Sahifani jonli ushlab turish uchun qisqa yordamchi.
+ *
+ * `handler` har bir kelgan hodisada chaqiriladi va u har renderda yangilanadi -
+ * shuning uchun ichida sahifaning eng so'nggi holatidan foydalansa ham
+ * bo'ladi, obuna esa qayta ochilmaydi.
+ */
+export function useLive(handler: (data: SocketMessage) => void) {
+  const { subscribe } = useRealtime();
+  const ref = useRef(handler);
+  ref.current = handler;
+  useEffect(() => subscribe((data) => ref.current(data)), [subscribe]);
+}
+
+/** Shu loyihaga tegishli o'zgarish bo'lsa `reload` chaqiriladi. */
+export function useProjectLive(projectId: number | undefined, reload: () => void) {
+  useLive((d) => {
+    if (!projectId) return;
+    const mine = Number(d.project) === Number(projectId);
+    if (mine && (d.event === "task.update" || d.event === "project.update")) reload();
+  });
+}

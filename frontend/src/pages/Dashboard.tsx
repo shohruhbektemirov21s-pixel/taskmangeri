@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { DashboardData } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
+import { useLive } from "@/realtime/RealtimeContext";
 import TeamBuilder from "@/components/TeamBuilder";
 import Timeline from "@/components/Timeline";
 import {
@@ -19,6 +20,10 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+  // Jonli: vazifa yoki loyiha o'zgarsa panel o'zini yangilaydi.
+  useLive((d) => {
+    if (d.event === "task.update" || d.event === "project.update") reload();
+  });
 
   if (!d) return <div className="content"><Loading text="Panel yuklanmoqda..." /></div>;
 

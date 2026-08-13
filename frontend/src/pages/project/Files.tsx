@@ -11,6 +11,7 @@ import type { Project, ProjectFile } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { IconFile } from "@/components/icons";
 import { Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, timeAgo } from "@/components/ui";
+import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Files({ project }: { project: Project }) {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export default function Files({ project }: { project: Project }) {
   }, [project.id]);
 
   useEffect(() => { void load(); }, [load]);
+  useProjectLive(project.id, () => { void load(); });
 
   async function upload(list: FileList | null) {
     if (!list || !list.length) return;

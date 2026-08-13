@@ -5,6 +5,7 @@ import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import InviteBox from "@/components/InviteBox";
 import { Avatar, Card, Empty, ErrorMsg, Loading, SpecialtyTag, fmtDate, timeAgo } from "@/components/ui";
+import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Members({ project, onChange }: { project: Project; onChange: () => void }) {
   const { meta, user } = useAuth();
@@ -26,6 +27,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
   }, [project.id, acc.can_manage]);
 
   useEffect(() => { void load(); }, [load]);
+  useProjectLive(project.id, () => { void load(); });
 
   async function act(fn: () => Promise<unknown>) {
     setError(null);

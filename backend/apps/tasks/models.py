@@ -196,9 +196,16 @@ class Task(models.Model):
         return [u for u in self.assignee_list if u.specialty != self.required_specialty]
 
     def allowed_transitions(self, access):
-        """Foydalanuvchi shu taskni qaysi statuslarga otkaza oladi."""
+        """Foydalanuvchi shu taskni qaysi statuslarga otkaza oladi.
+
+        «Bajarildi» ro'yxatda yo'q - uni qo'lda qo'yib bo'lmaydi. Vazifa
+        tugadi deb faqat ish topshirilib, tekshiruvchi tasdiqlagandan keyin
+        hisoblanadi (`/review/` APPROVED). Aks holda "bajarildi" degan raqam
+        hech narsani anglatmay qoladi.
+        """
         if access.can_review:
-            return [s for s in TaskStatus.values if s != self.status]
+            return [s for s in TaskStatus.values
+                    if s not in (self.status, TaskStatus.DONE)]
         if access.can_work:
             return list(DEVELOPER_TRANSITIONS.get(self.status, []))
         return []

@@ -5,6 +5,7 @@ import type { Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { AvatarStack, Card, Empty, ErrorMsg, Loading, Priority, timeAgo } from "@/components/ui";
+import { useLive } from "@/realtime/RealtimeContext";
 
 export default function ReviewQueue() {
   const { meta } = useAuth();
@@ -20,6 +21,8 @@ export default function ReviewQueue() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // Ish topshirilsa navbat darrov to'ldiriladi.
+  useLive((d) => { if (d.event === "task.update") void load(); });
 
   async function submit(taskId: number) {
     setBusy(true);

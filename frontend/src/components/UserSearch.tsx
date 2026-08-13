@@ -19,13 +19,15 @@ interface Props {
   /** Tanlangan odamni ajratib ko'rsatish uchun */
   activeId?: number;
   autoFocus?: boolean;
+  /** Shuncha belgi yozilgunча qidirilmaydi va ro'yxat ko'rsatilmaydi */
+  minChars?: number;
 }
 
 const DEBOUNCE_MS = 250;
 
 export default function UserSearch({
   search, onPick, placeholder = "Email yoki ism bo'yicha qidiring",
-  emptyText = "Hech kim topilmadi", activeId, autoFocus,
+  emptyText = "Hech kim topilmadi", activeId, autoFocus, minChars = 2,
 }: Props) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<UserBrief[]>([]);
@@ -33,12 +35,22 @@ export default function UserSearch({
   const timer = useRef<number | undefined>(undefined);
   const seq = useRef(0);
 
+  const needle = q.trim();
+  // Hech narsa yozilmagan bo'lsa ro'yxat ham, so'rov ham yo'q: aks holda
+  // maydon ostida tasodifiy odamlar osilib turardi.
+  const active = needle.length >= minChars;
+
   useEffect(() => {
     window.clearTimeout(timer.current);
+    if (!active) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     timer.current = window.setTimeout(() => {
       const mine = ++seq.current;
       setLoading(true);
-      search(q.trim())
+      search(needle)
         .then((rows) => {
           // Kechikib kelgan eski javob yangisini bosib ketmasin.
           if (mine === seq.current) setItems(rows);
@@ -53,7 +65,7 @@ export default function UserSearch({
     return () => window.clearTimeout(timer.current);
     // `search` identifikatori o'zgarsa (masalan a'zo qo'shilgach) ro'yxat yangilanadi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, search]);
+  }, [needle, active, search]);
 
   return (
     <div className="user-search">
@@ -69,6 +81,7 @@ export default function UserSearch({
         {loading && <span className="tl-time">…</span>}
       </div>
 
+      {active && (
       <div className="user-hits">
         {!items.length && !loading && <div className="muted center" style={{ padding: 14 }}>{emptyText}</div>}
         {items.map((u) => (
@@ -87,6 +100,7 @@ export default function UserSearch({
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }

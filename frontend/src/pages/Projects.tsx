@@ -1,21 +1,39 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
-import { api, listOf } from "@/api/client";
+import { ApiError, api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
-import { Empty, Loading, Progress } from "@/components/ui";
+import { Empty, ErrorMsg, Loading, Progress, RowMenu, confirmDeleteByName }
+  from "@/components/ui";
 
 export default function Projects() {
   const { user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [scope, setScope] = useState("mine");
 
+  const load = useCallback(async () => {
+    const d = await api.get<any>("/projects/", { scope, page_size: 100 });
+    setProjects(listOf<Project>(d));
+  }, [scope]);
+
   useEffect(() => {
     setProjects(null);
-    void api.get<any>("/projects/", { scope, page_size: 100 })
-      .then((d) => setProjects(listOf<Project>(d)));
-  }, [scope]);
+    void load();
+  }, [load]);
+
+  /** Loyihani o'chirish - nomini yozdirib tasdiqlaymiz. */
+  async function removeProject(id: number, name: string) {
+    if (!confirmDeleteByName(name)) return;
+    setError(null);
+    try {
+      await api.delete(`/projects/${id}/`);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Loyihani ochirib bolmadi");
+    }
+  }
 
   return (
     <>
@@ -36,6 +54,7 @@ export default function Projects() {
         }
       />
       <div className="content">
+        <ErrorMsg error={error} />
         {!projects ? <Loading /> : (
           <div className="card">
             <div className="card-list">
@@ -53,6 +72,17 @@ export default function Projects() {
                     <span className="spacer" />
                     <Link className="btn btn-sm" to={`/loyiha/${p.id}/doska`}>Doska</Link>
                     <Link className="btn btn-sm" to={`/loyiha/${p.id}/tarix`}>Tarix</Link>
+                    {/* Boshqarish amallari chekkadagi «⋯» ostida: ro'yxat toza qoladi.
+                        Menejer va admin uchun ko'rinadi, serverda ham shu tekshiriladi. */}
+                    {(p.manager?.id === user?.id || user?.is_platform_admin) && (
+                      <RowMenu>
+                        <Link to={`/loyiha/${p.id}/tahrir`}>Tahrirlash</Link>
+                        <button type="button" className="danger"
+                                onClick={() => void removeProject(p.id, p.name)}>
+                          Ochirish
+                        </button>
+                      </RowMenu>
+                    )}
                   </div>
                   {p.description && <p className="muted" style={{ margin: "8px 0 0" }}>{p.description}</p>}
                   <div style={{ marginTop: 10 }}><Progress value={p.progress} /></div>

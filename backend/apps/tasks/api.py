@@ -358,6 +358,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         new_status = s.validated_data["status"]
 
         if new_status not in task.allowed_transitions(access):
+            if new_status == TaskStatus.DONE:
+                raise PermissionDenied(
+                    "«Bajarildi» ni qolda qoyib bolmaydi: ijrochi ishni topshiradi, "
+                    "keyin menejer yoki admin tekshirib tasdiqlaydi.")
             raise PermissionDenied(
                 "Siz bu vazifani '{}' holatiga ota olmaysiz.".format(TaskStatus(new_status).label))
 

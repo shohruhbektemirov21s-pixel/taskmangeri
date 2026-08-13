@@ -1127,6 +1127,24 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   background: var(--accent-soft); box-shadow: var(--gloss);
 }
 
+/* Qator chekkasidagi «⋯» menyusi */
+.row-menu { position: relative; display: inline-flex; }
+.row-menu > .btn { padding: 4px 10px; font-size: 16px; line-height: 1; }
+.row-menu-list {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 70;
+  min-width: 172px; padding: 5px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+  box-shadow: var(--sh-drawer); display: grid; gap: 2px;
+}
+.row-menu-list > * {
+  display: block; width: 100%; text-align: left; padding: 8px 11px;
+  border-radius: 8px; font-size: 13.5px; color: var(--text);
+  background: none; border: 0; cursor: pointer; font-family: inherit;
+}
+.row-menu-list > *:hover { background: var(--surface-2); text-decoration: none; }
+.row-menu-list > .danger { color: var(--danger); }
+.row-menu-list > .danger:hover { background: var(--danger-soft); }
+
 /* Loyiha yaratishda: kimni chaqiramiz va unga qanday vazifa beramiz */
 .pick {
   display: grid; gap: 9px; padding: 10px 12px;

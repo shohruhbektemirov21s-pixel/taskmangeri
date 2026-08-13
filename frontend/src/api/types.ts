@@ -495,10 +495,10 @@ export interface ForecastRow {
   done: number;
   in_review: number;
   overdue: number;
-  hours_left: number;
+  /** Kiritilgan eng erta boshlanish va eng kech muddat */
+  first_start: string | null;
   last_due: string | null;
-  forecast_date: string | null;
-  at_risk: boolean;
+  late: boolean;
 }
 
 export interface ForecastGroup {
@@ -508,27 +508,26 @@ export interface ForecastGroup {
   open: number;
   done: number;
   overdue: number;
-  hours_left: number;
+  first_start: string | null;
   last_due: string | null;
-  forecast_date: string | null;
   progress: number;
-  at_risk: boolean;
+  late: boolean;
 }
 
 /** `GET /api/projects/:id/forecast/` javobi */
 export interface Forecast {
   today: string;
-  hours_per_day: number;
-  default_task_hours: number;
   members: ForecastRow[];
   specialties: ForecastGroup[];
   project: {
     open: number;
     done: number;
     unassigned: number;
-    hours_left: number;
+    overdue: number;
+    start_date: string | null;
     due_date: string | null;
-    forecast_date: string | null;
+    task_start: string | null;
+    task_due: string | null;
     at_risk: boolean;
   };
 }

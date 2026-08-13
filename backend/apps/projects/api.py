@@ -12,7 +12,7 @@ from apps.accounts.models import GlobalRole
 from apps.activity.services import log
 from apps.core.permissions import CanCreateProject, ProjectAccess, check_access
 from apps.notifications.models import NotificationKind
-from apps.notifications.services import notify, notify_many
+from apps.notifications.services import notify, notify_many, send_to_users
 from apps.core.queries import related_count
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
@@ -34,6 +34,27 @@ def _managers_of(project):
 
 def _role_label(role):
     return dict(ProjectRole.choices).get(role, role)
+
+
+def live_project(project, action, actor=None, **extra):
+    """Loyihada nimadir o'zgardi degan signal - ochiq sahifalar o'zini yangilaydi.
+
+    Bildirishnoma emas: bazaga yozilmaydi, qo'ng'iroq chalmaydi. Fayl
+    yuklandimi, a'zo qo'shildimi - jamoaning ochiq turgan «Fayllar»,
+    «Jamoa», «Muddatlar» sahifalari shu signaldan keyin yangilanadi.
+    """
+    payload = {
+        "event": "project.update",
+        "action": action,
+        "project": project.pk,
+        "actor": getattr(actor, "pk", None),
+    }
+    payload.update(extra)
+    send_to_users(_active_people(project), payload)
+
+
+def _active_people(project):
+    return [m.user for m in project.memberships.filter(is_active=True).select_related("user")]
 
 
 OPEN_STATUSES = [s for s in TaskStatus.values
@@ -206,6 +227,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         log(actor=request.user, verb="project.brief_updated", project=project, target=project,
             summary="Loyiha brifi yangilandi",
             detail="Toldirilganlik: {}%".format(brief.filled_ratio))
+        live_project(project, "brief", request.user)
         return Response(s.data)
 
     def _manage_project(self, pk, need="manage"):
@@ -393,6 +415,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         log(actor=request.user, verb="member.role_changed", project=project, target=member.user,
             summary="{} roli: {} -> {}".format(member.user.full_name, old,
                                                member.get_role_display()))
+        live_project(project, "member", request.user)
         return Response(ProjectMemberSerializer(member, context={"request": request}).data)
 
     @action(detail=True, methods=["post"])
@@ -448,6 +471,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             detail=", ".join(x.original_name for x in created),
             meta={"files": [{"name": x.original_name, "size": x.size} for x in created]})
 
+        live_project(project, "file", request.user, count=len(created))
         return Response(ProjectFileSerializer(created, many=True,
                                               context={"request": request}).data, status=201)
 
@@ -465,37 +489,45 @@ class ProjectViewSet(viewsets.ModelViewSet):
         item.delete()
         log(actor=request.user, verb="project.file_deleted", project=project, target=project,
             summary="Fayl ochirildi: " + name)
+        live_project(project, "file_deleted", request.user)
         return Response(status=204)
 
     # ------------------------------------------------------------ muddat bashorati
     @action(detail=True, methods=["get"])
     def forecast(self, request, pk=None):
-        """Kim qachon tugatadi: odam va mutaxassislik kesimida.
+        """Muddatlar: kimda nima bor va qachonga belgilangan.
 
-        Bashorat sodda va tushunarli: qolgan rejalashtirilgan soat kuniga
-        HOURS_PER_DAY soatdan bajariladi deb hisoblanadi. Rejalashtirilgan soat
-        qoyilmagan vazifa uchun DEFAULT_TASK_HOURS olinadi - aks holda bashorat
-        "0 kun" bolib, yolgon tinchlik beradi.
+        Bu yerda TAXMIN yo'q. Avval "rejalashtirilgan soat" bo'lmagan vazifaga
+        4 soat deb qo'yilardi va shu soatdan "taxminan tugaydi" sanasi
+        chiqarilardi - ya'ni sahifada odam kiritmagan sanalar turardi. Endi
+        faqat bazadagi haqiqiy ma'lumot ko'rsatiladi: kiritilgan boshlanish va
+        tugash sanalari, ochiq/bajarilgan vazifalar soni va kechikkanlar.
         """
-        from datetime import datetime, timedelta
-
         from apps.accounts.serializers import UserBriefSerializer
         from apps.accounts.specialties import Specialty
+        from datetime import datetime
 
         project = get_object_or_404(Project, pk=pk)
         check_access(request.user, project, "view")
 
-        HOURS_PER_DAY = 6
-        DEFAULT_TASK_HOURS = 4
         today = timezone.localdate()
 
         def to_date(value):
-            """Muddatni mahalliy sanaga keltiradi (date ham, datetime ham bo'lishi mumkin)."""
+            """Sana ham, sana+soat ham kelishi mumkin - mahalliy sanaga keltiramiz."""
             if value is None:
                 return None
             if isinstance(value, datetime):
                 return timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
             return value
+
+        def wider(current, value, newest=True):
+            """Oraliqni kengaytiradi: eng kech (yoki eng erta) sanani qaytaradi."""
+            if value is None:
+                return current
+            if current is None:
+                return value
+            return max(current, value) if newest else min(current, value)
+
         closed = [TaskStatus.DONE, TaskStatus.CANCELLED]
 
         rows = (TaskAssignment.objects
@@ -507,7 +539,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             task, user = row.task, row.user
             item = people.setdefault(user.pk, {
                 "user": user, "open": 0, "done": 0, "in_review": 0, "overdue": 0,
-                "hours_left": 0.0, "last_due": None,
+                "first_start": None, "last_due": None,
             })
             if task.status == TaskStatus.DONE:
                 item["done"] += 1
@@ -517,23 +549,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
             item["open"] += 1
             if task.status == TaskStatus.IN_REVIEW:
                 item["in_review"] += 1
-            # Vazifa muddati sana+soat, bashorat esa kun hisobida ishlaydi -
-            # shuning uchun mahalliy sanaga keltiramiz. `to_date` ikkala turni
-            # ham qabul qiladi: eski yozuvlar yoki keshlangan ulanish tufayli
-            # bu yerga `date` kelib qolsa ham hisob buzilmaydi.
             task_due = to_date(task.due_date)
             if task_due and task_due < today:
                 item["overdue"] += 1
-            item["hours_left"] += float(task.estimate_hours or 0) or DEFAULT_TASK_HOURS
-            if task_due and (item["last_due"] is None or task_due > item["last_due"]):
-                item["last_due"] = task_due
-
-        def finish_date(hours, workers=1):
-            if hours <= 0:
-                return None
-            per_day = HOURS_PER_DAY * max(workers, 1)
-            days = int(-(-hours // per_day))  # yuqoriga yaxlitlash
-            return today + timedelta(days=days)
+            item["first_start"] = wider(item["first_start"], to_date(task.start_date),
+                                        newest=False)
+            item["last_due"] = wider(item["last_due"], task_due)
 
         members = {m.user_id: m for m in project.memberships.filter(is_active=True)}
         names = dict(Specialty.choices)
@@ -541,7 +562,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
         member_rows = []
         for uid, item in people.items():
             user = item["user"]
-            forecast = finish_date(item["hours_left"])
             member_rows.append({
                 "user": UserBriefSerializer(user, context={"request": request}).data,
                 "role": members[uid].get_role_display() if uid in members else "",
@@ -549,48 +569,49 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "specialty_display": names.get(user.specialty, user.specialty),
                 "open": item["open"], "done": item["done"],
                 "in_review": item["in_review"], "overdue": item["overdue"],
-                "hours_left": round(item["hours_left"], 1),
+                "first_start": item["first_start"],
                 "last_due": item["last_due"],
-                "forecast_date": forecast,
-                "at_risk": bool(forecast and item["last_due"] and forecast > item["last_due"]),
+                "late": item["overdue"] > 0,
             })
-        member_rows.sort(key=lambda r: (-r["open"], r["user"]["full_name"]))
+        member_rows.sort(key=lambda r: (-r["overdue"], -r["open"], r["user"]["full_name"]))
 
         groups = {}
         for row in member_rows:
             g = groups.setdefault(row["specialty"], {
                 "value": row["specialty"], "label": row["specialty_display"],
                 "people": 0, "open": 0, "done": 0, "overdue": 0,
-                "hours_left": 0.0, "last_due": None,
+                "first_start": None, "last_due": None,
             })
             g["people"] += 1
             g["open"] += row["open"]
             g["done"] += row["done"]
             g["overdue"] += row["overdue"]
-            g["hours_left"] += row["hours_left"]
-            if row["last_due"] and (g["last_due"] is None or row["last_due"] > g["last_due"]):
-                g["last_due"] = row["last_due"]
+            g["first_start"] = wider(g["first_start"], row["first_start"], newest=False)
+            g["last_due"] = wider(g["last_due"], row["last_due"])
 
         specialty_rows = []
         for g in groups.values():
-            forecast = finish_date(g["hours_left"], g["people"])
             total = g["open"] + g["done"]
             item = dict(g)
-            item["hours_left"] = round(g["hours_left"], 1)
-            item["forecast_date"] = forecast
             item["progress"] = round(g["done"] * 100 / total) if total else 0
-            item["at_risk"] = bool(forecast and g["last_due"] and forecast > g["last_due"])
+            item["late"] = g["overdue"] > 0
             specialty_rows.append(item)
-        specialty_rows.sort(key=lambda r: -r["open"])
+        specialty_rows.sort(key=lambda r: (-r["overdue"], -r["open"]))
 
-        total_hours = sum(r["hours_left"] for r in member_rows)
-        workers = max(len([r for r in member_rows if r["open"]]), 1)
-        project_forecast = finish_date(total_hours, workers)
+        # Vazifalarning haqiqiy oynasi: eng erta boshlanish - eng kech muddat.
+        task_start = task_due = None
+        overdue_total = 0
+        for t in project.tasks.all():
+            d_due = to_date(t.due_date)
+            if t.status not in closed:
+                if d_due and d_due < today:
+                    overdue_total += 1
+                task_start = wider(task_start, to_date(t.start_date), newest=False)
+                task_due = wider(task_due, d_due)
 
+        project_due = to_date(project.due_date)
         return Response({
             "today": today,
-            "hours_per_day": HOURS_PER_DAY,
-            "default_task_hours": DEFAULT_TASK_HOURS,
             "members": member_rows,
             "specialties": specialty_rows,
             "project": {
@@ -598,11 +619,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "done": project.tasks.filter(status=TaskStatus.DONE).count(),
                 "unassigned": project.tasks.exclude(status__in=closed)
                                      .exclude(assignments__is_active=True).count(),
-                "hours_left": round(total_hours, 1),
+                "overdue": overdue_total,
+                # Kiritilgan sanalar - o'zgartirilmasdan, borig'icha.
+                "start_date": project.start_date,
                 "due_date": project.due_date,
-                "forecast_date": project_forecast,
-                "at_risk": bool(project_forecast and project.due_date
-                                and project_forecast > project.due_date),
+                "task_start": task_start,
+                "task_due": task_due,
+                # Vazifalar loyiha muddatidan oshib ketganmi - haqiqiy taqqoslash.
+                "at_risk": bool(task_due and project_due and task_due > project_due),
             },
         })
 
@@ -715,6 +739,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                    body="{}{}".format(project.name, " - " + note if note else ""),
                    url="/qoshilish", actor=request.user, meta={"project": project.pk})
 
+        live_project(project, "member", request.user)
         return Response(JoinRequestSerializer(req, context={"request": request}).data)
 
 

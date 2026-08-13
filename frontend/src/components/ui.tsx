@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Task, UserBrief } from "@/api/types";
@@ -216,6 +216,61 @@ export function Progress({ value }: { value: number }) {
 }
 
 /* ---------------------------------------------------------------- Vazifa kartasi */
+/**
+ * Qator chekkasidagi «⋯» menyusi.
+ *
+ * Ro'yxatda har bir yozuv uchun tahrirlash/o'chirish kabi amallar kerak,
+ * lekin ular doim ko'rinib tursa ro'yxat shovqinga to'ladi.
+ */
+export function RowMenu({ children, label = "Amallar" }: {
+  children: React.ReactNode;
+  label?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="row-menu" ref={box}>
+      <button type="button" className="btn btn-sm btn-ghost" title={label}
+              aria-haspopup="menu" aria-expanded={open}
+              onClick={() => setOpen((v) => !v)}>
+        ⋯
+      </button>
+      {open && (
+        <div className="row-menu-list" role="menu" onClick={() => setOpen(false)}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Loyihani o'chirishni tasdiqlash: nomini yozdiramiz.
+ * Rost bo'lsa - o'chirishga ruxsat.
+ */
+export function confirmDeleteByName(name: string) {
+  const typed = window.prompt(
+    `«${name}» vazifalari, fayllari va tarixi bilan butunlay ochiriladi.
+Bu amalni qaytarib bolmaydi. Tasdiqlash uchun nomini yozing:`, "");
+  if (typed === null) return false;
+  return typed.trim() === name.trim();
+}
+
 export function TaskCard({ task, draggable = false, onDragStart }: {
   task: Task;
   draggable?: boolean;

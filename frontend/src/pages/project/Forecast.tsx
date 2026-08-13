@@ -1,10 +1,10 @@
 /**
- * Muddatlar — «kim qachon tugatadi».
+ * Muddatlar — kimda nima bor va qachonga belgilangan.
  *
- * Ikki kesim: har bir odam bo'yicha va mutaxassislik bo'yicha
- * («frontend qachon tugaydi»). Hisob backendda: qolgan rejalashtirilgan soat
- * kuniga bir necha soatdan bajariladi deb olinadi. Bashorat muddatdan
- * kechikayotgan bo'lsa qator qizil bilan belgilanadi.
+ * Sahifada faqat bazadagi haqiqiy ma'lumot: kiritilgan boshlanish va tugash
+ * sanalari, ochiq/bajarilgan vazifalar va kechikkanlar. Avval bu yerda
+ * o'ylab topilgan soatlardan chiqarilgan "taxminan tugaydi" sanasi turardi -
+ * odam kiritmagan sana ekranda turishi chalkashlikdan boshqa narsa emas.
  */
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -37,23 +37,44 @@ export default function ForecastTab({ project }: { project: Project }) {
       <div className="grid grid-4 mb">
         <Stat value={p.open} label="Ochiq vazifa" tone="accent" />
         <Stat value={p.done} label="Bajarilgan" tone="ok" />
-        <Stat value={`${p.hours_left} soat`} label="Qolgan ish" tone="warn" />
+        <Stat value={p.overdue} label="Muddati otgan" tone={p.overdue ? "danger" : "ok"} />
         <Stat
-          value={p.forecast_date ? fmtDate(p.forecast_date) : "—"}
-          label="Loyiha taxminan tugaydi"
+          value={p.due_date ? fmtDate(p.due_date) : "—"}
+          label="Loyiha muddati"
           tone={p.at_risk ? "danger" : "done"}
         />
       </div>
 
+      <div className="card mb">
+        <div className="card-body">
+          <div className="row wrap" style={{ gap: 24 }}>
+            <div>
+              <div className="muted" style={{ fontSize: 12 }}>Loyiha (kiritilgan)</div>
+              <strong>{p.start_date ? fmtDate(p.start_date) : "—"}</strong>
+              <span className="muted"> → </span>
+              <strong>{p.due_date ? fmtDate(p.due_date) : "—"}</strong>
+            </div>
+            <div>
+              <div className="muted" style={{ fontSize: 12 }}>Vazifalar (kiritilgan)</div>
+              <strong>{p.task_start ? fmtDate(p.task_start) : "—"}</strong>
+              <span className="muted"> → </span>
+              <strong className={p.at_risk ? "c-red" : ""}>
+                {p.task_due ? fmtDate(p.task_due) : "—"}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {p.at_risk && (
         <div className="callout danger mb">
-          Bashorat muddatdan kechikmoqda: rejada <strong>{fmtDate(p.due_date)}</strong>,
-          hisob-kitobga ko'ra <strong>{fmtDate(p.forecast_date)}</strong>.
+          Vazifalarning oxirgi muddati <strong>{fmtDate(p.task_due)}</strong> —
+          loyiha muddatidan (<strong>{fmtDate(p.due_date)}</strong>) kech.
         </div>
       )}
       {!!p.unassigned && (
         <div className="callout warn mb">
-          {p.unassigned} ta vazifa hech kimga biriktirilmagan — ular bashoratga kirmadi.
+          {p.unassigned} ta vazifa hech kimga biriktirilmagan.
         </div>
       )}
 
@@ -66,12 +87,12 @@ export default function ForecastTab({ project }: { project: Project }) {
             <thead>
               <tr>
                 <th>Yo'nalish</th><th>Odam</th><th>Ochiq</th><th>Bajarilgan</th>
-                <th>Qolgan soat</th><th>Muddat</th><th>Taxminan tugaydi</th>
+                <th>Boshlanish</th><th>Oxirgi muddat</th>
               </tr>
             </thead>
             <tbody>
               {data.specialties.map((s) => (
-                <tr key={s.value} className={s.at_risk ? "row-risk" : ""}>
+                <tr key={s.value} className={s.late ? "row-risk" : ""}>
                   <td>
                     <strong>{s.label}</strong>
                     <div style={{ maxWidth: 140, marginTop: 6 }}>
@@ -81,11 +102,10 @@ export default function ForecastTab({ project }: { project: Project }) {
                   <td>{s.people}</td>
                   <td>{s.open}{!!s.overdue && <span className="badge badge-danger" style={{ marginLeft: 6 }}>{s.overdue} kechikkan</span>}</td>
                   <td>{s.done}</td>
-                  <td className="mono">{s.hours_left}</td>
-                  <td className="muted">{s.last_due ? fmtDate(s.last_due) : "—"}</td>
+                  <td className="muted">{s.first_start ? fmtDate(s.first_start) : "—"}</td>
                   <td>
-                    <strong className={s.at_risk ? "c-red" : ""}>
-                      {s.forecast_date ? fmtDate(s.forecast_date) : "—"}
+                    <strong className={s.late ? "c-red" : ""}>
+                      {s.last_due ? fmtDate(s.last_due) : "—"}
                     </strong>
                   </td>
                 </tr>
@@ -104,12 +124,12 @@ export default function ForecastTab({ project }: { project: Project }) {
             <thead>
               <tr>
                 <th>Xodim</th><th>Rol</th><th>Ochiq</th><th>Tekshiruvda</th>
-                <th>Bajarilgan</th><th>Qolgan soat</th><th>Taxminan tugatadi</th>
+                <th>Bajarilgan</th><th>Boshlanish</th><th>Oxirgi muddat</th>
               </tr>
             </thead>
             <tbody>
               {data.members.map((m) => (
-                <tr key={m.user.id} className={m.at_risk ? "row-risk" : ""}>
+                <tr key={m.user.id} className={m.late ? "row-risk" : ""}>
                   <td>
                     <div className="row" style={{ gap: 8 }}>
                       <Avatar user={m.user} size="sm" />
@@ -132,14 +152,11 @@ export default function ForecastTab({ project }: { project: Project }) {
                   </td>
                   <td>{m.in_review}</td>
                   <td>{m.done}</td>
-                  <td className="mono">{m.hours_left}</td>
+                  <td className="muted">{m.first_start ? fmtDate(m.first_start) : "—"}</td>
                   <td>
-                    <strong className={m.at_risk ? "c-red" : ""}>
-                      {m.forecast_date ? fmtDate(m.forecast_date) : "—"}
+                    <strong className={m.late ? "c-red" : ""}>
+                      {m.last_due ? fmtDate(m.last_due) : "—"}
                     </strong>
-                    {m.last_due && (
-                      <><br /><small className="muted">muddat: {fmtDate(m.last_due)}</small></>
-                    )}
                   </td>
                 </tr>
               ))}
