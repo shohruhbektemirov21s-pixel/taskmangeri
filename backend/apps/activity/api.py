@@ -30,7 +30,8 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Activity.objects.timeline()
+        # O'chirilgan loyihaning tarixi bazada qoladi, lekin ro'yxatda chiqmaydi.
+        qs = Activity.objects.timeline().exclude(project__deleted_at__isnull=False)
 
         project_id = self.request.query_params.get("project")
         if project_id:

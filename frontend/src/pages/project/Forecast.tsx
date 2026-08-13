@@ -39,9 +39,9 @@ export default function ForecastTab({ project }: { project: Project }) {
         <Stat value={p.done} label="Bajarilgan" tone="ok" />
         <Stat value={p.overdue} label="Muddati otgan" tone={p.overdue ? "danger" : "ok"} />
         <Stat
-          value={p.due_date ? fmtDate(p.due_date) : "—"}
-          label="Loyiha muddati"
-          tone={p.at_risk ? "danger" : "done"}
+          value={p.start_date ? fmtDate(p.start_date) : "—"}
+          label="Loyiha boshlanish sanasi"
+          tone="done"
         />
       </div>
 

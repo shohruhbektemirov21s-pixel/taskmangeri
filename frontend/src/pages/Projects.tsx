@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
-import { Empty, ErrorMsg, Loading, Progress, RowMenu, confirmDeleteByName }
+import { Empty, ErrorMsg, Loading, Progress, RowMenu, confirmDelete }
   from "@/components/ui";
 
 export default function Projects() {
@@ -25,7 +25,7 @@ export default function Projects() {
 
   /** Loyihani o'chirish - nomini yozdirib tasdiqlaymiz. */
   async function removeProject(id: number, name: string) {
-    if (!confirmDeleteByName(name)) return;
+    if (!confirmDelete(name)) return;
     setError(null);
     try {
       await api.delete(`/projects/${id}/`);

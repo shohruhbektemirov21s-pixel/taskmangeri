@@ -260,15 +260,14 @@ export function RowMenu({ children, label = "Amallar" }: {
 }
 
 /**
- * Loyihani o'chirishni tasdiqlash: nomini yozdiramiz.
- * Rost bo'lsa - o'chirishga ruxsat.
+ * O'chirishdan oldingi yagona savol.
+ *
+ * Avval bu yerda nomni yozdirib tasdiqlash bor edi - amal qaytmasligi uchun.
+ * Amalda u ortiqcha to'siq bo'ldi: bitta aniq savol yetadi.
  */
-export function confirmDeleteByName(name: string) {
-  const typed = window.prompt(
-    `«${name}» vazifalari, fayllari va tarixi bilan butunlay ochiriladi.
-Bu amalni qaytarib bolmaydi. Tasdiqlash uchun nomini yozing:`, "");
-  if (typed === null) return false;
-  return typed.trim() === name.trim();
+export function confirmDelete(name: string) {
+  return window.confirm(
+    `«${name}» vazifalari, fayllari va tarixi bilan butunlay ochiriladi. Davom etamizmi?`);
 }
 
 export function TaskCard({ task, draggable = false, onDragStart }: {

@@ -333,6 +333,10 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 }
 .page-head .title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .page-head h1 { font-size: 21px; margin: 0; font-weight: 400; }
+.page-sub {
+  color: var(--muted); font-size: 13.5px; margin: -6px 0 12px;
+  max-width: 900px; white-space: pre-wrap;
+}
 .page-head h1 strong { font-weight: 650; }
 
 /* ============ TABS ============ */

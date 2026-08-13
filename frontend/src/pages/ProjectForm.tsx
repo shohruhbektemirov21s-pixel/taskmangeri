@@ -8,7 +8,7 @@ import type { Pick as TeamPick } from "@/components/TeamPicker";
 import type { Access, Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Card, ErrorMsg, Loading } from "@/components/ui";
+import { Card, ErrorMsg, Loading, confirmDelete } from "@/components/ui";
 
 export default function ProjectForm() {
   const { id } = useParams();
@@ -119,17 +119,9 @@ export default function ProjectForm() {
     }
   }
 
-  /** Loyihani butunlay o'chirish - nomini yozib tasdiqlagandan keyin. */
+  /** Loyihani butunlay o'chirish. */
   async function removeProject() {
-    const typed = window.prompt(
-      `Loyiha vazifalari, fayllari va tarixi bilan butunlay ochiriladi.
-Bu amalni qaytarib bolmaydi. Tasdiqlash uchun loyiha nomini yozing:`,
-      "");
-    if (typed === null) return;
-    if (typed.trim() !== f.name.trim()) {
-      setError("Nom mos kelmadi — loyiha ochirilmadi.");
-      return;
-    }
+    if (!confirmDelete(f.name)) return;
     setBusy(true);
     setError(null);
     try {

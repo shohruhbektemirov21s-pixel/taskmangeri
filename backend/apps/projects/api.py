@@ -204,13 +204,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         Loyiha admini o'chira olmaydi: u kundalik boshqaruv uchun, butun
         loyihani yo'q qilish esa egasining qarori.
+
+        O'chirish YUMSHOQ: yozuv bazada `deleted_at` bilan qoladi, ro'yxatlarda
+        va qidiruvda ko'rinmaydi. Vazifa, fayl, izoh va tarix o'chmaydi -
+        kerak bo'lsa admin panelidan qaytarish mumkin.
         """
         access = ProjectAccess(self.request.user, instance)
         if not (access.is_admin or access.is_manager):
             raise PermissionDenied("Loyihani faqat loyiha menejeri yoki admin ochira oladi.")
         log(actor=self.request.user, verb="project.deleted", workspace=instance.workspace,
-            summary="Loyiha ochirildi: " + instance.name)
-        instance.delete()
+            summary="Loyiha ochirildi: " + instance.name,
+            meta={"project": instance.pk, "key": instance.key})
+        # Yozuv bazadan yo'qolmaydi: vazifalar, fayllar va tarix joyida qoladi.
+        live_project(instance, "deleted", self.request.user)
+        instance.soft_delete(self.request.user)
 
     # ------------------------------------------------------------ brif
     @action(detail=True, methods=["get", "patch", "put"])

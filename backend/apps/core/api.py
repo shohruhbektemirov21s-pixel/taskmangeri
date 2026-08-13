@@ -28,7 +28,8 @@ def dashboard(request):
     mine = Exists(TaskAssignment.objects.filter(
         task=OuterRef("pk"), user=user, is_active=True))
 
-    my_tasks = (Task.objects.filter(mine)
+    # O'chirilgan loyihaning vazifalari panelga ham chiqmaydi.
+    my_tasks = (Task.objects.filter(mine, project__deleted_at__isnull=True)
                 .select_related("project", "created_by")
                 .prefetch_related("assignments__user"))
 
@@ -52,8 +53,10 @@ def dashboard(request):
 
     if user.is_platform_admin:
         managed = Project.objects.select_related("manager").order_by("-updated_at")
-        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW)
-        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING)
+        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
+                                        project__deleted_at__isnull=True)
+        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
+                                             project__deleted_at__isnull=True)
         feed = Activity.objects.timeline()[:20]
     else:
         managed = Project.objects.filter(
@@ -104,7 +107,8 @@ def my_work(request):
     user = request.user
     ctx = {"request": request}
     qs = (Task.objects.filter(Exists(TaskAssignment.objects.filter(
-              task=OuterRef("pk"), user=user, is_active=True)))
+              task=OuterRef("pk"), user=user, is_active=True)),
+              project__deleted_at__isnull=True)
           .select_related("project").prefetch_related("assignments__user"))
 
     project_id = request.query_params.get("project")

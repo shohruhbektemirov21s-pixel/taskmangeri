@@ -242,10 +242,13 @@ export default function Layout() {
 /** Sahifa sarlavhasi */
 export function PageHead({
   title,
+  subtitle,
   actions,
   tabs,
 }: {
   title: React.ReactNode;
+  /** Sarlavha ostidagi qator - masalan loyiha tavsifi */
+  subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   tabs?: React.ReactNode;
 }) {
@@ -256,6 +259,7 @@ export function PageHead({
         <span className="spacer" />
         {actions}
       </div>
+      {subtitle && <div className="page-sub">{subtitle}</div>}
       {tabs && <div className="tabs">{tabs}</div>}
     </div>
   );

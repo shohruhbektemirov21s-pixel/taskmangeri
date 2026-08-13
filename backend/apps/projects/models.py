@@ -43,6 +43,19 @@ class RequestStatus(models.TextChoices):
     CANCELLED = "CANCELLED", "Bekor qilindi"
 
 
+class AliveProjectManager(models.Manager):
+    """Standart menejer: o'chirilgan loyihalarni ko'rsatmaydi.
+
+    Saytdan «o'chirish» bosilganda yozuv bazadan yo'qolmaydi - faqat
+    `deleted_at` belgilanadi. Shu tufayli vazifalar, fayllar va tarix
+    joyida qoladi va kerak bo'lsa loyihani qaytarib bo'ladi
+    (`Project.all_objects` yoki admin panel orqali).
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
 class Project(models.Model):
     workspace = models.ForeignKey("workspaces.Workspace", on_delete=models.CASCADE,
                                   related_name="projects", verbose_name="Ish maydoni")
@@ -75,6 +88,15 @@ class Project(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # O'chirish "yumshoq": yozuv bazada qoladi, ro'yxatlarda ko'rinmaydi.
+    deleted_at = models.DateTimeField("Ochirilgan", null=True, blank=True, db_index=True)
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                   null=True, blank=True, related_name="deleted_projects",
+                                   verbose_name="Kim ochirgan")
+
+    # Tartib muhim: birinchi menejer - standart menejer.
+    objects = AliveProjectManager()
+    all_objects = models.Manager()
 
     class Meta:
         verbose_name = "Loyiha"
@@ -97,6 +119,21 @@ class Project(models.Model):
             self._write_specialties(pending)
             del self._pending_specialties
 
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
+
+    def soft_delete(self, actor=None):
+        """Saytdan o'chirish: ma'lumot bazada qoladi."""
+        self.deleted_at = timezone.now()
+        self.deleted_by = actor if getattr(actor, "pk", None) else None
+        self.save(update_fields=["deleted_at", "deleted_by", "updated_at"])
+
+    def restore(self):
+        self.deleted_at = None
+        self.deleted_by = None
+        self.save(update_fields=["deleted_at", "deleted_by", "updated_at"])
+
     def generate_key(self):
         """Loyiha nomidan qisqa kalit yasaydi: 'Tolov tizimi' -> 'TT', 'Mobil' -> 'MOB'.
 
@@ -116,8 +153,10 @@ class Project(models.Model):
 
         base = "".join(ch for ch in base.upper() if ch.isalnum())[:10] or "PRJ"
 
+        # `all_objects`: o'chirilgan loyihaning kaliti ham band hisoblanadi -
+        # aks holda unique_together (workspace, key) buzilardi.
         taken = set(
-            Project.objects.filter(workspace_id=self.workspace_id)
+            Project.all_objects.filter(workspace_id=self.workspace_id)
             .exclude(pk=self.pk).values_list("key", flat=True)
         )
         if base not in taken:

@@ -146,7 +146,10 @@ class TaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = (Task.objects.select_related("project", "created_by", "reviewer")
-              .prefetch_related("assignments__user", "labels"))
+              .prefetch_related("assignments__user", "labels")
+              # O'chirilgan loyihaning vazifalari hech qayerda ko'rinmaydi
+              # (yozuvlar bazada qoladi).
+              .filter(project__deleted_at__isnull=True))
 
         if not user.is_platform_admin:
             from apps.projects.models import ProjectMember
@@ -583,7 +586,8 @@ class TaskViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="review-queue")
     def review_queue(self, request):
         user = request.user
-        qs = Task.objects.filter(status=TaskStatus.IN_REVIEW)
+        qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
+                                 project__deleted_at__isnull=True)
         if not user.is_platform_admin:
             from apps.projects.models import ProjectMember
             managed = Project.objects.filter(
