@@ -17,7 +17,8 @@ from apps.core.queries import related_count
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
 
-from .models import (JoinRequest, Project, ProjectBrief, ProjectFile, ProjectMember,
+from .models import (JoinRequest, Project, ProjectBrief, ProjectFile,
+                     ProjectFileVersion, ProjectMember,
                      ProjectRole, ProjectSpecialty, RequestStatus)
 from .serializers import (JoinRequestSerializer, ProjectBriefSerializer,
                           ProjectDetailSerializer, ProjectFileSerializer,
@@ -104,11 +105,44 @@ def resolve_workspace(user):
     return ws
 
 
+def _replace_document(current, upload, actor, content_type, note):
+    """Hujjatning joriy nusxasini tarixga kochirib, ornini yangisiga beradi.
+
+    Fayl BAYTLARI kochirilmaydi: yangi `ProjectFileVersion` qatoriga eskisining
+    saqlash yoli beriladi, ya'ni diskda nusxa kopaymaydi va eski havola
+    ishlayveradi. Keyin `ProjectFile` yangi faylga otadi va versiyasi oshadi.
+    """
+    ProjectFileVersion.objects.create(
+        document=current,
+        version=current.version,
+        file=current.file.name,          # bayt emas, yol
+        original_name=current.original_name,
+        size=current.size,
+        content_type=current.content_type,
+        description=current.description,
+        uploaded_by=current.uploaded_by,
+        created_at=current.created_at,
+        replaced_by=actor,
+    )
+    current.file = upload
+    current.version += 1
+    current.size = getattr(upload, "size", 0) or 0
+    current.content_type = content_type
+    if note:
+        current.description = note
+    current.uploaded_by = actor
+    current.save(update_fields=["file", "version", "size", "content_type",
+                                "description", "uploaded_by", "updated_at"])
+    return current
+
+
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     # Loyiha ochish - faqat loyiha menejeri va admin (`CanCreateProject`).
     permission_classes = [permissions.IsAuthenticated, CanCreateProject]
-    search_fields = ["name", "key", "description"]
+    # `search_fields` yo'q: qidiruv `get_queryset` da qo'lda bajariladi, chunki
+    # unga loyiha HUJJATLARINING nomi ham kiradi - buni DRF `SearchFilter` i
+    # `.distinct()` bilan qilardi, Db2 esa CLOB ustunda uni qo'llamaydi.
     ordering_fields = ["created_at", "updated_at", "name", "due_date"]
     # Ochilgan sanasi boyicha, yangisi tepada. `-updated_at` da royxat har
     # tegilganda joyini ozgartirib, odam loyihasini qayerdan qidirishni
@@ -154,6 +188,22 @@ class ProjectViewSet(viewsets.ModelViewSet):
         ws = self.request.query_params.get("workspace")
         if ws:
             qs = qs.filter(workspace__slug=ws) if not ws.isdigit() else qs.filter(workspace_id=ws)
+
+        # Qidiruv: nom, kalit, tavsif va LOYIHA HUJJATLARINING nomi. Odam
+        # ko'pincha loyihani nomidan emas, undagi hujjatdan eslaydi -
+        # "texnik topshiriq qaysi loyihada edi?" degan savolga javob beradi.
+        # Fayl nomi bog'liq jadvalda, shuning uchun yuqoridagi `Exists()`
+        # qoidasi: JOIN qatorlarni takrorlaydi, `.distinct()` esa Db2 da
+        # CLOB (`description`) tufayli SQL0134N bilan yiqiladi.
+        needle = (self.request.query_params.get("search") or "").strip()
+        if needle:
+            qs = qs.filter(
+                Q(name__icontains=needle)
+                | Q(key__icontains=needle)
+                | Q(description__icontains=needle)
+                | Exists(ProjectFile.objects.filter(
+                    project=OuterRef("pk"), original_name__icontains=needle))
+            )
         return qs
 
     def get_serializer_class(self):
@@ -410,6 +460,163 @@ class ProjectViewSet(viewsets.ModelViewSet):
             summary="{} loyihadan chiqdi".format(request.user.full_name), detail=note)
         return Response({"left": True})
 
+    # ------------------------------------------------------------ taqvim
+    @action(detail=False, methods=["get"], url_path="calendar")
+    def calendar(self, request):
+        """Oylik taqvim: qaysi kunda qaysi loyihalar ishda turgan.
+
+        `?month=YYYY-MM` (bo'sh bo'lsa - joriy oy). Loyiha bitta sanada emas,
+        BUTUN DAVRI bo'yicha ko'rinadi: boshlanishdan muddatgacha. Shuning
+        uchun har bir kun uchun "o'sha kuni nechta loyiha ishda edi" degan
+        sanoq ham qaytadi.
+
+        Sana qo'yilmagan hollar:
+          - boshlanish yo'q  -> loyiha ochilgan kun olinadi (u har doim bor);
+          - muddat yo'q      -> loyiha davom etayapti, oy oxirigacha cho'ziladi
+                                (`open_ended` bilan belgilanadi).
+        """
+        from calendar import monthrange
+        from datetime import date, timedelta
+
+        from apps.accounts.serializers import UserBriefSerializer
+
+        raw = (request.query_params.get("month") or "").strip()
+        today = timezone.localdate()
+        try:
+            year, month = (int(x) for x in raw.split("-")[:2]) if raw else (today.year, today.month)
+            first = date(year, month, 1)
+        except (ValueError, TypeError):
+            raise ValidationError({"month": "Format: YYYY-MM"})
+
+        last = date(first.year, first.month, monthrange(first.year, first.month)[1])
+
+        user = request.user
+        qs = Project.objects.filter(deleted_at__isnull=True).select_related("manager")
+        # Ko'rish doirasi tarix sahifasidagi bilan bir xil: admin hammasini,
+        # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi.
+        if not user.is_platform_admin:
+            qs = qs.filter(
+                Q(is_public=True)
+                | Exists(ProjectMember.objects.filter(
+                    project=OuterRef("pk"), user=user, is_active=True))
+            )
+        # Oyga tegmaydiganlarni bazadayoq tashlab yuboramiz. Sanasi bo'sh
+        # bo'lganlar bu yerda saqlanadi - ular pastda aniqlab olinadi.
+        qs = qs.filter(Q(due_date__isnull=True) | Q(due_date__gte=first))
+        qs = qs.filter(Q(start_date__isnull=True) | Q(start_date__lte=last))
+
+        rows, counts = [], {}
+        for project in qs:
+            begin = project.start_date or timezone.localtime(project.created_at).date()
+            finish = project.due_date
+            if begin > last or (finish is not None and finish < first):
+                continue
+
+            visible_from = max(begin, first)
+            visible_to = min(finish or last, last)
+            if visible_to < visible_from:
+                continue
+
+            # Sanoq har kunda emas, faqat loyiha BOSHLANGAN kunda. Uzoq
+            # loyihada har bir katakda "1" turib qolsa, u ma'no bermay
+            # shunchaki shovqin bo'lardi - tasmaning o'zi davomiylikni
+            # ko'rsatib turibdi.
+            if begin >= first:
+                counts[begin] = counts.get(begin, 0) + 1
+
+            rows.append({
+                "id": project.pk,
+                "name": project.name,
+                "key": project.key,
+                "color": project.color,
+                "status": project.status,
+                "status_display": project.get_status_display(),
+                "is_public": project.is_public,
+                "manager_name": project.manager.full_name if project.manager else "",
+                "progress": project.progress(),
+                # Haqiqiy sanalar - tasmani chizish uchun oy chegarasi ham.
+                "start_date": begin,
+                "due_date": finish,
+                "from": visible_from,
+                "to": visible_to,
+                "starts_here": begin >= first,
+                "ends_here": finish is not None and finish <= last,
+                # Muddat qo'yilmagan - tasma ochiq qoladi, "tugadi" demaymiz.
+                "open_ended": finish is None,
+                "overdue": bool(finish and finish < today
+                                and project.status not in ("DONE", "ARCHIVED")),
+                # Boshlanish sanasi kiritilmagan bo'lsa buni yashirmaymiz.
+                "start_assumed": project.start_date is None,
+            })
+
+        rows.sort(key=lambda r: (r["from"], r["due_date"] or last, r["name"]))
+
+        # ---- Vazifalar: kimga qanday ish berilgani ham shu taqvimda ko'rinsin.
+        # Loyihalardan farqi: muddat qo'yilmagan vazifa taqvimda umuman
+        # turmaydi - qo'yadigan joyi yo'q va oy oxirigacha cho'zish yolg'on
+        # bo'lardi. Bekor qilingan ish ham chiqmaydi.
+        def as_date(value):
+            if value is None:
+                return None
+            return timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
+
+        visible_ids = [r["id"] for r in rows] or [p.pk for p in qs]
+        task_rows = []
+        tasks = (Task.objects
+                 .filter(project_id__in=visible_ids)
+                 .exclude(status=TaskStatus.CANCELLED)
+                 .filter(Q(start_date__isnull=False) | Q(due_date__isnull=False))
+                 .select_related("project")
+                 .prefetch_related("assignments__user"))
+        for task in tasks:
+            begin = as_date(task.start_date) or as_date(task.due_date)
+            finish = as_date(task.due_date) or as_date(task.start_date)
+            if begin is None or begin > last or finish < first:
+                continue
+            if finish < begin:
+                begin, finish = finish, begin
+
+            people = [a.user for a in task.assignments.all() if a.is_active and a.user]
+            task_rows.append({
+                "id": task.pk,
+                "code": task.code,
+                "title": task.title,
+                "status": task.status,
+                "status_display": task.get_status_display(),
+                "priority": task.priority,
+                "project": {"id": task.project_id, "name": task.project.name,
+                            "key": task.project.key, "color": task.project.color},
+                "assignees": UserBriefSerializer(people, many=True,
+                                                 context={"request": request}).data,
+                "start_date": as_date(task.start_date),
+                "due_date": as_date(task.due_date),
+                "from": max(begin, first),
+                "to": min(finish, last),
+                "starts_here": begin >= first,
+                "ends_here": finish <= last,
+                "done": task.status == TaskStatus.DONE,
+                "overdue": bool(task.due_date and as_date(task.due_date) < today
+                                and task.status != TaskStatus.DONE),
+            })
+        task_rows.sort(key=lambda r: (r["from"], r["to"], r["code"]))
+
+        # `count` - o'sha kuni nechta loyiha BOSHLANGANI.
+        days = [{"date": first + timedelta(days=i),
+                 "count": counts.get(first + timedelta(days=i), 0)}
+                for i in range((last - first).days + 1)]
+
+        return Response({
+            "month": first.strftime("%Y-%m"),
+            "first_day": first,
+            "last_day": last,
+            "today": today,
+            "projects": rows,
+            "tasks": task_rows,
+            "days": days,
+            "total": len(rows),
+            "task_total": len(task_rows),
+        })
+
     # ------------------------------------------------------------ loyiha fayllari
     @action(detail=True, methods=["get", "post"], url_path="files",
             parser_classes=[MultiPartParser, FormParser, JSONParser])
@@ -425,7 +632,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
             # ochiq loyihada tizimdagi hamma koradi, yopiqda faqat jamoa.
             # YOZISH (yuklash va ochirish) pastda - u jamoa ichida qoladi.
             check_access(request.user, project, "view")
-            qs = project.files.select_related("uploaded_by")
+            qs = (project.files.select_related("uploaded_by")
+                  .prefetch_related("versions__uploaded_by", "versions__replaced_by"))
             return Response(ProjectFileSerializer(qs, many=True,
                                                   context={"request": request}).data)
 
@@ -434,22 +642,39 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if not uploads:
             raise ValidationError({"file": "Fayl tanlanmagan."})
 
-        created = []
+        note = request.data.get("description", "")
+        created, updated = [], []
         for f in uploads:
-            ser = ProjectFileSerializer(
-                data={"file": f, "description": request.data.get("description", "")},
-                context={"request": request})
+            ser = ProjectFileSerializer(data={"file": f, "description": note},
+                                        context={"request": request})
             ser.is_valid(raise_exception=True)
-            created.append(ser.save(project=project, uploaded_by=request.user,
-                                    content_type=(getattr(f, "content_type", "") or "")[:120]))
+            ctype = (getattr(f, "content_type", "") or "")[:120]
+            name = (getattr(f, "name", "") or "").rsplit("/", 1)[-1][:255]
 
-        log(actor=request.user, verb="project.file", project=project, target=project,
-            summary="{} ta fayl yuklandi".format(len(created)),
-            detail=", ".join(x.original_name for x in created),
-            meta={"files": [{"name": x.original_name, "size": x.size} for x in created]})
+            # Ayni nomli hujjat bor bolsa - bu YANGI NUSXA, yangi qator emas.
+            # Eskisi tarixda qoladi va ochilaveradi (`ProjectFileVersion`).
+            current = project.files.filter(original_name=name).first()
+            if current is None:
+                created.append(ser.save(project=project, uploaded_by=request.user,
+                                        content_type=ctype))
+                continue
 
-        live_project(project, "file", request.user, count=len(created))
-        return Response(ProjectFileSerializer(created, many=True,
+            updated.append(_replace_document(current, f, request.user, ctype, note))
+
+        touched = created + updated
+        if created:
+            log(actor=request.user, verb="project.file", project=project, target=project,
+                summary="{} ta hujjat yuklandi".format(len(created)),
+                detail=", ".join(x.original_name for x in created),
+                meta={"files": [{"name": x.original_name, "size": x.size} for x in created]})
+        for doc in updated:
+            log(actor=request.user, verb="project.file", project=project, target=project,
+                summary="Hujjat yangilandi: {} (v{})".format(doc.original_name, doc.version),
+                detail="Eski nusxa tarixda qoldi - v{}".format(doc.version - 1),
+                meta={"file": doc.original_name, "version": doc.version})
+
+        live_project(project, "file", request.user, count=len(touched))
+        return Response(ProjectFileSerializer(touched, many=True,
                                               context={"request": request}).data, status=201)
 
     @action(detail=True, methods=["delete"], url_path="files/(?P<file_id>[^/.]+)")
@@ -468,6 +693,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "Hujjatni faqat loyiha menejeri, loyiha admini yoki tizim admini ochira oladi.")
 
         name = item.original_name
+        # Eski nusxalarning fayllari ham diskda qolib ketmasin.
+        for old in item.versions.all():
+            old.file.delete(save=False)
         item.file.delete(save=False)
         item.delete()
         log(actor=request.user, verb="project.file_deleted", project=project, target=project,

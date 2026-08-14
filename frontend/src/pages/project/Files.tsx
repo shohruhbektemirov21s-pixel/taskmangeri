@@ -11,6 +11,10 @@
  * — menejer, loyiha admini yoki tizim admini. Yuklagan odamning o'zi ham
  * o'chira olmaydi: hujjatga butun jamoaning ishi tayanadi
  * (serverda ham xuddi shunday tekshiriladi).
+ *
+ * TAHRIR TARIXI: ayni nomli hujjat qayta yuklansa yangi qator emas, shu
+ * hujjatning yangi nusxasi bo'ladi. Eskisi yo'qolmaydi — «v2» yorlig'i
+ * ostidan ochib ko'rish mumkin: kim yuklagan, kim almashtirgan, qachon.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api, tokens } from "@/api/client";
@@ -115,24 +119,61 @@ export default function Files({ project }: { project: Project }) {
         ) : (
           <div className="card-list">
             {items.map((f) => (
-              <div className="card-body tight row wrap" key={f.id}>
-                {f.is_image && f.url
-                  ? <img src={f.url} alt={f.original_name} className="file-thumb" />
-                  : <span className="file-ico"><IconFile size={16} /></span>}
-                <div style={{ minWidth: 0 }}>
-                  <a href={f.url || "#"} target="_blank" rel="noreferrer">{f.original_name}</a>
-                  <br />
-                  <small className="muted">
-                    {f.size_display} · {f.uploaded_by?.full_name} · {timeAgo(f.created_at)}
-                    {f.description && ` · ${f.description}`}
-                  </small>
+              <div className="card-body tight" key={f.id}>
+                <div className="row wrap">
+                  {f.is_image && f.url
+                    ? <img src={f.url} alt={f.original_name} className="file-thumb" />
+                    : <span className="file-ico"><IconFile size={16} /></span>}
+                  <div style={{ minWidth: 0 }}>
+                    <a href={f.url || "#"} target="_blank" rel="noreferrer">{f.original_name}</a>
+                    {f.version > 1 && (
+                      <>
+                        {" "}
+                        <span className="badge mono" title="Nechanchi nusxa">v{f.version}</span>
+                      </>
+                    )}
+                    <br />
+                    <small className="muted">
+                      {f.size_display} · {f.uploaded_by?.full_name} ·{" "}
+                      {f.version > 1 ? `yangilandi ${timeAgo(f.updated_at)}` : timeAgo(f.created_at)}
+                      {f.description && ` · ${f.description}`}
+                    </small>
+                  </div>
+                  <span className="spacer" />
+                  <Avatar user={f.uploaded_by} size="sm" />
+                  {acc.can_manage && (
+                    <button className="btn btn-sm btn-danger" onClick={() => void remove(f)}>
+                      O'chirish
+                    </button>
+                  )}
                 </div>
-                <span className="spacer" />
-                <Avatar user={f.uploaded_by} size="sm" />
-                {acc.can_manage && (
-                  <button className="btn btn-sm btn-danger" onClick={() => void remove(f)}>
-                    O'chirish
-                  </button>
+
+                {/* Eski nusxalar — yig'ib qo'yiladi, kerak bo'lganda ochiladi.
+                    Har biri o'z havolasi bilan: eski variant ham yuklab olinadi. */}
+                {!!f.versions.length && (
+                  <details className="file-history">
+                    <summary>
+                      Tahrir tarixi — {f.versions.length} ta eski nusxa
+                    </summary>
+                    <div className="stack" style={{ marginTop: 8 }}>
+                      {f.versions.map((v) => (
+                        <div className="row wrap" key={v.id} style={{ gap: 8 }}>
+                          <span className="badge mono">v{v.version}</span>
+                          <a href={v.url || "#"} target="_blank" rel="noreferrer">
+                            {v.original_name}
+                          </a>
+                          <small className="muted">
+                            {v.size_display} · {v.uploaded_by?.full_name || "—"} yuklagan
+                            {v.description && ` · ${v.description}`}
+                          </small>
+                          <span className="spacer" />
+                          <small className="muted nowrap">
+                            {v.replaced_by?.full_name || "—"} almashtirgan · {timeAgo(v.replaced_at)}
+                          </small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 )}
               </div>
             ))}

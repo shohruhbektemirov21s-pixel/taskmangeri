@@ -1,22 +1,23 @@
 import { Link } from "react-router-dom";
 import type { Activity } from "@/api/types";
-import { Avatar, timeAgo } from "./ui";
+import { Avatar, fmtDateTime, timeAgo } from "./ui";
 
-export default function Timeline({ items, showProject = true }: { items: Activity[]; showProject?: boolean }) {
+/**
+ * Tarix lentasi.
+ *
+ * `compact` — panel uchun siqilgan ko'rinish: har yozuv bitta qatorda,
+ * tafsilotsiz. Bosh sahifada tarix asosiy narsa emas, u yerda "nima
+ * bo'layotgani" ko'rinib tursa yetadi; to'lig'i «Umumiy tarix» da.
+ */
+export default function Timeline({
+  items, showProject = true, compact = false,
+}: { items: Activity[]; showProject?: boolean; compact?: boolean }) {
   if (!items.length) return <p className="muted center">Hozircha yozuv yoq.</p>;
   return (
-    <div className="timeline">
-      {items.map((a) => (
-        <div key={a.id} className={`tl-item cat-${a.category}`}>
-          <div className="tl-head">
-            {a.actor && <Avatar user={a.actor} size="sm" />}
-            <span className="tl-sum">{a.summary}</span>
-            <span className="spacer" />
-            <span className="tl-time" title={new Date(a.created_at).toLocaleString("uz-UZ")}>
-              {timeAgo(a.created_at)}
-            </span>
-          </div>
-          <small className="muted">
+    <div className={`timeline ${compact ? "compact" : ""}`}>
+      {items.map((a) => {
+        const meta = (
+          <>
             {showProject && a.project && (
               <Link to={`/loyiha/${a.project}`}>{a.project_name}</Link>
             )}
@@ -26,10 +27,25 @@ export default function Timeline({ items, showProject = true }: { items: Activit
                 <Link className="mono" to={`/vazifa/${a.task}`}>{a.task_code}</Link>
               </>
             )}
-          </small>
-          {a.detail && <div className="tl-detail">{a.detail}</div>}
-        </div>
-      ))}
+          </>
+        );
+        return (
+          <div key={a.id} className={`tl-item cat-${a.category}`}>
+            <div className="tl-head">
+              {a.actor && <Avatar user={a.actor} size="sm" />}
+              <span className="tl-sum">{a.summary}</span>
+              {/* Siqilgan ko'rinishda loyiha/vazifa alohida qatorga tushmaydi */}
+              {compact && <small className="muted tl-meta">{meta}</small>}
+              <span className="spacer" />
+              <span className="tl-time" title={fmtDateTime(a.created_at)}>
+                {timeAgo(a.created_at)}
+              </span>
+            </div>
+            {!compact && <small className="muted">{meta}</small>}
+            {!compact && a.detail && <div className="tl-detail">{a.detail}</div>}
+          </div>
+        );
+      })}
     </div>
   );
 }

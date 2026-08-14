@@ -376,6 +376,8 @@ export interface MetaData {
   project_status: Choice[];
   workspace_role: Choice[];
   global_role: Choice[];
+  /** Tarix filtri turkumlari - backenddagi `VERB_META` dan */
+  activity_category: Choice[];
 }
 
 export interface Choice {
@@ -390,7 +392,8 @@ export interface Choice {
 export type NotificationKind =
   | "task.assigned" | "task.review" | "task.decided" | "task.comment"
   | "chat.message" | "chat.direct"
-  | "join.request";
+  | "join.request"
+  | "project.deadline";
 
 export interface AppNotification {
   id: number;
@@ -403,6 +406,61 @@ export interface AppNotification {
   is_read: boolean;
   actor: UserBrief | null;
   created_at: string;
+}
+
+/* ------------------------------------------------ Taqvim */
+
+/** Taqvimdagi bitta tasma: loyiha yoki vazifa. `from`/`to` - oy ichidagi
+    ko'rinadigan qismi, `start_date`/`due_date` - haqiqiy sanalari. */
+interface CalendarSpan {
+  from: string;
+  to: string;
+  start_date: string | null;
+  due_date: string | null;
+  starts_here: boolean;
+  ends_here: boolean;
+  overdue: boolean;
+}
+
+export interface CalendarProject extends CalendarSpan {
+  id: number;
+  name: string;
+  key: string;
+  color: string;
+  status: string;
+  status_display: string;
+  is_public: boolean;
+  manager_name: string;
+  progress: number;
+  /** Muddat qo'yilmagan - tasma ochiq qoladi */
+  open_ended: boolean;
+  /** Boshlanish sanasi kiritilmagan, ochilgan kuni olingan */
+  start_assumed: boolean;
+}
+
+export interface CalendarTask extends CalendarSpan {
+  id: number;
+  code: string;
+  title: string;
+  status: string;
+  status_display: string;
+  priority: number;
+  project: { id: number; name: string; key: string; color: string };
+  assignees: UserBrief[];
+  done: boolean;
+}
+
+/** `GET /api/projects/calendar/?month=YYYY-MM` javobi */
+export interface CalendarMonth {
+  month: string;
+  first_day: string;
+  last_day: string;
+  today: string;
+  projects: CalendarProject[];
+  tasks: CalendarTask[];
+  days: { date: string; count: number }[];
+  total: number;
+  task_total: number;
 }
 
 /** Ochiq (autentifikatsiyasiz) API dan keladigan loyiha - faqat xavfsiz maydonlar */
@@ -426,6 +484,23 @@ export interface PublicProject {
   team_composition?: { value: string; label: string; count: number }[];
 }
 
+/** Hujjatning eski nusxasi - almashtirilganda saqlanib qoladi */
+export interface ProjectFileVersion {
+  id: number;
+  version: number;
+  url: string | null;
+  original_name: string;
+  size: number;
+  size_display: string;
+  content_type: string;
+  description: string;
+  is_image: boolean;
+  uploaded_by: UserBrief | null;
+  created_at: string;
+  replaced_by: UserBrief | null;
+  replaced_at: string;
+}
+
 export interface ProjectFile {
   id: number;
   file: string;
@@ -438,7 +513,12 @@ export interface ProjectFile {
   extension: string;
   is_image: boolean;
   uploaded_by: UserBrief | null;
+  /** Nechanchi nusxa: 1 - hech qachon almashtirilmagan */
+  version: number;
+  /** Eski nusxalar, yangisi tepada */
+  versions: ProjectFileVersion[];
   created_at: string;
+  updated_at: string;
 }
 
 export interface SubmissionEdit {

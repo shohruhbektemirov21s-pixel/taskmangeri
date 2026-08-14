@@ -7,7 +7,7 @@ import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
 import {
   IconBell, IconBoard, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout,
-  IconMenu, IconPlus, IconReview, IconSearch, IconTasks,
+  IconCalendar, IconMenu, IconPlus, IconReview, IconSearch, IconTasks,
 } from "./icons";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
@@ -182,21 +182,16 @@ export default function Layout() {
         <aside className={`sidebar ${menu ? "open" : ""}`}>
           <div className="nav-section">
             {item("/panel", <IconDashboard />, "Bosh panel")}
+            {/* Loyihalar birma-bir sanalmaydi - hammasi shu sahifada, qidiruv
+                bilan. Jamoa kattalashganda yon panel uzayib ketmasin. Ochiq
+                loyihalar ham o'sha yerdagi «Ochiq» tugmasida. */}
+            {item("/loyihalar", <IconBoard />, "Loyihalar")}
             {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}
             {item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
             {item("/xabarlar", <IconChat />, "Xabarlar")}
             {item("/bildirishnomalar", <IconBell />, "Bildirishnomalar")}
+            {item("/taqvim", <IconCalendar />, "Taqvim")}
             {item("/tarix", <IconHistory />, "Umumiy tarix")}
-          </div>
-
-          <div className="nav-section">
-            {/* «Yangi» havolasi bu yerdan olib tashlandi: loyiha yaratish
-                «Barchasi» sahifasining o'z tugmasida turibdi. */}
-            {/* Loyihalar birma-bir sanalmaydi - hammasi «Barchasi» ichida.
-                Jamoa kattalashganda yon panel uzayib ketmasin. */}
-            <div className="nav-title">Loyihalar</div>
-            {item("/loyihalar", <IconBoard />, "Barchasi")}
-            {item("/qoshilish", <IconSearch />, "Loyihaga qoshilish")}
           </div>
 
           <div className="sidebar-footer">

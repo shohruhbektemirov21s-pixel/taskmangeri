@@ -57,6 +57,8 @@
   --accent-soft: rgba(95, 131, 232, .15);
   --success: #4fa86f;
   --success-soft: rgba(79, 168, 111, .14);
+  /* Taqvimda bugungi kun - ko'zga tashlansin, lekin qichqirmasin */
+  --cal-today: rgba(79, 168, 111, .12);
   --done: #8f86d8;
   --done-soft: rgba(143, 134, 216, .15);
   --attention: #cfa04b;
@@ -112,6 +114,7 @@
   --accent-soft: rgba(59, 96, 208, .1);
   --success: #2f8353;
   --success-soft: rgba(47, 131, 83, .12);
+  --cal-today: rgba(47, 131, 83, .10);
   --done: #6b5fcf;
   --done-soft: rgba(107, 95, 207, .12);
   --attention: #8f6910;
@@ -621,6 +624,10 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .stat.ok .v { color: var(--success); }
 .stat.warn .v { color: var(--attention); }
 .stat.done .v { color: var(--done); }
+/* Bosiladigan ko'rsatkich: havola bo'lsa ham matn rangi o'zgarmasin,
+   lekin sichqoncha va chekka rangi "bosilaman" deb tursin. */
+.stat.clickable { display: block; text-decoration: none; color: inherit; cursor: pointer; }
+.stat.clickable:hover { border-color: var(--accent); }
 
 .progress {
   height: 9px; background: var(--surface-3); border-radius: 20px;
@@ -773,6 +780,171 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .list-plain { list-style: none; margin: 0; padding: 0; }
 .list-plain li { padding: 11px 0; border-bottom: 1px solid var(--border-muted); }
 .list-plain li:last-child { border-bottom: none; }
+
+/* Siqilgan lenta (panel uchun): har yozuv bitta qatorda, tafsilotsiz.
+   To'liq ko'rinishda oraliq 20px edi - o'nta yozuv butun ekranni egallardi. */
+/* Gorizontal joylashuv o'zgarmaydi - nuqtalar chiziqdan siljib ketmasin.
+   Faqat nuqta kichrayadi, markazi joyida qolsin uchun `left` 2px suriladi. */
+.timeline.compact .tl-item { padding: 0 0 9px 6px; }
+.timeline.compact .tl-item:last-child { padding-bottom: 0; }
+.timeline.compact .tl-head { flex-wrap: nowrap; gap: 6px; }
+.timeline.compact .tl-sum {
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.timeline.compact .tl-meta { white-space: nowrap; flex: 0 0 auto; }
+.timeline.compact .tl-time { font-size: 11px; flex: 0 0 auto; }
+/* Nuqtalar ham kichrayadi - qator pastligiga mos tushsin */
+.timeline.compact .tl-item::before { width: 8px; height: 8px; top: 6px; left: -20px; }
+
+@media (max-width: 620px) {
+  /* Tor ekranda loyiha/vazifa nomi sarlavhani siqib qo'ymasin */
+  .timeline.compact .tl-meta { display: none; }
+}
+
+/* Panelning "hamma bo'limlar" to'plami: har biri bitta jumla bilan
+   tushuntirilgan katak - birinchi marta kirgan odam qayerga bosishni bilsin */
+.tiles {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.tile {
+  display: flex; gap: 11px; align-items: flex-start;
+  padding: 12px 13px; border: 1px solid var(--border-muted); border-radius: 10px;
+  background: var(--surface-2); color: var(--text); text-decoration: none;
+  transition: border-color .14s, background .14s, transform .14s;
+}
+.tile:hover {
+  border-color: var(--accent); background: var(--surface-3, var(--surface-2));
+  transform: translateY(-1px);
+}
+.tile strong { font-size: 13.5px; }
+.tile small { line-height: 1.4; display: block; margin-top: 2px; }
+.tile-ico {
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- Taqvim
+   Klassik oy setkasi: kataklar bir-biriga tegib turadi (oraliq yo'q),
+   chegara bitta piksel. Kun raqami o'ng yuqorida, tasmalar esa hafta
+   bo'ylab cho'ziladi - shuning uchun har hafta alohida setka:
+   1-qator kun raqamlari, qolganlari tasma qatorlari. Katak foni
+   (`.cal-col`) butun hafta balandligiga cho'ziladi va DOM da birinchi
+   turadi, ya'ni tasmalar uning ustiga tushadi. */
+.cal-bar-top {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.cal-bar-top h3 { margin: 0; font-size: 17px; }
+
+.cal-check {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted); cursor: pointer; user-select: none;
+}
+.cal-check input { width: 15px; height: 15px; margin: 0; cursor: pointer; }
+.cal-check:hover { color: var(--text); }
+
+.cal-nav { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.cal-nav button {
+  background: transparent; border: 0; color: var(--text); cursor: pointer;
+  padding: 5px 12px; font-size: 14px; line-height: 1.4;
+  border-left: 1px solid var(--border);
+}
+.cal-nav button:first-child { border-left: 0; }
+.cal-nav button:hover { background: var(--surface-2); }
+
+.cal { padding: 0; }
+.cal-head {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border);
+}
+.cal-head > div { text-align: center; padding: 9px 4px; }
+
+/* Kataklar orasida oraliq yo'q - chegaralar qo'shilib bitta to'r hosil qiladi */
+.cal-week {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  align-content: start;
+}
+.cal-col {
+  grid-row: 1 / -1; min-height: 104px;
+  border-right: 1px solid var(--border-muted);
+  border-bottom: 1px solid var(--border-muted);
+  cursor: pointer; transition: background .12s;
+}
+.cal-col:nth-child(7n) { border-right: 0; }
+/* Oxirgi hafta - pastki chegara kartanikiga qo'shilib ikki bo'lib qolmasin */
+.cal-week:last-child .cal-col { border-bottom: 0; }
+.cal-col:hover { background: var(--surface-2); }
+/* Oydan tashqaridagi kunlar ko'rinadi, lekin so'nik va bosilmaydi */
+.cal-col.out { background: transparent; cursor: default; }
+.cal-col.out:hover { background: transparent; }
+.cal-col.today { background: var(--cal-today); }
+.cal-col.picked { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--accent); }
+
+.cal-daynum {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px 4px; font-size: 13px; color: var(--muted);
+  pointer-events: none;
+}
+.cal-daynum.out { opacity: .38; }
+.cal-daynum.today .cal-d { color: var(--success); font-size: 16px; font-weight: 600; }
+/* Loyiha shu kuni boshlangan bo'lsa - chap chetdagi kichik nishon */
+.cal-count {
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.cal-bar {
+  margin: 0 3px 2px; padding: 1px 7px; border-radius: 4px; font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-decoration: none; line-height: 18px;
+  background: color-mix(in srgb, var(--bar) 26%, transparent);
+  border-left: 3px solid var(--bar);
+  color: var(--text);
+}
+.cal-bar:hover { background: color-mix(in srgb, var(--bar) 42%, transparent); }
+/* Vazifa loyihadan yupqaroq va so'nikroq - ikkovi aralashib ketmasin */
+.cal-bar.task {
+  background: transparent; border-left-width: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--bar) 45%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--bar) 45%, transparent);
+  color: var(--muted);
+}
+.cal-bar.task:hover { background: color-mix(in srgb, var(--bar) 18%, transparent); }
+.cal-bar.done { opacity: .5; text-decoration: line-through; }
+.cal-bar.overdue { border-left-color: var(--danger); }
+/* Oy yoki hafta chetida qirqilgan tasma - burchagi to'g'ri qoladi */
+.cal-bar:not(.starts) { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; }
+.cal-bar:not(.ends) { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
+.cal-who { opacity: .75; }
+
+@media (max-width: 760px) {
+  .cal-bar { font-size: 10px; padding: 1px 4px; }
+  .cal-who { display: none; }
+  .cal-col { min-height: 84px; }
+}
+@media (max-width: 700px) {
+  /* Telefonda 7 ustunni siqib tashlasak tasmalar o'qilmaydigan chiziqqa
+     aylanadi. Shuning uchun siqmaymiz - taqvim yonga suriladi, kun kengligi
+     esa o'qilarli qoladi (ilovadagi `.table-wrap` bilan bir xil yondashuv). */
+  .cal { overflow-x: auto; }
+  .cal-head, .cal-week { min-width: 620px; }
+  .cal-head > div { font-size: 11px; }
+}
+
+/* Hujjatning tahrir tarixi: yig'ilgan holda turadi, kerak bo'lganda ochiladi */
+.file-history { margin: 8px 0 0 46px; font-size: 13px; }
+.file-history > summary {
+  cursor: pointer; color: var(--muted); list-style: none;
+  padding: 3px 0; user-select: none;
+}
+.file-history > summary::-webkit-details-marker { display: none; }
+.file-history > summary::before { content: "B8 "; }
+.file-history[open] > summary::before { content: "BE "; }
+.file-history > summary:hover { color: var(--text); }
 
 .repo-item { padding: 17px; border-bottom: 1px solid var(--border-muted); transition: background .15s; }
 .repo-item:hover { background: var(--surface-2); }

@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserBriefSerializer
 
-from .models import (JoinRequest, Project, ProjectBrief, ProjectFile, ProjectMember,
+from .models import (JoinRequest, Project, ProjectBrief, ProjectFile,
+                     ProjectFileVersion, ProjectMember,
                      ProjectRole)
 
 
@@ -162,20 +163,46 @@ class ProjectDetailSerializer(ProjectSerializer):
         return obj.join_requests.filter(status=RequestStatus.PENDING).count()
 
 
+class ProjectFileVersionSerializer(serializers.ModelSerializer):
+    """Hujjatning eski nusxasi - o'qish uchun, o'zgartirilmaydi."""
+
+    uploaded_by = UserBriefSerializer(read_only=True)
+    replaced_by = UserBriefSerializer(read_only=True)
+    size_display = serializers.CharField(read_only=True)
+    is_image = serializers.BooleanField(read_only=True)
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectFileVersion
+        fields = ["id", "version", "url", "original_name", "size", "size_display",
+                  "content_type", "description", "is_image", "uploaded_by",
+                  "created_at", "replaced_by", "replaced_at"]
+
+    def get_url(self, obj):
+        from apps.core.media import media_url
+
+        return media_url(obj.file)
+
+
 class ProjectFileSerializer(serializers.ModelSerializer):
-    """Loyihaga biriktirilgan fayl."""
+    """Loyihaga biriktirilgan fayl (joriy nusxasi)."""
 
     uploaded_by = UserBriefSerializer(read_only=True)
     size_display = serializers.CharField(read_only=True)
     extension = serializers.CharField(read_only=True)
     is_image = serializers.BooleanField(read_only=True)
     url = serializers.SerializerMethodField()
+    # Eski nusxalar: yangisi tepada. Ro'yxat bo'sh bo'lsa hujjat hech qachon
+    # almashtirilmagan degani.
+    versions = ProjectFileVersionSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProjectFile
         fields = ["id", "file", "url", "original_name", "size", "size_display", "content_type",
-                  "description", "extension", "is_image", "uploaded_by", "created_at"]
-        read_only_fields = ["original_name", "size", "content_type", "uploaded_by", "created_at"]
+                  "description", "extension", "is_image", "uploaded_by", "version",
+                  "versions", "created_at", "updated_at"]
+        read_only_fields = ["original_name", "size", "content_type", "uploaded_by",
+                            "version", "created_at", "updated_at"]
 
     def get_url(self, obj):
         # Nisbiy manzil: proksi Host ni almashtirsa ham brauzer ocha oladi.

@@ -52,6 +52,28 @@ class ActivityQuerySet(models.QuerySet):
         return self.select_related("actor", "project", "task", "workspace").order_by("-created_at")
 
 
+# Tarix filtri uchun turkumlar. Nomlar `VERB_META` dan olinadi - ro'yxat
+# ikki joyda ikki xil bo'lib qolmasin: yangi harakat qo'shilsa filtrda ham
+# o'zi paydo bo'ladi.
+CATEGORY_LABELS = {
+    "task": "Vazifalar",
+    "review": "Tekshiruvlar",
+    "member": "Jamoa",
+    "project": "Loyiha",
+    "workspace": "Ish maydoni",
+    "user": "Foydalanuvchi",
+    "other": "Boshqa",
+}
+
+
+def category_choices():
+    """Haqiqatan ishlatilayotgan turkumlar, barqaror tartibda."""
+    order = list(CATEGORY_LABELS)
+    used = {cat for _, cat in VERB_META.values()}
+    return [{"value": c, "label": CATEGORY_LABELS.get(c, c)}
+            for c in order if c in used]
+
+
 class Activity(models.Model):
     """Ozgarmas tarix yozuvi. Hech qachon tahrirlanmaydi - loyiha xotirasi shu."""
 

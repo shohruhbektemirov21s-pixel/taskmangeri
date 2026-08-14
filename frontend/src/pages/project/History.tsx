@@ -1,19 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
+import { useAuth } from "@/auth/AuthContext";
 import type { Activity, Project, ProjectMember } from "@/api/types";
 import Timeline from "@/components/Timeline";
 import { Avatar, Card, Loading } from "@/components/ui";
 
-const CATEGORIES = [
-  { value: "", label: "Hammasi" },
-  { value: "task", label: "Vazifalar" },
-  { value: "review", label: "Tekshiruvlar" },
-  { value: "member", label: "Jamoa" },
-  { value: "project", label: "Loyiha" },
-];
-
 export default function History({ project }: { project: Project }) {
+  // Turkumlar backenddan - ro'yxat ikki joyda ikki xil bo'lib qolmasin.
+  const { meta } = useAuth();
   const [items, setItems] = useState<Activity[] | null>(null);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -48,7 +43,10 @@ export default function History({ project }: { project: Project }) {
           <div className="f">
             <label>Turkum</label>
             <select value={f.category} onChange={(e) => set("category", e.target.value)}>
-              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              <option value="">Hammasi</option>
+              {(meta?.activity_category || []).map((c) => (
+                <option key={String(c.value)} value={String(c.value)}>{c.label}</option>
+              ))}
             </select>
           </div>
           <div className="f">

@@ -23,6 +23,8 @@ class NotificationKind(models.TextChoices):
     CHAT_DIRECT = "chat.direct", "Shaxsiy xabar"
     # Qo'shilish so'rovi - javobsiz qolmasin (so'rov ham, javobi ham)
     JOIN_REQUEST = "join.request", "Qo'shilish so'rovi"
+    # Loyiha muddati yaqinlashdi - 1 hafta va 3 kun qolganda
+    PROJECT_DEADLINE = "project.deadline", "Loyiha muddati yaqin"
 
 
 class Notification(models.Model):

@@ -9,7 +9,7 @@ import Timeline from "@/components/Timeline";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import {
   Avatar, AvatarStack, Card, ErrorMsg, Loading, Priority, StatusBadge,
-  fmtDate, fmtDateTime, fromDateTimeInput, timeAgo, toDateTimeInput,
+  fmtDate, fmtDateTime, fromDateTimeInput, timeAgo, toDateTimeInput, todayInTz,
 } from "@/components/ui";
 
 const FILE_ICON: Record<string, string> = {
@@ -30,7 +30,7 @@ export default function TaskDetail() {
   const [busy, setBusy] = useState(false);
 
   const [comment, setComment] = useState("");
-  const [log, setLog] = useState({ hours: "1", note: "", work_date: new Date().toISOString().slice(0, 10) });
+  const [log, setLog] = useState({ hours: "1", note: "", work_date: todayInTz() });
   const [review, setReview] = useState({ verdict: "APPROVED", comment: "" });
   const [blockReason, setBlockReason] = useState("");
   const [editDue, setEditDue] = useState(false);

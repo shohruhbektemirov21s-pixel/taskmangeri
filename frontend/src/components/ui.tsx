@@ -198,12 +198,26 @@ export function Card({
   );
 }
 
-export function Stat({ value, label, tone = "" }: { value: ReactNode; label: string; tone?: string }) {
-  return (
-    <div className={`stat ${tone}`}>
+/**
+ * Raqamli ko'rsatkich.
+ *
+ * `to` berilsa karta bosiladigan bo'ladi: raqamni ko'rgan odam "buni qayerdan
+ * ko'raman?" deb qidirib o'tirmaydi, ustiga bosaveradi.
+ */
+export function Stat({ value, label, tone = "", to, title }: {
+  value: ReactNode; label: string; tone?: string; to?: string; title?: string;
+}) {
+  const body = (
+    <>
       <div className="v">{value}</div>
       <div className="k">{label}</div>
-    </div>
+    </>
+  );
+  if (!to) return <div className={`stat ${tone}`}>{body}</div>;
+  return (
+    <Link className={`stat ${tone} clickable`} to={to} title={title || label}>
+      {body}
+    </Link>
   );
 }
 
@@ -350,37 +364,86 @@ export function TaskRow({ task, showProject = false }: { task: Task; showProject
 }
 
 /* ---------------------------------------------------------------- Sana yordamchilari */
+/**
+ * Sayt vaqti — TOSHKENT.
+ *
+ * Brauzer mintaqasiga tayanib bo'lmaydi: chet eldan kirgan odamga muddat
+ * boshqa soatda ko'rinsa, jamoa bir-birini tushunmay qoladi. Server ham
+ * `TIME_ZONE=Asia/Tashkent` da ishlaydi, shuning uchun ikkovi bir xil
+ * gapiradi. Sana ko'rsatish ham, maydonga qo'yish ham shu mintaqada.
+ */
+export const TZ = "Asia/Tashkent";
+
+/** Bir lahzada Toshkent siljishi (daqiqada). Intl orqali — qo'lda +5 yozilsa,
+    mintaqa qoidasi o'zgargan kuni jim ravishda noto'g'ri bo'lib qolardi. */
+function tzOffsetMinutes(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(date);
+  const p: Record<string, string> = {};
+  for (const { type, value } of parts) p[type] = value;
+  const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second);
+  return (asUTC - (date.getTime() - date.getMilliseconds())) / 60000;
+}
+
 export function fmtDate(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
-  return d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric" });
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("uz-UZ", {
+    timeZone: TZ, day: "2-digit", month: "2-digit", year: "numeric",
+  });
+}
+
+/** Toshkent bo'yicha bugungi sana: "2026-08-14". */
+export function todayInTz() {
+  return toDateTimeInput(new Date().toISOString()).slice(0, 10);
 }
 
 /**
- * ISO vaqtni `<input type="datetime-local">` tushunadigan mahalliy formatga
- * o'giradi: "2026-08-13T21:00". Brauzer maydoni mintaqasiz qiymat kutadi,
- * server esa mintaqali ISO yuboradi - shuning uchun o'girish kerak.
+ * ISO vaqtni `<input type="datetime-local">` tushunadigan formatga o'giradi:
+ * "2026-08-13T21:00". Maydon mintaqasiz qiymat kutadi, biz esa uni ataylab
+ * TOSHKENT vaqtida to'ldiramiz — ekranda ko'ringan soat bilan bir xil bo'lsin.
  */
 export function toDateTimeInput(value?: string | null) {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    + `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  }).formatToParts(d);
+  const p: Record<string, string> = {};
+  for (const { type, value: v } of parts) p[type] = v;
+  const hh = String(+p.hour % 24).padStart(2, "0");
+  return `${p.year}-${p.month}-${p.day}T${hh}:${p.minute}`;
 }
 
-/** Maydondagi mahalliy qiymatni serverga yuboriladigan ISO ga qaytaradi. */
+/** Maydondagi qiymat TOSHKENT vaqti deb o'qiladi va ISO ga qaytariladi. */
 export function fromDateTimeInput(value: string) {
   if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!m) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const [, y, mo, da, hh, mi] = m;
+  const naive = Date.UTC(+y, +mo - 1, +da, +hh, +mi);
+  // Siljish o'sha lahzaga bog'liq, shuning uchun bir marta qayta hisoblaymiz.
+  let out = new Date(naive - tzOffsetMinutes(new Date(naive)) * 60000);
+  out = new Date(naive - tzOffsetMinutes(out) * 60000);
+  return out.toISOString();
 }
 
 export function fmtDateTime(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("uz-UZ", {
+    timeZone: TZ,
     day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 }

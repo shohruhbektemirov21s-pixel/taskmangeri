@@ -153,6 +153,13 @@ export const IconBell = ({ size = 16 }: P) => (
   </svg>
 );
 
+export const IconCalendar = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18M8 3v4M16 3v4" />
+  </svg>
+);
+
 export const IconChat = ({ size = 16 }: P) => (
   <svg {...base(size)}>
     <path d="M20 14a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />

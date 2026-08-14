@@ -17,6 +17,7 @@ import TaskForm from "@/pages/TaskForm";
 import TaskBulkForm from "@/pages/TaskBulkForm";
 import ReviewQueue from "@/pages/ReviewQueue";
 import Feed from "@/pages/Feed";
+import CalendarPage from "@/pages/Calendar";
 import DeveloperReport from "@/pages/DeveloperReport";
 import People from "@/pages/People";
 import Workspaces from "@/pages/Workspaces";
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/vazifa/:taskId/tahrir" element={<TaskForm />} />
         <Route path="/tekshiruv" element={<ReviewQueue />} />
         <Route path="/tarix" element={<Feed />} />
+        <Route path="/taqvim" element={<CalendarPage />} />
         <Route path="/jamoa" element={<People />} />
         <Route path="/ish-maydonlari" element={<Workspaces />} />
         <Route path="/ish-maydoni/yangi" element={<ManagerOnly><WorkspaceForm /></ManagerOnly>} />

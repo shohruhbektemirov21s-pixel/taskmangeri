@@ -90,6 +90,13 @@ Qolganini tizim o'zi to'ldiradi:
 Ikkalasi ham API da `read_only` — tashqaridan o'zgartirib bo'lmaydi.
 Ish maydoni rangi ham xuddi shunday avtomatik (`backend/apps/workspaces/models.py`).
 
+**Loyiha qidirish** (`/loyihalar`) nom va tavsifdan tashqari **hujjat nomi**
+bo'yicha ham ishlaydi: odam loyihani ko'pincha undagi fayldan eslaydi —
+«texnik topshiriq qaysi loyihada edi?». Qidiruv serverda, ya'ni hali
+yuklanmagan loyihalar ham topiladi. Fayl nomi bog'liq jadvalda bo'lgani uchun
+`Exists()` bilan qidiriladi — `.distinct()` Db2 da CLOB ustuni tufayli
+yiqilardi (pastdagi «Ma'lumotlar bazasi» ga qarang).
+
 ---
 
 ## Jamoaga a'zo qo'shish
@@ -123,8 +130,8 @@ soni bilan, `/bildirishnomalar` da to'liq ro'yxat.
 
 Ro'yxat **ataylab qisqa** — qo'ng'iroqqa faqat javob talab qiladigan narsa tushadi:
 **o'z vazifang** (biriktirildi, tekshiruvga tushdi, natija, izoh), **senga yozilgan
-xabar** (chat va shaxsiy) va **qo'shilish so'rovi** (menejerga so'rov, so'ragan
-odamga javobi). Har bir jamoa harakati qo'ng'iroq chalsa, odam unga qarashni
+xabar** (chat va shaxsiy), **qo'shilish so'rovi** (menejerga so'rov, so'ragan
+odamga javobi) va **loyiha muddati** (1 hafta va 3 kun qolganda). Har bir jamoa harakati qo'ng'iroq chalsa, odam unga qarashni
 butunlay to'xtatadi. Qolgani tarixda (`activity.Activity`) yoziladi va o'chmaydi.
 
 Chat xabarlari **bitta yozuvga yig'iladi** — 50 ta xabar 50 ta qo'ng'iroq
@@ -258,6 +265,16 @@ admini yoki tizim admini. Yuklagan odamning o'zi ham o'chira olmaydi: texnik
 topshiriq va shartnomaga butun jamoaning ishi tayanadi, bitta odam ketayotganda
 uni olib ketmasin.
 
+### Hujjat tahriri va eski nusxalar
+
+Ayni nomli hujjat qayta yuklansa ro'yxatda **yangi qator paydo bo'lmaydi** —
+u shu hujjatning yangi nusxasi bo'ladi va versiyasi oshadi (`v2`, `v3`…).
+Eskisi yo'qolmaydi: «Tahrir tarixi» ostidan ochiladi va yuklab olinadi —
+kim yuklagan, kim almashtirgan, qachon (`projects.ProjectFileVersion`).
+
+Fayl **baytlari ko'chirilmaydi**: eski nusxaga faylning mavjud saqlash yo'li
+beriladi, ya'ni diskda nusxa ko'paymaydi va eski havola ishlayveradi.
+
 ---
 
 ## Ishni topshirish
@@ -275,6 +292,70 @@ qaysi matnga o'zgartirgani. Eski matn hech qachon yo'qolmaydi.
 topshiriq o'chirilganda esa fayllar o'chmaydi — bog' uzilib, ular vazifaning
 o'zida qoladi va «Fayllar» bo'limidan ochilaveradi. Skrinshot, log va patch —
 qilingan ishning isboti, matn o'chgani bilan ular kerak bo'ladi.
+
+---
+
+## Taqvim
+
+`/taqvim` — **shu oyda nima ishda turgani**. Loyiha bitta sanada emas, butun
+davri bo'yicha tasma bo'lib cho'ziladi: boshlanishdan muddatgacha. Har kunning
+ustida o'sha kuni nechta loyiha ishda ekani turadi — oyning qaysi yeri tig'iz,
+qaysi yeri bo'sh ekani bir qarashda ko'rinadi.
+
+**Vazifalar ham shu yerda**, lekin ajratib: yupqaroq tasma, ustida ijrochisining
+ismi. Ya'ni «kimga qanday ish berilgani» taqvimdan o'qiladi. Tugmasi bilan
+o'chirib qo'yish mumkin.
+
+Kunning ustidagi raqam — **o'sha kuni nechta loyiha boshlangani**. Ataylab
+faqat boshlanish kunida: uzoq loyihada har bir katakda «1» turib qolsa, u
+ma'no bermay shunchaki shovqin bo'lardi — davomiylikni tasmaning o'zi
+ko'rsatib turibdi.
+
+Kunni bosgansa pastda o'sha kunda ishda turgan loyihalar va vazifalar ro'yxati
+chiqadi. Oy va tanlangan kun manzilda turadi (`?oy=2026-08&kun=2026-08-14`) —
+sahifa yangilansa ham joyida qoladi.
+
+Sana qo'yilmagan hollar yashirilmaydi:
+
+- **boshlanish yo'q** — loyiha ochilgan kun olinadi (u har doim bor);
+- **loyiha muddati yo'q** — tasma ochiq qoladi, «tugadi» deyilmaydi;
+- **vazifa muddati yo'q** — taqvimda umuman turmaydi: qo'yadigan joyi yo'q,
+  oy oxirigacha cho'zish esa yolg'on bo'lardi.
+
+Ko'rish doirasi tarix sahifasidagi bilan bir xil: admin hammasini, qolganlar
+a'zo bo'lgan va ochiq loyihalarni ko'radi (`GET /api/projects/calendar/?month=`).
+
+---
+
+## Muddat eslatmalari
+
+Muddat o'tib ketgandan keyin «kechikdingiz» deyish kech. Shuning uchun
+eslatma **oldin** keladi — loyiha tugashiga **1 hafta** va **3 kun** qolganda:
+
+```
+srf tugashiga 1 hafta qoldi     Muddat: 2027-04-09
+srf tugashiga 3 kun qoldi       Muddat: 2027-04-09
+```
+
+Ikki bosqich ataylab: birinchisi rejani qayta ko'rish uchun, ikkinchisi
+«endi haqiqatan shoshiling» uchun. Xabar menejerga ham, jamoaga ham boradi —
+muddatni faqat menejer bilib turishi ishni tezlashtirmaydi.
+
+Takrorlanmasligini `projects.ProjectDeadlineNotice` ta'minlaydi: bosqich va
+muddat bo'yicha yagona yozuv. Muddat surilsa eslatma yangi sana uchun
+qaytadan yuboriladi — bu to'g'ri, chunki bu boshqa muddat.
+
+Tekshiruv **kuniga bir marta**, panel ochilganda o'zi ishga tushadi (qulf
+Redis keshida, ya'ni bir nechta backend jarayoni bo'lsa ham xabar bitta) —
+alohida rejalashtiruvchi (cron, Celery beat) qo'shish shart emas. Qo'lda
+yoki aniq rejaga qo'yish uchun buyruq ham bor:
+
+```bash
+docker compose exec backend python manage.py send_deadline_reminders
+docker compose exec backend python manage.py send_deadline_reminders --dry-run --date 2027-04-02
+```
+
+Mantiq bitta joyda — `backend/apps/projects/deadlines.py`.
 
 ---
 
@@ -312,7 +393,8 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 | `GET /api/projects/:id/requests/` · `:rid/decide/` | So'rovlarni ko'rish va hal qilish |
 | `GET/POST /api/projects/:id/members/…` | Jamoa (qo'shish, rol, chiqarish, `appoint_admin`) |
 | `GET/POST /api/projects/:id/files/` · `DELETE …/:fid/` | Loyiha hujjatlari |
-| `GET /api/projects/:id/forecast/` | Kim qachon tugatadi (odam va mutaxassislik kesimi) |
+| `GET /api/projects/calendar/?month=` | Oylik taqvim: loyiha va vazifa tasmalari, kunlik sanoq |
+| `GET /api/projects/:id/forecast/` | Kim qachon tugatadi (odam kesimi, vazifa sanalari bilan) |
 | `GET/PATCH /api/projects/:id/brief/` | Loyiha brifi |
 | `GET/POST /api/tasks/` | Vazifalar (filtr: status, assignee, priority, open, overdue) |
 | `POST /api/tasks/bulk/` | Ko'plab vazifa yaratish va taqsimlash |
@@ -340,6 +422,7 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 | `GET /api/activity/developer-report/` | Dasturchi hisoboti |
 | `GET /api/activity/onboarding/` | Loyihaga kirish to'plami |
 | `GET /api/dashboard/` · `my-work/` · `meta/` | Panel, mening ishim, ma'lumotnomalar |
+| `manage.py send_deadline_reminders` | Muddat eslatmalari (buyruq; panel ham kuniga bir marta chaqiradi) |
 
 ---
 
@@ -414,6 +497,20 @@ Db2 ning ikki cheklovi kod uslubiga ta'sir qilgan:
 Db2 konteyneri og'ir: ~7 GB obraz, `privileged` rejim va birinchi ishga tushishi
 bir necha daqiqa (instans, baza va jurnal fayllari yaratiladi). `docker-compose`
 dagi healthcheck shuni hisobga oladi — backend baza tayyor bo'lgach ko'tariladi.
+
+---
+
+## Vaqt
+
+Sayt **Toshkent vaqtida** ishlaydi — brauzer qaysi mintaqada bo'lishidan qat'i
+nazar. Server `TIME_ZONE=Asia/Tashkent` va `USE_TZ=True` bilan ishlaydi
+(bazada UTC, javobda mintaqali ISO), interfeys esa sanani ko'rsatishda ham,
+`datetime-local` maydonini to'ldirishda ham `Asia/Tashkent` ga qadab qo'yilgan
+(`components/ui.tsx` → `TZ`, `fmtDateTime`, `toDateTimeInput`).
+
+Siljish qo'lda `+5` deb yozilmagan, `Intl` dan olinadi: mintaqa qoidasi
+o'zgarsa kod jim ravishda noto'g'ri bo'lib qolmasin. Chet eldan kirgan odamga
+muddat boshqa soatda ko'rinsa, jamoa bir-birini tushunmay qolardi.
 
 ---
 

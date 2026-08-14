@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
@@ -13,6 +15,34 @@ from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.tasks.serializers import TaskSerializer
 
+logger = logging.getLogger(__name__)
+
+
+def _tick_deadline_reminders():
+    """Muddat eslatmalarini kuniga bir marta ishga tushiradi.
+
+    Loyihada rejalashtiruvchi (Celery beat, cron) yo'q, qo'shish esa butun
+    bir xizmat qo'shish demakdir. Buning o'rniga tekshiruv panel ochilganda
+    bo'ladi, lekin kuniga BIR MARTA: qulf Redis keshida turadi, ya'ni bir
+    nechta backend jarayoni bo'lsa ham eslatma takrorlanmaydi.
+
+    Ikki qavatli himoya: bu yerdagi kalit ortiqcha ishni to'xtatadi,
+    `ProjectDeadlineNotice` esa xabarning o'zi takrorlanmasligini kafolatlaydi.
+    Panel sekinlashmasin uchun xato bo'lsa jim o'tib ketamiz.
+    """
+    from django.core.cache import cache
+
+    from apps.projects.deadlines import send_due_reminders
+
+    key = "deadline-reminders:{}".format(timezone.localdate())
+    try:
+        # `add` - kalit yo'q bo'lsagina qo'yadi, ya'ni kunning birinchi so'rovi.
+        if not cache.add(key, 1, 60 * 60 * 26):
+            return
+        send_due_reminders()
+    except Exception:
+        logger.exception("Muddat eslatmalarini yuborib bo'lmadi")
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -21,6 +51,8 @@ def dashboard(request):
     user = request.user
     now = timezone.now()
     ctx = {"request": request}
+
+    _tick_deadline_reminders()
 
     # `Exists()` - `.distinct()` o'rniga. Db2 DISTINCT da CLOB ustunini
     # qo'llamaydi (`description` kabi matn maydonlari), shuning uchun takrorni
@@ -142,6 +174,7 @@ def my_work(request):
 def meta(request):
     """Frontend uchun barcha ro'yxatlar (status, prioritet, rol) - bir joydan."""
     from apps.accounts.models import GlobalRole
+    from apps.activity.models import category_choices
     from apps.accounts.specialties import Seniority, specialty_catalog
     from apps.projects.models import ProjectStatus
     from apps.workspaces.models import WorkspaceRole
@@ -163,4 +196,7 @@ def meta(request):
         "global_role": pack(GlobalRole.choices),
         "specialties": specialty_catalog(),
         "seniority": pack(Seniority.choices),
+        # Tarix filtri - ro'yxat `VERB_META` dan chiqadi, frontendda
+        # qattiq yozilmaydi (aks holda yangi turkum filtrga tushmay qolardi).
+        "activity_category": category_choices(),
     })

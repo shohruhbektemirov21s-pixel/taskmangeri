@@ -13,11 +13,15 @@ export default function Projects() {
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [scope, setScope] = useState("mine");
+  // `q` - maydonda yozilayotgan matn, `applied` - serverga yuborilgani.
+  // Ikkovi ajratilgani uchun har harfda so'rov ketmaydi.
+  const [q, setQ] = useState("");
+  const [applied, setApplied] = useState("");
 
   const load = useCallback(async () => {
-    const d = await api.get<any>("/projects/", { scope, page_size: 100 });
+    const d = await api.get<any>("/projects/", { scope, search: applied, page_size: 100 });
     setProjects(listOf<Project>(d));
-  }, [scope]);
+  }, [scope, applied]);
 
   useEffect(() => {
     setProjects(null);
@@ -56,6 +60,25 @@ export default function Projects() {
       />
       <div className="content">
         <ErrorMsg error={error} />
+
+        {/* Nom, kalit va tavsif bo'yicha - qidiruv serverda
+            (`ProjectViewSet.search_fields`), ya'ni yuklanmagan
+            loyihalar ham topiladi. */}
+        <form className="filters" onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); }}>
+          <div className="f" style={{ flex: 1 }}>
+            <label>Qidiruv</label>
+            <input value={q} onChange={(e) => setQ(e.target.value)}
+                   placeholder="Nom, tavsif yoki hujjat nomi boyicha" />
+          </div>
+          <button className="btn">Qidirish</button>
+          {!!applied && (
+            <button type="button" className="btn btn-ghost"
+                    onClick={() => { setQ(""); setApplied(""); }}>
+              Tozalash
+            </button>
+          )}
+        </form>
+
         {!projects ? <Loading /> : (
           <div className="card">
             <div className="card-list">
@@ -71,7 +94,6 @@ export default function Projects() {
                       <Link to={`/loyiha/${p.id}`}
                             onClick={(e) => e.stopPropagation()}>{p.name}</Link>
                     </h3>
-                    <span className="badge mono">{p.key}</span>
                     <span className={`badge ${p.status === "ACTIVE" ? "badge-ok" : ""}`}>
                       {p.status_display}
                     </span>
@@ -107,11 +129,22 @@ export default function Projects() {
                 </div>
               ))}
               {!projects.length && (
-                <Empty icon="☰" title="Loyiha topilmadi" text="Ochiq loyihaga qoshiling yoki yangi yarating.">
+                <Empty icon="☰" title="Loyiha topilmadi"
+                       text={applied
+                         ? `«${applied}» boyicha hech narsa topilmadi - boshqacha yozib koring.`
+                         : "Ochiq loyihaga qoshiling yoki yangi yarating."}>
                   <div className="row" style={{ justifyContent: "center" }}>
-                    <Link className="btn btn-primary" to="/qoshilish">Loyiha topish</Link>
-                    {user?.can_create_project && (
-                      <Link className="btn" to="/loyiha/yangi">Yangi loyiha</Link>
+                    {applied ? (
+                      <button className="btn" onClick={() => { setQ(""); setApplied(""); }}>
+                        Qidiruvni tozalash
+                      </button>
+                    ) : (
+                      <>
+                        <Link className="btn btn-primary" to="/qoshilish">Loyiha topish</Link>
+                        {user?.can_create_project && (
+                          <Link className="btn" to="/loyiha/yangi">Yangi loyiha</Link>
+                        )}
+                      </>
                     )}
                   </div>
                 </Empty>

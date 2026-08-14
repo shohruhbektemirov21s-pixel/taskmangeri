@@ -7,6 +7,7 @@ import { Avatar, safePath, timeAgo } from "./ui";
 
 const TONE: Record<string, string> = {
   "join.request": "badge-warn",
+  "project.deadline": "badge-danger",
   "task.assigned": "badge-info",
   "task.review": "badge-brand",
   "task.decided": "badge-ok",

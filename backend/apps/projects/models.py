@@ -407,6 +407,17 @@ def project_file_path(instance, filename):
     return "projects/{}/{}".format(instance.project_id, filename)
 
 
+def project_file_version_path(instance, filename):
+    """Eski nusxa uchun yo'l.
+
+    Odatda ishlatilmaydi: hujjat almashtirilganda eski nusxaga faylning
+    mavjud yo'li beriladi (bayt ko'chirilmaydi, eski havola ishlayveradi).
+    Bu yo'l faqat versiyaga to'g'ridan-to'g'ri yangi fayl yozilsa kerak
+    bo'ladi - shunda u joriy hujjatlar bilan aralashib ketmasin.
+    """
+    return "projects/{}/versions/{}".format(instance.document.project_id, filename)
+
+
 class ProjectFile(models.Model):
     """Loyihaga tegishli fayl: texnik topshiriq, dizayn, hujjat, arxiv.
 
@@ -422,7 +433,11 @@ class ProjectFile(models.Model):
     description = models.CharField("Izoh", max_length=250, blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                     null=True, related_name="project_files")
+    # Nechanchi nusxa. Bir xil nomli hujjat qayta yuklansa yangi qator emas,
+    # shu qatorning yangi versiyasi bo'ladi - eskisi `versions` da qoladi.
+    version = models.PositiveIntegerField("Versiya", default=1)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField("Oxirgi yangilanish", auto_now=True)
 
     class Meta:
         verbose_name = "Loyiha fayli"
@@ -458,3 +473,88 @@ class ProjectFile(models.Model):
                 return "{:.0f} {}".format(size, unit) if unit == "B" else "{:.1f} {}".format(size, unit)
             size /= 1024
         return "{:.1f} GB".format(size)
+
+
+class ProjectFileVersion(models.Model):
+    """Hujjatning ESKI nusxasi.
+
+    Bir xil nomli hujjat qayta yuklanganda joriy nusxa shu jadvalga ko'chadi,
+    `ProjectFile` esa yangisiga o'tadi. Ya'ni hujjat almashtirilgani bilan
+    oldingi variant yo'qolmaydi: kim, qachon yuklagani va kim almashtirgani
+    ko'rinib turadi, faylning o'zini ochib ham bo'ladi.
+
+    Fayl BAYTLARI ko'chirilmaydi - yangi qatorga eskisining saqlash yo'li
+    beriladi, ya'ni diskda nusxa ko'paymaydi.
+    """
+
+    document = models.ForeignKey(ProjectFile, on_delete=models.CASCADE,
+                                 related_name="versions", verbose_name="Hujjat")
+    version = models.PositiveIntegerField("Versiya")
+    file = models.FileField("Fayl", upload_to=project_file_version_path)
+    original_name = models.CharField("Fayl nomi", max_length=255, blank=True)
+    size = models.PositiveBigIntegerField("Hajmi (bayt)", default=0)
+    content_type = models.CharField("Turi", max_length=120, blank=True)
+    description = models.CharField("Izoh", max_length=250, blank=True)
+
+    # Shu nusxani kim va qachon yuklagan edi
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                    null=True, related_name="project_file_versions",
+                                    verbose_name="Kim yuklagan")
+    created_at = models.DateTimeField("Yuklangan vaqti")
+    # Kim va qachon almashtirgan
+    replaced_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                    null=True, related_name="+",
+                                    verbose_name="Kim almashtirgan")
+    replaced_at = models.DateTimeField("Almashtirilgan vaqti", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Hujjatning eski nusxasi"
+        verbose_name_plural = "Hujjatning eski nusxalari"
+        ordering = ["-version"]
+        indexes = [models.Index(fields=["document", "-version"])]
+
+    def __str__(self):
+        return "{} v{}".format(self.original_name or self.document_id, self.version)
+
+    @property
+    def is_image(self):
+        return (self.content_type or "").startswith("image/")
+
+    @property
+    def size_display(self):
+        size = float(self.size or 0)
+        for unit in ("B", "KB", "MB", "GB"):
+            if size < 1024 or unit == "GB":
+                return "{:.0f} {}".format(size, unit) if unit == "B" else "{:.1f} {}".format(size, unit)
+            size /= 1024
+        return "{:.1f} GB".format(size)
+
+
+class ProjectDeadlineNotice(models.Model):
+    """Muddat eslatmasi yuborilganini belgilab qo'yadi.
+
+    Eslatma kuniga bir marta tekshiriladi, lekin tekshiruv bir necha marta
+    ishga tushishi mumkin (bir nechta jarayon, qayta ishga tushirish, qo'lda
+    chaqirish). Shu jadval bo'lmasa odam bir xil xabarni qayta-qayta olardi.
+
+    `due_date` ham kalitga kiradi: muddat surilsa eslatma yangi sana uchun
+    qaytadan yuboriladi - bu to'g'ri, chunki bu boshqa muddat.
+    """
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE,
+                                related_name="deadline_notices", verbose_name="Loyiha")
+    days_left = models.PositiveIntegerField("Necha kun qolganda")
+    due_date = models.DateField("O'sha paytdagi muddat")
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Muddat eslatmasi"
+        verbose_name_plural = "Muddat eslatmalari"
+        ordering = ["-sent_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["project", "days_left", "due_date"],
+                                    name="uniq_deadline_notice"),
+        ]
+
+    def __str__(self):
+        return "{} - {} kun qoldi".format(self.project_id, self.days_left)
