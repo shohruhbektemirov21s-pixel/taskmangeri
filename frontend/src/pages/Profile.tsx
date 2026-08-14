@@ -204,7 +204,7 @@ export default function Profile() {
                     </div>
                     <div className="field" style={{ width: 140 }}>
                       <label>Tajriba (yil)</label>
-                      <input type="number" min={0} max={60} value={form.years_experience || "0"}
+                      <input type="number" min={0} max={30} value={form.years_experience || "0"}
                              onChange={(e) => setForm({ ...form, years_experience: e.target.value })} />
                     </div>
                   </div>
@@ -227,7 +227,7 @@ export default function Profile() {
 
             <Card title={isSelf ? "Songgi vazifalarim" : "Songgi vazifalari"} padded={false}
                   badge={<span className="badge">{tasks.length}</span>}>
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <tbody>
                   {tasks.map((t) => (
                     <tr key={t.id}>
@@ -242,7 +242,7 @@ export default function Profile() {
                   ))}
                   {!tasks.length && <tr><td className="muted center">Vazifa yoq</td></tr>}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
 
             <Card title={isSelf ? "Nima qilganman" : "Nima qilgan"} padded={false}

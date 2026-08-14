@@ -41,7 +41,7 @@ export default function Overview({ project, onChange }: { project: Project; onCh
 
         {myTasks.length > 0 && (
           <Card title="Sizning ochiq vazifalaringiz" padded={false}>
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <tbody>
                 {myTasks.map((t) => (
                   <tr key={t.id}>
@@ -52,7 +52,7 @@ export default function Overview({ project, onChange }: { project: Project; onCh
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         )}
 

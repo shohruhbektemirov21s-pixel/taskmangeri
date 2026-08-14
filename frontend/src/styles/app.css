@@ -802,30 +802,6 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   .timeline.compact .tl-meta { display: none; }
 }
 
-/* Panelning "hamma bo'limlar" to'plami: har biri bitta jumla bilan
-   tushuntirilgan katak - birinchi marta kirgan odam qayerga bosishni bilsin */
-.tiles {
-  display: grid; gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-}
-.tile {
-  display: flex; gap: 11px; align-items: flex-start;
-  padding: 12px 13px; border: 1px solid var(--border-muted); border-radius: 10px;
-  background: var(--surface-2); color: var(--text); text-decoration: none;
-  transition: border-color .14s, background .14s, transform .14s;
-}
-.tile:hover {
-  border-color: var(--accent); background: var(--surface-3, var(--surface-2));
-  transform: translateY(-1px);
-}
-.tile strong { font-size: 13.5px; }
-.tile small { line-height: 1.4; display: block; margin-top: 2px; }
-.tile-ico {
-  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 8px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--surface); color: var(--accent);
-}
-
 /* ---------------------------------------------------------------- Taqvim
    Klassik oy setkasi: kataklar bir-biriga tegib turadi (oraliq yo'q),
    chegara bitta piksel. Kun raqami o'ng yuqorida, tasmalar esa hafta
@@ -868,7 +844,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   align-content: start;
 }
 .cal-col {
-  grid-row: 1 / -1; min-height: 104px;
+  grid-row: 1 / -1; min-height: 74px;
   border-right: 1px solid var(--border-muted);
   border-bottom: 1px solid var(--border-muted);
   cursor: pointer; transition: background .12s;
@@ -924,7 +900,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 @media (max-width: 760px) {
   .cal-bar { font-size: 10px; padding: 1px 4px; }
   .cal-who { display: none; }
-  .cal-col { min-height: 84px; }
+  .cal-col { min-height: 62px; }
 }
 @media (max-width: 700px) {
   /* Telefonda 7 ustunni siqib tashlasak tasmalar o'qilmaydigan chiziqqa
@@ -1187,6 +1163,24 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   .theme-float { top: 12px; right: 12px; }
   /* Uzun matnli tugmalar ikki qatorga sig'sin */
   .table .row-actions { flex-wrap: wrap; justify-content: flex-end; }
+
+  /* Yonma-yon turgan narsalar sig'masa pastga tushadi: ikkita tugma ham,
+     forma maydonlari ham. Telefonda "Sana" yoki "Tajriba" katakchasi qisilib,
+     ichidagi yozuv ko'rinmay qolardi. Kengliklar sahifalarda inline
+     berilgani uchun bu yerda !important kerak. */
+  .row { flex-wrap: wrap; }
+  /* Maydonlar odatda 100% kenglikda - qator ichida ular yonidagi tugmani
+     har doim pastga itarib yuborardi. Qator ichida ular o'z o'lchamidan
+     boshlanib, bo'sh joyni to'ldiradi: "qo'shish" tugmasi yonda qoladi. */
+  .row > input:not([type=checkbox]):not([type=radio]), .row > select {
+    flex: 1 1 auto; width: auto; min-width: 0;
+  }
+  form .row > .field {
+    flex: 1 1 100% !important; width: auto !important; min-width: 0 !important;
+  }
+
+  /* Uzun email va havola katak chetidan chiqib ketmasin */
+  .card-body { overflow-wrap: break-word; }
 }
 
 /* iOS'da 16px dan kichik maydon fokuslanganda sahifani o'zi kattalashtiradi -

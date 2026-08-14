@@ -51,6 +51,8 @@ class UserSerializer(serializers.ModelSerializer):
     suggested_skills = serializers.ListField(read_only=True)
     quality_checklist = serializers.ListField(read_only=True)
     default_project_role = serializers.CharField(read_only=True)
+    # Tajriba chegarasi royxatdan otishdagi bilan bir xil: 0-30 yil.
+    years_experience = serializers.IntegerField(required=False, min_value=0, max_value=30)
     # Rasm /api/auth/me/avatar/ orqali yuklanadi, bu yerda faqat o'qiladi.
     avatar = serializers.SerializerMethodField()
 
@@ -96,7 +98,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     specialty = serializers.ChoiceField(choices=Specialty.choices, required=True)
     seniority = serializers.ChoiceField(choices=Seniority.choices, required=False,
                                         default=Seniority.JUNIOR)
-    years_experience = serializers.IntegerField(required=False, min_value=0, max_value=60,
+    years_experience = serializers.IntegerField(required=False, min_value=0, max_value=30,
                                                 default=0)
 
     class Meta:

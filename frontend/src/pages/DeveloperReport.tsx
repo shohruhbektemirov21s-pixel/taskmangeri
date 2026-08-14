@@ -117,7 +117,7 @@ export default function DeveloperReport() {
 
           <div>
             <Card title="Bajarilgan vazifalar" padded={false}>
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <tbody>
                   {d.done_tasks.map((t) => (
                     <tr key={t.id}>
@@ -130,11 +130,11 @@ export default function DeveloperReport() {
                     <tr><td><Empty title="Hali bajarilgan vazifa yoq" /></td></tr>
                   )}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
 
             <Card title="Ochiq vazifalar" padded={false}>
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <tbody>
                   {d.open_tasks.map((t) => (
                     <tr key={t.id}>
@@ -148,7 +148,7 @@ export default function DeveloperReport() {
                     <tr><td className="muted center">Ochiq vazifa yoq</td></tr>
                   )}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
 
             <Card title="Holatlar boyicha">

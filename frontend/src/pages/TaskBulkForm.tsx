@@ -113,7 +113,7 @@ export default function TaskBulkForm() {
 
               {titles.length > 0 && (
                 <Card title="Taqsimot koinishi (oldindan)" padded={false}>
-                  <table className="table">
+                  <div className="table-wrap"><table className="table">
                     <thead><tr><th>#</th><th>Vazifa</th><th>Kimga</th></tr></thead>
                     <tbody>
                       {preview.map((p, i) => (
@@ -128,7 +128,7 @@ export default function TaskBulkForm() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 </Card>
               )}
             </div>

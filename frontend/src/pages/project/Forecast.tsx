@@ -115,7 +115,7 @@ export default function ForecastTab({ project }: { project: Project }) {
               <span className="muted">Ochiq vazifa yo'q.</span>
             </div>
           ) : (
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <thead>
                 <tr>
                   <th>Vazifa</th><th>Holat</th>
@@ -148,7 +148,7 @@ export default function ForecastTab({ project }: { project: Project }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </Card>
       ))}

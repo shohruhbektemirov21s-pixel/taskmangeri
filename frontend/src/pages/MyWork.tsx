@@ -38,7 +38,7 @@ export default function MyWork() {
                   <span className={`badge st-${g.status}`}>{g.label}</span>
                   <span className="badge">{g.count}</span>
                 </div>
-                <table className="table">
+                <div className="table-wrap"><table className="table">
                   <thead>
                     <tr>
                       <th>Kod</th><th>Vazifa</th><th>Holat</th>
@@ -48,7 +48,7 @@ export default function MyWork() {
                   <tbody>
                     {g.tasks.map((t) => <TaskRow key={t.id} task={t} showProject />)}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             ))}
 

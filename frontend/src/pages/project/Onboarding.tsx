@@ -152,7 +152,7 @@ export default function Onboarding({ project }: { project: Project }) {
           </Card>
 
           <Card title="Hozir ochiq turgan ishlar" padded={false}>
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <tbody>
                 {d.open_now.map((t) => (
                   <tr key={t.id}>
@@ -165,11 +165,11 @@ export default function Onboarding({ project }: { project: Project }) {
                   <tr><td className="muted center">Ochiq vazifa yoq</td></tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </Card>
 
           <Card title="Songgi bajarilganlar" padded={false}>
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <tbody>
                 {d.recent_done.map((t) => (
                   <tr key={t.id}>
@@ -182,7 +182,7 @@ export default function Onboarding({ project }: { project: Project }) {
                   <tr><td className="muted center">Hali bajarilgan vazifa yoq</td></tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         </div>
       </div>

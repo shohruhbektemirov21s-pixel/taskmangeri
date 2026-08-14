@@ -74,7 +74,7 @@ export default function TaskList({ project }: { project: Project }) {
 
       <div className="card">
         {!tasks ? <Loading /> : tasks.length ? (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr>
                 <th>Kod</th><th>Vazifa</th><th>Holat</th>
@@ -84,7 +84,7 @@ export default function TaskList({ project }: { project: Project }) {
             <tbody>
               {tasks.map((t) => <TaskRow key={t.id} task={t} />)}
             </tbody>
-          </table>
+          </table></div>
         ) : (
           <Empty icon="☐" title="Vazifa topilmadi" text="Filtrlarni ozgartiring yoki yangi vazifa yarating.">
             {project.access.can_create_task && (

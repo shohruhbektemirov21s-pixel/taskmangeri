@@ -78,7 +78,7 @@ export default function PublicProject() {
 
             {!!project.team_composition?.length && (
               <Card title="Jamoa tarkibi" padded={false}>
-                <table className="table">
+                <div className="table-wrap"><table className="table">
                   <tbody>
                     {project.team_composition.map((t) => (
                       <tr key={t.value}>
@@ -87,7 +87,7 @@ export default function PublicProject() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </Card>
             )}
           </div>
