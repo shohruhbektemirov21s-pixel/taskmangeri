@@ -1,9 +1,8 @@
-from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path, re_path
-from django.views.static import serve
+
+from apps.core.media import serve_media
 
 
 def health(request):
@@ -23,8 +22,8 @@ urlpatterns = [
     path("api/", include("apps.core.urls")),
 ]
 
-# Media fayllar (vazifaga biriktirilgan hujjatlar) har doim uzatiladi.
-# Prod uchun nginx orqali uzatish tavsiya etiladi.
+# Media fayllar faqat API bergan imzolangan manzil bilan ochiladi -
+# sababi va tafsiloti `apps/core/media.py` da.
 urlpatterns += [
-    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+    re_path(r"^media/(?P<path>.*)$", serve_media),
 ]

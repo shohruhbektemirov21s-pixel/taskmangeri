@@ -9,13 +9,13 @@ a'zolar ro'yxati va ularning emaillari, vazifalar matni, fayllar, tarix.
 Menejerning faqat ismi ko'rsatiladi — email emas.
 """
 from django.db.models import Count, Q
-from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from apps.accounts.specialties import Specialty
+from apps.core.queries import object_or_404
 from apps.projects.models import Project
 from apps.tasks.models import TaskStatus
 
@@ -100,7 +100,7 @@ def public_projects(request):
 @throttle_classes([PublicSearchThrottle])
 def public_project(request, pk):
     """GET /api/public/projects/:id/ — faqat ochiq loyiha."""
-    project = get_object_or_404(visible_projects(), pk=pk)
+    project = object_or_404(visible_projects(), pk=pk)
     counts = {
         "member_count": project.memberships.filter(is_active=True).count(),
         "open_tasks": project.tasks.exclude(

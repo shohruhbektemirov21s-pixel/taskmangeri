@@ -1,15 +1,16 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Exists, OuterRef, Q
-from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from apps.core.queries import object_or_404
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
 from apps.core.permissions import ProjectAccess, check_access
+from apps.core.uploads import check_uploads
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
 from apps.projects.models import Project, ProjectRole
@@ -145,8 +146,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ queryset
     def get_queryset(self):
         user = self.request.user
-        qs = (Task.objects.select_related("project", "created_by", "reviewer")
-              .prefetch_related("assignments__user", "labels")
+        qs = (Task.objects.for_display()
               # O'chirilgan loyihaning vazifalari hech qayerda ko'rinmaydi
               # (yozuvlar bazada qoladi).
               .filter(project__deleted_at__isnull=True))
@@ -183,7 +183,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         return TaskSerializer
 
     def get_object(self):
-        task = get_object_or_404(
+        task = object_or_404(
             Task.objects.select_related("project", "project__workspace"),
             pk=self.kwargs["pk"])
         need = "view" if self.request.method in ("GET", "HEAD", "OPTIONS") else "work"
@@ -192,7 +192,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     # ------------------------------------------------------------ yaratish
     def create(self, request, *args, **kwargs):
-        project = get_object_or_404(Project, pk=request.data.get("project"))
+        project = object_or_404(Project, pk=request.data.get("project"))
         check_access(request.user, project, "task")
 
         serializer = self.get_serializer(data=request.data)
@@ -267,7 +267,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ ommaviy yaratish
     @action(detail=False, methods=["post"], url_path="bulk")
     def bulk(self, request):
-        project = get_object_or_404(Project, pk=request.data.get("project"))
+        project = object_or_404(Project, pk=request.data.get("project"))
         check_access(request.user, project, "task")
 
         s = BulkTaskSerializer(data=request.data)
@@ -334,7 +334,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         project_id = request.query_params.get("project")
         if not project_id:
             raise ValidationError({"project": "Loyiha ID kerak."})
-        project = get_object_or_404(Project, pk=project_id)
+        project = object_or_404(Project, pk=project_id)
         access = check_access(request.user, project, "view")
 
         qs = self.filter_queryset(self.get_queryset()).filter(project=project)
@@ -449,7 +449,8 @@ class TaskViewSet(viewsets.ModelViewSet):
         submission = ser.save(task=task, author=request.user,
                               round_no=max(task.review_round, 1))
 
-        uploads = request.FILES.getlist("file") or request.FILES.getlist("files")
+        uploads = check_uploads(
+            request.FILES.getlist("file") or request.FILES.getlist("files"))
         for f in uploads:
             fs = AttachmentSerializer(data={"file": f, "description": "Ish topshirigi"},
                                       context={"request": request})
@@ -502,7 +503,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         Tahrirlanganda eski matn `SubmissionEdit` da qoladi - tarix yoqolmaydi.
         """
         task = self.get_object()
-        submission = get_object_or_404(Submission, pk=submission_id, task=task)
+        submission = object_or_404(Submission, pk=submission_id, task=task)
         access = ProjectAccess(request.user, task.project)
         mine = submission.author_id == request.user.pk
         if not (mine or access.can_manage):
@@ -563,6 +564,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         files = request.FILES.getlist("file") or request.FILES.getlist("files")
         if not files:
             raise ValidationError({"file": "Fayl tanlanmagan."})
+        check_uploads(files)
 
         created = []
         for f in files:
@@ -584,7 +586,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["delete"], url_path="attachments/(?P<attachment_id>[^/.]+)")
     def delete_attachment(self, request, pk=None, attachment_id=None):
         task = self.get_object()
-        att = get_object_or_404(Attachment, pk=attachment_id, task=task)
+        att = object_or_404(Attachment, pk=attachment_id, task=task)
         access = ProjectAccess(request.user, task.project)
         if not (access.can_manage or att.uploaded_by_id == request.user.id):
             raise PermissionDenied("Faylni faqat yuklagan odam yoki menejer ochira oladi.")
@@ -657,7 +659,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         """?project=<id>&specialty=<code> - vazifaga mos azolarni tavsiya qiladi."""
         from apps.accounts.serializers import UserBriefSerializer
 
-        project = get_object_or_404(Project, pk=request.query_params.get("project"))
+        project = object_or_404(Project, pk=request.query_params.get("project"))
         check_access(request.user, project, "view")
         specialty = request.query_params.get("specialty") or ""
 
@@ -699,6 +701,6 @@ class LabelViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        project = get_object_or_404(Project, pk=self.request.data.get("project"))
+        project = object_or_404(Project, pk=self.request.data.get("project"))
         check_access(self.request.user, project, "manage")
         serializer.save(project=project)

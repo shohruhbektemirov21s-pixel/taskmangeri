@@ -11,9 +11,9 @@ MENEJER himoyalangan: uni na loyiha admini, na tizim admini chiqara oladi.
 Menejer faqat ozi chiqadi yoki boshqa menejer almashtiradi. Loyiha menejersiz
 qolib ketgan holat istisno - unda tizim admini yangi menejer tayinlay oladi.
 """
-from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
+from apps.core.queries import object_or_404
 
 
 class IsPlatformAdmin(permissions.BasePermission):
@@ -49,8 +49,18 @@ def ProjectRole_value(name):
 
 
 def get_membership(user, project):
-    """Foydalanuvchining loyihadagi faol azoligi (yoki None)."""
+    """Foydalanuvchining loyihadagi faol azoligi (yoki None).
+
+    `memberships` oldindan yuklangan bo'lsa bazaga borilmaydi: ro'yxatdagi
+    har bir loyiha uchun `access` maydoni shu yerdan o'tadi va ilgari har
+    safar alohida so'rov yuborilardi.
+    """
     if not user or not user.is_authenticated:
+        return None
+    if "memberships" in getattr(project, "_prefetched_objects_cache", {}):
+        for m in project.memberships.all():
+            if m.is_active and m.user_id == user.id:
+                return m
         return None
     return project.memberships.filter(user=user, is_active=True).select_related("user").first()
 
@@ -162,7 +172,7 @@ def require_project(user, project_id, need="view"):
     """Loyihani olib, kerakli ruxsatni tekshiradi. (project, access) qaytaradi."""
     from apps.projects.models import Project
 
-    project = get_object_or_404(
+    project = object_or_404(
         Project.objects.select_related("workspace", "manager", "created_by"), pk=project_id
     )
     access = check_access(user, project, need)

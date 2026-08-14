@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { User, UserWork } from "@/api/types";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 
 export default function Profile() {
+  const fid = useId();
   const { userId } = useParams();
   const { user: me, meta, refreshUser } = useAuth();
   const isSelf = !userId || Number(userId) === me?.id;
@@ -26,8 +27,11 @@ export default function Profile() {
   const [photoBusy, setPhotoBusy] = useState(false);
 
   useEffect(() => {
+    // Bir profildan boshqasiga tez o'tilsa eski javob kelib qolmasin.
+    let alive = true;
     void (async () => {
       const u = isSelf ? await api.get<User>("/auth/me/") : await api.get<User>(`/users/${userId}/`);
+      if (!alive) return;
       setTarget(u);
       setForm({
         full_name: u.full_name, job_title: u.job_title, skills: u.skills,
@@ -36,8 +40,10 @@ export default function Profile() {
       });
       // Loyihalar, vazifalar, statistika va tarix - hammasi bitta endpointdan.
       // Ko'rinish serverda so'rovchining huquqiga qarab cheklanadi.
-      setWork(await api.get<UserWork>(`/users/${u.id}/work/`));
-    })().catch(() => setError("Profilni ochib bolmadi"));
+      const w = await api.get<UserWork>(`/users/${u.id}/work/`);
+      if (alive) setWork(w);
+    })().catch(() => { if (alive) setError("Profilni ochib bolmadi"); });
+    return () => { alive = false; };
   }, [userId, isSelf]);
 
   /** Rasm yuklash yoki almashtirish. Fayl `multipart` bilan boradi. */
@@ -178,14 +184,15 @@ export default function Profile() {
                     ["telegram", "Telegram", "text"],
                   ].map(([k, label]) => (
                     <div className="field" key={k}>
-                      <label>{label}</label>
-                      <input value={form[k] || ""}
+                      <label htmlFor={`${fid}-0`}>{label}</label>
+                      <input id={`${fid}-0`} value={form[k] || ""}
                              onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
                     </div>
                   ))}
                   <div className="field">
-                    <label>Konikmalar</label>
+                    <label htmlFor={`${fid}-4`}>Konikmalar</label>
                     <SkillEditor
+                      id={`${fid}-4`}
                       value={form.skills || ""}
                       onChange={(v) => setForm({ ...form, skills: v })}
                       suggestions={target.suggested_skills || []}
@@ -194,8 +201,8 @@ export default function Profile() {
 
                   <div className="row">
                     <div className="field" style={{ flex: 1 }}>
-                      <label>Daraja</label>
-                      <select value={form.seniority || ""}
+                      <label htmlFor={`${fid}-1`}>Daraja</label>
+                      <select id={`${fid}-1`} value={form.seniority || ""}
                               onChange={(e) => setForm({ ...form, seniority: e.target.value })}>
                         {(meta?.seniority || []).map((s) => (
                           <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -203,14 +210,14 @@ export default function Profile() {
                       </select>
                     </div>
                     <div className="field" style={{ width: 140 }}>
-                      <label>Tajriba (yil)</label>
-                      <input type="number" min={0} max={30} value={form.years_experience || "0"}
+                      <label htmlFor={`${fid}-2`}>Tajriba (yil)</label>
+                      <input id={`${fid}-2`} type="number" min={0} max={30} value={form.years_experience || "0"}
                              onChange={(e) => setForm({ ...form, years_experience: e.target.value })} />
                     </div>
                   </div>
                   <div className="field">
-                    <label>Qisqacha maʼlumot</label>
-                    <textarea rows={3} value={form.bio || ""}
+                    <label htmlFor={`${fid}-3`}>Qisqacha maʼlumot</label>
+                    <textarea id={`${fid}-3`} rows={3} value={form.bio || ""}
                               onChange={(e) => setForm({ ...form, bio: e.target.value })} />
                   </div>
                   <div className="form-actions">

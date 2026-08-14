@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project } from "@/api/types";
@@ -7,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Card, ErrorMsg, Loading, SpecialtyTag } from "@/components/ui";
 
 export default function JoinProject() {
+  const fid = useId();
   const { id } = useParams();
   const nav = useNavigate();
   const { user, meta } = useAuth();
@@ -18,10 +19,13 @@ export default function JoinProject() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    let alive = true;
     void api.get<Project>(`/projects/${id}/`).then((p) => {
+      if (!alive) return;
       setProject(p);
       setRole(user?.default_project_role || "DEVELOPER");
-    }).catch(() => setError("Loyihani ochib bolmadi"));
+    }).catch(() => { if (alive) setError("Loyihani ochib bolmadi"); });
+    return () => { alive = false; };
   }, [id, user]);
 
   async function submit(e: React.FormEvent) {
@@ -54,24 +58,24 @@ export default function JoinProject() {
             <ErrorMsg error={error} />
             <form onSubmit={submit}>
               <div className="field">
-                <label>Sizning yonalishingiz</label>
+                <span className="lbl">Sizning yonalishingiz</span>
                 <div className="row"><SpecialtyTag user={user} /><span className="muted">{user?.seniority_display}</span></div>
               </div>
               <div className="field">
-                <label>Istagan rol</label>
-                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                <label htmlFor={`${fid}-0`}>Istagan rol</label>
+                <select id={`${fid}-0`} value={role} onChange={(e) => setRole(e.target.value)}>
                   {roles.map((r) => <option key={r.value} value={String(r.value)}>{r.label}</option>)}
                 </select>
               </div>
               <div className="field">
-                <label>Xabar</label>
-                <textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)}
+                <label htmlFor={`${fid}-1`}>Xabar</label>
+                <textarea id={`${fid}-1`} rows={4} value={message} onChange={(e) => setMessage(e.target.value)}
                           placeholder="Qanday tajribangiz bor, loyihaga nima qoshasiz?" />
               </div>
               {!project.is_public && (
                 <div className="field">
-                  <label>Qoshilish kodi</label>
-                  <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="A1B2C3D4" />
+                  <label htmlFor={`${fid}-2`}>Qoshilish kodi</label>
+                  <input id={`${fid}-2`} value={code} onChange={(e) => setCode(e.target.value)} placeholder="A1B2C3D4" />
                 </div>
               )}
               <button className="btn btn-primary btn-block" disabled={busy}>

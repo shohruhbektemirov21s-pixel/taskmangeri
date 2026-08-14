@@ -514,6 +514,10 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 
 /* ============ FORMS ============ */
 label { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 7px; }
+/* Yorliq ko'rinishidagi sarlavha - lekin bitta maydonga tegishli emas
+   (radio guruhi, o'qish uchun ma'lumot). `<label>` bo'lsa ekran o'quvchi
+   uni bog'lanmagan yorliq deb o'qirdi. */
+.lbl { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 7px; }
 /* input:not([type]) - JSX da type yozilmagan maydonlar ham shu qoidaga tushsin,
    aks holda ular boshqalardan tor bolib qoladi. */
 input:not([type]),

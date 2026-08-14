@@ -14,12 +14,12 @@ joyida qoladi - u boshqa yo'nalish: odam so'raydi, menejer hal qiladi.
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from apps.core.queries import object_or_404
 from apps.accounts.serializers import UserBriefSerializer
 from apps.activity.services import log
 
@@ -45,10 +45,10 @@ def _resolve_scope(request):
     workspace_key = src.get("workspace")
 
     if project_id:
-        return get_object_or_404(
+        return object_or_404(
             Project.objects.select_related("workspace"), pk=project_id), None
     if workspace_key:
-        return None, get_object_or_404(Workspace, slug=workspace_key)
+        return None, object_or_404(Workspace, slug=workspace_key)
     raise ValidationError({"detail": "project yoki workspace korsating."})
 
 
@@ -140,7 +140,7 @@ def add_member(request):
     project, workspace = _resolve_scope(request)
     _require_manage(request.user, project, workspace)
 
-    target = get_object_or_404(User, pk=request.data.get("user_id"), is_active=True)
+    target = object_or_404(User, pk=request.data.get("user_id"), is_active=True)
     if target.pk == request.user.pk:
         raise ValidationError({"user_id": "Ozingizni qosha olmaysiz."})
 

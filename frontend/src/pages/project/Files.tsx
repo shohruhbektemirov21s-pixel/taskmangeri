@@ -16,7 +16,7 @@
  * hujjatning yangi nusxasi bo'ladi. Eskisi yo'qolmaydi — «v2» yorlig'i
  * ostidan ochib ko'rish mumkin: kim yuklagan, kim almashtirgan, qachon.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ApiError, api, tokens } from "@/api/client";
 import type { Project, ProjectFile } from "@/api/types";
 import { IconFile } from "@/components/icons";
@@ -24,6 +24,7 @@ import { Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, timeAgo } from "@/compon
 import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Files({ project }: { project: Project }) {
+  const fid = useId();
   const acc = project.access;
   const [items, setItems] = useState<ProjectFile[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +93,8 @@ export default function Files({ project }: { project: Project }) {
       {acc.can_work && (
         <Card title="Hujjat yuklash">
           <div className="field">
-            <label>Izoh (ixtiyoriy)</label>
-            <input type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
+            <label htmlFor={`${fid}-0`}>Izoh (ixtiyoriy)</label>
+            <input id={`${fid}-0`} type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
                    onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Access, Project, ProjectFile, Task, TaskStatusValue } from "@/api/types";
@@ -19,6 +19,7 @@ const DOT: Record<string, string> = {
 };
 
 export default function Board({ project }: { project: Project }) {
+  const fid = useId();
   const { subscribe } = useRealtime();
   const [columns, setColumns] = useState<Column[] | null>(null);
   const [access, setAccess] = useState<Access | null>(null);
@@ -42,9 +43,11 @@ export default function Board({ project }: { project: Project }) {
   // Fayllar faqat jamoa a'zolariga ko'rinadi - begonaga 403 keladi, o'shanda
   // tasma umuman chizilmaydi.
   useEffect(() => {
+    let alive = true;
     void api.get<any>(`/projects/${project.id}/files/`)
-      .then((d) => setFiles(listOf<ProjectFile>(d)))
-      .catch(() => setFiles([]));
+      .then((d) => { if (alive) setFiles(listOf<ProjectFile>(d)); })
+      .catch(() => { if (alive) setFiles([]); });
+    return () => { alive = false; };
   }, [project.id]);
 
   // Boshqa odam kartani ko'chirsa yoki yangi vazifa qo'shsa, doska o'zi
@@ -74,8 +77,8 @@ export default function Board({ project }: { project: Project }) {
       <ErrorMsg error={error} />
       <div className="filters">
         <div className="f">
-          <label>Ijrochi</label>
-          <select value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+          <label htmlFor={`${fid}-0`}>Ijrochi</label>
+          <select id={`${fid}-0`} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
             <option value="">Hammasi</option>
             <option value="me">Faqat meniki</option>
             {(project.members || []).map((m) => (

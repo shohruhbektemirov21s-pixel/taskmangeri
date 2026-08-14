@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
@@ -13,7 +13,8 @@ from apps.activity.services import log
 from apps.core.permissions import CanCreateProject, ProjectAccess, check_access
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
-from apps.core.queries import related_count
+from apps.core.queries import object_or_404, related_count
+from apps.core.uploads import check_uploads
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
 
@@ -72,6 +73,11 @@ def project_counters(user):
         "member_count": related_count(ProjectMember, group_by="project", is_active=True),
         "open_tasks": related_count(Task, group_by="project", status__in=OPEN_STATUSES),
         "done_tasks": related_count(Task, group_by="project", status=TaskStatus.DONE),
+        # Bekor qilinganlardan tashqari hammasi - `progress()` shuni ishlatadi
+        # va shu tufayli har loyiha uchun ikkita COUNT yubormaydi.
+        "total_tasks": related_count(Task, group_by="project",
+                                     status__in=[s for s in TaskStatus.values
+                                                 if s != TaskStatus.CANCELLED]),
         "my_tasks": related_count(Task, group_by="project",
                                   assignments__user=user, assignments__is_active=True),
     }
@@ -152,8 +158,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ queryset
     def get_queryset(self):
         user = self.request.user
-        qs = Project.objects.select_related("workspace", "manager", "created_by").annotate(
-            **project_counters(user))
+        # `specialties` va `memberships` seriyalizatorda har loyiha uchun
+        # o'qiladi (kerakli yo'nalishlar, jamoa tarkibi, ruxsatlar). Oldindan
+        # yuklanmasa har biri alohida so'rov bo'lardi - ro'yxat uzayganda
+        # so'rovlar soni loyihalar soniga ko'payib ketardi.
+        qs = (Project.objects
+              .select_related("workspace", "manager", "created_by")
+              .prefetch_related("specialties", "memberships__user")
+              .annotate(**project_counters(user)))
         scope = self.request.query_params.get("scope", "mine")
 
         # Ko'p-ga-ko'p bog'lanish bo'yicha filtrlash qatorlarni takrorlaydi va
@@ -212,14 +224,22 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return ProjectSerializer
 
     def get_object(self):
-        project = get_object_or_404(
-            Project.objects.select_related("workspace", "manager", "created_by"),
+        # Ro'yxatdagi kabi: yo'nalishlar va a'zolar seriyalizatorda bir necha
+        # marta o'qiladi (tarkib, kamchilik, ruxsatlar) - bir marta olamiz.
+        project = object_or_404(
+            Project.objects
+            .select_related("workspace", "manager", "created_by")
+            .prefetch_related("specialties", "memberships__user"),
             pk=self.kwargs["pk"])
         need = "view" if self.request.method in ("GET", "HEAD", "OPTIONS") else "manage"
         check_access(self.request.user, project, need)
         return project
 
     # ------------------------------------------------------------ CRUD
+    # Bu yerda oltita yozuv ketma-ket yaratiladi. Biri o'tib, ikkinchisi
+    # yiqilsa - menejersiz loyiha qolib ketardi, ya'ni uni hech kim
+    # boshqara olmasdi. Shuning uchun hammasi bitta tranzaksiyada.
+    @transaction.atomic
     def perform_create(self, serializer):
         user = self.request.user
         manager_id = serializer.validated_data.pop("manager_id", None) or user.id
@@ -242,6 +262,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         log(actor=user, verb="project.created", project=project, target=project,
             summary="Loyiha yaratildi: " + project.name, detail=project.description[:500])
 
+    @transaction.atomic
     def perform_update(self, serializer):
         manager_id = serializer.validated_data.pop("manager_id", None)
         project = serializer.save(**({"manager_id": manager_id} if manager_id else {}))
@@ -291,7 +312,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(s.data)
 
     def _manage_project(self, pk, need="manage"):
-        project = get_object_or_404(Project, pk=pk)
+        project = object_or_404(Project, pk=pk)
         check_access(self.request.user, project, need)
         return project
 
@@ -326,7 +347,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         from apps.core.team import add_to_project
 
         project = self._manage_project(pk)
-        target = get_object_or_404(User, pk=request.data.get("user_id"), is_active=True)
+        target = object_or_404(User, pk=request.data.get("user_id"), is_active=True)
         member = add_to_project(request.user, project, target, request.data.get("role"))
 
         live_project(project, "member", request.user)
@@ -337,7 +358,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def member_action(self, request, pk=None, member_id=None):
         """action=role|remove|appoint_admin"""
         project = self._manage_project(pk)
-        member = get_object_or_404(ProjectMember, pk=member_id, project=project)
+        member = object_or_404(ProjectMember, pk=member_id, project=project)
         access = ProjectAccess(request.user, project)
         act = request.data.get("action")
 
@@ -446,7 +467,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def leave(self, request, pk=None):
-        project = get_object_or_404(Project, pk=pk)
+        project = object_or_404(Project, pk=pk)
         access = ProjectAccess(request.user, project)
         if not access.membership:
             raise ValidationError({"detail": "Siz bu loyiha azosi emassiz."})
@@ -623,7 +644,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def files(self, request, pk=None):
         """GET - hujjatlar royxati (loyihani kora oladigan hamma koradi);
         POST - fayl yuklash (multipart/form-data, faqat jamoa)."""
-        project = get_object_or_404(Project, pk=pk)
+        project = object_or_404(Project, pk=pk)
 
         if request.method == "GET":
             # Hujjat - loyihaning yuzi: texnik topshiriq va dizaynni kormasdan
@@ -641,6 +662,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         uploads = request.FILES.getlist("file") or request.FILES.getlist("files")
         if not uploads:
             raise ValidationError({"file": "Fayl tanlanmagan."})
+        check_uploads(uploads)
 
         note = request.data.get("description", "")
         created, updated = [], []
@@ -685,8 +707,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
         shartnoma, dizayn - butun jamoaning ishi unga tayanadi. Bitta odam
         ketayotganda yoki xafa bolganda uni olib ketmasin.
         """
-        project = get_object_or_404(Project, pk=pk)
-        item = get_object_or_404(ProjectFile, pk=file_id, project=project)
+        project = object_or_404(Project, pk=pk)
+        item = object_or_404(ProjectFile, pk=file_id, project=project)
         access = ProjectAccess(request.user, project)
         if not access.can_manage:
             raise PermissionDenied(
@@ -717,7 +739,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         from apps.accounts.serializers import UserBriefSerializer
         from datetime import datetime
 
-        project = get_object_or_404(Project, pk=pk)
+        project = object_or_404(Project, pk=pk)
         check_access(request.user, project, "view")
 
         today = timezone.localdate()
@@ -833,7 +855,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ qoshilish sorovlari
     @action(detail=True, methods=["post"], url_path="join")
     def join(self, request, pk=None):
-        project = get_object_or_404(Project.objects.select_related("workspace"), pk=pk)
+        project = object_or_404(Project.objects.select_related("workspace"), pk=pk)
         access = ProjectAccess(request.user, project)
         if access.is_member:
             raise ValidationError({"detail": "Siz allaqachon bu loyiha azosisiz."})
@@ -893,7 +915,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def decide_request(self, request, pk=None, req_id=None):
         """{action: approve|reject, role?, note?}"""
         project = self._manage_project(pk)
-        req = get_object_or_404(JoinRequest, pk=req_id, project=project)
+        req = object_or_404(JoinRequest, pk=req_id, project=project)
         if not req.is_pending:
             raise ValidationError({"detail": "Bu sorov allaqachon hal qilingan."})
 

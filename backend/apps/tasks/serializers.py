@@ -21,6 +21,8 @@ class AttachmentSerializer(serializers.ModelSerializer):
     extension = serializers.CharField(read_only=True)
     is_image = serializers.BooleanField(read_only=True)
     url = serializers.SerializerMethodField()
+    # Yuklashda kerak, javobda emas - sababi `ProjectFileSerializer` da.
+    file = serializers.FileField(write_only=True)
 
     class Meta:
         model = Attachment
@@ -35,10 +37,10 @@ class AttachmentSerializer(serializers.ModelSerializer):
         return media_url(obj.file)
 
     def validate_file(self, value):
-        limit = 25 * 1024 * 1024
-        if value.size > limit:
-            raise serializers.ValidationError("Fayl hajmi 25 MB dan oshmasligi kerak.")
-        return value
+        # Hajm ham, tur ham bitta joyda: `apps/core/uploads.py`.
+        from apps.core.uploads import check_upload
+
+        return check_upload(value)
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -131,7 +133,9 @@ class TaskSerializer(serializers.ModelSerializer):
         return attrs
 
     def get_attachment_count(self, obj):
-        return obj.attachments.count()
+        # Ro'yxatda annotatsiya bo'ladi, alohida ochilganda - bazadan.
+        annotated = getattr(obj, "attachments_total", None)
+        return annotated if annotated is not None else obj.attachments.count()
 
     def get_assignees(self, obj):
         users = [a.user for a in obj.assignments.all() if a.is_active]

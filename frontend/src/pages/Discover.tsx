@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
@@ -7,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Card, Empty, Loading, SpecialtyTag } from "@/components/ui";
 
 export default function Discover() {
+  const fid = useId();
   const nav = useNavigate();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -32,8 +33,8 @@ export default function Discover() {
           <div>
             <form className="filters" onSubmit={(e) => { e.preventDefault(); void load(); }}>
               <div className="f" style={{ flex: 1 }}>
-                <label>Qidiruv</label>
-                <input value={q} onChange={(e) => setQ(e.target.value)}
+                <label htmlFor={`${fid}-0`}>Qidiruv</label>
+                <input id={`${fid}-0`} value={q} onChange={(e) => setQ(e.target.value)}
                        placeholder="Loyiha nomi yoki kaliti" />
               </div>
               <button className="btn">Qidirish</button>

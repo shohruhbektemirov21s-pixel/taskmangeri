@@ -78,8 +78,11 @@ def dashboard(request):
     member_of = Exists(ProjectMember.objects.filter(
         project=OuterRef("pk"), user=user, is_active=True))
 
+    # `specialties` va `memberships` seriyalizatorda har loyiha uchun
+    # o'qiladi - oldindan yuklanmasa har biri alohida so'rov bo'lardi.
     my_projects = (Project.objects.filter(member_of)
-                   .select_related("workspace", "manager")
+                   .select_related("workspace", "manager", "created_by")
+                   .prefetch_related("specialties", "memberships__user")
                    .annotate(**project_counters(user))
                    .order_by("-updated_at"))
 
@@ -107,6 +110,15 @@ def dashboard(request):
                  .prefetch_related("assignments__user").order_by("submitted_at")[:10])
     join_qs = join_qs.select_related("user", "project").order_by("created_at")[:10]
 
+    # `managed` yuqorida ichki so'rov sifatida ham ishlatiladi (`project__in`),
+    # shuning uchun uni o'zgartirmaymiz - ko'rsatiladigan sahifa alohida
+    # olinadi va faqat unga prefetch bilan annotatsiya qo'shiladi.
+    managed_page = (managed
+                    .select_related("workspace", "manager", "created_by")
+                    .prefetch_related("specialties", "memberships__user")
+                    .annotate(**project_counters(user))
+                    .order_by("-updated_at")[:8])
+
     return Response({
         "stats": {
             "open": focus_queue.count(),
@@ -125,7 +137,7 @@ def dashboard(request):
         "blocked": TaskSerializer(blocked, many=True, context=ctx).data,
         "waiting_review": TaskSerializer(waiting_review, many=True, context=ctx).data,
         "my_projects": ProjectSerializer(my_projects, many=True, context=ctx).data,
-        "managed_projects": ProjectSerializer(managed[:8], many=True, context=ctx).data,
+        "managed_projects": ProjectSerializer(managed_page, many=True, context=ctx).data,
         "review_queue": TaskSerializer(review_qs, many=True, context=ctx).data,
         "join_queue": JoinRequestSerializer(join_qs, many=True, context=ctx).data,
         "feed": ActivitySerializer(feed, many=True, context=ctx).data,
@@ -138,10 +150,9 @@ def my_work(request):
     """Menga biriktirilgan barcha vazifalar - status bo'yicha guruhlangan."""
     user = request.user
     ctx = {"request": request}
-    qs = (Task.objects.filter(Exists(TaskAssignment.objects.filter(
+    qs = (Task.objects.for_display().filter(Exists(TaskAssignment.objects.filter(
               task=OuterRef("pk"), user=user, is_active=True)),
-              project__deleted_at__isnull=True)
-          .select_related("project").prefetch_related("assignments__user"))
+              project__deleted_at__isnull=True))
 
     project_id = request.query_params.get("project")
     if project_id:

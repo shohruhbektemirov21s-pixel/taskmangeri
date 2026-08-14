@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Workspace } from "@/api/types";
@@ -6,6 +6,7 @@ import { PageHead } from "@/components/Layout";
 import { Card, ErrorMsg } from "@/components/ui";
 
 export default function WorkspaceForm() {
+  const fid = useId();
   const nav = useNavigate();
   const [f, setF] = useState({ name: "", description: "", is_open: true });
   const [error, setError] = useState<string | null>(null);
@@ -33,14 +34,14 @@ export default function WorkspaceForm() {
         <Card title="Maydon maʼlumotlari">
           <form onSubmit={submit}>
             <div className="field">
-              <label>Nomi</label>
-              <input value={f.name} required autoFocus
+              <label htmlFor={`${fid}-0`}>Nomi</label>
+              <input id={`${fid}-0`} value={f.name} required autoFocus
                      onChange={(e) => setF({ ...f, name: e.target.value })}
                      placeholder="Masalan: Aloqa Bank IT" />
             </div>
             <div className="field">
-              <label>Tavsif</label>
-              <textarea rows={3} value={f.description}
+              <label htmlFor={`${fid}-1`}>Tavsif</label>
+              <textarea id={`${fid}-1`} rows={3} value={f.description}
                         onChange={(e) => setF({ ...f, description: e.target.value })}
                         placeholder="Jamoa nima bilan shugullanadi" />
             </div>

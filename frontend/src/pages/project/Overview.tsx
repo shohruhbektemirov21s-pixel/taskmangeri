@@ -10,10 +10,16 @@ export default function Overview({ project, onChange }: { project: Project; onCh
   const [myTasks, setMyTasks] = useState<Task[]>([]);
 
   useEffect(() => {
+    // Ikkovi ham yordamchi ro'yxat: kelmasa sahifa baribir ishlaydi,
+    // shuning uchun xato bo'sh ro'yxatga aylanadi va konsolga chiqadi.
+    let alive = true;
     void api.get<any>("/activity/", { project: project.id, page_size: 12 })
-      .then((d) => setFeed(d.results || []));
+      .then((d) => { if (alive) setFeed(d.results || []); })
+      .catch(() => { if (alive) setFeed([]); });
     void api.get<any>("/tasks/", { project: project.id, assignee: "me", open: "1", page_size: 6 })
-      .then((d) => setMyTasks(d.results || []));
+      .then((d) => { if (alive) setMyTasks(d.results || []); })
+      .catch(() => { if (alive) setMyTasks([]); });
+    return () => { alive = false; };
   }, [project.id]);
 
   const c = project.status_counts || {};

@@ -28,9 +28,12 @@ export default function Layout() {
   const [menu, setMenu] = useState(false);
 
   useEffect(() => {
+    // Sahifadan sahifaga tez o'tilganda eski javob yangi sanoqni bosmasin.
+    let alive = true;
     void (async () => {
       try {
         const d = await api.get<any>("/dashboard/");
+        if (!alive) return;
         setCounts({
           open: d.stats.open,
           reviews: d.review_queue?.length ?? 0,
@@ -38,6 +41,7 @@ export default function Layout() {
         });
       } catch { /* jim */ }
     })();
+    return () => { alive = false; };
   }, [loc.pathname, tick]);
 
   // Qo'shilish so'rovi kelsa yon paneldagi sanoq o'zi yangilansin.

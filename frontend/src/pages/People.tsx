@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { User } from "@/api/types";
@@ -7,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Avatar, Card, ErrorMsg, Loading, fmtDate } from "@/components/ui";
 
 export default function People() {
+  const fid = useId();
   const { user, meta } = useAuth();
   const [users, setUsers] = useState<User[] | null>(null);
   const [f, setF] = useState({ search: "", specialty: "", role: "", seniority: "" });
@@ -43,13 +44,13 @@ export default function People() {
 
         <div className="filters">
           <div className="f" style={{ flex: 1 }}>
-            <label>Qidiruv</label>
-            <input value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })}
+            <label htmlFor={`${fid}-0`}>Qidiruv</label>
+            <input id={`${fid}-0`} value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })}
                    placeholder="Ism, email yoki konikma" />
           </div>
           <div className="f">
-            <label>Mutaxassislik</label>
-            <select value={f.specialty} onChange={(e) => setF({ ...f, specialty: e.target.value })}>
+            <label htmlFor={`${fid}-1`}>Mutaxassislik</label>
+            <select id={`${fid}-1`} value={f.specialty} onChange={(e) => setF({ ...f, specialty: e.target.value })}>
               <option value="">Hammasi</option>
               {(meta?.specialties || []).map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -57,8 +58,8 @@ export default function People() {
             </select>
           </div>
           <div className="f">
-            <label>Daraja</label>
-            <select value={f.seniority} onChange={(e) => setF({ ...f, seniority: e.target.value })}>
+            <label htmlFor={`${fid}-2`}>Daraja</label>
+            <select id={`${fid}-2`} value={f.seniority} onChange={(e) => setF({ ...f, seniority: e.target.value })}>
               <option value="">Hammasi</option>
               {(meta?.seniority || []).map((s) => (
                 <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -66,8 +67,8 @@ export default function People() {
             </select>
           </div>
           <div className="f">
-            <label>Tizim roli</label>
-            <select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
+            <label htmlFor={`${fid}-3`}>Tizim roli</label>
+            <select id={`${fid}-3`} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
               <option value="">Hammasi</option>
               {(meta?.global_role || []).map((s) => (
                 <option key={s.value} value={String(s.value)}>{s.label}</option>

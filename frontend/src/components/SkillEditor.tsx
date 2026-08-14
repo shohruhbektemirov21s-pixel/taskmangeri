@@ -19,11 +19,13 @@ function parse(value: string) {
 }
 
 export default function SkillEditor({
-  value, onChange, suggestions = [],
+  value, onChange, suggestions = [], id,
 }: {
   value: string;
   onChange: (value: string) => void;
   suggestions?: string[];
+  /** Tashqi yorliq (`<label htmlFor>`) shu maydonga ulanadi. */
+  id?: string;
 }) {
   const [draft, setDraft] = useState("");
   const items = parse(value);
@@ -69,6 +71,7 @@ export default function SkillEditor({
 
       <div className="row" style={{ gap: 8 }}>
         <input
+          id={id}
           value={draft}
           placeholder="Masalan: PostgreSQL"
           onChange={(e) => setDraft(e.target.value)}

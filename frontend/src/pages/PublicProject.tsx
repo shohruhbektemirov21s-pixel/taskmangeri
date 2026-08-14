@@ -20,15 +20,19 @@ export default function PublicProject() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let alive = true;
     void (async () => {
       try {
-        setProject(await api.get<PublicProjectData>(`/public/projects/${id}/`));
+        const d = await api.get<PublicProjectData>(`/public/projects/${id}/`);
+        if (alive) setProject(d);
       } catch (err) {
+        if (!alive) return;
         setError(err instanceof ApiError && err.status === 404
           ? "Bunday ochiq loyiha topilmadi — u yopiq bo'lishi mumkin."
           : "Loyihani ochib bo'lmadi");
       }
     })();
+    return () => { alive = false; };
   }, [id]);
 
   if (error) {

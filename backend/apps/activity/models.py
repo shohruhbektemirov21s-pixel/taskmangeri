@@ -49,7 +49,11 @@ class ActivityQuerySet(models.QuerySet):
         return self.filter(project=project)
 
     def timeline(self):
-        return self.select_related("actor", "project", "task", "workspace").order_by("-created_at")
+        # `task__project` ham kerak: `task_code` vazifa kodini so'raydi, u esa
+        # loyiha kalitidan yasaladi - aks holda har yozuv uchun alohida
+        # so'rov ketardi.
+        return (self.select_related("actor", "project", "task", "task__project", "workspace")
+                .order_by("-created_at"))
 
 
 # Tarix filtri uchun turkumlar. Nomlar `VERB_META` dan olinadi - ro'yxat

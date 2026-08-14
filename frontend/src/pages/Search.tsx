@@ -5,7 +5,7 @@
  * Shu sabab bu sahifa autentifikatsiyasiz ishlaydi; serverdan faqat ochiq
  * loyihalarning xavfsiz maydonlari keladi.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PublicProject } from "@/api/types";
@@ -14,6 +14,7 @@ import { Empty, Loading, Progress } from "@/components/ui";
 import { useAuth } from "@/auth/AuthContext";
 
 export default function Search() {
+  const fid = useId();
   const [params, setParams] = useSearchParams();
   const { user } = useAuth();
   const q = params.get("q") || "";
@@ -69,8 +70,8 @@ export default function Search() {
 
         <div className="filters">
           <div className="f" style={{ minWidth: 220 }}>
-            <label>Mutaxassislik bo'yicha</label>
-            <select value={specialty} onChange={(e) => setFilter(e.target.value)}>
+            <label htmlFor={`${fid}-0`}>Mutaxassislik bo'yicha</label>
+            <select id={`${fid}-0`} value={specialty} onChange={(e) => setFilter(e.target.value)}>
               <option value="">Hammasi</option>
               {specialties.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>

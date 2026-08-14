@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
@@ -7,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Card, Empty, ErrorMsg, Loading } from "@/components/ui";
 
 export default function Workspaces() {
+  const fid = useId();
   const { user } = useAuth();
   const [mine, setMine] = useState<Workspace[] | null>(null);
   const [others, setOthers] = useState<Workspace[]>([]);
@@ -86,8 +87,8 @@ export default function Workspaces() {
           <div>
             <Card title="Qoshilish kodi bilan qoshilish">
               <div className="field">
-                <label>Kod</label>
-                <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
+                <label htmlFor={`${fid}-0`}>Kod</label>
+                <input id={`${fid}-0`} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
                        placeholder="ABC123XYZ" />
               </div>
               <p className="muted" style={{ fontSize: 12 }}>

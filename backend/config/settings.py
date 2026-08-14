@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,6 +20,30 @@ def env_list(key, default=""):
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*") or ["*"]
+
+# Ishlab chiqish uchun standart kalit qulay, lekin u bilan serverga chiqib
+# ketish - eng jimgina va eng qimmat xato: kalit ochiq bo'lsa har kim o'zi
+# uchun haqiqiy sessiya va parol tiklash havolasini yasay oladi. Shuning
+# uchun `DEBUG` o'chirilgan holda zaif kalit bilan ishga tushish taqiqlanadi:
+# nosozlik ishga tushirish paytida, aniq xabar bilan chiqadi.
+INSECURE_KEYS = {"dev-insecure-key-change-me"}
+if not DEBUG and (SECRET_KEY in INSECURE_KEYS
+                  or SECRET_KEY.startswith("change-me")
+                  or len(SECRET_KEY) < 32):
+    raise ImproperlyConfigured(
+        "SECRET_KEY standart yoki juda qisqa. Produksiya uchun yangisini yarating: "
+        "python -c \"from django.core.management.utils import get_random_secret_key as k; print(k())\""
+    )
+
+# Shu bilan birga, DEBUG o'chirilganda brauzer himoyalarini ham yoqamiz -
+# ular faqat HTTPS ortida ma'noga ega, shuning uchun dev da tegilmaydi.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     # daphne ro'yxatning boshida turishi shart - shunda runserver ham
@@ -97,6 +122,10 @@ DATABASES = {
         "PORT": os.getenv("DB2_PORT", "50000"),
         "PCONNECT": True,        # ulanishni qayta ishlatish
         "CONN_MAX_AGE": 60,
+        # Db2 da baza nomi 8 belgidan oshmaydi va adapter unga o'zi `t_`
+        # qo'shadi - `t_TEAMFLOW` esa yaroqsiz nom (SQL1001N). Shuning uchun
+        # sinov bazasi nomini o'zimiz beramiz.
+        "TEST": {"NAME": os.getenv("DB2_TEST_DB", "TFTEST")},
     }
 }
 

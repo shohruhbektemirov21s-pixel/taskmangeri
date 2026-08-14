@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project } from "@/api/types";
@@ -7,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Avatar, Card, ErrorMsg, Loading, fromDateTimeInput } from "@/components/ui";
 
 export default function TaskBulkForm() {
+  const fid = useId();
   const { id } = useParams();
   const nav = useNavigate();
   const { meta } = useAuth();
@@ -24,7 +25,13 @@ export default function TaskBulkForm() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void api.get<Project>(`/projects/${id}/`).then(setProject);
+    let alive = true;
+    void api.get<Project>(`/projects/${id}/`)
+      .then((p) => { if (alive) setProject(p); })
+      .catch((e) => {
+        if (alive) setError(e instanceof ApiError ? e.message : "Loyihani ochib bo'lmadi.");
+      });
+    return () => { alive = false; };
   }, [id]);
 
   const titles = lines.split("\n").map((l) => l.trim().replace(/^[-*]\s*/, "")).filter(Boolean);
@@ -136,8 +143,8 @@ export default function TaskBulkForm() {
             <div>
               <Card title="Kimga beriladi">
                 <div className="field">
-                  <label>Kerakli mutaxassislik</label>
-                  <select value={f.required_specialty}
+                  <label htmlFor={`${fid}-0`}>Kerakli mutaxassislik</label>
+                  <select id={`${fid}-0`} value={f.required_specialty}
                           onChange={(e) => setF({ ...f, required_specialty: e.target.value })}>
                     <option value="">Talab qilinmaydi</option>
                     {(meta?.specialties || []).map((s) => (
@@ -183,29 +190,29 @@ export default function TaskBulkForm() {
 
               <Card title="Umumiy xususiyatlar">
                 <div className="field">
-                  <label>Muhimlik</label>
-                  <select value={f.priority} onChange={(e) => setF({ ...f, priority: Number(e.target.value) })}>
+                  <label htmlFor={`${fid}-1`}>Muhimlik</label>
+                  <select id={`${fid}-1`} value={f.priority} onChange={(e) => setF({ ...f, priority: Number(e.target.value) })}>
                     {(meta?.task_priority || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
                     ))}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Turi</label>
-                  <select value={f.task_type} onChange={(e) => setF({ ...f, task_type: e.target.value })}>
+                  <label htmlFor={`${fid}-2`}>Turi</label>
+                  <select id={`${fid}-2`} value={f.task_type} onChange={(e) => setF({ ...f, task_type: e.target.value })}>
                     {(meta?.task_type || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
                     ))}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Umumiy muddat</label>
-                  <input type="datetime-local" value={f.due_date}
+                  <label htmlFor={`${fid}-3`}>Umumiy muddat</label>
+                  <input id={`${fid}-3`} type="datetime-local" value={f.due_date}
                          onChange={(e) => setF({ ...f, due_date: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Umumiy tayyorlik mezoni</label>
-                  <textarea rows={3} value={f.acceptance_criteria}
+                  <label htmlFor={`${fid}-4`}>Umumiy tayyorlik mezoni</label>
+                  <textarea id={`${fid}-4`} rows={3} value={f.acceptance_criteria}
                             onChange={(e) => setF({ ...f, acceptance_criteria: e.target.value })}
                             placeholder="Hamma vazifaga bir xil qollaniladi" />
                 </div>

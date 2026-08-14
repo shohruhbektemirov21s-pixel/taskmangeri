@@ -192,6 +192,10 @@ class ProjectFileSerializer(serializers.ModelSerializer):
     extension = serializers.CharField(read_only=True)
     is_image = serializers.BooleanField(read_only=True)
     url = serializers.SerializerMethodField()
+    # Fayl yuklashda kerak, javobda esa emas: `FileField` ni o'z holicha
+    # qaytarsak absolyut manzil chiqadi va u proksi ortida `http://backend:8000/...`
+    # bo'lib qoladi - brauzer bunday hostni tanimaydi. Javobda faqat `url`.
+    file = serializers.FileField(write_only=True)
     # Eski nusxalar: yangisi tepada. Ro'yxat bo'sh bo'lsa hujjat hech qachon
     # almashtirilmagan degani.
     versions = ProjectFileVersionSerializer(many=True, read_only=True)
@@ -211,7 +215,7 @@ class ProjectFileSerializer(serializers.ModelSerializer):
         return media_url(obj.file)
 
     def validate_file(self, value):
-        limit = 25 * 1024 * 1024
-        if value.size > limit:
-            raise serializers.ValidationError("Fayl hajmi 25 MB dan oshmasligi kerak.")
-        return value
+        # Hajm ham, tur ham bitta joyda: `apps/core/uploads.py`.
+        from apps.core.uploads import check_upload
+
+        return check_upload(value)

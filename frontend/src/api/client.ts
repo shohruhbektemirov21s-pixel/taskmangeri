@@ -106,6 +106,8 @@ interface RequestOptions {
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined | null>;
   raw?: boolean;
+  /** So'rovni bekor qilish uchun - sahifa almashsa eski javob kerak emas. */
+  signal?: AbortSignal;
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}, retry = true): Promise<T> {
@@ -125,6 +127,7 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
     method: opts.method || "GET",
     headers,
     body: opts.body === undefined ? undefined : isForm ? (opts.body as FormData) : JSON.stringify(opts.body),
+    signal: opts.signal,
   });
 
   if (res.status === 401 && retry && tokens.refresh) {
@@ -147,7 +150,8 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
 }
 
 export const api = {
-  get: <T,>(path: string, params?: RequestOptions["params"]) => request<T>(path, { params }),
+  get: <T,>(path: string, params?: RequestOptions["params"], signal?: AbortSignal) =>
+    request<T>(path, { params, signal }),
   post: <T,>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   patch: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   put: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),

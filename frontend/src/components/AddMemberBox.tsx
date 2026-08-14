@@ -8,7 +8,7 @@
  * kattalashganda ro'yxat ishlamay qoladi. Kimni qo'shsa bo'lishini backend
  * hal qiladi (`/team/candidates/`) — a'zolar ro'yxatga tushmaydi.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { ApiError, api } from "@/api/client";
 import type { Choice, UserBrief } from "@/api/types";
 import UserSearch from "./UserSearch";
@@ -30,6 +30,7 @@ interface Props {
 export default function AddMemberBox({
   projectId, workspaceSlug, roles, defaultRole, refreshKey = 0, onChange,
 }: Props) {
+  const fid = useId();
   const [picked, setPicked] = useState<UserBrief | null>(null);
   const [role, setRole] = useState(defaultRole || String(roles[0]?.value || ""));
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +93,8 @@ export default function AddMemberBox({
           </div>
 
           <div className="field mt">
-            <label>Rol</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <label htmlFor={`${fid}-0`}>Rol</label>
+            <select id={`${fid}-0`} value={role} onChange={(e) => setRole(e.target.value)}>
               {roles.map((r) => (
                 <option key={String(r.value)} value={String(r.value)}>{r.label}</option>
               ))}

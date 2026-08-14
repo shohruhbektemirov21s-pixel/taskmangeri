@@ -25,12 +25,17 @@ export default function Brief({ project, onChange }: { project: Project; onChang
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    let alive = true;
     void api.get<BriefType>(`/projects/${project.id}/brief/`).then((b) => {
+      if (!alive) return;
       setBrief(b);
       const v: Record<string, string> = {};
       FIELDS.forEach((f) => { v[f.key as string] = (b[f.key] as string) || ""; });
       setValues(v);
+    }).catch((e) => {
+      if (alive) setError(e instanceof ApiError ? e.message : "Brifni ochib bo'lmadi.");
     });
+    return () => { alive = false; };
   }, [project.id]);
 
   async function save(e: React.FormEvent) {

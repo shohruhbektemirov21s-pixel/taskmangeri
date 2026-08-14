@@ -9,7 +9,7 @@
  *   - loyiha yopiq turganda — nom, kalit va tavsif bo'yicha loyiha qidiriladi;
  *   - loyiha ochilganda — o'sha loyihaning yozuvlari matn bo'yicha filtrlanadi.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
@@ -32,6 +32,7 @@ interface ProjectRow {
 
 /** Ochilgan loyihaning yozuvlari — faqat ochilganda so'raladi. */
 function ProjectFeed({ projectId }: { projectId: number }) {
+  const fid = useId();
   // Turkumlar backenddan (`/meta/` -> `VERB_META`): frontendda qattiq
   // yozilganda «Ish maydoni» va «Foydalanuvchi» filtrga tushmay qolgan edi.
   const { meta } = useAuth();
@@ -41,13 +42,17 @@ function ProjectFeed({ projectId }: { projectId: number }) {
   const [f, setF] = useState({ search: "", category: "", days: "", mine: "" });
 
   useEffect(() => {
+    // Filtr yoki sahifa tez almashtirilsa eski javob yangisining ustiga
+    // tushmasin - kechikkan so'rov bekor qilinadi.
+    let alive = true;
     setItems(null);
     void api.get<any>("/activity/", {
       project: projectId, search: f.search, category: f.category, days: f.days,
       page, page_size: 50,
     })
-      .then((d) => { setItems(d.results || []); setCount(d.count || 0); })
-      .catch(() => { setItems([]); setCount(0); });
+      .then((d) => { if (!alive) return; setItems(d.results || []); setCount(d.count || 0); })
+      .catch(() => { if (!alive) return; setItems([]); setCount(0); });
+    return () => { alive = false; };
   }, [projectId, f, page]);
 
   const set = (k: string, v: string) => { setPage(1); setF((p) => ({ ...p, [k]: v })); };
@@ -57,15 +62,15 @@ function ProjectFeed({ projectId }: { projectId: number }) {
     <div className="card-body">
       <div className="filters">
         <div className="f" style={{ flex: 1 }}>
-          <label>Yozuvlar ichidan qidirish</label>
-          <input defaultValue={f.search} placeholder="Matn boyicha"
+          <label htmlFor={`${fid}-0`}>Yozuvlar ichidan qidirish</label>
+          <input id={`${fid}-0`} defaultValue={f.search} placeholder="Matn boyicha"
                  onKeyDown={(e) => {
                    if (e.key === "Enter") set("search", (e.target as HTMLInputElement).value);
                  }} />
         </div>
         <div className="f">
-          <label>Turkum</label>
-          <select value={f.category} onChange={(e) => set("category", e.target.value)}>
+          <label htmlFor={`${fid}-1`}>Turkum</label>
+          <select id={`${fid}-1`} value={f.category} onChange={(e) => set("category", e.target.value)}>
             <option value="">Hammasi</option>
             {(meta?.activity_category || []).map((c) => (
               <option key={String(c.value)} value={String(c.value)}>{c.label}</option>
@@ -73,8 +78,8 @@ function ProjectFeed({ projectId }: { projectId: number }) {
           </select>
         </div>
         <div className="f">
-          <label>Davr</label>
-          <select value={f.days} onChange={(e) => set("days", e.target.value)}>
+          <label htmlFor={`${fid}-2`}>Davr</label>
+          <select id={`${fid}-2`} value={f.days} onChange={(e) => set("days", e.target.value)}>
             <option value="">Butun tarix</option>
             <option value="7">Songgi 7 kun</option>
             <option value="30">Songgi 30 kun</option>
@@ -103,6 +108,7 @@ function ProjectFeed({ projectId }: { projectId: number }) {
 }
 
 export default function Feed() {
+  const fid = useId();
   const [params, setParams] = useSearchParams();
   const [rows, setRows] = useState<ProjectRow[] | null>(null);
 
@@ -137,8 +143,8 @@ export default function Feed() {
       <div className="content">
         <div className="filters">
           <div className="f" style={{ flex: 1 }}>
-            <label>Loyiha qidirish</label>
-            <input defaultValue={q} placeholder="Nom, kalit yoki tavsif boyicha"
+            <label htmlFor={`${fid}-3`}>Loyiha qidirish</label>
+            <input id={`${fid}-3`} defaultValue={q} placeholder="Nom, kalit yoki tavsif boyicha"
                    onKeyDown={(e) => {
                      if (e.key === "Enter") set("q", (e.target as HTMLInputElement).value);
                    }} />

@@ -1,21 +1,18 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "@/api/client";
+import { useFetch } from "@/api/useFetch";
 import type { DeveloperReport as Report } from "@/api/types";
 import Timeline from "@/components/Timeline";
 import { PageHead } from "@/components/Layout";
 import {
-  Avatar, Card, Empty, Loading, Priority, Stat, StatusBadge, fmtDate, timeAgo,
+  Avatar, Card, Empty, ErrorMsg, Loading, Priority, Stat, StatusBadge, fmtDate, timeAgo,
 } from "@/components/ui";
 
 export default function DeveloperReport() {
   const { id, userId } = useParams();
-  const [d, setD] = useState<Report | null>(null);
+  const { data: d, error } = useFetch<Report>(
+    "/activity/developer-report/", { project: id, user: userId });
 
-  useEffect(() => {
-    void api.get<Report>("/activity/developer-report/", { project: id, user: userId }).then(setD);
-  }, [id, userId]);
-
+  if (error) return <div className="content"><ErrorMsg error={error} /></div>;
   if (!d) return <div className="content"><Loading /></div>;
 
   const m = d.membership;

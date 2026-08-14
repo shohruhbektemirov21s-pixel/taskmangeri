@@ -6,7 +6,7 @@
  * shunday turadi. Topshiriqni tahrirlash va o'chirish mumkin, lekin har bir
  * tahrir tarixda qoladi — kim, qachon, nimadan nimaga o'zgartirgani ko'rinadi.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, tokens } from "@/api/client";
 import type { Submission, Task } from "@/api/types";
@@ -20,6 +20,7 @@ interface Props {
 }
 
 export default function TaskSubmission({ task, canWork, onChange }: Props) {
+  const fid = useId();
   const [items, setItems] = useState<Submission[]>([]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -112,8 +113,8 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       {canWork && (
         <form onSubmit={submit} className="mb">
           <div className="field">
-            <label>Nima qilindi</label>
-            <textarea
+            <label htmlFor={`${fid}-0`}>Nima qilindi</label>
+            <textarea id={`${fid}-0`}
               rows={3}
               value={text}
               placeholder="Qaysi fayllar o'zgardi, qanday yechim tanlandi, nimaga e'tibor berish kerak"
@@ -121,8 +122,8 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
             />
           </div>
           <div className="field">
-            <label>Fayl biriktirish (ixtiyoriy)</label>
-            <input
+            <label htmlFor={`${fid}-1`}>Fayl biriktirish (ixtiyoriy)</label>
+            <input id={`${fid}-1`}
               ref={fileInput}
               type="file"
               multiple
