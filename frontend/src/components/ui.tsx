@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Task, UserBrief } from "@/api/types";
 import { IconEye, IconEyeOff, IconFile } from "./icons";
 
@@ -309,11 +309,15 @@ export function TaskCard({ task, draggable = false, onDragStart }: {
 }
 
 export function TaskRow({ task, showProject = false }: { task: Task; showProject?: boolean }) {
+  const nav = useNavigate();
   return (
-    <tr>
+    /* Qatorning istalgan yeriga bosilsa vazifa ochiladi - sarlavhani
+       aniq nishonga olish shart emas. */
+    <tr className="clickable" onClick={() => nav(`/vazifa/${task.id}`)}>
       <td className="nowrap mono muted">{task.code}</td>
       <td>
-        <Link to={`/vazifa/${task.id}`} style={{ color: "var(--text)", fontWeight: 500 }}>
+        <Link to={`/vazifa/${task.id}`} style={{ color: "var(--text)", fontWeight: 500 }}
+              onClick={(e) => e.stopPropagation()}>
           {task.title}
         </Link>
         {!!task.attachment_count && (

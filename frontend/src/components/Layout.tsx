@@ -7,7 +7,7 @@ import { useRealtime } from "@/realtime/RealtimeContext";
 import { Logo } from "./Logo";
 import {
   IconBell, IconBoard, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout,
-  IconMail, IconMenu, IconPlus, IconReview, IconSearch, IconTasks,
+  IconMenu, IconPlus, IconReview, IconSearch, IconTasks,
 } from "./icons";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
@@ -18,7 +18,7 @@ export default function Layout() {
   const { subscribe } = useRealtime();
   const nav = useNavigate();
   const loc = useLocation();
-  const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0, invites: 0 });
+  const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0 });
   const [q, setQ] = useState("");
   const [tick, setTick] = useState(0);
   // Tepadagi qidiruv odamni ham topadi: ism, familiya yoki email bo'yicha.
@@ -31,24 +31,18 @@ export default function Layout() {
     void (async () => {
       try {
         const d = await api.get<any>("/dashboard/");
-        let invites = 0;
-        try {
-          const inv = await api.get<any>("/invitations/", { pending: 1, page_size: 1 });
-          invites = typeof inv?.count === "number" ? inv.count : listOf<unknown>(inv).length;
-        } catch { /* jim */ }
         setCounts({
           open: d.stats.open,
           reviews: d.review_queue?.length ?? 0,
           joins: d.join_queue?.length ?? 0,
-          invites,
         });
       } catch { /* jim */ }
     })();
   }, [loc.pathname, tick]);
 
-  // Yangi taklif kelsa yon panel sanog'i o'zi yangilansin.
+  // Qo'shilish so'rovi kelsa yon paneldagi sanoq o'zi yangilansin.
   useEffect(() => subscribe((data) => {
-    if (data.event === "notification" && String(data.notification?.kind || "").startsWith("invite.")) {
+    if (data.event === "notification" && data.notification?.kind === "join.request") {
       setTick((n) => n + 1);
     }
   }), [subscribe]);
@@ -167,10 +161,6 @@ export default function Layout() {
         <Link className="top-icon hide-sm" to="/xabarlar" title="Xabarlar">
           <IconChat size={17} />
         </Link>
-        <Link className="top-icon hide-sm" to="/takliflar" title="Takliflar">
-          <IconMail size={17} />
-          {!!counts.invites && <span className="dot">{counts.invites}</span>}
-        </Link>
         <Link className="top-icon hide-sm" to="/tekshiruv" title="Tekshiruv navbati">
           <IconInbox size={17} />
           {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
@@ -195,7 +185,6 @@ export default function Layout() {
             {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}
             {item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
             {item("/xabarlar", <IconChat />, "Xabarlar")}
-            {item("/takliflar", <IconMail />, "Takliflar", counts.invites, true)}
             {item("/bildirishnomalar", <IconBell />, "Bildirishnomalar")}
             {item("/tarix", <IconHistory />, "Umumiy tarix")}
           </div>

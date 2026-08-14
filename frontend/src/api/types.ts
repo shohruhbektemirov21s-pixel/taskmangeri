@@ -383,13 +383,14 @@ export interface Choice {
   label: string;
 }
 
-/* ------------------------------------------------ Bildirishnoma, taklif, chat */
+/* ------------------------------------------------ Bildirishnoma va chat */
 
+/* Qo'ng'iroqqa faqat javob talab qiladigan narsa tushadi: o'z vazifang,
+   senga yozilgan xabar va qo'shilish so'rovi. Qolgani tarixda. */
 export type NotificationKind =
-  | "invite.received" | "invite.accepted" | "invite.declined"
-  | "member.joined" | "join.request"
   | "task.assigned" | "task.review" | "task.decided" | "task.comment"
-  | "chat.message" | "chat.direct";
+  | "chat.message" | "chat.direct"
+  | "join.request";
 
 export interface AppNotification {
   id: number;
@@ -401,28 +402,6 @@ export interface AppNotification {
   meta: Record<string, unknown>;
   is_read: boolean;
   actor: UserBrief | null;
-  created_at: string;
-}
-
-export type InviteStatusValue = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED";
-
-export interface Invitation {
-  id: number;
-  scope: "workspace" | "project";
-  workspace: number | null;
-  workspace_slug: string;
-  project: number | null;
-  project_key: string;
-  target_name: string;
-  user: UserBrief;
-  invited_by: UserBrief | null;
-  role: string;
-  role_display: string;
-  message: string;
-  status: InviteStatusValue;
-  status_display: string;
-  url: string;
-  responded_at: string | null;
   created_at: string;
 }
 
@@ -486,11 +465,21 @@ export interface Submission {
   updated_at: string;
 }
 
+/** Odamning bitta ochiq vazifasi - qachon boshlanib qachon tugashi */
+export interface ForecastTask {
+  id: number;
+  code: string;
+  title: string;
+  status: string;
+  status_display: string;
+  start_date: string | null;
+  due_date: string | null;
+  overdue: boolean;
+}
+
 export interface ForecastRow {
   user: UserBrief;
   role: string;
-  specialty: string;
-  specialty_display: string;
   open: number;
   done: number;
   in_review: number;
@@ -499,26 +488,14 @@ export interface ForecastRow {
   first_start: string | null;
   last_due: string | null;
   late: boolean;
-}
-
-export interface ForecastGroup {
-  value: string;
-  label: string;
-  people: number;
-  open: number;
-  done: number;
-  overdue: number;
-  first_start: string | null;
-  last_due: string | null;
-  progress: number;
-  late: boolean;
+  /** Ochiq vazifalar, eng yaqin muddat tepada */
+  tasks: ForecastTask[];
 }
 
 /** `GET /api/projects/:id/forecast/` javobi */
 export interface Forecast {
   today: string;
   members: ForecastRow[];
-  specialties: ForecastGroup[];
   project: {
     open: number;
     done: number;

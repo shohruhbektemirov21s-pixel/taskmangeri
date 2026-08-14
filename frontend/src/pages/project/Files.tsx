@@ -1,20 +1,25 @@
 /**
- * Loyiha fayllari — texnik topshiriq, dizayn, hujjat, arxiv.
+ * Loyiha hujjatlari — texnik topshiriq, dizayn, shartnoma, arxiv.
  *
  * Vazifa fayllaridan farqi: bular bitta ishga emas, butun loyihaga tegishli,
- * shuning uchun yangi kelgan odam ham darrov topadi. Faqat jamoa a'zolari
- * ko'radi — ochiq loyihada ham begonaga ko'rinmaydi.
+ * shuning uchun yangi kelgan odam ham darrov topadi.
+ *
+ * O'QISH loyihani ko'rish huquqi bilan bir xil: ochiq loyihada hujjatlarni
+ * tizimdagi hamma ko'radi — nima ustida ishlanayotganini bilmasdan turib
+ * odam jamoaga qo'shilishga qaror qila olmaydi. YOZISH esa jamoa ichida:
+ * yuklashni `can_work` qiladi, o'chirishni esa faqat loyihani boshqaruvchi
+ * — menejer, loyiha admini yoki tizim admini. Yuklagan odamning o'zi ham
+ * o'chira olmaydi: hujjatga butun jamoaning ishi tayanadi
+ * (serverda ham xuddi shunday tekshiriladi).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api, tokens } from "@/api/client";
 import type { Project, ProjectFile } from "@/api/types";
-import { useAuth } from "@/auth/AuthContext";
 import { IconFile } from "@/components/icons";
 import { Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, timeAgo } from "@/components/ui";
 import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Files({ project }: { project: Project }) {
-  const { user } = useAuth();
   const acc = project.access;
   const [items, setItems] = useState<ProjectFile[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +86,7 @@ export default function Files({ project }: { project: Project }) {
       <OkMsg text={ok} />
 
       {acc.can_work && (
-        <Card title="Fayl yuklash">
+        <Card title="Hujjat yuklash">
           <div className="field">
             <label>Izoh (ixtiyoriy)</label>
             <input type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
@@ -100,13 +105,13 @@ export default function Files({ project }: { project: Project }) {
         </Card>
       )}
 
-      <Card title="Loyiha fayllari" padded={false}
+      <Card title="Loyiha hujjatlari" padded={false}
             badge={<span className="badge">{items.length}</span>}>
         {!items.length ? (
-          <Empty icon="📁" title="Fayl yo'q"
+          <Empty icon="📁" title="Hujjat yo'q"
                  text={acc.can_work
                    ? "Texnik topshiriq, dizayn yoki hujjatni yuklang."
-                   : "Bu loyihaga hali fayl yuklanmagan."} />
+                   : "Bu loyihaga hali hujjat yuklanmagan."} />
         ) : (
           <div className="card-list">
             {items.map((f) => (
@@ -124,7 +129,7 @@ export default function Files({ project }: { project: Project }) {
                 </div>
                 <span className="spacer" />
                 <Avatar user={f.uploaded_by} size="sm" />
-                {(acc.can_manage || f.uploaded_by?.id === user?.id) && (
+                {acc.can_manage && (
                   <button className="btn btn-sm btn-danger" onClick={() => void remove(f)}>
                     O'chirish
                   </button>

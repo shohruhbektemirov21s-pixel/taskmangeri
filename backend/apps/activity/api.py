@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Exists, OuterRef, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Subquery, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import viewsets
@@ -61,6 +61,56 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
         if task:
             qs = qs.filter(task_id=task)
         return qs
+
+    # ------------------------------------------------------------ loyihalar kesimi
+    @action(detail=False, methods=["get"], url_path="by-project")
+    def by_project(self, request):
+        """Umumiy tarix loyihalar bo'yicha: har biri va undagi yozuvlar soni.
+
+        Aralash lenta o'rniga avval loyihalar ro'yxati chiqadi - odam qaysi
+        loyiha tarixini ochishni o'zi tanlaydi. `?q=` nom, kalit va tavsif
+        bo'yicha qidiradi.
+
+        Sanoq `GROUP BY` bilan emas, `Subquery` bilan olinadi: Db2 CLOB
+        ustunini `GROUP BY` da qo'llamaydi, `description` esa aynan CLOB
+        (`apps/core/queries.py` ga qarang).
+        """
+        from apps.core.queries import related_count
+
+        qs = Project.objects.filter(deleted_at__isnull=True)
+        # Ko'rish doirasi lentaning o'zi bilan bir xil: admin hammasini,
+        # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi.
+        if not request.user.is_platform_admin:
+            qs = qs.filter(
+                Q(is_public=True)
+                | Exists(ProjectMember.objects.filter(
+                    project=OuterRef("pk"), user=request.user, is_active=True))
+            )
+
+        q = (request.query_params.get("q") or "").strip()
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(key__icontains=q)
+                           | Q(description__icontains=q))
+
+        qs = qs.select_related("manager").annotate(
+            activity_count=related_count(Activity, group_by="project"),
+            last_activity=Subquery(
+                Activity.objects.filter(project=OuterRef("pk"))
+                .order_by("-created_at").values("created_at")[:1]),
+        ).order_by("-last_activity", "-created_at")
+
+        return Response([{
+            "id": p.pk,
+            "name": p.name,
+            "key": p.key,
+            "color": p.color,
+            "status": p.status,
+            "status_display": p.get_status_display(),
+            "is_public": p.is_public,
+            "manager_name": p.manager.full_name if p.manager else "",
+            "activity_count": p.activity_count,
+            "last_activity": p.last_activity,
+        } for p in qs[:200]])
 
     # ------------------------------------------------------------ dasturchi hisoboti
     @action(detail=False, methods=["get"], url_path="developer-report")

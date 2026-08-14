@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
@@ -8,6 +8,7 @@ import { Empty, ErrorMsg, Loading, Progress, RowMenu, confirmDelete }
   from "@/components/ui";
 
 export default function Projects() {
+  const nav = useNavigate();
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -59,29 +60,38 @@ export default function Projects() {
           <div className="card">
             <div className="card-list">
               {projects.map((p) => (
-                <div className="repo-item" key={p.id}>
+                /* Qatorning istalgan yeriga bosilsa loyiha ochiladi - nomni
+                   aniq nishonga olish shart emas. Ichidagi havola va
+                   tugmalar o'z ishini qiladi (`stopPropagation`). */
+                <div className="repo-item clickable" key={p.id}
+                     onClick={() => nav(`/loyiha/${p.id}`)}>
                   <div className="row wrap">
                     <h3 style={{ margin: 0 }}>
                       <span className="lang-dot" style={{ background: p.color }} />{" "}
-                      <Link to={`/loyiha/${p.id}`}>{p.name}</Link>
+                      <Link to={`/loyiha/${p.id}`}
+                            onClick={(e) => e.stopPropagation()}>{p.name}</Link>
                     </h3>
                     <span className="badge mono">{p.key}</span>
                     <span className={`badge ${p.status === "ACTIVE" ? "badge-ok" : ""}`}>
                       {p.status_display}
                     </span>
                     <span className="spacer" />
-                    <Link className="btn btn-sm" to={`/loyiha/${p.id}/doska`}>Doska</Link>
-                    <Link className="btn btn-sm" to={`/loyiha/${p.id}/tarix`}>Tarix</Link>
+                    <Link className="btn btn-sm" to={`/loyiha/${p.id}/doska`}
+                          onClick={(e) => e.stopPropagation()}>Doska</Link>
+                    <Link className="btn btn-sm" to={`/loyiha/${p.id}/tarix`}
+                          onClick={(e) => e.stopPropagation()}>Tarix</Link>
                     {/* Boshqarish amallari chekkadagi «⋯» ostida: ro'yxat toza qoladi.
                         Menejer va admin uchun ko'rinadi, serverda ham shu tekshiriladi. */}
                     {(p.manager?.id === user?.id || user?.is_platform_admin) && (
-                      <RowMenu>
-                        <Link to={`/loyiha/${p.id}/tahrir`}>Tahrirlash</Link>
-                        <button type="button" className="danger"
-                                onClick={() => void removeProject(p.id, p.name)}>
-                          Ochirish
-                        </button>
-                      </RowMenu>
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <RowMenu>
+                          <Link to={`/loyiha/${p.id}/tahrir`}>Tahrirlash</Link>
+                          <button type="button" className="danger"
+                                  onClick={() => void removeProject(p.id, p.name)}>
+                            Ochirish
+                          </button>
+                        </RowMenu>
+                      </span>
                     )}
                   </div>
                   {p.description && <p className="muted" style={{ margin: "8px 0 0" }}>{p.description}</p>}

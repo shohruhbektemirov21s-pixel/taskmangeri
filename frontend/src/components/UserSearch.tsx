@@ -21,6 +21,9 @@ interface Props {
   autoFocus?: boolean;
   /** Shuncha belgi yozilgunча qidirilmaydi va ro'yxat ko'rsatilmaydi */
   minChars?: number;
+  /** Tanlangach maydon bo'shatiladi — ketma-ket bir necha odam
+      qo'shilganda har safar matnni o'chirib o'tirilmasin. */
+  clearOnPick?: boolean;
 }
 
 const DEBOUNCE_MS = 250;
@@ -28,6 +31,7 @@ const DEBOUNCE_MS = 250;
 export default function UserSearch({
   search, onPick, placeholder = "Email yoki ism bo'yicha qidiring",
   emptyText = "Hech kim topilmadi", activeId, autoFocus, minChars = 2,
+  clearOnPick = false,
 }: Props) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<UserBrief[]>([]);
@@ -89,7 +93,7 @@ export default function UserSearch({
             key={u.id}
             type="button"
             className={`user-hit ${activeId === u.id ? "on" : ""}`}
-            onClick={() => onPick(u)}
+            onClick={() => { onPick(u); if (clearOnPick) setQ(""); }}
           >
             <Avatar user={u} size="sm" />
             <span className="user-hit-text">

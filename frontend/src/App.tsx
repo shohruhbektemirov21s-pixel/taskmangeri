@@ -26,7 +26,6 @@ import Profile from "@/pages/Profile";
 import JoinProject from "@/pages/JoinProject";
 import Search from "@/pages/Search";
 import PublicProject from "@/pages/PublicProject";
-import Invitations from "@/pages/Invitations";
 import Notifications from "@/pages/Notifications";
 import Messages from "@/pages/Messages";
 import WorkspaceChat from "@/pages/WorkspaceChat";
@@ -87,7 +86,6 @@ export default function App() {
         <Route path="/ish-maydoni/:slug" element={<WorkspaceDetail />} />
         <Route path="/xabarlar" element={<Messages />} />
         <Route path="/xabarlar/:userId" element={<Messages />} />
-        <Route path="/takliflar" element={<Invitations />} />
         <Route path="/bildirishnomalar" element={<Notifications />} />
         <Route path="/profil" element={<Profile />} />
         <Route path="/profil/:userId" element={<Profile />} />

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
-import InviteBox from "@/components/InviteBox";
+import AddMemberBox from "@/components/AddMemberBox";
 import { Avatar, Card, Empty, ErrorMsg, Loading, SpecialtyTag, fmtDate, timeAgo } from "@/components/ui";
 import { useProjectLive } from "@/realtime/RealtimeContext";
 
@@ -14,7 +14,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [error, setError] = useState<string | null>(null);
-  // Har bir o'zgarishda taklif qutisidagi nomzodlar ro'yxati qayta so'raladi.
+  // Har bir o'zgarishda nomzodlar ro'yxati qayta so'raladi.
   const [version, setVersion] = useState(0);
 
   const load = useCallback(async () => {
@@ -61,7 +61,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
 
       {acc.can_manage && (
         <div className="mb">
-          <InviteBox
+          <AddMemberBox
             projectId={project.id}
             roles={(meta?.project_role || [])
               .filter((r) => r.value !== "MANAGER" || acc.can_grant_manager)}

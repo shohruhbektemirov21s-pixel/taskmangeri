@@ -84,7 +84,7 @@ export default function Workspaces() {
           </div>
 
           <div>
-            <Card title="Taklif kodi bilan qoshilish">
+            <Card title="Qoshilish kodi bilan qoshilish">
               <div className="field">
                 <label>Kod</label>
                 <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -7,6 +7,7 @@ import { PageHead } from "@/components/Layout";
 import { Card, Empty, Loading, SpecialtyTag } from "@/components/ui";
 
 export default function Discover() {
+  const nav = useNavigate();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [q, setQ] = useState("");
@@ -42,15 +43,25 @@ export default function Discover() {
               <div className="card">
                 <div className="card-list">
                   {projects.map((p) => (
-                    <div className="repo-item" key={p.id}>
+                    /* Butun karta bosiladi - loyihaga kirish uchun tugmani
+                       qidirib o'tirish shart emas. Ichidagi tugmalar o'z
+                       ishini qiladi (`stopPropagation`). */
+                    <div className="repo-item clickable" key={p.id}
+                         onClick={() => nav(`/loyiha/${p.id}`)}>
                       <div className="row wrap">
                         <h3 style={{ margin: 0 }}>
-                          <span className="lang-dot" style={{ background: p.color }} /> {p.name}
+                          <span className="lang-dot" style={{ background: p.color }} />{" "}
+                          <Link to={`/loyiha/${p.id}`}
+                                onClick={(e) => e.stopPropagation()}>{p.name}</Link>
                         </h3>
                         <span className="badge mono">{p.key}</span>
                         {p.auto_accept && <span className="badge badge-ok">avtomatik qabul</span>}
                         <span className="spacer" />
-                        <Link className="btn btn-sm btn-primary" to={`/loyiha/${p.id}/qoshilish`}>
+                        {/* Ochiq loyihani qo'shilmasdan ham ko'rish mumkin:
+                            vazifalar va tarix ko'rinadi, fayllar esa faqat
+                            jamoaga (serverda shunday cheklangan). */}
+                        <Link className="btn btn-sm btn-primary" to={`/loyiha/${p.id}/qoshilish`}
+                              onClick={(e) => e.stopPropagation()}>
                           Qoshilish
                         </Link>
                       </div>

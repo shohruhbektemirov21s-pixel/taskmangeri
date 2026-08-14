@@ -5,7 +5,7 @@
  * shu ish bilan band bo'ladi. Ilgari buning uchun har safar loyiha sahifasining
  * "Jamoa" bo'limiga o'tish kerak edi; endi uchala amal ham panelning o'zida:
  *
- *   1) odamni **email yoki ism-familiya** bo'yicha topib taklif qilish;
+ *   1) odamni **email yoki ism-familiya** bo'yicha topib jamoaga qo'shish;
  *   2) qo'shilish so'rovini qabul qilish yoki rad etish;
  *   3) a'zoni jamoadan chiqarish.
  *
@@ -17,7 +17,7 @@ import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
-import InviteBox from "./InviteBox";
+import AddMemberBox from "./AddMemberBox";
 import { Avatar, Card, ErrorMsg, SpecialtyTag, timeAgo } from "./ui";
 
 export default function TeamBuilder({
@@ -99,9 +99,9 @@ export default function TeamBuilder({
         </div>
       )}
 
-      {/* 1. Taklif qilish - qidiruv shu komponent ichida */}
+      {/* 1. A'zo qo'shish - qidiruv shu komponent ichida */}
       {project && acc?.can_manage && (
-        <InviteBox
+        <AddMemberBox
           projectId={project.id}
           roles={roles}
           defaultRole="DEVELOPER"

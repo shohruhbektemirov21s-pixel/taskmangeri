@@ -109,8 +109,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # Loyiha ochish - faqat loyiha menejeri va admin (`CanCreateProject`).
     permission_classes = [permissions.IsAuthenticated, CanCreateProject]
     search_fields = ["name", "key", "description"]
-    ordering_fields = ["updated_at", "name", "due_date"]
-    ordering = ["-updated_at"]
+    ordering_fields = ["created_at", "updated_at", "name", "due_date"]
+    # Ochilgan sanasi boyicha, yangisi tepada. `-updated_at` da royxat har
+    # tegilganda joyini ozgartirib, odam loyihasini qayerdan qidirishni
+    # bilmay qolardi; ochilish sanasi esa ozgarmaydi - tartib turgun boladi.
+    ordering = ["-created_at"]
 
     # ------------------------------------------------------------ queryset
     def get_queryset(self):
@@ -264,46 +267,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="members/add")
     def add_member(self, request, pk=None):
-        """Jamoaga qoshish - TAKLIF orqali.
+        """Jamoaga qoshish - TOGRIDAN-TOGRI, tasdiqsiz.
 
-        Ilgari bu endpoint odamni tosridan-togri azo qilardi. Endi unday emas:
-        hech kim ozi tasdiqlamaguncha jamoaga qoshilmaydi. Shuning uchun bu
-        yerda taklif yaratiladi va odamga bildirishnoma boradi.
+        Menejer odamni tanlaydi va u ayni shu paytda azo boladi. Qoida
+        `apps.core.team` da - `/api/team/add/` ham oshanga tayanadi, shunda
+        ikki endpoint ikki xil ishlab ketmaydi.
         """
-        from apps.invites.models import Invitation, InviteStatus
-        from apps.invites.serializers import InvitationSerializer
+        from apps.core.team import add_to_project
 
         project = self._manage_project(pk)
-        access = ProjectAccess(request.user, project)
-        role = request.data.get("role", ProjectRole.DEVELOPER)
-        if role not in ProjectRole.values:
-            raise ValidationError({"role": "Notogri rol."})
-        if not access.can_grant_role(role):
-            raise PermissionDenied("Menejer rolini faqat amaldagi menejer bera oladi.")
-
         target = get_object_or_404(User, pk=request.data.get("user_id"), is_active=True)
-        if target.pk == request.user.pk:
-            raise ValidationError({"user_id": "Ozingizni taklif qila olmaysiz."})
-        if project.memberships.filter(user=target, is_active=True).exists():
-            raise ValidationError({"user_id": "Bu odam allaqachon jamoada."})
-        if Invitation.objects.filter(project=project, user=target,
-                                     status=InviteStatus.PENDING).exists():
-            raise ValidationError({"user_id": "Bu odamga taklif allaqachon yuborilgan."})
+        member = add_to_project(request.user, project, target, request.data.get("role"))
 
-        invite = Invitation.objects.create(
-            project=project, user=target, invited_by=request.user, role=role,
-            message=(request.data.get("message") or "").strip())
-
-        log(actor=request.user, verb="member.invited", project=project, target=target,
-            summary="{} jamoaga taklif qilindi: {}".format(target.full_name, project.name))
-        notify(target, NotificationKind.INVITE_RECEIVED,
-               title="Sizni jamoaga taklif qilishdi",
-               body="{} - {} ({})".format(project.name, invite.role_display,
-                                          request.user.full_name),
-               url="/takliflar", actor=request.user,
-               meta={"invitation": invite.pk, "scope": "project"})
-
-        return Response(InvitationSerializer(invite, context={"request": request}).data,
+        live_project(project, "member", request.user)
+        return Response(ProjectMemberSerializer(member, context={"request": request}).data,
                         status=201)
 
     @action(detail=True, methods=["post"], url_path="members/(?P<member_id>[^/.]+)")
@@ -334,10 +311,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
             log(actor=request.user, verb="user.role_changed", project=project, target=target,
                 summary="{} tizim admini qilib tayinlandi".format(target.full_name),
                 detail="Tayinladi: {}".format(request.user.full_name))
-            notify(target, NotificationKind.MEMBER_JOINED,
-                   title="Sizga tizim admini huquqi berildi",
-                   body="{} loyihasida {} tayinladi".format(project.name, request.user.full_name),
-                   url="/profil", actor=request.user)
             return Response(ProjectMemberSerializer(member, context={"request": request}).data)
 
         if act == "revoke_admin":
@@ -378,10 +351,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 summary="{} tizim adminligi bekor qilindi".format(target.full_name),
                 detail="Bekor qildi: {} | yangi rol: {}".format(
                     request.user.full_name, target.get_global_role_display()))
-            notify(target, NotificationKind.MEMBER_JOINED,
-                   title="Tizim admini huquqi bekor qilindi",
-                   body="{} loyihasida {} bekor qildi".format(project.name, request.user.full_name),
-                   url="/profil", actor=request.user)
             return Response(ProjectMemberSerializer(member, context={"request": request}).data)
 
         if act == "remove":
@@ -445,16 +414,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get", "post"], url_path="files",
             parser_classes=[MultiPartParser, FormParser, JSONParser])
     def files(self, request, pk=None):
-        """GET - fayllar royxati (azolar koradi);
-        POST - fayl yuklash (multipart/form-data, azolar yuklaydi)."""
+        """GET - hujjatlar royxati (loyihani kora oladigan hamma koradi);
+        POST - fayl yuklash (multipart/form-data, faqat jamoa)."""
         project = get_object_or_404(Project, pk=pk)
 
         if request.method == "GET":
-            # Ochiq loyihaning vazifalari hammaga korinadi, lekin FAYLLAR yoq:
-            # texnik topshiriq, shartnoma, eksport - bular jamoa ichidagi narsa.
-            access = ProjectAccess(request.user, project)
-            if not (access.is_admin or access.is_member):
-                raise PermissionDenied("Loyiha fayllari faqat jamoa azolariga korinadi.")
+            # Hujjat - loyihaning yuzi: texnik topshiriq va dizaynni kormasdan
+            # turib odam bu loyiha ozigami-yoqmi deb qaror qila olmaydi.
+            # Shuning uchun OQISH loyihani korish huquqi bilan bir xil:
+            # ochiq loyihada tizimdagi hamma koradi, yopiqda faqat jamoa.
+            # YOZISH (yuklash va ochirish) pastda - u jamoa ichida qoladi.
+            check_access(request.user, project, "view")
             qs = project.files.select_related("uploaded_by")
             return Response(ProjectFileSerializer(qs, many=True,
                                                   context={"request": request}).data)
@@ -484,12 +454,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["delete"], url_path="files/(?P<file_id>[^/.]+)")
     def delete_file(self, request, pk=None, file_id=None):
-        """Faylni yuklagan odam yoki loyihani boshqaruvchi ochira oladi."""
+        """Hujjatni faqat loyihani boshqaruvchi ochira oladi.
+
+        Yuklagan odamning ozi ham ochira olmaydi: hujjat - texnik topshiriq,
+        shartnoma, dizayn - butun jamoaning ishi unga tayanadi. Bitta odam
+        ketayotganda yoki xafa bolganda uni olib ketmasin.
+        """
         project = get_object_or_404(Project, pk=pk)
         item = get_object_or_404(ProjectFile, pk=file_id, project=project)
         access = ProjectAccess(request.user, project)
-        if item.uploaded_by_id != request.user.pk and not access.can_manage:
-            raise PermissionDenied("Faylni faqat yuklagan odam yoki menejer ochira oladi.")
+        if not access.can_manage:
+            raise PermissionDenied(
+                "Hujjatni faqat loyiha menejeri, loyiha admini yoki tizim admini ochira oladi.")
 
         name = item.original_name
         item.file.delete(save=False)
@@ -511,7 +487,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
         tugash sanalari, ochiq/bajarilgan vazifalar soni va kechikkanlar.
         """
         from apps.accounts.serializers import UserBriefSerializer
-        from apps.accounts.specialties import Specialty
         from datetime import datetime
 
         project = get_object_or_404(Project, pk=pk)
@@ -546,7 +521,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             task, user = row.task, row.user
             item = people.setdefault(user.pk, {
                 "user": user, "open": 0, "done": 0, "in_review": 0, "overdue": 0,
-                "first_start": None, "last_due": None,
+                "first_start": None, "last_due": None, "tasks": [],
             })
             if task.status == TaskStatus.DONE:
                 item["done"] += 1
@@ -562,9 +537,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
             item["first_start"] = wider(item["first_start"], to_date(task.start_date),
                                         newest=False)
             item["last_due"] = wider(item["last_due"], task_due)
+            # Odam qaysi ishni qachon tugatishi - yigindi sana emas, har bir
+            # vazifa ozining sanasi bilan korinsin.
+            item["tasks"].append({
+                "id": task.pk,
+                "code": task.code,
+                "title": task.title,
+                "status": task.status,
+                "status_display": task.get_status_display(),
+                "start_date": to_date(task.start_date),
+                "due_date": task_due,
+                "overdue": bool(task_due and task_due < today),
+            })
 
         members = {m.user_id: m for m in project.memberships.filter(is_active=True)}
-        names = dict(Specialty.choices)
 
         member_rows = []
         for uid, item in people.items():
@@ -572,38 +558,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
             member_rows.append({
                 "user": UserBriefSerializer(user, context={"request": request}).data,
                 "role": members[uid].get_role_display() if uid in members else "",
-                "specialty": user.specialty,
-                "specialty_display": names.get(user.specialty, user.specialty),
                 "open": item["open"], "done": item["done"],
                 "in_review": item["in_review"], "overdue": item["overdue"],
                 "first_start": item["first_start"],
                 "last_due": item["last_due"],
                 "late": item["overdue"] > 0,
+                # Sanasi borlar oldinda, eng yaqin muddat tepada; sanasi
+                # qoyilmaganlar oxirida turadi (ular reja emas, ochiq savol).
+                "tasks": sorted(item["tasks"],
+                                key=lambda t: (t["due_date"] is None, t["due_date"]
+                                               or today, t["code"])),
             })
         member_rows.sort(key=lambda r: (-r["overdue"], -r["open"], r["user"]["full_name"]))
-
-        groups = {}
-        for row in member_rows:
-            g = groups.setdefault(row["specialty"], {
-                "value": row["specialty"], "label": row["specialty_display"],
-                "people": 0, "open": 0, "done": 0, "overdue": 0,
-                "first_start": None, "last_due": None,
-            })
-            g["people"] += 1
-            g["open"] += row["open"]
-            g["done"] += row["done"]
-            g["overdue"] += row["overdue"]
-            g["first_start"] = wider(g["first_start"], row["first_start"], newest=False)
-            g["last_due"] = wider(g["last_due"], row["last_due"])
-
-        specialty_rows = []
-        for g in groups.values():
-            total = g["open"] + g["done"]
-            item = dict(g)
-            item["progress"] = round(g["done"] * 100 / total) if total else 0
-            item["late"] = g["overdue"] > 0
-            specialty_rows.append(item)
-        specialty_rows.sort(key=lambda r: (-r["overdue"], -r["open"]))
 
         # Vazifalarning haqiqiy oynasi: eng erta boshlanish - eng kech muddat.
         task_start = task_due = None
@@ -620,7 +586,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response({
             "today": today,
             "members": member_rows,
-            "specialties": specialty_rows,
             "project": {
                 "open": project.tasks.exclude(status__in=closed).count(),
                 "done": project.tasks.filter(status=TaskStatus.DONE).count(),
@@ -673,12 +638,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 defaults={"role": WorkspaceRole.MEMBER})
             log(actor=request.user, verb="member.approved", project=project, target=request.user,
                 summary="{} loyihaga qoshildi (avtomatik)".format(request.user.full_name))
-            notify_many(_managers_of(project), NotificationKind.MEMBER_JOINED,
-                        title="Jamoaga yangi a'zo qoshildi",
-                        body="{} - {} ({})".format(project.name, request.user.full_name,
-                                                   _role_label(req.desired_role)),
-                        url="/loyiha/{}/jamoa".format(project.pk), actor=request.user,
-                        meta={"project": project.pk})
             return Response({"joined": True, "request": JoinRequestSerializer(req).data}, status=201)
 
         log(actor=request.user, verb="member.requested", project=project, target=request.user,
@@ -731,7 +690,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             log(actor=request.user, verb="member.approved", project=project, target=req.user,
                 summary="{} loyihaga qabul qilindi ({})".format(
                     req.user.full_name, dict(ProjectRole.choices)[role]), detail=note)
-            notify(req.user, NotificationKind.MEMBER_JOINED,
+            notify(req.user, NotificationKind.JOIN_REQUEST,
                    title="Loyihaga qabul qilindingiz",
                    body="{} - {}".format(project.name, _role_label(role)),
                    url="/loyiha/{}/brif".format(project.pk), actor=request.user,

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
-import TeamPicker, { createPickedTasks, sendInvites, taskCount }
+import TeamPicker, { addPickedMembers, createPickedTasks, taskCount }
   from "@/components/TeamPicker";
 import type { Pick as TeamPick } from "@/components/TeamPicker";
 import type { Access, Project } from "@/api/types";
@@ -23,8 +23,8 @@ export default function ProjectForm() {
   // Fayllar loyiha yaratilgandan keyin yuklanadi - avval id kerak.
   const [files, setFiles] = useState<File[]>([]);
   const [fileNote, setFileNote] = useState("");
-  // Takliflar ham loyiha yaratilgandan keyin yuboriladi.
-  const [invites, setInvites] = useState<TeamPick[]>([]);
+  // Jamoa ham loyiha yaratilgandan keyin qo'shiladi - avval id kerak.
+  const [team, setTeam] = useState<TeamPick[]>([]);
   // Tahrirlashda loyihaning ruxsatlari kerak: o'chirish faqat menejer va adminda.
   const [acc, setAcc] = useState<Access | null>(null);
 
@@ -81,18 +81,18 @@ export default function ProjectForm() {
           return;
         }
       }
-      // Taklif yoki vazifa o'tmasa ham loyiha qoladi - nima qolib ketganini
-      // aytamiz. Vazifa taklifga bog'liq emas: taklif yuborilmasa ham
+      // A'zo yoki vazifa o'tmasa ham loyiha qoladi - nima qolib ketganini
+      // aytamiz. Vazifa a'zolikka bog'liq emas: odam qo'shilmasa ham
       // yozib qo'yilgan ish doskaga tushaveradi.
-      const tasks = taskCount(invites);
-      if (invites.length) {
-        const failedInvites = await sendInvites(saved.id, invites);
+      const tasks = taskCount(team);
+      if (team.length) {
+        const failedMembers = await addPickedMembers(saved.id, team);
         const { failedTasks, failedFiles } = tasks
-          ? await createPickedTasks(saved.id, invites)
+          ? await createPickedTasks(saved.id, team)
           : { failedTasks: [], failedFiles: [] };
-        if (failedInvites.length || failedTasks.length || failedFiles.length) {
+        if (failedMembers.length || failedTasks.length || failedFiles.length) {
           const parts = [];
-          if (failedInvites.length) parts.push("taklif yuborilmadi: " + failedInvites.join(", "));
+          if (failedMembers.length) parts.push("jamoaga qo'shilmadi: " + failedMembers.join(", "));
           if (failedTasks.length) parts.push("vazifa yaratilmadi: " + failedTasks.join(", "));
           if (failedFiles.length) {
             parts.push("fayllari biriktirilmadi: " + failedFiles.join(", ")
@@ -101,7 +101,7 @@ export default function ProjectForm() {
           setBusy(false);
           setError("Loyiha yaratildi, lekin " + parts.join("; ")
                    + " — «Jamoa» va «Doska» bolimidan qayta urinib koring.");
-          nav(`/loyiha/${saved.id}/${failedInvites.length ? "jamoa" : "doska"}`);
+          nav(`/loyiha/${saved.id}/${failedMembers.length ? "jamoa" : "doska"}`);
           return;
         }
       }
@@ -219,12 +219,12 @@ export default function ProjectForm() {
               )}
 
               {/* Tahrirlashda jamoa «Jamoa» bolimida boshqariladi - bu yerda
-                  faqat yangi loyihaga chaqiriladigan odamlar. */}
+                  faqat yangi loyihaga qoshiladigan odamlar. */}
               {!editing && (
-                <Card title="Jamoaga taklif va vazifalar">
+                <Card title="Jamoa va vazifalar">
                   <TeamPicker
-                    picks={invites}
-                    onChange={setInvites}
+                    picks={team}
+                    onChange={setTeam}
                     /* Menejer siz bolasiz - bu royxatdan menejer roli berilmaydi */
                     roles={(meta?.project_role || []).filter((r) => r.value !== "MANAGER")}
                     priorities={meta?.task_priority || []}

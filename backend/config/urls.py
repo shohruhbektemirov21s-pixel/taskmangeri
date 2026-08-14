@@ -19,7 +19,6 @@ urlpatterns = [
     path("api/", include("apps.tasks.urls")),
     path("api/", include("apps.activity.urls")),
     path("api/", include("apps.notifications.urls")),
-    path("api/", include("apps.invites.urls")),
     path("api/", include("apps.chat.urls")),
     path("api/", include("apps.core.urls")),
 ]

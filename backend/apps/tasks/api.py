@@ -509,9 +509,17 @@ class TaskViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Faqat topshirgan odam yoki menejer ozgartira oladi.")
 
         if request.method == "DELETE":
+            # Fayl topshiriq bilan birga yoq bolib ketmasin. `Attachment.submission`
+            # CASCADE - shuning uchun oldin bogni uzamiz: fayllar vazifada qoladi
+            # va "Fayllar" bolimidan ochilaveradi. Skrinshot, log, patch - bular
+            # qilingan ishning isboti, matn ochirilgani bilan ular kerak boladi.
+            kept = list(submission.files.values_list("original_name", flat=True))
+            submission.files.update(submission=None)
             log(actor=request.user, verb="task.handover_deleted", task=task,
                 summary="{}: ish topshirigi ochirildi".format(task.code),
-                detail=submission.text[:500])
+                detail="{}{}".format(
+                    submission.text[:500],
+                    "\n\nFayllar vazifada qoldirildi: " + ", ".join(kept) if kept else ""))
             submission.delete()
             return Response(status=204)
 
@@ -526,9 +534,14 @@ class TaskViewSet(viewsets.ModelViewSet):
             submission.text = new_text
             submission.edited_count += 1
             submission.save(update_fields=["text", "edited_count", "updated_at"])
+            # Tahrirda fayllarga tegilmaydi - eskisi joyida qoladi. Tarixda
+            # ham korinib tursin: ish qaysi fayl bilan topshirilgani muhim.
+            names = list(submission.files.values_list("original_name", flat=True))
             log(actor=request.user, verb="task.handover_edited", task=task,
                 summary="{}: ish topshirigi tahrirlandi".format(task.code),
-                detail="Eski: {}\nYangi: {}".format(old_text[:400], new_text[:400]))
+                detail="Eski: {}\nYangi: {}{}".format(
+                    old_text[:400], new_text[:400],
+                    "\nFayllar (ozgarmadi): " + ", ".join(names) if names else ""))
 
         submission.refresh_from_db()
         return Response(SubmissionSerializer(

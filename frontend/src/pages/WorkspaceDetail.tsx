@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Project, Workspace } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
-import InviteBox from "@/components/InviteBox";
+import AddMemberBox from "@/components/AddMemberBox";
 import { IconChat } from "@/components/icons";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, ErrorMsg, Loading, Progress } from "@/components/ui";
@@ -154,8 +154,7 @@ export default function WorkspaceDetail() {
             </Card>
 
             {ws.can_manage && (
-              <InviteBox
-                workspaceId={ws.id}
+              <AddMemberBox
                 workspaceSlug={ws.slug}
                 roles={(meta?.workspace_role || []).filter((r) => r.value !== "OWNER")}
                 defaultRole="MEMBER"
@@ -169,7 +168,7 @@ export default function WorkspaceDetail() {
                 <li><span className="muted">Loyihalar:</span> {ws.project_count}</li>
                 <li><span className="muted">Turi:</span> {ws.is_open ? "ochiq" : "yopiq"}</li>
                 {ws.can_manage && (
-                  <li><span className="muted">Taklif kodi:</span> <code>{ws.join_code}</code></li>
+                  <li><span className="muted">Qoshilish kodi:</span> <code>{ws.join_code}</code></li>
                 )}
               </ul>
             </Card>

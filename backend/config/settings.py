@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "apps.tasks",
     "apps.activity",
     "apps.notifications",
-    "apps.invites",
     "apps.chat",
 ]
 
@@ -150,7 +149,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_THROTTLE_RATES": {
         "chat": "90/min",        # bir odam daqiqada 90 tadan ko'p xabar yozmaydi
-        "invite": "40/hour",     # taklif bilan bosim o'tkazishning oldini oladi
+        "invite": "40/hour",     # jamoaga a'zo qo'shish - to'p-to'p qo'shib tashlamasin
         "auth": "20/min",        # kirish va ro'yxatdan o'tish urinishlari
         "search": "120/min",     # odam qidirish
     },

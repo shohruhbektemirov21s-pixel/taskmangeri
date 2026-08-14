@@ -5,17 +5,24 @@ from apps.core.fields import JSONTextField
 
 
 class NotificationKind(models.TextChoices):
-    INVITE_RECEIVED = "invite.received", "Taklif keldi"
-    INVITE_ACCEPTED = "invite.accepted", "Taklif qabul qilindi"
-    INVITE_DECLINED = "invite.declined", "Taklif rad etildi"
-    MEMBER_JOINED = "member.joined", "Yangi a'zo"
-    JOIN_REQUEST = "join.request", "Qo'shilish so'rovi"
+    """Qo'ng'iroqqa nima tushadi.
+
+    Ataylab qisqa ro'yxat: bildirishnoma javob talab qiladigan narsa uchun.
+    Har bir jamoa harakati qo'ng'iroq chalsa, odam unga qarashni butunlay
+    to'xtatadi va haqiqiy ish ham ko'zdan qoladi. Qolgani tarixda
+    (`activity.Activity`) yoziladi va u yerdan o'qiladi.
+    """
+
+    # Ish - odamning o'z vazifasi
     TASK_ASSIGNED = "task.assigned", "Vazifa biriktirildi"
     TASK_REVIEW = "task.review", "Tekshiruvga tushdi"
     TASK_DECIDED = "task.decided", "Tekshiruv natijasi"
     TASK_COMMENT = "task.comment", "Yangi izoh"
+    # Suhbat - kimdir to'g'ridan-to'g'ri yozdi
     CHAT_MESSAGE = "chat.message", "Chat xabari"
     CHAT_DIRECT = "chat.direct", "Shaxsiy xabar"
+    # Qo'shilish so'rovi - javobsiz qolmasin (so'rov ham, javobi ham)
+    JOIN_REQUEST = "join.request", "Qo'shilish so'rovi"
 
 
 class Notification(models.Model):

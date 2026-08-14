@@ -2,13 +2,13 @@
  * Loyiha yaratilishidan OLDIN jamoaga kimni chaqirishni va kimga qaysi
  * vazifa tegishini belgilash.
  *
- * Taklif ham, vazifa ham mavjud loyihaga yoziladi — ya'ni id kerak, yangi
+ * A'zolik ham, vazifa ham mavjud loyihaga yoziladi — ya'ni id kerak, yangi
  * loyiha esa hali yaratilmagan. Shuning uchun bu yerda hammasi faqat ro'yxatga
- * yig'iladi; forma saqlangach yangi id bilan yuboriladi (`sendInvites`,
+ * yig'iladi; forma saqlangach yangi id bilan yuboriladi (`addPickedMembers`,
  * `createPickedTasks`).
  *
  * Odam qidiruvi umumiy foydalanuvchi katalogidan (`/users/?search=`) boradi:
- * yangi loyihada hali a'zo yo'q, shuning uchun `invitations/candidates/` dan
+ * yangi loyihada hali a'zo yo'q, shuning uchun `/team/candidates/` dan
  * foydalanib bo'lmaydi — u mavjud loyihani talab qiladi.
  */
 import { useCallback, useRef, useState } from "react";
@@ -50,17 +50,21 @@ export function tasksOf(p: Pick) {
     : p.tasks;
 }
 
+/** Ekranda yangisi tepada turadi; serverga esa qo'shilgan tartibda boradi. */
+const inAddedOrder = (picks: Pick[]) => [...picks].reverse();
+
 /**
- * Yig'ilgan odamlarga taklif yuboradi.
- * Yuborib bo'lmaganlarning ismini qaytaradi — chaqiruvchi shuni aytadi.
+ * Yig'ilgan odamlarni jamoaga qo'shadi — darrov, tasdiq kutmasdan.
+ * Qo'shib bo'lmaganlarning ismini qaytaradi — chaqiruvchi shuni aytadi.
  */
-export async function sendInvites(projectId: number, picks: Pick[]) {
+export async function addPickedMembers(projectId: number, picks: Pick[]) {
   const failed: string[] = [];
-  for (const p of picks) {
+  // Ro'yxat yangisi tepada bo'lib ko'rsatiladi, qo'shish esa qo'shilgan
+  // tartibda boradi - vazifa raqamlari kiritilish tartibiga mos tushsin.
+  for (const p of inAddedOrder(picks)) {
     try {
-      await api.post("/invitations/", {
+      await api.post("/team/add/", {
         project: projectId,
-        workspace: null,
         user_id: p.user.id,
         role: p.role,
       });
@@ -74,9 +78,8 @@ export async function sendInvites(projectId: number, picks: Pick[]) {
 /**
  * Yig'ilgan vazifalarni yaratadi, egasiga biriktiradi va fayllarini yuklaydi.
  *
- * Vazifa taklif javobini kutmaydi: doskada darrov ko'rinadi (kim ustida
- * ishlashi ham ko'rinib turadi), odam qo'shilgach esa uning «Mening ishlarim»
- * ro'yxatida chiqadi.
+ * Odam allaqachon a'zo bo'lgani uchun vazifa darrov uning «Mening ishlarim»
+ * ro'yxatida va doskada ko'rinadi.
  *
  * Fayl vazifa yaratilgandan keyin biriktiriladi - avval id kerak. Fayl
  * yuklanmasa vazifa o'chirilmaydi: qaysi vazifaning fayli qolib ketgani
@@ -85,7 +88,7 @@ export async function sendInvites(projectId: number, picks: Pick[]) {
 export async function createPickedTasks(projectId: number, picks: Pick[]) {
   const failedTasks: string[] = [];
   const failedFiles: string[] = [];
-  for (const p of picks) {
+  for (const p of inAddedOrder(picks)) {
     for (const t of tasksOf(p)) {
       let task: Task;
       try {
@@ -130,7 +133,7 @@ interface Props {
   roles: Choice[];
   priorities: Choice[];
   defaultRole?: string;
-  /** O'zini taklif qilib bo'lmaydi — ro'yxatdan chiqarib tashlanadi. */
+  /** O'zini qo'sha olmaydi — ro'yxatdan chiqarib tashlanadi. */
   excludeId?: number;
 }
 
@@ -152,13 +155,17 @@ export default function TeamPicker({
 
   return (
     <>
+      {/* Yangi qo'shilgan odam ro'yxat BOSHIGA tushadi: ishlanayotgan
+          odam ko'z oldida tursin, pastga qarab surilib ketmasin. */}
       <UserSearch
         search={search}
-        onPick={(u) => onChange([...picks, {
-          user: u, role: defaultRole, tasks: [], draft: emptyTask(),
-        }])}
+        onPick={(u) => onChange([
+          { user: u, role: defaultRole, tasks: [], draft: emptyTask() },
+          ...picks,
+        ])}
         placeholder="Email yoki ism-familiya"
         emptyText="Hech kim topilmadi"
+        clearOnPick
       />
 
       {!!picks.length && (
@@ -225,7 +232,7 @@ export default function TeamPicker({
           ))}
 
           <div className="muted" style={{ fontSize: 12 }}>
-            {picks.length} ta taklif
+            {picks.length} ta a'zo
             {total > 0 && <> · {total} ta vazifa</>}
           </div>
         </div>

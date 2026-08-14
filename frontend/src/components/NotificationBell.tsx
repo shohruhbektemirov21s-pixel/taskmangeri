@@ -6,15 +6,11 @@ import { IconBell } from "./icons";
 import { Avatar, safePath, timeAgo } from "./ui";
 
 const TONE: Record<string, string> = {
-  "invite.received": "badge-info",
-  "invite.accepted": "badge-ok",
-  "invite.declined": "badge-danger",
   "join.request": "badge-warn",
   "task.assigned": "badge-info",
   "task.review": "badge-brand",
   "task.decided": "badge-ok",
   "task.comment": "badge",
-  "member.joined": "badge-ok",
   "chat.message": "badge",
   "chat.direct": "badge",
 };
@@ -102,7 +98,7 @@ export default function NotificationBell() {
           <div className="popover-foot">
             <Link to="/bildirishnomalar" onClick={() => setOpen(false)}>Hammasini ko'rish</Link>
             <span className="spacer" />
-            <Link to="/takliflar" onClick={() => setOpen(false)}>Takliflar</Link>
+            <Link to="/tekshiruv" onClick={() => setOpen(false)}>Tekshiruv navbati</Link>
           </div>
         </div>
       )}

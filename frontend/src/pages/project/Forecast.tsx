@@ -1,5 +1,9 @@
 /**
- * Muddatlar — kimda nima bor va qachonga belgilangan.
+ * Muddatlar — kim qaysi vazifani qachon tugatadi.
+ *
+ * Mutaxassislik kesimi olib tashlandi: u yig'indi ko'rsatkich edi va
+ * "kim qachon tugatadi" degan savolga javob bermasdi. Endi har bir odam
+ * o'z ismi bilan turadi, ostida esa vazifalari — har biri o'z sanasi bilan.
  *
  * Sahifada faqat bazadagi haqiqiy ma'lumot: kiritilgan boshlanish va tugash
  * sanalari, ochiq/bajarilgan vazifalar va kechikkanlar. Avval bu yerda
@@ -7,12 +11,13 @@
  * odam kiritmagan sana ekranda turishi chalkashlikdan boshqa narsa emas.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Forecast, Project } from "@/api/types";
-import { Avatar, Card, Empty, ErrorMsg, Loading, Progress, Stat, fmtDate } from "@/components/ui";
+import { Avatar, Card, Empty, ErrorMsg, Loading, Stat, fmtDate } from "@/components/ui";
 
 export default function ForecastTab({ project }: { project: Project }) {
+  const nav = useNavigate();
   const [data, setData] = useState<Forecast | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,92 +83,75 @@ export default function ForecastTab({ project }: { project: Project }) {
         </div>
       )}
 
-      <Card title="Mutaxassislik bo'yicha" padded={false}
-            badge={<span className="badge">{data.specialties.length}</span>}>
-        {!data.specialties.length ? (
-          <Empty title="Ma'lumot yo'q" text="Hali hech kimga vazifa biriktirilmagan." />
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Yo'nalish</th><th>Odam</th><th>Ochiq</th><th>Bajarilgan</th>
-                <th>Boshlanish</th><th>Oxirgi muddat</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.specialties.map((s) => (
-                <tr key={s.value} className={s.late ? "row-risk" : ""}>
-                  <td>
-                    <strong>{s.label}</strong>
-                    <div style={{ maxWidth: 140, marginTop: 6 }}>
-                      <Progress value={s.progress} />
-                    </div>
-                  </td>
-                  <td>{s.people}</td>
-                  <td>{s.open}{!!s.overdue && <span className="badge badge-danger" style={{ marginLeft: 6 }}>{s.overdue} kechikkan</span>}</td>
-                  <td>{s.done}</td>
-                  <td className="muted">{s.first_start ? fmtDate(s.first_start) : "—"}</td>
-                  <td>
-                    <strong className={s.late ? "c-red" : ""}>
-                      {s.last_due ? fmtDate(s.last_due) : "—"}
-                    </strong>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
-
-      <Card title="Odamlar bo'yicha" padded={false}
-            badge={<span className="badge">{data.members.length}</span>}>
-        {!data.members.length ? (
+      {!data.members.length ? (
+        <Card title="Kim qachon tugatadi">
           <Empty title="Ma'lumot yo'q" text="Vazifalarni jamoaga taqsimlang." />
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Xodim</th><th>Rol</th><th>Ochiq</th><th>Tekshiruvda</th>
-                <th>Bajarilgan</th><th>Boshlanish</th><th>Oxirgi muddat</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.members.map((m) => (
-                <tr key={m.user.id} className={m.late ? "row-risk" : ""}>
-                  <td>
-                    <div className="row" style={{ gap: 8 }}>
-                      <Avatar user={m.user} size="sm" />
-                      <div style={{ minWidth: 0 }}>
-                        <Link to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}>
-                          {m.user.full_name}
-                        </Link>
-                        <br /><small className="muted">{m.specialty_display}</small>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="muted">{m.role}</td>
-                  <td>
-                    {m.open}
-                    {!!m.overdue && (
-                      <span className="badge badge-danger" style={{ marginLeft: 6 }}>
-                        {m.overdue} kechikkan
-                      </span>
-                    )}
-                  </td>
-                  <td>{m.in_review}</td>
-                  <td>{m.done}</td>
-                  <td className="muted">{m.first_start ? fmtDate(m.first_start) : "—"}</td>
-                  <td>
-                    <strong className={m.late ? "c-red" : ""}>
-                      {m.last_due ? fmtDate(m.last_due) : "—"}
-                    </strong>
-                  </td>
+        </Card>
+      ) : data.members.map((m) => (
+        <Card key={m.user.id} padded={false}
+              title={
+                <span className="row" style={{ gap: 8 }}>
+                  <Avatar user={m.user} size="sm" />
+                  <Link to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}>
+                    {m.user.full_name}
+                  </Link>
+                  <span className="muted" style={{ fontWeight: 400 }}>
+                    · ({m.user.specialty_display}) {m.role}
+                  </span>
+                </span>
+              }
+              badge={
+                <span className="row" style={{ gap: 6 }}>
+                  <span className="badge">{m.open} ochiq</span>
+                  {!!m.in_review && <span className="badge badge-info">{m.in_review} tekshiruvda</span>}
+                  {!!m.done && <span className="badge badge-ok">{m.done} bajarilgan</span>}
+                  {!!m.overdue && <span className="badge badge-danger">{m.overdue} kechikkan</span>}
+                </span>
+              }>
+          {/* Yig'indi sana emas, har bir vazifa o'z sanasi bilan: odam nimani
+              qachon tugatishini aynan shu jadvaldan ko'radi. */}
+          {!m.tasks.length ? (
+            <div className="card-body">
+              <span className="muted">Ochiq vazifa yo'q.</span>
+            </div>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Vazifa</th><th>Holat</th>
+                  <th>Boshlanish</th><th>Tugatish sanasi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+              </thead>
+              <tbody>
+                {m.tasks.map((t) => (
+                  <tr key={t.id} className={`clickable ${t.overdue ? "row-risk" : ""}`}
+                      onClick={() => nav(`/vazifa/${t.id}`)}>
+                    <td>
+                      <Link to={`/vazifa/${t.id}`} onClick={(e) => e.stopPropagation()}
+                            style={{ color: "var(--text)", fontWeight: 500 }}>
+                        {t.title}
+                      </Link>
+                    </td>
+                    <td className="muted nowrap">{t.status_display}</td>
+                    <td className="muted nowrap">{t.start_date ? fmtDate(t.start_date) : "—"}</td>
+                    <td className="nowrap">
+                      {t.due_date ? (
+                        <strong className={t.overdue ? "c-red" : ""}>
+                          {fmtDate(t.due_date)}
+                          {t.overdue && <span className="badge badge-danger"
+                                              style={{ marginLeft: 6 }}>kechikkan</span>}
+                        </strong>
+                      ) : (
+                        <span className="muted">sana qoyilmagan</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      ))}
 
     </>
   );

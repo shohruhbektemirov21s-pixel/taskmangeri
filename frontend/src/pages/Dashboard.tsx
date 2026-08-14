@@ -149,8 +149,8 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Menejer jamoani nol holatdan shu yerda yig'adi: qidirib taklif
-              qilish, so'rovni qabul qilish, a'zoni chiqarish. */}
+          {/* Menejer jamoani nol holatdan shu yerda yig'adi: odamni
+              qidirib qo'shish, so'rovni qabul qilish, a'zoni chiqarish. */}
           {d.managed_projects.length > 0 && (
             <div className="mb">
               <TeamBuilder projects={d.managed_projects} onChange={reload} />

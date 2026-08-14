@@ -16,14 +16,18 @@ import Chat from "@/components/Chat";
 import Files from "./project/Files";
 import ForecastTab from "./project/Forecast";
 
+// `team`: faqat jamoa a'zosiga ochiladigan bo'limlar. Loyihani ko'ra
+// oladigan odam hujjatlarni ham, tarixni ham ko'radi — ular loyiha nima
+// ekanini tushuntiradi. Yopiq qoladigan yagona joy — suhbat: u jamoaning
+// ish yozishmasi, tomoshabinga emas (serverda ham shunday).
 const TABS = [
   { slug: "", label: "Umumiy" },
   { slug: "doska", label: "Doska" },
   { slug: "vazifalar", label: "Vazifalar" },
   { slug: "jamoa", label: "Jamoa" },
   { slug: "muddatlar", label: "Muddatlar" },
-  { slug: "fayllar", label: "Fayllar" },
-  { slug: "chat", label: "Suhbat" },
+  { slug: "fayllar", label: "Hujjatlar" },
+  { slug: "chat", label: "Suhbat", team: true },
   { slug: "tarix", label: "Tarix" },
   { slug: "kirish", label: "Loyihaga kirish" },
   { slug: "brif", label: "Brif" },
@@ -92,7 +96,7 @@ export default function ProjectDetail() {
             )}
           </>
         }
-        tabs={TABS.map((t) => (
+        tabs={TABS.filter((t) => !t.team || acc.is_member || acc.is_manager || acc.is_admin).map((t) => (
           <NavLink
             key={t.slug}
             to={`/loyiha/${id}${t.slug ? "/" + t.slug : ""}`}

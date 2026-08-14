@@ -70,7 +70,7 @@ export default function JoinProject() {
               </div>
               {!project.is_public && (
                 <div className="field">
-                  <label>Taklif kodi</label>
+                  <label>Qoshilish kodi</label>
                   <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="A1B2C3D4" />
                 </div>
               )}

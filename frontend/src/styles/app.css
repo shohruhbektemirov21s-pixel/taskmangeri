@@ -155,7 +155,7 @@ p { margin: 0 0 .75rem; }
 small { font-size: 12px; }
 hr { border: none; border-top: 1px solid var(--border-muted); margin: 18px 0; }
 /* Brauzer <button> ga o'z kulrang fonini va chegarasini beradi - qorong'i
-   mavzuda u yorug' yamoq bo'lib turadi (masalan "Takliflar" sahifasidagi
+   mavzuda u yorug' yamoq bo'lib turadi (masalan bildirishnomalar sahifasidagi
    tablar). Ko'rinish har doim class orqali beriladi. */
 button {
   font-family: inherit; background: none; border: 0; color: inherit;
@@ -581,6 +581,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .table tr:last-child td { border-bottom: none; }
 .table tbody tr { transition: background .14s; }
 .table tbody tr:hover { background: var(--surface-2); }
+.table tbody tr.clickable { cursor: pointer; }
 /* Amal tugmalari: joy yetmasa yangi qatorga tushsin, qirqilib ketmasin */
 .table .row-actions {
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end;
@@ -775,6 +776,9 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 
 .repo-item { padding: 17px; border-bottom: 1px solid var(--border-muted); transition: background .15s; }
 .repo-item:hover { background: var(--surface-2); }
+/* Butun qator bosiladigan bo'lsa - sichqoncha shuni aytib tursin */
+.repo-item.clickable { cursor: pointer; }
+.repo-item.clickable:hover { border-left: 2px solid var(--accent); }
 .repo-item:last-child { border-bottom: none; }
 .repo-item h3 { margin: 0 0 4px; font-size: 16px; }
 .repo-meta { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-top: 9px; }

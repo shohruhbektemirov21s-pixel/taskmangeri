@@ -47,7 +47,7 @@ export default function WorkspaceForm() {
             <label className="row" style={{ fontWeight: 400 }}>
               <input type="checkbox" checked={f.is_open} style={{ width: "auto", minHeight: 0 }}
                      onChange={(e) => setF({ ...f, is_open: e.target.checked })} />
-              Ochiq — taklif kodisiz qoshilsa boladi
+              Ochiq — qoshilish kodisiz qoshilsa boladi
             </label>
             <div className="form-actions">
               <button className="btn btn-primary" disabled={busy}>

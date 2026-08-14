@@ -3,7 +3,7 @@
  *
  * Bitta WebSocket butun ilovaga xizmat qiladi: bildirishnomalar shu yerga
  * tushadi, boshqa komponentlar esa `subscribe()` orqali xohlagan hodisani
- * eshitadi (masalan taklif kelganda takliflar ro'yxatini yangilash).
+ * eshitadi (masalan qo'shilish so'rovi kelganda ro'yxatni yangilash).
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";

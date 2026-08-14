@@ -53,7 +53,7 @@ export default function Notifications() {
       <div className="content" style={{ maxWidth: 820 }}>
         {!items.length ? (
           <Empty icon="🔕" title="Bildirishnoma yo'q"
-                 text="Taklif, vazifa yoki suhbatdagi yangilik shu yerda paydo bo'ladi." />
+                 text="Vazifa, suhbat yoki qo'shilish so'roviga oid yangilik shu yerda paydo bo'ladi." />
         ) : (
           <Card padded={false}>
             <div className="card-list">
