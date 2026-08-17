@@ -11,7 +11,7 @@ from apps.notifications.services import notify, notify_many
 
 from .models import ChatMessage
 from .serializers import ChatMessageSerializer
-from .services import broadcast, can_read, members_of
+from .services import broadcast, broadcast_delete, can_read, members_of
 
 User = get_user_model()
 
@@ -131,6 +131,8 @@ class ChatMessageViewSet(mixins.ListModelMixin,
         # Xabar suhbatdan yo'qoladi, lekin bazada qoladi - kerak bo'lsa
         # admin panelidan ko'rish va qaytarish mumkin.
         instance.soft_delete(self.request.user)
+        # Ochiq turgan suhbat oynalari ham darrov xabardor bo'lsin.
+        broadcast_delete(instance)
 
     # ------------------------------------------------------------ shaxsiy
     @action(detail=False, methods=["get"])

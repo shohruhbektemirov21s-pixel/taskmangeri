@@ -946,8 +946,10 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   padding: 3px 0; user-select: none;
 }
 .file-history > summary::-webkit-details-marker { display: none; }
-.file-history > summary::before { content: "B8 "; }
-.file-history[open] > summary::before { content: "BE "; }
+/* Yigilgan/ochilgan belgisi. Unicode kodi bilan yoziladi: bevosita belgi
+   qoyilsa fayl kodlashi buzilganda "B8" kabi qoldiq bolib chiqib qolardi. */
+.file-history > summary::before { content: "\25B8\A0"; }
+.file-history[open] > summary::before { content: "\25BE\A0"; }
 .file-history > summary:hover { color: var(--text); }
 
 .repo-item { padding: 17px; border-bottom: 1px solid var(--border-muted); transition: background .15s; }

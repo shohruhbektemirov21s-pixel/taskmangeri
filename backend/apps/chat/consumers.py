@@ -1,10 +1,12 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from apps.core.consumers import LiveAuthMixin
+
 from .models import direct_room, room_name
 
 
-class ChatConsumer(AsyncJsonWebsocketConsumer):
+class ChatConsumer(LiveAuthMixin, AsyncJsonWebsocketConsumer):
     """ws/chat/<scope>/<id>/ - loyiha, ish maydoni yoki shaxsiy suhbat.
 
     Ulanish faqat o'qish uchun: xabar REST orqali yuboriladi, bu yerga esa
@@ -24,6 +26,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if scope not in ("project", "workspace", "direct"):
             await self.close(code=4400)
             return
+
+        # Keyingi tekshiruvlar uchun eslab qolamiz (`recheck_allowed`).
+        self.room_scope, self.room_id = scope, scope_id
 
         if not await self.allowed(user, scope, scope_id):
             await self.close(code=4403)
@@ -45,8 +50,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if content.get("event") == "ping":
             await self.send_json({"event": "pong"})
 
-    async def fanout(self, message):
-        await self.send_json(message["payload"])
+    # `fanout` `LiveAuthMixin` dan: har xabardan oldin token muddati va
+    # (30 soniyada bir marta) a'zolik qayta tekshiriladi.
+    async def recheck_allowed(self):
+        """Odam hali ham shu suhbatni o'qiy oladimi.
+
+        Ilgari ruxsat faqat ULANISHDA tekshirilardi: loyihadan chiqarilgan
+        odamning ochiq soketi xabar olishda davom etardi.
+        """
+        user = self.scope.get("user")
+        if not user or not user.is_authenticated:
+            return False
+        return await self.allowed(user, self.room_scope, self.room_id)
 
     @database_sync_to_async
     def allowed(self, user, scope, scope_id):

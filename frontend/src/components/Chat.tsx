@@ -72,6 +72,11 @@ export default function Chat({
     const close = openSocket(`/ws/chat/${scope}/${scopeId}/`, {
       onStatus: setLive,
       onMessage: (data) => {
+        // Kimdir xabarini o'chirsa - u ochiq turgan oynalardan ham ketsin.
+        if (data.event === "chat.deleted") {
+          setMessages((prev) => (prev || []).filter((m) => m.id !== Number(data.id)));
+          return;
+        }
         if (data.event !== "chat.message" || !data.message) return;
         const incoming = data.message as ChatMessage;
         setMessages((prev) => {
