@@ -32,20 +32,33 @@ def can_read(user, *, project=None, workspace=None, partner=None):
     return False
 
 
-def broadcast(message):
-    """Xabarni xona guruhiga uzatadi. Redis yiqilsa ham xabar bazada qoladi."""
-    from .serializers import ChatMessageSerializer
-
+def _send(message, payload):
+    """Xona guruhiga uzatadi. Redis yiqilsa ham asosiy amal buzilmaydi."""
     try:
         layer = get_channel_layer()
         if layer is None:
             return False
         async_to_sync(layer.group_send)(
-            message.room,
-            {"type": "fanout", "payload": {"event": "chat.message",
-                                           "message": ChatMessageSerializer(message).data}},
-        )
+            message.room, {"type": "fanout", "payload": payload})
         return True
     except Exception:
-        logger.exception("Chat xabarini tarqatib bo'lmadi: %s", message.pk)
+        logger.exception("Chat signalini tarqatib bo'lmadi: %s", message.pk)
         return False
+
+
+def broadcast(message):
+    """Yangi xabarni xonadagi barcha ochiq ulanishlarga uzatadi."""
+    from .serializers import ChatMessageSerializer
+
+    return _send(message, {"event": "chat.message",
+                           "message": ChatMessageSerializer(message).data})
+
+
+def broadcast_delete(message):
+    """Xabar o'chirilganini xonaga bildiradi.
+
+    Ilgari o'chirish faqat bazaga tegardi: boshqalarning ochiq turgan
+    suhbat oynasida xabar sahifa yangilanmaguncha turaverardi.
+    """
+    return _send(message, {"event": "chat.deleted", "id": message.pk,
+                           "room": message.room})

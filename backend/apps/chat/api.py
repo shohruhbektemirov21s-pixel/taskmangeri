@@ -1,17 +1,18 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Max, Q
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.serializers import UserBriefSerializer
+from apps.core.queries import int_param
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many
 
 from .models import ChatMessage
 from .serializers import ChatMessageSerializer
-from .services import broadcast, can_read, members_of
+from .services import broadcast, broadcast_delete, can_read, members_of
 
 User = get_user_model()
 
@@ -21,13 +22,16 @@ def resolve_room(params):
     from apps.projects.models import Project
     from apps.workspaces.models import Workspace
 
+    # Identifikator `int_param` dan o'tadi: yaroqsiz qiymat ("abc") so'rov
+    # bajarilayotganda ValueError bilan 500 bermasin - 400 qaytsin.
     if params.get("direct"):
-        partner = User.objects.filter(pk=params["direct"], is_active=True).first()
+        partner = User.objects.filter(pk=int_param(params["direct"], "direct"),
+                                      is_active=True).first()
         if not partner:
             raise ValidationError({"direct": "Foydalanuvchi topilmadi."})
         return {"project": None, "workspace": None, "partner": partner}
     if params.get("project"):
-        project = Project.objects.filter(pk=params["project"]).first()
+        project = Project.objects.filter(pk=int_param(params["project"], "project")).first()
         if not project:
             raise ValidationError({"project": "Loyiha topilmadi."})
         return {"project": project, "workspace": None, "partner": None}
@@ -93,7 +97,8 @@ class ChatMessageViewSet(mixins.ListModelMixin,
 
         partner = None
         if recipient_id:
-            partner = User.objects.filter(pk=recipient_id, is_active=True).first()
+            partner = User.objects.filter(pk=int_param(recipient_id, "recipient_id"),
+                                          is_active=True).first()
             if not partner:
                 raise ValidationError({"recipient_id": "Foydalanuvchi topilmadi."})
             if partner.pk == me.pk:
@@ -128,22 +133,40 @@ class ChatMessageViewSet(mixins.ListModelMixin,
         is_admin = getattr(self.request.user, "is_platform_admin", False)
         if instance.author_id != self.request.user.pk and not is_admin:
             raise PermissionDenied("Faqat o'z xabaringizni o'chira olasiz.")
-        instance.delete()
+        # Xabar suhbatdan yo'qoladi, lekin bazada qoladi - kerak bo'lsa
+        # admin panelidan ko'rish va qaytarish mumkin.
+        instance.soft_delete(self.request.user)
+        # Ochiq turgan suhbat oynalari ham darrov xabardor bo'lsin.
+        broadcast_delete(instance)
 
     # ------------------------------------------------------------ shaxsiy
     @action(detail=False, methods=["get"])
     def conversations(self, request):
         """Shaxsiy yozishmalar ro'yxati: suhbatdosh + oxirgi xabar."""
         me = request.user
-        recent = (ChatMessage.objects
-                  .filter(recipient__isnull=False)
-                  .filter(Q(author=me) | Q(recipient=me))
-                  .select_related("author", "recipient")
-                  .order_by("-created_at")[:400])
+        # Har suhbatdosh uchun OXIRGI xabar - guruhlangan so'rov bilan.
+        # Ilgari oxirgi 400 xabar o'qilib, ulardan suhbatdoshlar yig'ilardi:
+        # faol foydalanuvchida eski suhbatlar ro'yxatdan jimgina tushib
+        # qolardi - xato ko'rinmasdi, shunchaki suhbat yo'qolardi.
+        #
+        # `id` avtomatik o'sadi, ya'ni `Max("id")` - aynan oxirgi xabar.
+        # `values()` bilan faqat sanoq ustunlari tanlanadi, `text` (CLOB)
+        # `GROUP BY` ga tushmaydi - Db2 uni qo'llamaydi.
+        last_ids = set()
+        for direction in ("recipient_id", "author_id"):
+            column = "author" if direction == "recipient_id" else "recipient"
+            last_ids.update(
+                ChatMessage.objects
+                .filter(recipient__isnull=False, **{column: me})
+                .values(direction).annotate(last=Max("id"))
+                .values_list("last", flat=True))
+
+        messages = (ChatMessage.objects.filter(pk__in=last_ids)
+                    .select_related("author", "recipient").order_by("-created_at"))
 
         out = []
         seen = set()
-        for m in recent:
+        for m in messages:
             partner = m.partner_for(me)
             if not partner or partner.pk in seen:
                 continue

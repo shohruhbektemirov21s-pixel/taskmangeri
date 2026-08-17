@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { Task, UserBrief } from "@/api/types";
-import { IconEye, IconEyeOff, IconFile } from "./icons";
+import type { DiffPiece, Task, TextDiff, UserBrief } from "@/api/types";
+import { IconCalendar, IconEye, IconEyeOff, IconFile } from "./icons";
 
 /* ---------------------------------------------------------------- Avatar */
 export function Avatar({ user, size = "" }: { user?: UserBrief | null; size?: "sm" | "lg" | "xl" | "" }) {
@@ -388,13 +388,33 @@ function tzOffsetMinutes(date: Date) {
   return (asUTC - (date.getTime() - date.getMilliseconds())) / 60000;
 }
 
+/**
+ * Toshkent bo'yicha sana/soat bo'laklari.
+ *
+ * `toLocaleDateString("uz-UZ")` ishlatilmaydi: u brauzer ICU ma'lumotiga
+ * qarab "2026-02-21" (yil oldinda) beradi va Chrome versiyasiga qarab
+ * o'zgarib turadi. Bo'laklarni o'zimiz yig'sak natija hamma yerda bir xil:
+ * KUN.OY.YIL va 24 soatlik vaqt.
+ */
+function tzParts(d: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  }).formatToParts(d);
+  const p: Record<string, string> = {};
+  for (const { type, value } of parts) p[type] = value;
+  // en-GB yarim tunni ba'zan "24" deb beradi — 00 ga keltiramiz.
+  p.hour = String(+p.hour % 24).padStart(2, "0");
+  return p;
+}
+
 export function fmtDate(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("uz-UZ", {
-    timeZone: TZ, day: "2-digit", month: "2-digit", year: "numeric",
-  });
+  const p = tzParts(d);
+  return `${p.day}.${p.month}.${p.year}`;
 }
 
 /** Toshkent bo'yicha bugungi sana: "2026-08-14". */
@@ -442,10 +462,8 @@ export function fmtDateTime(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("uz-UZ", {
-    timeZone: TZ,
-    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-  });
+  const p = tzParts(d);
+  return `${p.day}.${p.month}.${p.year} ${p.hour}:${p.minute}`;
 }
 
 export function timeAgo(value?: string | null) {
@@ -456,6 +474,261 @@ export function timeAgo(value?: string | null) {
   if (diff < 86400) return `${Math.floor(diff / 3600)} soat oldin`;
   if (diff < 2592000) return `${Math.floor(diff / 86400)} kun oldin`;
   return fmtDate(value);
+}
+
+/* ------------------------------------------------- Sana kiritish maydonlari */
+/**
+ * NEGA XOM `<input type="date">` EMAS.
+ *
+ * Native sana maydoni BRAUZER tilida chiziladi, sahifa tilida emas: ruscha
+ * yoki inglizcha Chrome da "08/18/2026" ko'rinadi va buni na `lang`, na CSS
+ * o'zgartira oladi. Loyihaning qolgan hamma joyida sana "18.08.2026" —
+ * bitta ekranda ikki xil format turardi.
+ *
+ * Shuning uchun ko'rinadigan maydon oddiy matn: raqam yozilgani sari nuqta
+ * o'zi qo'yiladi. Taqvim yo'qolmaydi — yonidagi tugma yashirin native
+ * maydonning `showPicker()` ini chaqiradi.
+ *
+ * Qiymat formati o'zgarmadi: sana uchun "YYYY-MM-DD", sana+soat uchun
+ * "YYYY-MM-DDTHH:mm" — ya'ni chaqiruvchi kod ham, `fromDateTimeInput` ham
+ * oldingidek ishlayveradi.
+ */
+function digits(v: string) {
+  return v.replace(/\D/g, "");
+}
+
+/** "21022026" -> "21.02.2026" (yozilayotgan paytda ham to'g'ri ko'rinadi) */
+function maskDate(raw: string) {
+  const d = digits(raw).slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+}
+
+/** "210220261430" -> "21.02.2026 14:30" */
+function maskDateTime(raw: string) {
+  const d = digits(raw).slice(0, 12);
+  const date = maskDate(d.slice(0, 8));
+  if (d.length <= 8) return date;
+  if (d.length <= 10) return `${date} ${d.slice(8)}`;
+  return `${date} ${d.slice(8, 10)}:${d.slice(10)}`;
+}
+
+function isRealDate(y: number, m: number, day: number) {
+  if (m < 1 || m > 12 || day < 1 || y < 1000 || y > 9999) return false;
+  return new Date(Date.UTC(y, m - 1, day)).getUTCDate() === day;
+}
+
+/** "21.02.2026" -> "2026-02-21"; to'liq yoki haqiqiy bo'lmasa "" */
+function uzToIsoDate(text: string) {
+  const d = digits(text);
+  if (d.length !== 8) return "";
+  const day = +d.slice(0, 2), mo = +d.slice(2, 4), y = +d.slice(4);
+  if (!isRealDate(y, mo, day)) return "";
+  return `${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+}
+
+/** "21.02.2026 14:30" -> "2026-02-21T14:30" */
+function uzToIsoDateTime(text: string) {
+  const d = digits(text);
+  if (d.length !== 12) return "";
+  const date = uzToIsoDate(d.slice(0, 8));
+  if (!date) return "";
+  const hh = +d.slice(8, 10), mi = +d.slice(10);
+  if (hh > 23 || mi > 59) return "";
+  return `${date}T${d.slice(8, 10)}:${d.slice(10)}`;
+}
+
+/** "2026-02-21" -> "21.02.2026" */
+function isoDateToUz(v: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || "");
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
+}
+
+/** "2026-02-21T14:30" -> "21.02.2026 14:30" */
+function isoDateTimeToUz(v: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(v || "");
+  return m ? `${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]}` : "";
+}
+
+interface DateFieldProps {
+  id?: string;
+  value: string;
+  onChange: (value: string) => void;
+  /** Taqvim uchun chegara, ISO ko'rinishida. */
+  min?: string;
+  max?: string;
+  required?: boolean;
+  disabled?: boolean;
+  style?: React.CSSProperties;
+}
+
+function BaseDateField({ withTime, id, value, onChange, min, max, required, disabled, style }:
+                       DateFieldProps & { withTime: boolean }) {
+  const toUz = withTime ? isoDateTimeToUz : isoDateToUz;
+  const toIso = withTime ? uzToIsoDateTime : uzToIsoDate;
+  const mask = withTime ? maskDateTime : maskDate;
+  const native = useRef<HTMLInputElement>(null);
+  const [text, setText] = useState(() => toUz(value));
+
+  // Qiymat tashqaridan o'zgarsa (forma tozalandi, taqvimdan tanlandi)
+  // matnni yangilaymiz. Foydalanuvchi yozayotgan chala qiymatni buzmaslik
+  // uchun faqat haqiqatan boshqa sanaga aylangandagina.
+  useEffect(() => {
+    if (toIso(text) !== value) setText(toUz(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  function type(raw: string) {
+    const shown = mask(raw);
+    setText(shown);
+    const iso = toIso(shown);
+    // To'liq yozilgan bo'lsa - yuboramiz; maydon bo'shatilgan bo'lsa - tozalaymiz.
+    // Chala qiymat esa hali "yozilyapti", holatga tegmaymiz.
+    if (iso) onChange(iso);
+    else if (!digits(shown)) onChange("");
+  }
+
+  return (
+    <span className="dt-field" style={style}>
+      <input
+        id={id}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        required={required}
+        disabled={disabled}
+        placeholder={withTime ? "kk.oo.yyyy soat:daq" : "kk.oo.yyyy"}
+        value={text}
+        onChange={(e) => type(e.target.value)}
+        onBlur={() => setText(toUz(toIso(text)))}
+      />
+      {/* Taqvim: yashirin native maydon orqali. `showPicker()` ko'rinmaydigan
+          (display:none) elementda ishlamaydi, shuning uchun u chizilgan-u,
+          shaffof va o'lchamsiz. */}
+      <input
+        ref={native}
+        className="dt-native"
+        type={withTime ? "datetime-local" : "date"}
+        tabIndex={-1}
+        aria-hidden="true"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <button
+        type="button"
+        className="dt-pick"
+        disabled={disabled}
+        aria-label="Taqvimdan tanlash"
+        title="Taqvimdan tanlash"
+        onClick={() => {
+          const el = native.current;
+          if (!el) return;
+          try {
+            el.showPicker();
+          } catch {
+            el.focus();      // eski brauzerlarda
+          }
+        }}
+      >
+        <IconCalendar />
+      </button>
+    </span>
+  );
+}
+
+/** Sana maydoni. Qiymat "YYYY-MM-DD", ko'rinishi "21.02.2026". */
+export function DateField(props: DateFieldProps) {
+  return <BaseDateField {...props} withTime={false} />;
+}
+
+/** Sana + soat maydoni. Qiymat "YYYY-MM-DDTHH:mm", ko'rinishi "21.02.2026 14:30". */
+export function DateTimeField(props: DateFieldProps) {
+  return <BaseDateField {...props} withTime />;
+}
+
+/* ---------------------------------------------------------------- Solishtirish */
+/**
+ * Ikki matnni YONMA-YON ko'rsatadi: chapda eski, o'ngda yangi, o'zgargan
+ * bo'laklar ajratilgan holda.
+ *
+ * Ilgari tahrir tarixi eski va yangi matnni ustma-ust qo'yardi - uzun
+ * matnda nima o'zgarganini odam o'zi qidirib topishi kerak edi.
+ *
+ * Bo'laklarni SERVER tayyorlaydi (`apps/core/textdiff.py`): qoida bitta
+ * joyda turadi va brauzer uzun matnni qayta ishlab o'tirmaydi.
+ *
+ * Tor ekranda ustunlar pastma-past tushadi - CSS `diff-grid` da.
+ */
+export function DiffView({ diff, oldLabel = "Eski", newLabel = "Yangi" }: {
+  diff?: TextDiff | null;
+  oldLabel?: string;
+  newLabel?: string;
+}) {
+  if (!diff) return null;
+
+  const side = (pieces: DiffPiece[], empty: string) => (
+    pieces.length
+      ? pieces.map((p, i) => (
+          p.changed
+            ? <mark className="diff-mark" key={i}>{p.text}</mark>
+            : <span key={i}>{p.text}</span>
+        ))
+      : <span className="muted">{empty}</span>
+  );
+
+  return (
+    <div className="diff">
+      <div className="diff-grid">
+        <div className="diff-col">
+          <div className="diff-head">{oldLabel}</div>
+          <div className="diff-body diff-old">{side(diff.old, "bo'sh edi")}</div>
+        </div>
+        <div className="diff-col">
+          <div className="diff-head">{newLabel}</div>
+          <div className="diff-body diff-new">{side(diff.new, "bo'sh qoldirildi")}</div>
+        </div>
+      </div>
+      {!diff.has_changes && (
+        <p className="muted diff-note">Matn o'zgarmagan.</p>
+      )}
+      {diff.truncated && (
+        <p className="muted diff-note">
+          Matn juda uzun - o'zgargan joylari alohida ajratilmadi.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Maydonlar bo'yicha solishtirish - fayl nomi, hajmi, izohi kabi.
+ *
+ * Hujjatning ichini solishtirib bo'lmaydi (`.docx`, `.pdf` - ikkilik fayl),
+ * lekin nima o'zgargani baribir ko'rinishi kerak: nomi, hajmi, izohi.
+ */
+export function FieldDiff({ rows }: { rows: { label: string; old: string; new: string; changed: boolean }[] }) {
+  if (!rows.length) return null;
+  return (
+    <div className="diff">
+      <div className="diff-grid diff-fields">
+        {rows.map((r) => (
+          <Fragment key={r.label}>
+            <div className={`diff-field ${r.changed ? "is-changed" : ""}`}>
+              <small className="muted">{r.label}</small>
+              <div>{r.old || <span className="muted">—</span>}</div>
+            </div>
+            <div className={`diff-field ${r.changed ? "is-changed" : ""}`}>
+              <small className="muted">{r.label}</small>
+              <div>{r.new || <span className="muted">—</span>}</div>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /**

@@ -12,13 +12,16 @@ export default function WorkspaceChat() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let alive = true;
     void (async () => {
       try {
-        setWs(await api.get<Workspace>(`/workspaces/${slug}/`));
+        const w = await api.get<Workspace>(`/workspaces/${slug}/`);
+        if (alive) setWs(w);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Ish maydonini ochib bo'lmadi");
+        if (alive) setError(err instanceof ApiError ? err.message : "Ish maydonini ochib bo'lmadi");
       }
     })();
+    return () => { alive = false; };
   }, [slug]);
 
   if (!ws) {

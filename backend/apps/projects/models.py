@@ -6,6 +6,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.core.softdelete import SoftDeleteModel
+
 
 # Loyiha rangi foydalanuvchidan sorlmaydi - shu palitradan avtomatik tanlanadi.
 PROJECT_COLORS = [
@@ -237,16 +239,33 @@ class Project(models.Model):
 
     @property
     def has_active_manager(self):
-        """Loyihada tirik menejer bormi - menejersiz qolib ketmasin."""
+        """Loyihada tirik menejer bormi - menejersiz qolib ketmasin.
+
+        `memberships` oldindan yuklangan bo'lsa keshdan qaraladi: ro'yxatda
+        bu xossa har loyiha uchun bittadan `EXISTS` so'rovi yuborardi.
+        """
+        if "memberships" in getattr(self, "_prefetched_objects_cache", {}):
+            return any(m.is_active and m.role == ProjectRole.MANAGER
+                       for m in self.memberships.all())
         return self.memberships.filter(is_active=True, role=ProjectRole.MANAGER).exists()
 
     def progress(self):
+        """Bajarilgan vazifalar ulushi (%).
+
+        Ro'yxatda har loyiha uchun ikkita `COUNT` yuborilardi. Endi avval
+        annotatsiya qaraladi (`project_counters` uni bitta ichki so'rov bilan
+        oldindan olib qo'yadi) va faqat u yo'q bo'lsa bazaga boriladi -
+        masalan bitta loyiha alohida ochilganda.
+        """
         from apps.tasks.models import TaskStatus
 
-        total = self.tasks.exclude(status=TaskStatus.CANCELLED).count()
+        total = getattr(self, "total_tasks", None)
+        done = getattr(self, "done_tasks", None)
+        if total is None or done is None:
+            total = self.tasks.exclude(status=TaskStatus.CANCELLED).count()
+            done = self.tasks.filter(status=TaskStatus.DONE).count()
         if not total:
             return 0
-        done = self.tasks.filter(status=TaskStatus.DONE).count()
         return round(done * 100 / total)
 
     def needed_specialty_labels(self):
@@ -255,9 +274,20 @@ class Project(models.Model):
         names = dict(Specialty.choices)
         return [{"value": v, "label": names.get(v, v)} for v in (self.needed_specialties or [])]
 
+    def active_specialties(self):
+        """Jamoadagi faol a'zolarning mutaxassisliklari.
+
+        `memberships` oldindan yuklangan bo'lsa (`prefetch_related`) - bazaga
+        umuman borilmaydi, filtr Python tomonda bajariladi. Ro'yxatda har
+        loyiha uchun alohida so'rov ketishining oldi shu yerda olinadi.
+        """
+        if "memberships" in getattr(self, "_prefetched_objects_cache", {}):
+            return [m.user.specialty for m in self.memberships.all() if m.is_active]
+        return list(self.active_members.values_list("user__specialty", flat=True))
+
     def specialty_gaps(self):
         """Kerak, lekin jamoada yoq bolgan mutaxassisliklar."""
-        have = set(self.active_members.values_list("user__specialty", flat=True))
+        have = set(self.active_specialties())
         return [v for v in (self.needed_specialties or []) if v not in have]
 
     def matches_user(self, user):
@@ -273,12 +303,30 @@ class Project(models.Model):
         from apps.accounts.specialties import Specialty
 
         names = dict(Specialty.choices)
-        counts = Counter(self.active_members.values_list("user__specialty", flat=True))
+        counts = Counter(self.active_specialties())
         return [{"value": k, "label": names.get(k, k), "count": v}
                 for k, v in counts.most_common()]
 
     def next_task_number(self):
-        last = self.tasks.order_by("-number").values_list("number", flat=True).first()
+        """Loyihadagi keyingi vazifa raqami.
+
+        `SELECT MAX` keyin `+1` - ikki kishi bir vaqtda vazifa yaratsa
+        ikkalasiga bir xil raqam tegib, `unique_together (project, number)`
+        buzilardi va biriga 500 chiqardi. Shuning uchun loyiha qatori
+        qulflanadi: raqam olayotgan ikkinchi tranzaksiya birinchisini
+        kutadi. Qulf tranzaksiya tugaguncha ushlanadi, ya'ni chaqiruvchi
+        `atomic` ichida bo'lishi kerak - `Task.save()` shunday chaqiradi.
+        """
+        # Qulf loyihaning o'ziga qo'yiladi: vazifalar jadvalini emas, bitta
+        # qatorni band qilamiz - boshqa loyihalar erkin ishlayveradi.
+        type(self).objects.select_for_update().filter(pk=self.pk).exists()
+        # `self.tasks` standart menejerdan yasaladi va o'chirilganlarni
+        # yashiradi - u bilan sanasak o'chirilgan vazifaning raqami qayta
+        # ishlatilib, `unique_together (project, number)` buzilardi.
+        from apps.tasks.models import Task
+
+        last = (Task.all_objects.filter(project=self)
+                .order_by("-number").values_list("number", flat=True).first())
         return (last or 0) + 1
 
 
@@ -418,7 +466,7 @@ def project_file_version_path(instance, filename):
     return "projects/{}/versions/{}".format(instance.document.project_id, filename)
 
 
-class ProjectFile(models.Model):
+class ProjectFile(SoftDeleteModel):
     """Loyihaga tegishli fayl: texnik topshiriq, dizayn, hujjat, arxiv.
 
     Vazifa fayllaridan (`tasks.Attachment`) farqi: bu fayllar bitta ishga emas,

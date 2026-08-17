@@ -514,6 +514,10 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 
 /* ============ FORMS ============ */
 label { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 7px; }
+/* Yorliq ko'rinishidagi sarlavha - lekin bitta maydonga tegishli emas
+   (radio guruhi, o'qish uchun ma'lumot). `<label>` bo'lsa ekran o'quvchi
+   uni bog'lanmagan yorliq deb o'qirdi. */
+.lbl { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 7px; }
 /* input:not([type]) - JSX da type yozilmagan maydonlar ham shu qoidaga tushsin,
    aks holda ular boshqalardan tor bolib qoladi. */
 input:not([type]),
@@ -537,6 +541,30 @@ input:focus, select:focus, textarea:focus {
   box-shadow: var(--ring), var(--sh-inset);
 }
 input::placeholder, textarea::placeholder { color: var(--subtle); }
+
+/* ---- Sana maydoni (DateField / DateTimeField) ----
+   Native `<input type=date>` brauzer tilida chizilardi ("08/18/2026") va
+   uni sahifadan boshqarib bo'lmasdi. Endi ko'rinadigan maydon oddiy matn,
+   taqvim esa yonidagi tugmadagi yashirin native maydondan chaqiriladi. */
+.dt-field { position: relative; display: block; width: 100%; }
+.dt-field > input[type=text] { width: 100%; padding-right: 40px; }
+/* Yashirin native maydon: `showPicker()` chizilmagan elementda ishlamaydi,
+   shuning uchun o'chirilmaydi - shaffof va o'lchamsiz qilinadi. */
+.dt-field .dt-native {
+  position: absolute; inset-inline-end: 8px; bottom: 0;
+  width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0;
+  border: 0; opacity: 0; pointer-events: none;
+}
+.dt-field .dt-pick {
+  position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 9px; background: transparent;
+  color: var(--muted); cursor: pointer;
+  transition: background .16s, color .16s;
+}
+.dt-field .dt-pick:hover { background: var(--veil); color: var(--text); }
+.dt-field .dt-pick:disabled { opacity: .5; cursor: default; }
 select { cursor: pointer; }
 select option { background: var(--surface); color: var(--text); }
 input[type=checkbox], input[type=radio] { accent-color: var(--accent); cursor: pointer; }
@@ -802,30 +830,6 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   .timeline.compact .tl-meta { display: none; }
 }
 
-/* Panelning "hamma bo'limlar" to'plami: har biri bitta jumla bilan
-   tushuntirilgan katak - birinchi marta kirgan odam qayerga bosishni bilsin */
-.tiles {
-  display: grid; gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-}
-.tile {
-  display: flex; gap: 11px; align-items: flex-start;
-  padding: 12px 13px; border: 1px solid var(--border-muted); border-radius: 10px;
-  background: var(--surface-2); color: var(--text); text-decoration: none;
-  transition: border-color .14s, background .14s, transform .14s;
-}
-.tile:hover {
-  border-color: var(--accent); background: var(--surface-3, var(--surface-2));
-  transform: translateY(-1px);
-}
-.tile strong { font-size: 13.5px; }
-.tile small { line-height: 1.4; display: block; margin-top: 2px; }
-.tile-ico {
-  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 8px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--surface); color: var(--accent);
-}
-
 /* ---------------------------------------------------------------- Taqvim
    Klassik oy setkasi: kataklar bir-biriga tegib turadi (oraliq yo'q),
    chegara bitta piksel. Kun raqami o'ng yuqorida, tasmalar esa hafta
@@ -868,7 +872,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   align-content: start;
 }
 .cal-col {
-  grid-row: 1 / -1; min-height: 104px;
+  grid-row: 1 / -1; min-height: 74px;
   border-right: 1px solid var(--border-muted);
   border-bottom: 1px solid var(--border-muted);
   cursor: pointer; transition: background .12s;
@@ -924,7 +928,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 @media (max-width: 760px) {
   .cal-bar { font-size: 10px; padding: 1px 4px; }
   .cal-who { display: none; }
-  .cal-col { min-height: 84px; }
+  .cal-col { min-height: 62px; }
 }
 @media (max-width: 700px) {
   /* Telefonda 7 ustunni siqib tashlasak tasmalar o'qilmaydigan chiziqqa
@@ -942,8 +946,10 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   padding: 3px 0; user-select: none;
 }
 .file-history > summary::-webkit-details-marker { display: none; }
-.file-history > summary::before { content: "B8 "; }
-.file-history[open] > summary::before { content: "BE "; }
+/* Yigilgan/ochilgan belgisi. Unicode kodi bilan yoziladi: bevosita belgi
+   qoyilsa fayl kodlashi buzilganda "B8" kabi qoldiq bolib chiqib qolardi. */
+.file-history > summary::before { content: "\25B8\A0"; }
+.file-history[open] > summary::before { content: "\25BE\A0"; }
 .file-history > summary:hover { color: var(--text); }
 
 .repo-item { padding: 17px; border-bottom: 1px solid var(--border-muted); transition: background .15s; }
@@ -1187,6 +1193,24 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   .theme-float { top: 12px; right: 12px; }
   /* Uzun matnli tugmalar ikki qatorga sig'sin */
   .table .row-actions { flex-wrap: wrap; justify-content: flex-end; }
+
+  /* Yonma-yon turgan narsalar sig'masa pastga tushadi: ikkita tugma ham,
+     forma maydonlari ham. Telefonda "Sana" yoki "Tajriba" katakchasi qisilib,
+     ichidagi yozuv ko'rinmay qolardi. Kengliklar sahifalarda inline
+     berilgani uchun bu yerda !important kerak. */
+  .row { flex-wrap: wrap; }
+  /* Maydonlar odatda 100% kenglikda - qator ichida ular yonidagi tugmani
+     har doim pastga itarib yuborardi. Qator ichida ular o'z o'lchamidan
+     boshlanib, bo'sh joyni to'ldiradi: "qo'shish" tugmasi yonda qoladi. */
+  .row > input:not([type=checkbox]):not([type=radio]), .row > select {
+    flex: 1 1 auto; width: auto; min-width: 0;
+  }
+  form .row > .field {
+    flex: 1 1 100% !important; width: auto !important; min-width: 0 !important;
+  }
+
+  /* Uzun email va havola katak chetidan chiqib ketmasin */
+  .card-body { overflow-wrap: break-word; }
 }
 
 /* iOS'da 16px dan kichik maydon fokuslanganda sahifani o'zi kattalashtiradi -
@@ -1391,6 +1415,48 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .edit-new {
   color: var(--success); background: rgba(79, 168, 111, .09);
   border-radius: 8px; padding: 6px 9px; margin-top: 5px; white-space: pre-wrap;
+}
+
+/* ---- Yonma-yon solishtirish (DiffView / FieldDiff) ----
+   Hujjat solishtirgichlaridagi kabi: chapda eski nusxa, o'ngda yangisi,
+   o'zgargan bo'laklar ajratilgan. Tor ekranda ustunlar pastma-past tushadi. */
+.diff { margin-top: 8px; }
+.diff-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--border-muted);
+  border: 1px solid var(--border-muted); border-radius: 10px; overflow: hidden;
+}
+.diff-col { display: flex; flex-direction: column; background: var(--surface); }
+.diff-head {
+  padding: 5px 10px; font-size: 11.5px; font-weight: 600;
+  color: var(--muted); background: var(--border-muted);
+  text-transform: uppercase; letter-spacing: .03em;
+}
+.diff-body {
+  padding: 8px 10px; font-size: 13px; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word; flex: 1;
+}
+/* O'zgargan bo'lak - hujjat solishtirgichlaridagidek ajratib ko'rsatiladi.
+   Rangi eski/yangi tomonga qarab farqlanadi: qaysi biri olib tashlangani va
+   qaysi biri qo'shilgani rangdan ham bilinsin, faqat joyidan emas. */
+.diff-mark {
+  background: rgba(210, 153, 34, .30); color: inherit;
+  border-radius: 3px; padding: 0 1px;
+}
+.diff-old .diff-mark { background: rgba(217, 115, 108, .26); }
+.diff-new .diff-mark { background: rgba(79, 168, 111, .26); }
+.diff-note { font-size: 12px; margin: 6px 0 0; }
+
+/* Maydonlar bo'yicha solishtirish: har bir qator ikki katakdan iborat. */
+.diff-fields .diff-field {
+  background: var(--surface); padding: 7px 10px; font-size: 13px;
+}
+.diff-fields .diff-field.is-changed { background: rgba(210, 153, 34, .12); }
+.diff-fields .diff-field small { display: block; font-size: 11px; margin-bottom: 2px; }
+
+@media (max-width: 620px) {
+  /* Tor ekranda yonma-yon o'qib bo'lmaydi - ustma-ust qo'yamiz. */
+  .diff-grid { grid-template-columns: 1fr; }
 }
 
 .dropzone {

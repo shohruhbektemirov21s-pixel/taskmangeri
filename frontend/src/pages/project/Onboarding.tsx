@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/api/client";
+import { useFetch } from "@/api/useFetch";
 import type { OnboardingData, Project } from "@/api/types";
 import Timeline from "@/components/Timeline";
-import { Avatar, Card, Loading, Priority, Progress, StatusBadge, fmtDate, timeAgo } from "@/components/ui";
+import { Avatar, Card, ErrorMsg, Loading, Priority, Progress, StatusBadge, fmtDate, timeAgo } from "@/components/ui";
 
 const BRIEF_SECTIONS: [keyof NonNullable<OnboardingData["brief"]>, string][] = [
   ["goal", "Loyiha maqsadi"],
@@ -17,12 +16,10 @@ const BRIEF_SECTIONS: [keyof NonNullable<OnboardingData["brief"]>, string][] = [
 ];
 
 export default function Onboarding({ project }: { project: Project }) {
-  const [d, setD] = useState<OnboardingData | null>(null);
+  const { data: d, error } = useFetch<OnboardingData>(
+    "/activity/onboarding/", { project: project.id });
 
-  useEffect(() => {
-    void api.get<OnboardingData>("/activity/onboarding/", { project: project.id }).then(setD);
-  }, [project.id]);
-
+  if (error) return <ErrorMsg error={error} />;
   if (!d) return <Loading text="Kontekst yigilmoqda..." />;
 
   return (
@@ -152,7 +149,7 @@ export default function Onboarding({ project }: { project: Project }) {
           </Card>
 
           <Card title="Hozir ochiq turgan ishlar" padded={false}>
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <tbody>
                 {d.open_now.map((t) => (
                   <tr key={t.id}>
@@ -165,11 +162,11 @@ export default function Onboarding({ project }: { project: Project }) {
                   <tr><td className="muted center">Ochiq vazifa yoq</td></tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </Card>
 
           <Card title="Songgi bajarilganlar" padded={false}>
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <tbody>
                 {d.recent_done.map((t) => (
                   <tr key={t.id}>
@@ -182,7 +179,7 @@ export default function Onboarding({ project }: { project: Project }) {
                   <tr><td className="muted center">Hali bajarilgan vazifa yoq</td></tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         </div>
       </div>

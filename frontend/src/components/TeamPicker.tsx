@@ -17,7 +17,7 @@ import type { Choice, Task, UserBrief } from "@/api/types";
 import { MAX_FILE_BYTES, fileSize, uploadFiles } from "./FilePicker";
 import UserSearch from "./UserSearch";
 import { IconClose, IconFile, IconPlus } from "./icons";
-import { Avatar, SpecialtyTag, fromDateTimeInput } from "./ui";
+import { Avatar, DateField, fromDateTimeInput, SpecialtyTag } from "./ui";
 
 /** Odamga atab yozilgan, hali yaratilmagan vazifa. */
 export interface PickTask {
@@ -300,13 +300,13 @@ function TaskAdder({ priorities, draft, onDraft, onAdd }: {
       <div className="row wrap">
         <label className="pick-date">
           <small className="muted">Boshlanish</small>
-          <input type="date" value={draft.start_date} max={draft.due_date || undefined}
-                 onChange={(e) => set({ start_date: e.target.value })} />
+          <DateField value={draft.start_date} max={draft.due_date || undefined}
+                     onChange={(v) => set({ start_date: v })} />
         </label>
         <label className="pick-date">
           <small className="muted">Tugash</small>
-          <input type="date" value={draft.due_date} min={draft.start_date || undefined}
-                 onChange={(e) => set({ due_date: e.target.value })} />
+          <DateField value={draft.due_date} min={draft.start_date || undefined}
+                     onChange={(v) => set({ due_date: v })} />
         </label>
       </div>
 

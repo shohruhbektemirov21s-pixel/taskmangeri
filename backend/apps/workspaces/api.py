@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
@@ -11,6 +12,10 @@ from apps.projects.models import Project
 
 from .models import Workspace, WorkspaceMember, WorkspaceRole
 from .serializers import WorkspaceDetailSerializer, WorkspaceSerializer
+
+
+# Qo'lda beriladigan rollar: egalik bundan tashqarida.
+GRANTABLE_ROLES = [r for r in WorkspaceRole.values if r != WorkspaceRole.OWNER]
 
 
 class WorkspaceViewSet(viewsets.ModelViewSet):
@@ -61,7 +66,17 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         if not (self.request.user.is_platform_admin or instance.owner_id == self.request.user.id):
             raise PermissionDenied("Faqat egasi ochira oladi.")
-        instance.delete()
+        # Yumshoq o'chirish. Ilgari `delete()` edi va ish maydoni bilan
+        # BIRGA ichidagi hamma loyiha, vazifa va tarix CASCADE bilan yo'q
+        # bo'lardi - loyihada eng qimmatga tushadigan amal shu edi.
+        #
+        # Loyihalar ham belgilanadi: aks holda maydoni o'chirilgan loyiha
+        # ro'yxatlarda yolg'iz qolib ko'rinaverardi. Ular alohida yozuv,
+        # ya'ni kerak bo'lsa bittalab tiklanadi.
+        with transaction.atomic():
+            for project in Project.objects.filter(workspace=instance):
+                project.soft_delete(self.request.user)
+            instance.soft_delete(self.request.user)
 
     @action(detail=True, methods=["post"])
     def join(self, request, slug=None):
@@ -95,7 +110,10 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             return Response({"removed": True})
 
         role = request.data.get("role")
-        if role not in WorkspaceRole.values:
+        # Egalik rol almashtirish orqali berilmaydi - u maydonning `owner`
+        # maydonida turadi va bir kishilik. `apps/core/team.py` da bu qoida
+        # ilgaridan bor edi, bu yerda esa `OWNER` ham ro'yxatdan o'tib ketardi.
+        if role not in GRANTABLE_ROLES:
             raise ValidationError({"role": "Notogri rol."})
         member.role = role
         member.save(update_fields=["role"])

@@ -209,6 +209,11 @@ loyihalar. Cheklov bo'lgani javobda `limited: true` bilan aytiladi.
 | Menejer rolini faqat menejer beradi | `core/permissions.py` → `can_grant_role` |
 | Loyiha hujjatlarini yuklash va o'chirish — faqat jamoa (o'qish ko'rish huquqi bilan) | `projects/api.py` → `files` |
 | Topshiriqni faqat muallif yoki menejer tahrirlaydi, tarix o'chmaydi | `tasks/api.py` |
+| Media fayllar imzolangan, 6 soatlik manzil bilan uzatiladi | `core/media.py` → `serve_media` |
+| Brauzerda kod ishga tushira oladigan fayl (`.html`, `.svg`, `.js`) yuklanmaydi | `core/uploads.py` |
+| Xavfsiz deb belgilanmagan tur ochilmaydi, yuklab olinadi | `core/media.py` → `INLINE_SAFE` |
+| Yaroqsiz identifikator 500 emas, 404 beradi | `core/queries.py` → `object_or_404` |
+| DEBUG o'chirilganda zaif `SECRET_KEY` bilan ishga tushmaydi | `config/settings.py` |
 
 ---
 
@@ -254,6 +259,13 @@ rasmlar oldindan ko'rinadi, har bir amal tarixga yoziladi:
 - **vazifa fayllari** — skrinshot, log, patch: aniq bir ishga bog'langan;
 - **loyiha hujjatlari** (`/loyiha/:id/fayllar`) — texnik topshiriq, dizayn,
   shartnoma: butun loyihaga tegishli, yangi kelgan odam darrov topadi.
+
+Fayl manzili **imzolangan**: API uni berayotganda 6 soatlik imzo qo'shadi
+(`/media/...?t=...`), `serve_media` esa imzosini tekshiradi. Sababi oddiy —
+brauzer `<img src>` va yangi oynadagi havolaga `Authorization` headerini
+qo'sha olmaydi, ya'ni odatdagi token tekshiruvi bu yerda ishlamaydi. Imzo
+ichida faylning aynan o'zi yozilgan: bitta hujjatning manzili bilan
+boshqasini ochib bo'lmaydi.
 
 **O'qish loyihani ko'rish huquqi bilan bir xil:** ochiq loyihaning hujjatlarini
 tizimdagi hamma ko'radi, yopiq loyihanikini esa faqat jamoa. Nima ustida
@@ -472,6 +484,22 @@ docker compose exec frontend npx tsc --noEmit    # TypeScript tekshiruvi
 docker compose exec frontend npm run build       # prod build
 docker compose down -v                    # hammasini o'chirish (baza bilan)
 ```
+
+### Testlar
+
+```bash
+printf 'yes
+' | docker compose exec -T backend python manage.py test tests
+```
+
+`yes` kerak: Db2 adapteri sinov bazasini yaratishdan oldin tasdiq so'raydi.
+Baza nomi `TFTEST` — Db2 da nom 8 belgidan oshmaydi, adapter esa unga `t_`
+qo'shadi, ya'ni `t_TEAMFLOW` yaroqsiz nom bo'lardi (`settings.DATABASES.TEST`).
+
+Nimalar qulflangan: fayl ruxsatlari va yuklash qoidalari, yaroqsiz
+identifikator uchun 404, tranzaksiya yaxlitligi, vazifa raqami, suhbat oqimi
+va **so'rovlar soni** — `tests/test_queries.py` qatorlar ko'payganda so'rov
+soni oshib ketmasligini tekshiradi, ya'ni N+1 qaytib kelsa test yiqiladi.
 
 ## Ma'lumotlar bazasi
 

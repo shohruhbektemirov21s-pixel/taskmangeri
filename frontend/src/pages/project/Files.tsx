@@ -16,14 +16,15 @@
  * hujjatning yangi nusxasi bo'ladi. Eskisi yo'qolmaydi — «v2» yorlig'i
  * ostidan ochib ko'rish mumkin: kim yuklagan, kim almashtirgan, qachon.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ApiError, api, tokens } from "@/api/client";
 import type { Project, ProjectFile } from "@/api/types";
 import { IconFile } from "@/components/icons";
-import { Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, timeAgo } from "@/components/ui";
+import { Avatar, Card, Empty, ErrorMsg, FieldDiff, Loading, OkMsg, timeAgo } from "@/components/ui";
 import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Files({ project }: { project: Project }) {
+  const fid = useId();
   const acc = project.access;
   const [items, setItems] = useState<ProjectFile[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +93,8 @@ export default function Files({ project }: { project: Project }) {
       {acc.can_work && (
         <Card title="Hujjat yuklash">
           <div className="field">
-            <label>Izoh (ixtiyoriy)</label>
-            <input type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
+            <label htmlFor={`${fid}-0`}>Izoh (ixtiyoriy)</label>
+            <input id={`${fid}-0`} type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
                    onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div
@@ -157,19 +158,24 @@ export default function Files({ project }: { project: Project }) {
                     </summary>
                     <div className="stack" style={{ marginTop: 8 }}>
                       {f.versions.map((v) => (
-                        <div className="row wrap" key={v.id} style={{ gap: 8 }}>
-                          <span className="badge mono">v{v.version}</span>
-                          <a href={v.url || "#"} target="_blank" rel="noreferrer">
-                            {v.original_name}
-                          </a>
-                          <small className="muted">
-                            {v.size_display} · {v.uploaded_by?.full_name || "—"} yuklagan
-                            {v.description && ` · ${v.description}`}
-                          </small>
-                          <span className="spacer" />
-                          <small className="muted nowrap">
-                            {v.replaced_by?.full_name || "—"} almashtirgan · {timeAgo(v.replaced_at)}
-                          </small>
+                        <div key={v.id}>
+                          <div className="row wrap" style={{ gap: 8 }}>
+                            <span className="badge mono">v{v.version}</span>
+                            <a href={v.url || "#"} target="_blank" rel="noreferrer">
+                              {v.original_name}
+                            </a>
+                            <small className="muted">
+                              {v.size_display} · {v.uploaded_by?.full_name || "—"} yuklagan
+                            </small>
+                            <span className="spacer" />
+                            <small className="muted nowrap">
+                              {v.replaced_by?.full_name || "—"} almashtirgan · {timeAgo(v.replaced_at)}
+                            </small>
+                          </div>
+                          {/* Hujjatning ichini solishtirib bo'lmaydi (ikkilik fayl),
+                              shuning uchun maydonlari yonma-yon qo'yiladi:
+                              v{n} qanday edi va nimaga aylandi. */}
+                          <FieldDiff rows={v.diff.filter((r) => r.changed)} />
                         </div>
                       ))}
                     </div>

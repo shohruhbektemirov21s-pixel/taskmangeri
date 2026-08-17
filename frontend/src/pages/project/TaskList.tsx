@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { Project, Task } from "@/api/types";
@@ -7,6 +7,7 @@ import { useRealtime } from "@/realtime/RealtimeContext";
 import { Empty, Loading, TaskRow } from "@/components/ui";
 
 export default function TaskList({ project }: { project: Project }) {
+  const fid = useId();
   const { meta } = useAuth();
   const { subscribe } = useRealtime();
   const [tasks, setTasks] = useState<Task[] | null>(null);
@@ -34,8 +35,8 @@ export default function TaskList({ project }: { project: Project }) {
     <>
       <div className="filters">
         <div className="f">
-          <label>Holat</label>
-          <select value={f.status} onChange={(e) => set("status", e.target.value)}>
+          <label htmlFor={`${fid}-0`}>Holat</label>
+          <select id={`${fid}-0`} value={f.status} onChange={(e) => set("status", e.target.value)}>
             <option value="">Hammasi</option>
             {(meta?.task_status || []).map((s) => (
               <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -43,8 +44,8 @@ export default function TaskList({ project }: { project: Project }) {
           </select>
         </div>
         <div className="f">
-          <label>Ijrochi</label>
-          <select value={f.assignee} onChange={(e) => set("assignee", e.target.value)}>
+          <label htmlFor={`${fid}-1`}>Ijrochi</label>
+          <select id={`${fid}-1`} value={f.assignee} onChange={(e) => set("assignee", e.target.value)}>
             <option value="">Hammasi</option>
             <option value="me">Faqat meniki</option>
             {(project.members || []).map((m) => (
@@ -53,8 +54,8 @@ export default function TaskList({ project }: { project: Project }) {
           </select>
         </div>
         <div className="f">
-          <label>Turi</label>
-          <select value={f.task_type} onChange={(e) => set("task_type", e.target.value)}>
+          <label htmlFor={`${fid}-2`}>Turi</label>
+          <select id={`${fid}-2`} value={f.task_type} onChange={(e) => set("task_type", e.target.value)}>
             <option value="">Hammasi</option>
             {(meta?.task_type || []).map((s) => (
               <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -62,8 +63,8 @@ export default function TaskList({ project }: { project: Project }) {
           </select>
         </div>
         <div className="f" style={{ flex: 1 }}>
-          <label>Qidiruv</label>
-          <input value={f.search} onChange={(e) => set("search", e.target.value)}
+          <label htmlFor={`${fid}-3`}>Qidiruv</label>
+          <input id={`${fid}-3`} value={f.search} onChange={(e) => set("search", e.target.value)}
                  placeholder="Sarlavha yoki tavsif" />
         </div>
         <button className={`btn ${f.open ? "btn-accent" : ""}`}
@@ -74,7 +75,7 @@ export default function TaskList({ project }: { project: Project }) {
 
       <div className="card">
         {!tasks ? <Loading /> : tasks.length ? (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr>
                 <th>Kod</th><th>Vazifa</th><th>Holat</th>
@@ -84,7 +85,7 @@ export default function TaskList({ project }: { project: Project }) {
             <tbody>
               {tasks.map((t) => <TaskRow key={t.id} task={t} />)}
             </tbody>
-          </table>
+          </table></div>
         ) : (
           <Empty icon="☐" title="Vazifa topilmadi" text="Filtrlarni ozgartiring yoki yangi vazifa yarating.">
             {project.access.can_create_task && (

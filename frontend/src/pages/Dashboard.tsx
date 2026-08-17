@@ -7,44 +7,9 @@ import { useLive } from "@/realtime/RealtimeContext";
 import TeamBuilder from "@/components/TeamBuilder";
 import Timeline from "@/components/Timeline";
 import {
-  IconBell, IconBoard, IconCalendar, IconChat, IconHistory, IconPlus,
-  IconReview, IconSearch, IconTasks, IconUsers, IconWorkspace,
-} from "@/components/icons";
-import {
   AvatarStack, Card, Empty, Loading, Priority, Progress,
   Stat, StatusBadge, fmtDate, fmtDateTime, timeAgo,
 } from "@/components/ui";
-
-/**
- * Panelning "hamma bo'limlar" to'plami.
- *
- * Yon panel tor va faqat nomni ko'rsatadi — birinchi marta kirgan odam
- * «Muddatlar» yoki «Tekshiruv navbati» nima ekanini bilmaydi va bosishga
- * botinmaydi. Shuning uchun bu yerda har bo'lim bitta jumla bilan
- * tushuntiriladi: nima uchun kerakligi o'qilib turadi.
- */
-const SECTIONS = [
-  { to: "/mening-ishim", icon: <IconTasks size={17} />, title: "Mening ishim",
-    text: "Sizga biriktirilgan hamma vazifa bir joyda" },
-  { to: "/taqvim", icon: <IconCalendar size={17} />, title: "Taqvim",
-    text: "Qaysi loyiha qachon ishda — oy bo'yicha ko'rinish" },
-  { to: "/tekshiruv", icon: <IconReview size={17} />, title: "Tekshiruv navbati",
-    text: "Topshirilgan ishlar: qabul qilish yoki qaytarish" },
-  { to: "/loyihalar", icon: <IconBoard size={17} />, title: "Loyihalar",
-    text: "A'zo bo'lgan loyihalaringiz, qidiruv bilan" },
-  { to: "/qoshilish", icon: <IconSearch size={17} />, title: "Loyihaga qo'shilish",
-    text: "Ochiq loyihalarni ko'rish va so'rov yuborish" },
-  { to: "/tarix", icon: <IconHistory size={17} />, title: "Umumiy tarix",
-    text: "Kim nima qilgani — loyihalar bo'yicha ajratilgan" },
-  { to: "/xabarlar", icon: <IconChat size={17} />, title: "Xabarlar",
-    text: "Shaxsiy yozishma va jamoa suhbatlari" },
-  { to: "/bildirishnomalar", icon: <IconBell size={17} />, title: "Bildirishnomalar",
-    text: "Vazifa, xabar va muddat eslatmalari" },
-  { to: "/jamoa", icon: <IconUsers size={17} />, title: "Odamlar",
-    text: "Kim qaysi yo'nalishda ishlaydi" },
-  { to: "/ish-maydonlari", icon: <IconWorkspace size={17} />, title: "Ish maydonlari",
-    text: "Loyihalar guruhlangan joy" },
-];
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -281,26 +246,6 @@ export default function Dashboard() {
 
         </div>
       </div>
-
-      <Card title="Hamma bo'limlar"
-            action={user?.can_create_project
-              ? <Link className="btn btn-sm btn-primary" to="/loyiha/yangi">
-                  <IconPlus size={13} /> Yangi loyiha
-                </Link>
-              : undefined}>
-        <div className="tiles">
-          {SECTIONS.map((x) => (
-            <Link className="tile" to={x.to} key={x.to}>
-              <span className="tile-ico">{x.icon}</span>
-              <span style={{ minWidth: 0 }}>
-                <strong>{x.title}</strong>
-                <br />
-                <small className="muted">{x.text}</small>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

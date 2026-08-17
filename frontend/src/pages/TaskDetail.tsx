@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, tokens } from "@/api/client";
 import type { Activity, Task } from "@/api/types";
@@ -7,10 +7,7 @@ import { PageHead } from "@/components/Layout";
 import TaskSubmission from "@/components/TaskSubmission";
 import Timeline from "@/components/Timeline";
 import { useRealtime } from "@/realtime/RealtimeContext";
-import {
-  Avatar, AvatarStack, Card, ErrorMsg, Loading, Priority, StatusBadge,
-  fmtDate, fmtDateTime, fromDateTimeInput, timeAgo, toDateTimeInput, todayInTz,
-} from "@/components/ui";
+import { Avatar, AvatarStack, Card, DateField, DateTimeField, ErrorMsg, fmtDate, fmtDateTime, fromDateTimeInput, Loading, Priority, StatusBadge, timeAgo, toDateTimeInput, todayInTz } from "@/components/ui";
 
 const FILE_ICON: Record<string, string> = {
   pdf: "PDF", doc: "DOC", docx: "DOC", xls: "XLS", xlsx: "XLS",
@@ -19,6 +16,7 @@ const FILE_ICON: Record<string, string> = {
 };
 
 export default function TaskDetail() {
+  const fid = useId();
   const { taskId } = useParams();
   const nav = useNavigate();
   const { user, meta } = useAuth();
@@ -153,8 +151,7 @@ export default function TaskDetail() {
               Soat bilan: "13.08.2026 13:00 gacha tugatilsin". */}
           {canEdit && (editDue ? (
             <span className="row" style={{ gap: 6 }}>
-              <input type="datetime-local" style={{ width: 210, minHeight: 0 }}
-                     value={due} onChange={(e) => setDue(e.target.value)} />
+              <DateTimeField style={{ width: 210 }} value={due} onChange={setDue} />
               <button className="btn btn-sm btn-primary" onClick={() => void run(async () => {
                 await api.patch(`/tasks/${task.id}/`, { due_date: fromDateTimeInput(due) });
                 setEditDue(false);
@@ -353,19 +350,19 @@ export default function TaskDetail() {
                   <div className="row">
                     <div className="field" style={{ width: 150 }}>
                       {/* "Soat" deb yozilsa muddat soati bilan chalkashardi */}
-                      <label>Sarflangan soat</label>
-                      <input type="number" step="0.5" min="0" value={log.hours}
+                      <label htmlFor={`${fid}-3`}>Sarflangan soat</label>
+                      <input id={`${fid}-3`} type="number" step="0.5" min="0" value={log.hours}
                              onChange={(e) => setLog({ ...log, hours: e.target.value })} />
                     </div>
                     <div className="field" style={{ width: 170 }}>
-                      <label>Sana</label>
-                      <input type="date" value={log.work_date}
-                             onChange={(e) => setLog({ ...log, work_date: e.target.value })} />
+                      <label htmlFor={`${fid}-0`}>Sana</label>
+                      <DateField id={`${fid}-0`} value={log.work_date}
+                                 onChange={(v) => setLog({ ...log, work_date: v })} />
                     </div>
                   </div>
                   <div className="field">
-                    <label>Nima qildingiz</label>
-                    <textarea rows={3} value={log.note} required
+                    <label htmlFor={`${fid}-1`}>Nima qildingiz</label>
+                    <textarea id={`${fid}-1`} rows={3} value={log.note} required
                               placeholder="Qaysi yechim tanlandi va nima uchun?"
                               onChange={(e) => setLog({ ...log, note: e.target.value })} />
                   </div>
@@ -396,8 +393,8 @@ export default function TaskDetail() {
                 </div>
                 {transitions.some((t) => t.value === "BLOCKED") && (
                   <div className="field mt">
-                    <label>Toxtash sababi</label>
-                    <input value={blockReason} onChange={(e) => setBlockReason(e.target.value)}
+                    <label htmlFor={`${fid}-4`}>Toxtash sababi</label>
+                    <input id={`${fid}-4`} value={blockReason} onChange={(e) => setBlockReason(e.target.value)}
                            placeholder="Nega davom eta olmayapsiz?" />
                   </div>
                 )}
@@ -411,7 +408,7 @@ export default function TaskDetail() {
                   void run(() => api.post(`/tasks/${task.id}/review/`, review));
                 }}>
                   <div className="field">
-                    <label>Qaror</label>
+                    <span className="lbl">Qaror</span>
                     <div className="check-list">
                       {(meta?.review_verdict || []).map((v) => (
                         <label key={v.value} className={review.verdict === v.value ? "on" : ""}>
@@ -423,8 +420,8 @@ export default function TaskDetail() {
                     </div>
                   </div>
                   <div className="field">
-                    <label>Izoh</label>
-                    <textarea rows={4} value={review.comment}
+                    <label htmlFor={`${fid}-2`}>Izoh</label>
+                    <textarea id={`${fid}-2`} rows={4} value={review.comment}
                               placeholder="Nimani tuzatish kerak - aniq yozing"
                               onChange={(e) => setReview({ ...review, comment: e.target.value })} />
                   </div>

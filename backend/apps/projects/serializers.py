@@ -184,7 +184,7 @@ class ProjectFileVersionSerializer(serializers.ModelSerializer):
         return media_url(obj.file)
 
 
-class ProjectFileSerializer(serializers.ModelSerializer):
+class ProjectFileSerializer(serializers.ModelSerializer):  # noqa: E301
     """Loyihaga biriktirilgan fayl (joriy nusxasi)."""
 
     uploaded_by = UserBriefSerializer(read_only=True)
@@ -192,9 +192,14 @@ class ProjectFileSerializer(serializers.ModelSerializer):
     extension = serializers.CharField(read_only=True)
     is_image = serializers.BooleanField(read_only=True)
     url = serializers.SerializerMethodField()
+    # Fayl yuklashda kerak, javobda esa emas: `FileField` ni o'z holicha
+    # qaytarsak absolyut manzil chiqadi va u proksi ortida `http://backend:8000/...`
+    # bo'lib qoladi - brauzer bunday hostni tanimaydi. Javobda faqat `url`.
+    file = serializers.FileField(write_only=True)
     # Eski nusxalar: yangisi tepada. Ro'yxat bo'sh bo'lsa hujjat hech qachon
-    # almashtirilmagan degani.
-    versions = ProjectFileVersionSerializer(many=True, read_only=True)
+    # almashtirilmagan degani. Har bir nusxaga o'zidan KEYINGI holat bilan
+    # solishtirish qo'shiladi - nima o'zgargani ko'rinib tursin.
+    versions = serializers.SerializerMethodField()
 
     class Meta:
         model = ProjectFile
@@ -210,8 +215,48 @@ class ProjectFileSerializer(serializers.ModelSerializer):
 
         return media_url(obj.file)
 
+    # Hujjatning ICHINI solishtirib bo'lmaydi: `.docx`, `.pdf`, arxiv - bular
+    # ikkilik fayl. Lekin almashtirishda nima o'zgargani baribir kerak:
+    # nomi, hajmi, turi va izohi. Shuning uchun maydonlar solishtiriladi.
+    DIFF_LABELS = {
+        "original_name": "Fayl nomi",
+        "size_display": "Hajmi",
+        "content_type": "Turi",
+        "description": "Izoh",
+    }
+
+    @staticmethod
+    def _snapshot(obj):
+        return {
+            "original_name": obj.original_name,
+            "size_display": obj.size_display,
+            "content_type": obj.content_type or "—",
+            "description": obj.description or "",
+        }
+
+    def get_versions(self, obj):
+        """Eski nusxalar - har biri o'zidan keyingi holat bilan solishtirilgan.
+
+        `versions` yangisidan eskisiga qarab tartiblangan (`-version`), ya'ni
+        ro'yxatdagi har bir nusxani ALDINGI element bilan solishtirish kerak;
+        eng yangi eski nusxa esa hujjatning joriy holati bilan.
+        """
+        from apps.core.textdiff import field_diff
+
+        items = list(obj.versions.all())
+        rows = ProjectFileVersionSerializer(items, many=True, context=self.context).data
+        # Kim kimga aylangani: [v3, v2, v1] uchun v3 -> joriy, v2 -> v3, v1 -> v2.
+        successors = [obj] + items
+        for i, data in enumerate(rows):
+            data["diff"] = field_diff(
+                self._snapshot(items[i]),
+                self._snapshot(successors[i]),
+                self.DIFF_LABELS,
+            )
+        return rows
+
     def validate_file(self, value):
-        limit = 25 * 1024 * 1024
-        if value.size > limit:
-            raise serializers.ValidationError("Fayl hajmi 25 MB dan oshmasligi kerak.")
-        return value
+        # Hajm ham, tur ham bitta joyda: `apps/core/uploads.py`.
+        from apps.core.uploads import check_upload
+
+        return check_upload(value)

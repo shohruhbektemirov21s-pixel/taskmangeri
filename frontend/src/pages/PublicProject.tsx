@@ -20,15 +20,19 @@ export default function PublicProject() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let alive = true;
     void (async () => {
       try {
-        setProject(await api.get<PublicProjectData>(`/public/projects/${id}/`));
+        const d = await api.get<PublicProjectData>(`/public/projects/${id}/`);
+        if (alive) setProject(d);
       } catch (err) {
+        if (!alive) return;
         setError(err instanceof ApiError && err.status === 404
           ? "Bunday ochiq loyiha topilmadi — u yopiq bo'lishi mumkin."
           : "Loyihani ochib bo'lmadi");
       }
     })();
+    return () => { alive = false; };
   }, [id]);
 
   if (error) {
@@ -78,7 +82,7 @@ export default function PublicProject() {
 
             {!!project.team_composition?.length && (
               <Card title="Jamoa tarkibi" padded={false}>
-                <table className="table">
+                <div className="table-wrap"><table className="table">
                   <tbody>
                     {project.team_composition.map((t) => (
                       <tr key={t.value}>
@@ -87,7 +91,7 @@ export default function PublicProject() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </Card>
             )}
           </div>

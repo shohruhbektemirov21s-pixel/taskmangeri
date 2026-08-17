@@ -1,10 +1,12 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from apps.core.consumers import LiveAuthMixin
+
 from .services import user_group
 
 
-class NotificationConsumer(AsyncJsonWebsocketConsumer):
+class NotificationConsumer(LiveAuthMixin, AsyncJsonWebsocketConsumer):
     """Har bir foydalanuvchining shaxsiy kanali.
 
     Bu yerga bildirishnomalar ham, chatdagi yangi xabar haqidagi kichik
@@ -34,8 +36,9 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         if content.get("event") == "ping":
             await self.send_json({"event": "pong"})
 
-    async def fanout(self, message):
-        await self.send_json(message["payload"])
+    # `fanout` `LiveAuthMixin` dan keladi: token muddati tugagan soketga
+    # xabar yuborilmaydi. Bu yerda qo'shimcha ruxsat tekshiruvi shart emas -
+    # kanal foydalanuvchining o'ziniki.
 
     @database_sync_to_async
     def unread_count(self, user):

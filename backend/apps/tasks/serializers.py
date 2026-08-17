@@ -21,6 +21,8 @@ class AttachmentSerializer(serializers.ModelSerializer):
     extension = serializers.CharField(read_only=True)
     is_image = serializers.BooleanField(read_only=True)
     url = serializers.SerializerMethodField()
+    # Yuklashda kerak, javobda emas - sababi `ProjectFileSerializer` da.
+    file = serializers.FileField(write_only=True)
 
     class Meta:
         model = Attachment
@@ -35,10 +37,10 @@ class AttachmentSerializer(serializers.ModelSerializer):
         return media_url(obj.file)
 
     def validate_file(self, value):
-        limit = 25 * 1024 * 1024
-        if value.size > limit:
-            raise serializers.ValidationError("Fayl hajmi 25 MB dan oshmasligi kerak.")
-        return value
+        # Hajm ham, tur ham bitta joyda: `apps/core/uploads.py`.
+        from apps.core.uploads import check_upload
+
+        return check_upload(value)
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -131,11 +133,39 @@ class TaskSerializer(serializers.ModelSerializer):
         return attrs
 
     def get_attachment_count(self, obj):
-        return obj.attachments.count()
+        # Ro'yxatda annotatsiya bo'ladi, alohida ochilganda - bazadan.
+        annotated = getattr(obj, "attachments_total", None)
+        return annotated if annotated is not None else obj.attachments.count()
 
     def get_assignees(self, obj):
         users = [a.user for a in obj.assignments.all() if a.is_active]
         return UserBriefSerializer(users, many=True, context=self.context).data
+
+
+class BoardTaskSerializer(TaskSerializer):
+    """Doskadagi karta - ustiga «qayerga kochirsa boladi» royxati qoshiladi.
+
+    Sensorli ekranda kartani sudrab bolmaydi (HTML5 drag&drop barmoqni
+    eshitmaydi), klaviatura bilan ham. Shuning uchun kartada holat tanlash
+    menyusi turadi - unga shu royxat kerak. Qoida frontendda takrorlanmaydi:
+    u `Task.allowed_transitions` da, bitta joyda qoladi.
+
+    Ruxsat butun doska uchun bir marta hisoblanib, kontekstda beriladi. Har
+    karta uchun qaytadan hisoblansa, kartalar soniga teng ortiqcha tekshiruv
+    bolardi.
+    """
+
+    allowed_transitions = serializers.SerializerMethodField()
+
+    class Meta(TaskSerializer.Meta):
+        fields = TaskSerializer.Meta.fields + ["allowed_transitions"]
+
+    def get_allowed_transitions(self, obj):
+        access = self.context.get("board_access")
+        if not access:
+            return []
+        return [{"value": s, "label": TaskStatus(s).label}
+                for s in obj.allowed_transitions(access)]
 
 
 class TaskDetailSerializer(TaskSerializer):
@@ -230,11 +260,20 @@ class SubmissionEditSerializer(serializers.ModelSerializer):
     """Topshiriq tahriri - kim, qachon, nimadan nimaga."""
 
     editor = UserBriefSerializer(read_only=True)
+    # Solishtirish SERVERDA hisoblanadi: interfeys faqat belgilangan
+    # bo'laklarni chizadi. Shu tufayli qoida bitta joyda turadi va
+    # brauzerga uzun matnni qayta ishlash yuki tushmaydi.
+    diff = serializers.SerializerMethodField()
 
     class Meta:
         model = SubmissionEdit
-        fields = ["id", "editor", "old_text", "new_text", "edited_at"]
+        fields = ["id", "editor", "old_text", "new_text", "edited_at", "diff"]
         read_only_fields = fields
+
+    def get_diff(self, obj):
+        from apps.core.textdiff import word_diff
+
+        return word_diff(obj.old_text, obj.new_text)
 
 
 class SubmissionSerializer(serializers.ModelSerializer):

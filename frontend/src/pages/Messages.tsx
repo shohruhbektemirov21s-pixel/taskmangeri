@@ -51,13 +51,16 @@ export default function Messages() {
       setPartner(known.partner);
       return;
     }
+    let alive = true;
     void (async () => {
       try {
-        setPartner(await api.get<UserBrief>(`/users/${activeId}/`));
+        const u = await api.get<UserBrief>(`/users/${activeId}/`);
+        if (alive) setPartner(u);
       } catch {
-        setPartner(null);
+        if (alive) setPartner(null);
       }
     })();
+    return () => { alive = false; };
   }, [activeId, conversations]);
 
   const search = useCallback(

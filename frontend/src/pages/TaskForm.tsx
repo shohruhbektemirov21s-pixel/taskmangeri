@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project, Task, UserBrief } from "@/api/types";
@@ -6,7 +6,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { IconSearch } from "@/components/icons";
-import { Avatar, Card, ErrorMsg, Loading, fromDateTimeInput, toDateTimeInput }
+import { Avatar, Card, DateTimeField, ErrorMsg, Loading, fromDateTimeInput, toDateTimeInput }
   from "@/components/ui";
 
 interface Suggestion {
@@ -17,6 +17,7 @@ interface Suggestion {
 }
 
 export default function TaskForm() {
+  const fid = useId();
   const { id, taskId } = useParams();
   const nav = useNavigate();
   const { meta } = useAuth();
@@ -44,10 +45,12 @@ export default function TaskForm() {
   const projectId = project?.id ?? id;
 
   useEffect(() => {
+    let alive = true;
     void (async () => {
       let pid = id;
       if (editing) {
         const t = await api.get<Task>(`/tasks/${taskId}/`);
+        if (!alive) return;
         pid = String(t.project);
         setF({
           title: t.title, description: t.description, acceptance_criteria: t.acceptance_criteria,
@@ -59,16 +62,26 @@ export default function TaskForm() {
         });
         setAssignees(t.assignees.map((a) => a.id));
       }
-      setProject(await api.get<Project>(`/projects/${pid}/`));
+      const p = await api.get<Project>(`/projects/${pid}/`);
+      if (!alive) return;
+      setProject(p);
       setReady(true);
-    })();
+    })().catch((e) => {
+      // Xato ushlanmasa sahifa abadiy "Yuklanmoqda" da qolardi.
+      if (alive) setError(e instanceof ApiError ? e.message : "Vazifani ochib bo'lmadi.");
+    });
+    return () => { alive = false; };
   }, [id, taskId, editing]);
 
   useEffect(() => {
     if (!projectId) return;
+    let alive = true;
     void api.get<Suggestion[]>("/tasks/suggest-assignees/", {
       project: projectId, specialty: f.required_specialty,
-    }).then(setSuggestions).catch(() => setSuggestions([]));
+    })
+      .then((d) => { if (alive) setSuggestions(d); })
+      .catch(() => { if (alive) setSuggestions([]); });
+    return () => { alive = false; };
   }, [projectId, f.required_specialty]);
 
   const set = (k: string, v: unknown) => setF((p) => ({ ...p, [k]: v }));
@@ -166,21 +179,21 @@ export default function TaskForm() {
             <div>
               <Card title="Vazifa mazmuni">
                 <div className="field">
-                  <label>Sarlavha</label>
-                  <input value={f.title} required autoFocus
+                  <label htmlFor={`${fid}-0`}>Sarlavha</label>
+                  <input id={`${fid}-0`} value={f.title} required autoFocus
                          onChange={(e) => set("title", e.target.value)}
                          placeholder="Qisqa va aniq sarlavha" />
                   {errors.title && <div className="err">{errors.title}</div>}
                 </div>
                 <div className="field">
-                  <label>Nima qilish kerak</label>
-                  <textarea rows={6} value={f.description}
+                  <label htmlFor={`${fid}-1`}>Nima qilish kerak</label>
+                  <textarea id={`${fid}-1`} rows={6} value={f.description}
                             onChange={(e) => set("description", e.target.value)}
                             placeholder="Qayerdan boshlash, qaysi fayllar, qanday yechim kutilmoqda" />
                 </div>
                 <div className="field">
-                  <label>Tayyorlik mezoni</label>
-                  <textarea rows={4} value={f.acceptance_criteria}
+                  <label htmlFor={`${fid}-2`}>Tayyorlik mezoni</label>
+                  <textarea id={`${fid}-2`} rows={4} value={f.acceptance_criteria}
                             onChange={(e) => set("acceptance_criteria", e.target.value)}
                             placeholder={"- Login ishlaydi\n- Testlar otadi\n- Hujjat yangilandi"} />
                 </div>
@@ -245,8 +258,8 @@ export default function TaskForm() {
             <div>
               <Card title="Xususiyatlar">
                 <div className="field">
-                  <label>Kerakli mutaxassislik</label>
-                  <select value={f.required_specialty}
+                  <label htmlFor={`${fid}-3`}>Kerakli mutaxassislik</label>
+                  <select id={`${fid}-3`} value={f.required_specialty}
                           onChange={(e) => set("required_specialty", e.target.value)}>
                     <option value="">Talab qilinmaydi</option>
                     {(meta?.specialties || []).map((s) => (
@@ -255,24 +268,24 @@ export default function TaskForm() {
                   </select>
                 </div>
                 <div className="field">
-                  <label>Turi</label>
-                  <select value={f.task_type} onChange={(e) => set("task_type", e.target.value)}>
+                  <label htmlFor={`${fid}-4`}>Turi</label>
+                  <select id={`${fid}-4`} value={f.task_type} onChange={(e) => set("task_type", e.target.value)}>
                     {(meta?.task_type || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
                     ))}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Muhimlik</label>
-                  <select value={f.priority} onChange={(e) => set("priority", e.target.value)}>
+                  <label htmlFor={`${fid}-5`}>Muhimlik</label>
+                  <select id={`${fid}-5`} value={f.priority} onChange={(e) => set("priority", e.target.value)}>
                     {(meta?.task_priority || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
                     ))}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Boshlangich holat</label>
-                  <select value={f.status} onChange={(e) => set("status", e.target.value)}>
+                  <label htmlFor={`${fid}-6`}>Boshlangich holat</label>
+                  <select id={`${fid}-6`} value={f.status} onChange={(e) => set("status", e.target.value)}>
                     {(meta?.task_status || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
                     ))}
@@ -282,23 +295,23 @@ export default function TaskForm() {
                     o'qiladi. Tor ekranda pastma-past tushadi. */}
                 <div className="row wrap">
                   <div className="field" style={{ flex: 1, minWidth: 190 }}>
-                    <label>Boshlanish</label>
-                    <input type="datetime-local" value={f.start_date}
-                           max={f.due_date || undefined}
-                           onChange={(e) => set("start_date", e.target.value)} />
+                    <label htmlFor={`${fid}-7`}>Boshlanish</label>
+                    <DateTimeField id={`${fid}-7`} value={f.start_date}
+                                   max={f.due_date || undefined}
+                                   onChange={(v) => set("start_date", v)} />
                   </div>
                   <div className="field" style={{ flex: 1, minWidth: 190 }}>
-                    <label>Muddat</label>
+                    <label htmlFor={`${fid}-9`}>Muddat</label>
                     {/* min: muddat boshlanishdan oldin bo'lib qolmasin */}
-                    <input type="datetime-local" value={f.due_date}
-                           min={f.start_date || undefined}
-                           onChange={(e) => set("due_date", e.target.value)} />
+                    <DateTimeField id={`${fid}-9`} value={f.due_date}
+                                   min={f.start_date || undefined}
+                                   onChange={(v) => set("due_date", v)} />
                     {errors.due_date && <div className="err">{errors.due_date}</div>}
                   </div>
                 </div>
                 <div className="field">
-                  <label>Tekshiruvchi</label>
-                  <select value={f.reviewer_id} onChange={(e) => set("reviewer_id", e.target.value)}>
+                  <label htmlFor={`${fid}-8`}>Tekshiruvchi</label>
+                  <select id={`${fid}-8`} value={f.reviewer_id} onChange={(e) => set("reviewer_id", e.target.value)}>
                     <option value="">Menejer tekshiradi</option>
                     {(project.members || []).map((m) => (
                       <option key={m.user.id} value={m.user.id}>{m.user.full_name}</option>

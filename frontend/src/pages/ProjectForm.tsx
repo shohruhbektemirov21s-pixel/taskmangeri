@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
@@ -8,9 +8,10 @@ import type { Pick as TeamPick } from "@/components/TeamPicker";
 import type { Access, Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Card, ErrorMsg, Loading, confirmDelete } from "@/components/ui";
+import { Card, confirmDelete, DateField, ErrorMsg, Loading } from "@/components/ui";
 
 export default function ProjectForm() {
+  const fid = useId();
   const { id } = useParams();
   const nav = useNavigate();
   const { meta, user } = useAuth();
@@ -34,9 +35,11 @@ export default function ProjectForm() {
   });
 
   useEffect(() => {
+    let alive = true;
     void (async () => {
       if (editing) {
         const p = await api.get<Project>(`/projects/${id}/`);
+        if (!alive) return;
         setAcc(p.access);
         setF({
           name: p.name, description: p.description,
@@ -45,7 +48,11 @@ export default function ProjectForm() {
         });
         setLoaded(true);
       }
-    })();
+    })().catch((e) => {
+      // Xato ushlanmasa sahifa abadiy "Yuklanmoqda" da qolardi.
+      if (alive) setError(e instanceof ApiError ? e.message : "Loyihani ochib bo'lmadi.");
+    });
+    return () => { alive = false; };
   }, [id, editing]);
 
   function set(k: string, v: unknown) {
@@ -146,30 +153,30 @@ export default function ProjectForm() {
             <div>
             <Card title="Asosiy maʼlumot">
               <div className="field">
-                <label>Loyiha nomi</label>
-                <input value={f.name} required onChange={(e) => set("name", e.target.value)}
+                <label htmlFor={`${fid}-0`}>Loyiha nomi</label>
+                <input id={`${fid}-0`} value={f.name} required onChange={(e) => set("name", e.target.value)}
                        placeholder="Masalan: Mobil ilova v2" />
                 {errors.name && <div className="err">{errors.name}</div>}
               </div>
               <div className="field">
-                <label>Tavsif</label>
-                <textarea rows={3} value={f.description}
+                <label htmlFor={`${fid}-1`}>Tavsif</label>
+                <textarea id={`${fid}-1`} rows={3} value={f.description}
                           onChange={(e) => set("description", e.target.value)} />
               </div>
               <div className="row">
                 <div className="field" style={{ flex: 1 }}>
-                  <label>Boshlanish sanasi</label>
-                  <input type="date" value={f.start_date}
-                         max={f.due_date || undefined}
-                         onChange={(e) => set("start_date", e.target.value)} />
+                  <label htmlFor={`${fid}-2`}>Boshlanish sanasi</label>
+                  <DateField id={`${fid}-2`} value={f.start_date}
+                             max={f.due_date || undefined}
+                             onChange={(v) => set("start_date", v)} />
                   {errors.start_date && <div className="err">{errors.start_date}</div>}
                 </div>
                 <div className="field" style={{ flex: 1 }}>
-                  <label>Tugash sanasi (muddat)</label>
+                  <label htmlFor={`${fid}-4`}>Tugash sanasi (muddat)</label>
                   {/* min: tugash boshlanishdan oldin bo'lib qolmasin */}
-                  <input type="date" value={f.due_date}
-                         min={f.start_date || undefined}
-                         onChange={(e) => set("due_date", e.target.value)} />
+                  <DateField id={`${fid}-4`} value={f.due_date}
+                             min={f.start_date || undefined}
+                             onChange={(v) => set("due_date", v)} />
                   {errors.due_date && <div className="err">{errors.due_date}</div>}
                 </div>
               </div>
@@ -198,8 +205,8 @@ export default function ProjectForm() {
               <Card title="Holat">
                 {/* Kartada bitta maydon qoldi - pastdagi ortiqcha bo'shliq olindi */}
                 <div className="field" style={{ marginBottom: 0 }}>
-                  <label>Loyiha holati</label>
-                  <select value={f.status} onChange={(e) => set("status", e.target.value)}>
+                  <label htmlFor={`${fid}-3`}>Loyiha holati</label>
+                  <select id={`${fid}-3`} value={f.status} onChange={(e) => set("status", e.target.value)}>
                     {(meta?.project_status || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
                     ))}

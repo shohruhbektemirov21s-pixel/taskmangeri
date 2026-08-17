@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { ErrorMsg, PasswordInput } from "@/components/ui";
 
 export default function Login() {
+  const fid = useId();
   const { login } = useAuth();
   const nav = useNavigate();
   const [email, setEmail] = useState("");
@@ -43,13 +44,16 @@ export default function Login() {
         <div className="auth-box">
           <form onSubmit={submit}>
             <div className="field">
-              <label>Email</label>
-              <input type="email" value={email} autoFocus required
+              <label htmlFor={`${fid}-0`}>Email</label>
+              {/* `type="email"` emas: brauzer "@" yo'q qiymatni o'zi to'sib qo'yadi va
+                  xizmat hisoblari (masalan `admin`) bilan kirib bo'lmasdi. Tekshiruv
+                  serverda qoladi - `EmailBackend` baribir emailni topa olmasa rad etadi. */}
+              <input id={`${fid}-0`} type="text" inputMode="email" value={email} autoFocus required
                      onChange={(e) => setEmail(e.target.value)} placeholder="siz@example.com" />
             </div>
             <div className="field">
-              <label>Parol</label>
-              <PasswordInput value={password} required autoComplete="current-password"
+              <label htmlFor={`${fid}-1`}>Parol</label>
+              <PasswordInput id={`${fid}-1`} value={password} required autoComplete="current-password"
                              onChange={setPassword} placeholder="parolingiz" />
             </div>
             <button className="btn btn-primary btn-block" disabled={busy}>

@@ -6,12 +6,12 @@
  * shunday turadi. Topshiriqni tahrirlash va o'chirish mumkin, lekin har bir
  * tahrir tarixda qoladi — kim, qachon, nimadan nimaga o'zgartirgani ko'rinadi.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, tokens } from "@/api/client";
 import type { Submission, Task } from "@/api/types";
 import { IconCheck, IconClose, IconFile, IconHistory } from "./icons";
-import { Avatar, Card, ErrorMsg, OkMsg, fmtDateTime, timeAgo } from "./ui";
+import { Avatar, Card, DiffView, ErrorMsg, OkMsg, fmtDateTime, timeAgo } from "./ui";
 
 interface Props {
   task: Task;
@@ -20,6 +20,7 @@ interface Props {
 }
 
 export default function TaskSubmission({ task, canWork, onChange }: Props) {
+  const fid = useId();
   const [items, setItems] = useState<Submission[]>([]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -112,8 +113,8 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       {canWork && (
         <form onSubmit={submit} className="mb">
           <div className="field">
-            <label>Nima qilindi</label>
-            <textarea
+            <label htmlFor={`${fid}-0`}>Nima qilindi</label>
+            <textarea id={`${fid}-0`}
               rows={3}
               value={text}
               placeholder="Qaysi fayllar o'zgardi, qanday yechim tanlandi, nimaga e'tibor berish kerak"
@@ -121,13 +122,21 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
             />
           </div>
           <div className="field">
-            <label>Fayl biriktirish (ixtiyoriy)</label>
-            <input
+            <label htmlFor={`${fid}-1`}>Fayl biriktirish (ixtiyoriy)</label>
+            {/* Xom input yashirin: uning tugmasi brauzer tilida chiqardi
+                (masalan ruscha "Vybrat fayly"). Ochish o'zbekcha tugma
+                orqali - loyihadagi boshqa yuklash joylari bilan bir xil. */}
+            <input id={`${fid}-1`}
               ref={fileInput}
               type="file"
               multiple
+              hidden
               onChange={(e) => setFiles(Array.from(e.target.files || []))}
             />
+            <button type="button" className="btn btn-sm"
+                    onClick={() => fileInput.current?.click()}>
+              Fayl tanlash
+            </button>
             {!!files.length && (
               <div className="help">{files.map((f) => f.name).join(", ")}</div>
             )}
@@ -213,8 +222,10 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
                           <strong>{e.editor?.full_name || "Kimdir"}</strong>
                           <span className="tl-time">{fmtDateTime(e.edited_at)}</span>
                         </div>
-                        <div className="edit-old">− {e.old_text}</div>
-                        <div className="edit-new">+ {e.new_text}</div>
+                        {/* Yonma-yon solishtirish: o'zgargan bo'laklar ajratilgan.
+                            Bo'laklarni server beradi (`diff`). */}
+                        <DiffView diff={e.diff} oldLabel="Tahrirdan oldin"
+                                  newLabel="Tahrirdan keyin" />
                       </div>
                     ))}
                   </div>

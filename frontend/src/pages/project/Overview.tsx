@@ -3,17 +3,23 @@ import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { Activity, Project, Task } from "@/api/types";
 import Timeline from "@/components/Timeline";
-import { Avatar, Card, Empty, Priority, SpecialtyTag, Stat, StatusBadge } from "@/components/ui";
+import { Avatar, Card, Empty, Priority, SpecialtyTag, Stat, StatusBadge, fmtDate } from "@/components/ui";
 
 export default function Overview({ project, onChange }: { project: Project; onChange: () => void }) {
   const [feed, setFeed] = useState<Activity[]>([]);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
 
   useEffect(() => {
+    // Ikkovi ham yordamchi ro'yxat: kelmasa sahifa baribir ishlaydi,
+    // shuning uchun xato bo'sh ro'yxatga aylanadi va konsolga chiqadi.
+    let alive = true;
     void api.get<any>("/activity/", { project: project.id, page_size: 12 })
-      .then((d) => setFeed(d.results || []));
+      .then((d) => { if (alive) setFeed(d.results || []); })
+      .catch(() => { if (alive) setFeed([]); });
     void api.get<any>("/tasks/", { project: project.id, assignee: "me", open: "1", page_size: 6 })
-      .then((d) => setMyTasks(d.results || []));
+      .then((d) => { if (alive) setMyTasks(d.results || []); })
+      .catch(() => { if (alive) setMyTasks([]); });
+    return () => { alive = false; };
   }, [project.id]);
 
   const c = project.status_counts || {};
@@ -41,7 +47,7 @@ export default function Overview({ project, onChange }: { project: Project; onCh
 
         {myTasks.length > 0 && (
           <Card title="Sizning ochiq vazifalaringiz" padded={false}>
-            <table className="table">
+            <div className="table-wrap"><table className="table">
               <tbody>
                 {myTasks.map((t) => (
                   <tr key={t.id}>
@@ -52,7 +58,7 @@ export default function Overview({ project, onChange }: { project: Project; onCh
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         )}
 
@@ -98,7 +104,7 @@ export default function Overview({ project, onChange }: { project: Project; onCh
         <Card title="Maʼlumotlar">
           <ul className="list-plain" style={{ fontSize: 13 }}>
             <li><span className="muted">Menejer:</span> {project.manager?.full_name || "—"}</li>
-            <li><span className="muted">Muddat:</span> {project.due_date || "—"}</li>
+            <li><span className="muted">Muddat:</span> {fmtDate(project.due_date)}</li>
             {project.access.can_manage && (
               <li><span className="muted">Qoshilish kodi:</span> <code>{project.join_code}</code></li>
             )}

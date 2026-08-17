@@ -1,7 +1,9 @@
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
+
+from apps.core.softdelete import SoftDeleteModel, SoftDeleteQuerySet
 
 
 class TaskStatus(models.TextChoices):
@@ -74,7 +76,38 @@ class Label(models.Model):
         return self.name
 
 
-class Task(models.Model):
+class TaskQuerySet(SoftDeleteQuerySet):
+    """Vazifalarni ko'rsatishga tayyorlash - bitta joyda.
+
+    `TaskSerializer` har vazifa uchun loyihasini, ijrochilarini, sarflangan
+    soatini va fayllar sonini so'raydi. Ular oldindan olinmasa ro'yxatdagi
+    har qator uchun alohida so'rov ketadi (N+1). Shuning uchun vazifa
+    ro'yxatini beradigan hamma joy shu metoddan o'tadi.
+    """
+
+    def for_display(self):
+        from apps.core.queries import related_count, related_sum
+
+        return (self.select_related("project", "created_by", "reviewer")
+                .prefetch_related("assignments__user", "labels")
+                .annotate(
+                    logged_hours_sum=related_sum(WorkLog, "hours", group_by="task"),
+                    attachments_total=related_count(Attachment, group_by="task"),
+                ))
+
+
+class AliveTaskManager(models.Manager.from_queryset(TaskQuerySet)):
+    """Standart menejer: o'chirilgan vazifalarni ko'rsatmaydi.
+
+    `AliveManager` dan meros olib bo'lmaydi - unga `TaskQuerySet` dagi
+    `for_display()` kerak, shuning uchun shu yerda alohida yig'iladi.
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class Task(SoftDeleteModel):
     project = models.ForeignKey("projects.Project", on_delete=models.CASCADE, related_name="tasks")
     number = models.PositiveIntegerField("Raqam", default=1, editable=False)
 
@@ -124,6 +157,10 @@ class Task(models.Model):
     submitted_at = models.DateTimeField("Tekshiruvga yuborilgan", null=True, blank=True)
     completed_at = models.DateTimeField("Yakunlangan", null=True, blank=True)
 
+    # Tartib muhim: birinchisi standart menejer.
+    objects = AliveTaskManager()
+    all_objects = models.Manager.from_queryset(TaskQuerySet)()
+
     class Meta:
         verbose_name = "Vazifa"
         verbose_name_plural = "Vazifalar"
@@ -139,7 +176,11 @@ class Task(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.number = self.project.next_task_number()
+            # Raqam olish va yozish bitta tranzaksiyada bo'lishi shart -
+            # `next_task_number` qo'ygan qulf shunda ma'no kasb etadi.
+            with transaction.atomic():
+                self.number = self.project.next_task_number()
+                return super().save(*args, **kwargs)
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -171,6 +212,15 @@ class Task(models.Model):
 
     @property
     def logged_hours(self):
+        """Vazifaga sarflangan soat.
+
+        Ro'yxatda har vazifa uchun alohida `SUM` yuborilardi. Endi avval
+        annotatsiya qaraladi (`logged_hours_sum`), u yo'q bo'lsagina bazaga
+        boriladi - masalan bitta vazifa alohida ochilganda.
+        """
+        annotated = getattr(self, "logged_hours_sum", None)
+        if annotated is not None:
+            return annotated
         total = self.worklogs.aggregate(s=models.Sum("hours"))["s"]
         return total or 0
 
@@ -294,7 +344,7 @@ def attachment_path(instance, filename):
     return "tasks/{}/{}".format(instance.task_id, filename)
 
 
-class Attachment(models.Model):
+class Attachment(SoftDeleteModel):
     """Vazifaga biriktirilgan fayl: skrinshot, hujjat, log, arxiv."""
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="attachments")
@@ -367,7 +417,7 @@ class WorkLog(models.Model):
         return "{} - {} soat".format(self.user, self.hours)
 
 
-class Submission(models.Model):
+class Submission(SoftDeleteModel):
     """Ish topshirig'i: dasturchi vazifani yakunlab, nima qilganini yozadi.
 
     Menejer (yoki loyiha admini) tasdiqlamaguncha vazifa tekshiruvda turadi -

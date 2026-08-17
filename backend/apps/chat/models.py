@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from apps.core.softdelete import SoftDeleteModel
 
-class ChatMessage(models.Model):
+
+class ChatMessage(SoftDeleteModel):
     """Suhbat xabari - uchta ko'rinishda.
 
     Vazifa izohlari (`tasks.Comment`) aniq bir ishga bog'langan va tarixda

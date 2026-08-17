@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Task } from "@/api/types";
@@ -8,6 +8,7 @@ import { AvatarStack, Card, Empty, ErrorMsg, Loading, Priority, timeAgo } from "
 import { useLive } from "@/realtime/RealtimeContext";
 
 export default function ReviewQueue() {
+  const fid = useId();
   const { meta } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export default function ReviewQueue() {
                           </>
                         )}
                         <div className="field mt">
-                          <label>Qaror</label>
+                          <span className="lbl">Qaror</span>
                           <div className="check-list">
                             {(meta?.review_verdict || []).map((v) => (
                               <label key={v.value} className={verdict === v.value ? "on" : ""}>
@@ -93,8 +94,8 @@ export default function ReviewQueue() {
                           </div>
                         </div>
                         <div className="field">
-                          <label>Izoh</label>
-                          <textarea rows={3} value={comment}
+                          <label htmlFor={`${fid}-0`}>Izoh</label>
+                          <textarea id={`${fid}-0`} rows={3} value={comment}
                                     onChange={(e) => setComment(e.target.value)}
                                     placeholder="Nimani tuzatish kerak - aniq yozing" />
                         </div>

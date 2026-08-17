@@ -3,10 +3,26 @@
  * JWT tokenni localStorage da saqlaydi va 401 da avtomatik yangilaydi.
  */
 
-const BASE = import.meta.env.VITE_API_URL || "/api";
+export const BASE = import.meta.env.VITE_API_URL || "/api";
 
 const ACCESS_KEY = "tf_access";
 const REFRESH_KEY = "tf_refresh";
+
+/**
+ * Seans tugaganda yuboriladigan hodisa.
+ *
+ * Ilgari token yaroqsiz bo'lib qolsa (refresh ham o'tmadi) bu yerda
+ * `tokens.clear()` chaqirilardi-yu, React bundan bexabar qolardi: yon panel,
+ * avatar va menyular joyida turaverardi, lekin har bir so'rov 401 qaytarardi.
+ * Odam nima bo'layotganini tushunmay, sahifani qo'lda yangilashga majbur edi.
+ * Endi `AuthContext` shu hodisani eshitib, darrov kirish sahifasiga chiqaradi.
+ */
+export const AUTH_EXPIRED = "teamflow:auth-expired";
+
+function sessionEnded() {
+  tokens.clear();
+  window.dispatchEvent(new Event(AUTH_EXPIRED));
+}
 
 export const tokens = {
   get access() {
@@ -106,6 +122,8 @@ interface RequestOptions {
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined | null>;
   raw?: boolean;
+  /** So'rovni bekor qilish uchun - sahifa almashsa eski javob kerak emas. */
+  signal?: AbortSignal;
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}, retry = true): Promise<T> {
@@ -125,11 +143,15 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
     method: opts.method || "GET",
     headers,
     body: opts.body === undefined ? undefined : isForm ? (opts.body as FormData) : JSON.stringify(opts.body),
+    signal: opts.signal,
   });
 
-  if (res.status === 401 && retry && tokens.refresh) {
-    if (await tryRefresh()) return request<T>(path, opts, false);
-    tokens.clear();
+  // 401: avval tokenni yangilab ko'ramiz. Yangilanmasa - seans tugagan.
+  // Refresh token umuman bo'lmasa ham shu yo'l: aks holda ilova "kirgan"
+  // ko'rinishida qolib, har so'rovda xato bergan bo'lardi.
+  if (res.status === 401 && retry) {
+    if (tokens.refresh && (await tryRefresh())) return request<T>(path, opts, false);
+    if (tokens.access || tokens.refresh) sessionEnded();
   }
 
   if (res.status === 204) return undefined as T;
@@ -147,7 +169,8 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
 }
 
 export const api = {
-  get: <T,>(path: string, params?: RequestOptions["params"]) => request<T>(path, { params }),
+  get: <T,>(path: string, params?: RequestOptions["params"], signal?: AbortSignal) =>
+    request<T>(path, { params, signal }),
   post: <T,>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   patch: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   put: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),

@@ -9,7 +9,7 @@
  * Yuklashdan oldin ro'yxatni ko'rish va keraksizini olib tashlash mumkin -
  * xato faylni yuborib qo'yib, keyin uni o'chirib yurishdan ko'ra shu qulay.
  */
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { ApiError, tokens } from "@/api/client";
 import { IconClose, IconFile } from "./icons";
 
@@ -53,6 +53,7 @@ interface Props {
 export default function FilePicker({
   files, onChange, hint, withDescription, description = "", onDescription,
 }: Props) {
+  const fid = useId();
   const input = useRef<HTMLInputElement>(null);
   const [tooBig, setTooBig] = useState<string[]>([]);
 
@@ -74,8 +75,8 @@ export default function FilePicker({
     <>
       {withDescription && (
         <div className="field">
-          <label>Fayllarga izoh (ixtiyoriy)</label>
-          <input type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
+          <label htmlFor={`${fid}-0`}>Fayllarga izoh (ixtiyoriy)</label>
+          <input id={`${fid}-0`} type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
                  onChange={(e) => onDescription?.(e.target.value)} />
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
@@ -7,7 +7,23 @@ import { PageHead } from "@/components/Layout";
 import { Empty, ErrorMsg, Loading, Progress, RowMenu, confirmDelete }
   from "@/components/ui";
 
+/**
+ * Ro'yxat kesimlari.
+ *
+ * "Hammasi" faqat tizim adminiga ko'rinadi va backend ham aynan shunday
+ * tekshiradi (`scope == "all" and user.is_platform_admin`). Bu tugmasiz
+ * admin o'z sahifasida bo'shlik ko'rardi: u hech bir loyihaning a'zosi
+ * emas, "Meniki" esa a'zolik bo'yicha filtrlaydi.
+ */
+const SCOPES = (isAdmin?: boolean): [string, string][] => [
+  ["mine", "Meniki"],
+  ["managed", "Boshqaruvim"],
+  ["discover", "Ochiq"],
+  ...(isAdmin ? ([["all", "Hammasi"]] as [string, string][]) : []),
+];
+
 export default function Projects() {
+  const fid = useId();
   const nav = useNavigate();
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +63,7 @@ export default function Projects() {
         actions={
           <>
             <div className="btn-group">
-              {[["mine", "Meniki"], ["managed", "Boshqaruvim"], ["discover", "Ochiq"]].map(([v, l]) => (
+              {SCOPES(user?.is_platform_admin).map(([v, l]) => (
                 <button key={v} className={`btn btn-sm ${scope === v ? "btn-accent" : ""}`}
                         onClick={() => setScope(v)}>{l}</button>
               ))}
@@ -66,8 +82,8 @@ export default function Projects() {
             loyihalar ham topiladi. */}
         <form className="filters" onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); }}>
           <div className="f" style={{ flex: 1 }}>
-            <label>Qidiruv</label>
-            <input value={q} onChange={(e) => setQ(e.target.value)}
+            <label htmlFor={`${fid}-0`}>Qidiruv</label>
+            <input id={`${fid}-0`} value={q} onChange={(e) => setQ(e.target.value)}
                    placeholder="Nom, tavsif yoki hujjat nomi boyicha" />
           </div>
           <button className="btn">Qidirish</button>

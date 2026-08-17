@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Loading } from "@/components/ui";
@@ -7,29 +8,37 @@ import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
-import MyWork from "@/pages/MyWork";
-import Projects from "@/pages/Projects";
-import Discover from "@/pages/Discover";
-import ProjectForm from "@/pages/ProjectForm";
-import ProjectDetail from "@/pages/ProjectDetail";
-import TaskDetail from "@/pages/TaskDetail";
-import TaskForm from "@/pages/TaskForm";
-import TaskBulkForm from "@/pages/TaskBulkForm";
-import ReviewQueue from "@/pages/ReviewQueue";
-import Feed from "@/pages/Feed";
-import CalendarPage from "@/pages/Calendar";
-import DeveloperReport from "@/pages/DeveloperReport";
-import People from "@/pages/People";
-import Workspaces from "@/pages/Workspaces";
-import WorkspaceForm from "@/pages/WorkspaceForm";
-import WorkspaceDetail from "@/pages/WorkspaceDetail";
-import Profile from "@/pages/Profile";
-import JoinProject from "@/pages/JoinProject";
-import Search from "@/pages/Search";
-import PublicProject from "@/pages/PublicProject";
-import Notifications from "@/pages/Notifications";
-import Messages from "@/pages/Messages";
-import WorkspaceChat from "@/pages/WorkspaceChat";
+
+/**
+ * Qolgan sahifalar talab bo'yicha yuklanadi.
+ *
+ * Ilgari hammasi bitta bog'lamda edi: kirish sahifasiga kelgan odam ham
+ * taqvim, doska, chat va hisobot kodini yuklab olardi. Endi har sahifa
+ * o'z bo'lagida - birinchi ochilish yengil, qolgani bosilganda keladi.
+ */
+const MyWork = lazy(() => import("@/pages/MyWork"));
+const Projects = lazy(() => import("@/pages/Projects"));
+const Discover = lazy(() => import("@/pages/Discover"));
+const ProjectForm = lazy(() => import("@/pages/ProjectForm"));
+const ProjectDetail = lazy(() => import("@/pages/ProjectDetail"));
+const TaskDetail = lazy(() => import("@/pages/TaskDetail"));
+const TaskForm = lazy(() => import("@/pages/TaskForm"));
+const TaskBulkForm = lazy(() => import("@/pages/TaskBulkForm"));
+const ReviewQueue = lazy(() => import("@/pages/ReviewQueue"));
+const Feed = lazy(() => import("@/pages/Feed"));
+const CalendarPage = lazy(() => import("@/pages/Calendar"));
+const DeveloperReport = lazy(() => import("@/pages/DeveloperReport"));
+const People = lazy(() => import("@/pages/People"));
+const Workspaces = lazy(() => import("@/pages/Workspaces"));
+const WorkspaceForm = lazy(() => import("@/pages/WorkspaceForm"));
+const WorkspaceDetail = lazy(() => import("@/pages/WorkspaceDetail"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const JoinProject = lazy(() => import("@/pages/JoinProject"));
+const Search = lazy(() => import("@/pages/Search"));
+const PublicProject = lazy(() => import("@/pages/PublicProject"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const Messages = lazy(() => import("@/pages/Messages"));
+const WorkspaceChat = lazy(() => import("@/pages/WorkspaceChat"));
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -55,6 +64,8 @@ function GuestOnly({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
+    // Sahifa bo'lagi yuklanayotganda - odatdagi "Yuklanmoqda".
+    <Suspense fallback={<Loading text="Yuklanmoqda..." />}>
     <Routes>
       <Route path="/" element={<GuestOnly><Landing /></GuestOnly>} />
       {/* Ochiq sahifalar: kirmagan odam ham ko'radi */}
@@ -95,5 +106,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/panel" replace />} />
     </Routes>
+    </Suspense>
   );
 }

@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.core.softdelete import SoftDeleteAdminMixin
+
 from .models import Workspace, WorkspaceMember
 
 
@@ -10,8 +12,9 @@ class MemberInline(admin.TabularInline):
 
 
 @admin.register(Workspace)
-class WorkspaceAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "owner", "is_open", "join_code", "created_at")
+class WorkspaceAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("name", "slug", "owner", "is_open", "join_code", "created_at", "ochirilgan")
+    list_filter = ("deleted_at",)
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
     inlines = [MemberInline]

@@ -122,7 +122,7 @@ export default function Landing() {
             <Link className="btn btn-lg" to="/kirish">Hisobga kirish</Link>
           </div>
           <div className="mono muted" style={{ marginTop: 18, fontSize: 13 }}>
-            Django REST + React TypeScript + PostgreSQL + Docker
+            Django REST + React TypeScript + IBM Db2 + Docker
           </div>
 
           <div className="terminal">
@@ -134,7 +134,7 @@ export default function Landing() {
             </div>
             <pre>
 <span className="c-gray">$</span> docker compose up --build{"\n\n"}
-<span className="c-green">==&gt;</span> Postgres tayyor{"\n"}
+<span className="c-green">==&gt;</span> Db2 tayyor{"\n"}
 <span className="c-green">==&gt;</span> Migratsiyalar qollandi        <span className="c-gray">backend</span>{"\n"}
 <span className="c-green">==&gt;</span> Admin yaratildi              <span className="c-blue">admin@teamflow.uz</span>{"\n"}
 <span className="c-purple">==&gt;</span> API                          <span className="c-blue">http://localhost:8010/api</span>{"\n"}
@@ -286,7 +286,7 @@ export default function Landing() {
           <Logo size={24} />
           <span>© TeamFlow</span>
           <span className="spacer" />
-          <span className="mono">Django · React · PostgreSQL · Docker</span>
+          <span className="mono">Django · React · IBM Db2 · Docker</span>
         </div>
       </footer>
     </>

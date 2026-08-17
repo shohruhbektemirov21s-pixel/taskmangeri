@@ -10,6 +10,7 @@ from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
+from apps.core.queries import int_param
 from apps.projects.api import project_counters
 from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
@@ -78,8 +79,11 @@ def dashboard(request):
     member_of = Exists(ProjectMember.objects.filter(
         project=OuterRef("pk"), user=user, is_active=True))
 
+    # `specialties` va `memberships` seriyalizatorda har loyiha uchun
+    # o'qiladi - oldindan yuklanmasa har biri alohida so'rov bo'lardi.
     my_projects = (Project.objects.filter(member_of)
-                   .select_related("workspace", "manager")
+                   .select_related("workspace", "manager", "created_by")
+                   .prefetch_related("specialties", "memberships__user")
                    .annotate(**project_counters(user))
                    .order_by("-updated_at"))
 
@@ -103,9 +107,23 @@ def dashboard(request):
             .select_related("actor", "project", "task")
             .order_by("-created_at")[:20])
 
+    # Sanoq KESISHDAN OLDIN olinadi. Ilgari `[:10]` dan keyin `.count()`
+    # chaqirilardi va Django limitni hisobga olib doim 10 dan oshmagan son
+    # qaytarardi: bazada 12 ta tekshiruv bo'lsa ham panelda "10" turardi.
+    review_total = review_qs.count()
+    join_total = join_qs.count()
     review_qs = (review_qs.select_related("project")
                  .prefetch_related("assignments__user").order_by("submitted_at")[:10])
     join_qs = join_qs.select_related("user", "project").order_by("created_at")[:10]
+
+    # `managed` yuqorida ichki so'rov sifatida ham ishlatiladi (`project__in`),
+    # shuning uchun uni o'zgartirmaymiz - ko'rsatiladigan sahifa alohida
+    # olinadi va faqat unga prefetch bilan annotatsiya qo'shiladi.
+    managed_page = (managed
+                    .select_related("workspace", "manager", "created_by")
+                    .prefetch_related("specialties", "memberships__user")
+                    .annotate(**project_counters(user))
+                    .order_by("-updated_at")[:8])
 
     return Response({
         "stats": {
@@ -116,8 +134,8 @@ def dashboard(request):
             "done_week": my_tasks.filter(
                 status=TaskStatus.DONE,
                 completed_at__gte=now - timezone.timedelta(days=7)).count(),
-            "pending_reviews": review_qs.count() if hasattr(review_qs, "count") else 0,
-            "pending_joins": len(join_qs),
+            "pending_reviews": review_total,
+            "pending_joins": join_total,
         },
         "next_task": TaskSerializer(next_task, context=ctx).data if next_task else None,
         "focus_queue": TaskSerializer(focus_queue[:8], many=True, context=ctx).data,
@@ -125,10 +143,53 @@ def dashboard(request):
         "blocked": TaskSerializer(blocked, many=True, context=ctx).data,
         "waiting_review": TaskSerializer(waiting_review, many=True, context=ctx).data,
         "my_projects": ProjectSerializer(my_projects, many=True, context=ctx).data,
-        "managed_projects": ProjectSerializer(managed[:8], many=True, context=ctx).data,
+        "managed_projects": ProjectSerializer(managed_page, many=True, context=ctx).data,
         "review_queue": TaskSerializer(review_qs, many=True, context=ctx).data,
         "join_queue": JoinRequestSerializer(join_qs, many=True, context=ctx).data,
         "feed": ActivitySerializer(feed, many=True, context=ctx).data,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def sidebar_counts(request):
+    """Yon paneldagi uchta raqam - boshqa hech narsa.
+
+    Ilgari buning uchun `/dashboard/` chaqirilardi: u o'nlab vazifa, loyiha va
+    tasmani seriyalizatsiya qiladi, ustiga muddat eslatmalarini ham tekshiradi.
+    Yon panelga esa faqat uchta son kerak edi va u har sahifa almashganda
+    so'ralardi - ya'ni har navigatsiyada butun panel bekorga yig'ilardi.
+
+    Bu yerda faqat `COUNT` bor. Ruxsat qoidasi `dashboard` dagi bilan bir xil:
+    tekshiruv va qo'shilish navbati odam boshqaradigan loyihalar bo'yicha,
+    admin uchun esa hammasi.
+    """
+    user = request.user
+
+    mine = Exists(TaskAssignment.objects.filter(
+        task=OuterRef("pk"), user=user, is_active=True))
+    open_count = Task.objects.filter(
+        mine, project__deleted_at__isnull=True,
+        status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS]).count()
+
+    if user.is_platform_admin:
+        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
+                                        project__deleted_at__isnull=True)
+        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
+                                             project__deleted_at__isnull=True)
+    else:
+        managed = Project.objects.filter(
+            Q(manager=user) | Exists(ProjectMember.objects.filter(
+                project=OuterRef("pk"), user=user, is_active=True,
+                role=ProjectRole.MANAGER)))
+        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
+        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
+                                             project__in=managed)
+
+    return Response({
+        "open": open_count,
+        "reviews": review_qs.count(),
+        "joins": join_qs.count(),
     })
 
 
@@ -138,14 +199,14 @@ def my_work(request):
     """Menga biriktirilgan barcha vazifalar - status bo'yicha guruhlangan."""
     user = request.user
     ctx = {"request": request}
-    qs = (Task.objects.filter(Exists(TaskAssignment.objects.filter(
+    qs = (Task.objects.for_display().filter(Exists(TaskAssignment.objects.filter(
               task=OuterRef("pk"), user=user, is_active=True)),
-              project__deleted_at__isnull=True)
-          .select_related("project").prefetch_related("assignments__user"))
+              project__deleted_at__isnull=True))
 
     project_id = request.query_params.get("project")
     if project_id:
-        qs = qs.filter(project_id=project_id)
+        # Yaroqsiz qiymat 500 emas, 400 (sababi `int_param` da).
+        qs = qs.filter(project_id=int_param(project_id, "project"))
 
     groups = []
     for status in [TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED, TaskStatus.IN_PROGRESS,

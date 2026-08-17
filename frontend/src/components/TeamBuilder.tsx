@@ -12,7 +12,7 @@
  * Ruxsat tekshiruvi backendda: bu yerda faqat menejer boshqaradigan loyihalar
  * ko'rsatiladi va MENEJER roli `can_grant_manager` bo'lmasa ro'yxatga tushmaydi.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { JoinRequest, Project, ProjectMember } from "@/api/types";
@@ -26,6 +26,7 @@ export default function TeamBuilder({
   projects: Project[];
   onChange?: () => void;
 }) {
+  const fid = useId();
   const { meta } = useAuth();
   const [projectId, setProjectId] = useState<number | null>(projects[0]?.id ?? null);
   const [requests, setRequests] = useState<JoinRequest[]>([]);
@@ -88,8 +89,8 @@ export default function TeamBuilder({
 
       {projects.length > 1 && (
         <div className="field">
-          <label>Qaysi loyihaga</label>
-          <select value={projectId ?? ""} onChange={(e) => setProjectId(Number(e.target.value))}>
+          <label htmlFor={`${fid}-0`}>Qaysi loyihaga</label>
+          <select id={`${fid}-0`} value={projectId ?? ""} onChange={(e) => setProjectId(Number(e.target.value))}>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({p.member_count ?? 0} aʼzo)

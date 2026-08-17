@@ -18,7 +18,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CalendarMonth, CalendarProject, CalendarTask } from "@/api/types";
 import { PageHead } from "@/components/Layout";
-import { Avatar, Card, Empty, ErrorMsg, Loading } from "@/components/ui";
+import { Avatar, Card, Empty, ErrorMsg, Loading, fmtDate } from "@/components/ui";
 
 const WEEKDAYS = ["dushanba", "seshanba", "chorshanba", "payshanba",
                   "juma", "shanba", "yakshanba"];
@@ -287,7 +287,7 @@ export default function CalendarPage() {
                         {p.overdue && <span className="badge badge-danger">kechikkan</span>}
                         <span className="spacer" />
                         <small className="muted nowrap">
-                          {p.start_date} → {p.due_date || "muddat qo'yilmagan"}
+                          {fmtDate(p.start_date)} → {p.due_date ? fmtDate(p.due_date) : "muddat qo'yilmagan"}
                           {p.manager_name && ` · PM: ${p.manager_name}`}
                         </small>
                       </div>
@@ -310,7 +310,7 @@ export default function CalendarPage() {
                           </span>
                         ) : <small className="muted">biriktirilmagan</small>}
                         <small className="muted nowrap">
-                          {" · "}{t.due_date || t.start_date}
+                          {" · "}{fmtDate(t.due_date || t.start_date)}
                         </small>
                       </div>
                     ))}

@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import (TokenObtainPairSerializer,
+                                                  TokenRefreshSerializer)
 
 from .models import GlobalRole
 from .specialties import Seniority, Specialty, specialty_catalog
@@ -51,6 +53,8 @@ class UserSerializer(serializers.ModelSerializer):
     suggested_skills = serializers.ListField(read_only=True)
     quality_checklist = serializers.ListField(read_only=True)
     default_project_role = serializers.CharField(read_only=True)
+    # Tajriba chegarasi royxatdan otishdagi bilan bir xil: 0-30 yil.
+    years_experience = serializers.IntegerField(required=False, min_value=0, max_value=30)
     # Rasm /api/auth/me/avatar/ orqali yuklanadi, bu yerda faqat o'qiladi.
     avatar = serializers.SerializerMethodField()
 
@@ -85,6 +89,31 @@ class UserAdminSerializer(UserSerializer):
         read_only_fields = ["email", "date_joined"]
 
 
+class UserListSerializer(UserBriefSerializer):
+    """Odamlar ro'yxati - kartochka uchun yetarli, shaxsiy kontaktsiz.
+
+    Ilgari ro'yxat `UserAdminSerializer` bilan qaytardi, ya'ni har bir
+    so'rovda tizimdagi HAMMA odamning `bio`, `skills`, `telegram` va
+    `github_username` maydonlari ham chiqib ketardi. Ro'yxatda ular
+    ko'rsatilmaydi ham - kerak bo'lsa odamning o'z sahifasidan o'qiladi
+    (`GET /api/users/<id>/`).
+
+    Email qoldi: u jamoa ichida odamni aniqlashning asosiy yo'li -
+    qidiruv ham, odam tanlash oynasi ham unga tayanadi.
+    """
+
+    global_role_display = serializers.CharField(source="get_global_role_display",
+                                                read_only=True)
+    project_count = serializers.IntegerField(read_only=True)
+    open_tasks = serializers.IntegerField(read_only=True)
+
+    class Meta(UserBriefSerializer.Meta):
+        fields = UserBriefSerializer.Meta.fields + [
+            "global_role", "global_role_display", "years_experience",
+            "is_active", "date_joined", "project_count", "open_tasks",
+        ]
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     """Royxatdan otish - faqat mutaxassislik majburiy.
 
@@ -96,7 +125,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     specialty = serializers.ChoiceField(choices=Specialty.choices, required=True)
     seniority = serializers.ChoiceField(choices=Seniority.choices, required=False,
                                         default=Seniority.JUNIOR)
-    years_experience = serializers.IntegerField(required=False, min_value=0, max_value=60,
+    years_experience = serializers.IntegerField(required=False, min_value=0, max_value=30,
                                                 default=0)
 
     class Meta:
@@ -161,6 +190,24 @@ class TokenSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user, context=self.context).data
         return data
+
+
+class RefreshSerializer(TokenRefreshSerializer):
+    """`djangorestframework-simplejwt` 5.5.1 dagi xato ustidan qoplama.
+
+    Kutubxona refresh tokendagi foydalanuvchini `objects.get()` bilan oladi
+    va topilmasa `DoesNotExist` ni ushlamaydi. Natijada hisobi o'chirilgan
+    odamning brauzeri token yangilashga urinsa 401 o'rniga 500 ko'rardi.
+    Token to'g'ri-yu egasi yo'q bo'lsa - bu autentifikatsiya xatosi,
+    server xatosi emas.
+    """
+
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except User.DoesNotExist:
+            raise AuthenticationFailed("Hisob topilmadi yoki o'chirilgan.",
+                                       code="no_active_account")
 
 
 class ChangePasswordSerializer(serializers.Serializer):

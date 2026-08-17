@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
@@ -16,6 +16,7 @@ interface SpecialtyItem {
 }
 
 export default function Register() {
+  const fid = useId();
   const { register } = useAuth();
   const nav = useNavigate();
 
@@ -73,24 +74,24 @@ export default function Register() {
         <div className="auth-box">
           <form onSubmit={submit}>
             <div className="field">
-              <label>F.I.Sh.</label>
-              <input value={form.full_name} required autoFocus
+              <label htmlFor={`${fid}-0`}>F.I.Sh.</label>
+              <input id={`${fid}-0`} value={form.full_name} required autoFocus
                      onChange={(e) => set("full_name", e.target.value)}
                      placeholder="Ism Familiya" />
               {errors.full_name && <div className="err">{errors.full_name}</div>}
             </div>
 
             <div className="field">
-              <label>Email</label>
-              <input type="email" value={form.email} required
+              <label htmlFor={`${fid}-1`}>Email</label>
+              <input id={`${fid}-1`} type="email" value={form.email} required
                      onChange={(e) => set("email", e.target.value)}
                      placeholder="siz@example.com" />
               {errors.email && <div className="err">{errors.email}</div>}
             </div>
 
             <div className="field">
-              <label>Mutaxassislik</label>
-              <select value={form.specialty} required
+              <label htmlFor={`${fid}-2`}>Mutaxassislik</label>
+              <select id={`${fid}-2`} value={form.specialty} required
                       onChange={(e) => set("specialty", e.target.value)}>
                 <option value="">Tanlang</option>
                 {specialties.map((s) => (
@@ -101,16 +102,16 @@ export default function Register() {
             </div>
 
             <div className="field">
-              <label>Parol</label>
-              <PasswordInput value={form.password} required autoComplete="new-password"
+              <label htmlFor={`${fid}-3`}>Parol</label>
+              <PasswordInput id={`${fid}-3`} value={form.password} required autoComplete="new-password"
                              onChange={(v) => set("password", v)}
                              placeholder="kamida 8 belgi" />
               {errors.password && <div className="err">{errors.password}</div>}
             </div>
 
             <div className="field">
-              <label>Parolni tasdiqlang</label>
-              <PasswordInput value={form.password_confirm} required autoComplete="new-password"
+              <label htmlFor={`${fid}-4`}>Parolni tasdiqlang</label>
+              <PasswordInput id={`${fid}-4`} value={form.password_confirm} required autoComplete="new-password"
                              onChange={(v) => set("password_confirm", v)}
                              placeholder="parolni qayta yozing" />
               {errors.password_confirm && <div className="err">{errors.password_confirm}</div>}
