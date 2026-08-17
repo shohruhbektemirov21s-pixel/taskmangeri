@@ -93,24 +93,22 @@ export default function Layout() {
     </NavLink>
   );
 
-  return (
-    <>
-      <header className="gh-top">
-        <button type="button" className="top-icon menu-btn" onClick={() => setMenu((v) => !v)}
-                aria-label={menu ? "Menyuni yopish" : "Menyuni ochish"} aria-expanded={menu}>
-          {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
-        </button>
-        <Link to="/panel" className="logo-link">
-          <Logo size={30} />
-          <span>TeamFlow</span>
-        </Link>
+  // Yuqori panel: yon panelning o'ng tomonida turadi, shuning uchun u
+  // `.main` ustuni ichida chiziladi. Logotip esa yon panelning tepasida -
+  // dizaynda shunday: chapda brend va navigatsiya, o'ngda qidiruv va
+  // amallar. Ikkalasi bir marta yoziladi va shu yerda yig'iladi.
+  const header = (
+    <header className="gh-top">
+      <button type="button" className="top-icon menu-btn" onClick={() => setMenu((v) => !v)}
+              aria-label={menu ? "Menyuni yopish" : "Menyuni ochish"} aria-expanded={menu}>
+        {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
+      </button>
 
-        <nav className="top-nav">
-          <Link to="/loyihalar">Loyihalar</Link>
-          <Link to="/mening-ishim">Mening ishim</Link>
-        </nav>
-
-        <span className="spacer" />
+      {/* Yuqori panelda navigatsiya havolalari yo'q: «Loyihalar» va
+          «Mening ishim» yon panelda turadi va u har doim ko'rinadi
+          (mobilda menyu tugmasi bilan). Bir xil havola ikki joyda
+          turgani foyda bermaydi - odam qaysi biri "asosiy" ekanini
+          o'ylab qoladi. */}
 
         <div className="top-search">
           <form
@@ -163,6 +161,9 @@ export default function Layout() {
           )}
         </div>
 
+        {/* Qidiruv chapda, amallar o'ngda - orasi bo'sh qoladi */}
+        <span className="spacer" />
+
         <ThemeToggle />
         <NotificationBell />
         <Link className="top-icon hide-sm" to="/xabarlar" title="Xabarlar">
@@ -181,12 +182,20 @@ export default function Layout() {
         <Link to="/profil" title={user?.full_name}>
           <Avatar user={user} />
         </Link>
-      </header>
+    </header>
+  );
 
+  return (
+    <>
       <div className="layout">
         {menu && <button type="button" className="scrim" aria-label="Menyuni yopish"
                          onClick={() => setMenu(false)} />}
         <aside className={`sidebar ${menu ? "open" : ""}`}>
+          <Link to="/panel" className="logo-link">
+            <Logo size={28} />
+            <span>TeamFlow</span>
+          </Link>
+
           <div className="nav-section">
             {item("/panel", <IconDashboard />, "Bosh panel")}
             {/* Loyihalar birma-bir sanalmaydi - hammasi shu sahifada, qidiruv
@@ -211,7 +220,7 @@ export default function Layout() {
               </span>
             </Link>
             <button
-              className="btn btn-sm btn-block"
+              className="btn btn-sm btn-block btn-logout"
               onClick={() => {
                 logout();
                 nav("/kirish");
@@ -223,6 +232,7 @@ export default function Layout() {
         </aside>
 
         <div className="main">
+          {header}
           {/* Sahifa to'sig'i: bitta bo'lim yiqilsa yon panel, qidiruv va
               bildirishnomalar joyida qoladi - odam boshqa bo'limga o'tib
               ketaveradi. `key` manzil: yangi sahifada to'siq o'zi tiklanadi,

@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { DiffPiece, Task, TextDiff, UserBrief } from "@/api/types";
+import { confirmDialog } from "./Confirm";
 import { IconCalendar, IconEye, IconEyeOff, IconFile } from "./icons";
 
 /* ---------------------------------------------------------------- Avatar */
@@ -279,17 +280,39 @@ export function RowMenu({ children, label = "Amallar" }: {
  * Avval bu yerda nomni yozdirib tasdiqlash bor edi - amal qaytmasligi uchun.
  * Amalda u ortiqcha to'siq bo'ldi: bitta aniq savol yetadi.
  */
-export function confirmDelete(name: string) {
-  return window.confirm(
-    `«${name}» vazifalari, fayllari va tarixi bilan butunlay ochiriladi. Davom etamizmi?`);
+export function confirmDelete(name: string, warning?: string) {
+  return confirmDialog({
+    title: `«${name}» o'chirilsinmi?`,
+    warning,
+    body: "Loyiha vazifalari, fayllari va tarixi bilan butunlay o'chadi. Buni qaytarib bo'lmaydi.",
+    confirmText: "O'chirish",
+    danger: true,
+  });
 }
 
-export function TaskCard({ task, draggable = false, onDragStart }: {
+export function TaskCard({ task, draggable = false, onDragStart, onMove }: {
   task: Task;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
+  /**
+   * Kartani boshqa ustunga ko'chirish. Berilsa kartaning ostida tanlash
+   * maydoni paydo bo'ladi.
+   *
+   * Sudrab ko'chirish (HTML5 drag&drop) faqat sichqoncha bilan ishlaydi:
+   * sensorli ekran `dragstart` ni umuman tug'dirmaydi, klaviatura ham. Ya'ni
+   * telefondan kirgan odam va Tab bilan yuradigan odam doskada hech narsani
+   * ko'chira olmasdi. Native `<select>` ikkovida ham ishlaydi va o'z-o'zidan
+   * qulay: brauzer uni har platformada odatdagidek chizadi.
+   *
+   * Ro'yxat serverdan keladi (`allowed_transitions`) - qaysi holatga o'tish
+   * mumkinligi qoidasi backendda, bitta joyda qoladi.
+   */
+  onMove?: (task: Task, status: string) => void;
 }) {
-  return (
+  const moveId = useId();
+  const moves = task.allowed_transitions || [];
+
+  const card = (
     <Link
       to={`/vazifa/${task.id}`}
       className={`tcard ${task.is_overdue ? "overdue" : ""}`}
@@ -320,7 +343,49 @@ export function TaskCard({ task, draggable = false, onDragStart }: {
       </div>
     </Link>
   );
+
+  if (!onMove || !moves.length) return card;
+
+  return (
+    <div className="tcard-wrap">
+      {card}
+      <div className="tcard-move">
+        {/* Yorliq ko'rinmaydi, lekin ekran o'qigichga kerak: "Ko'chirish"
+            degan maydon qaysi vazifaga tegishli ekani aytilsin. */}
+        <label className="sr-only" htmlFor={moveId}>
+          {task.code} - boshqa ustunga ko'chirish
+        </label>
+        <select
+          id={moveId}
+          value=""
+          onChange={(e) => { if (e.target.value) onMove(task, e.target.value); }}
+        >
+          <option value="">Ko'chirish...</option>
+          {moves.map((m) => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
 }
+
+/**
+ * Ustun sarlavhasidagi holat nuqtasining rangi.
+ *
+ * Bitta joyda turadi: doska ham (`pages/project/Board.tsx`), «Mening ishim»
+ * ham shu ro'yxatdan oladi - aks holda bir xil holat ikki sahifada ikki xil
+ * rangda ko'rinardi. Qiymatlar CSS o'zgaruvchisi: rejim almashganda rang
+ * o'zi moslashadi.
+ */
+export const STATUS_DOT: Record<string, string> = {
+  BACKLOG: "var(--subtle)",
+  TODO: "var(--accent)",
+  IN_PROGRESS: "var(--attention)",
+  CHANGES_REQUESTED: "var(--danger)",
+  IN_REVIEW: "var(--done)",
+  DONE: "var(--success)",
+};
 
 export function TaskRow({ task, showProject = false }: { task: Task; showProject?: boolean }) {
   const nav = useNavigate();

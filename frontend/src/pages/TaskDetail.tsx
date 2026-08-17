@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ApiError, api, tokens } from "@/api/client";
-import type { Activity, Task } from "@/api/types";
+import { ApiError, api, listOf } from "@/api/client";
+import type { Activity, ProjectMember, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import TaskSubmission from "@/components/TaskSubmission";
 import Timeline from "@/components/Timeline";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { Avatar, AvatarStack, Card, DateField, DateTimeField, ErrorMsg, fmtDate, fmtDateTime, fromDateTimeInput, Loading, Priority, StatusBadge, timeAgo, toDateTimeInput, todayInTz } from "@/components/ui";
+import { confirmDialog } from "@/components/Confirm";
 
 const FILE_ICON: Record<string, string> = {
   pdf: "PDF", doc: "DOC", docx: "DOC", xls: "XLS", xlsx: "XLS",
@@ -35,6 +36,10 @@ export default function TaskDetail() {
   const [due, setDue] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // Ishni boshqa odamga o'tkazish: jamoa ro'yxati, kimga va nega.
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [handTo, setHandTo] = useState("");
+  const [handNote, setHandNote] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -47,6 +52,24 @@ export default function TaskDetail() {
   }, [taskId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Jamoa ro'yxati faqat vazifani boshqara oladigan odamga kerak - o'tkazish
+  // kartasidagi tanlov uchun. Boshqalarga ortiqcha so'rov ketmaydi.
+  const projectId = task?.project;
+  const canReassign = Boolean(task?.access?.can_create_task);
+  useEffect(() => {
+    if (!projectId || !canReassign) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const rows = listOf<ProjectMember>(await api.get<any>(`/projects/${projectId}/members/`));
+        if (alive) setMembers(rows.filter((m) => m.is_active));
+      } catch {
+        // Ro'yxat kelmasa karta bo'sh turadi - vazifaning o'zi ochilaveradi.
+      }
+    })();
+    return () => { alive = false; };
+  }, [projectId, canReassign]);
 
   // Shu vazifaga tegilsa (izoh, holat, tekshiruv) - sahifa o'zi yangilanadi.
   useEffect(() => subscribe((d) => {
@@ -75,15 +98,8 @@ export default function TaskDetail() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "/api"}/tasks/${taskId}/attachments/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${tokens.access}` },
-        body: fd,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new ApiError(res.status, data);
-      }
+      // `api.post` - xom `fetch` emas: 401 da token o'zi yangilanadi.
+      await api.post(`/tasks/${taskId}/attachments/`, fd);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Faylni yuklab bolmadi");
@@ -119,13 +135,19 @@ export default function TaskDetail() {
               <Link className="btn btn-sm" to={`/vazifa/${task.id}/tahrir`}>Tahrirlash</Link>
             )}
             {acc.can_manage && (
-              <button className="btn btn-sm btn-danger" onClick={() => {
-                if (!window.confirm(`${task.code} ochirilsinmi?`)) return;
-                void run(async () => {
+              <button className="btn btn-sm btn-danger" onClick={() => void (async () => {
+                const ok = await confirmDialog({
+                  title: `${task.code} o'chirilsinmi?`,
+                  body: `«${task.title}» izohlari, fayllari va tarixi bilan o'chadi.`,
+                  confirmText: "O'chirish",
+                  danger: true,
+                });
+                if (!ok) return;
+                await run(async () => {
                   await api.delete(`/tasks/${task.id}/`);
                   nav(`/loyiha/${task.project}/vazifalar`);
                 });
-              }}>Ochirish</button>
+              })()}>Ochirish</button>
             )}
           </>
         }
@@ -266,10 +288,17 @@ export default function TaskDetail() {
                           <span className="spacer" />
                           {(acc.can_manage || a.uploaded_by?.id === user?.id) && (
                             <button className="btn btn-sm btn-ghost" title="Ochirish"
-                                    onClick={() => {
-                                      if (!window.confirm(`${a.original_name} ochirilsinmi?`)) return;
-                                      void run(() => api.delete(`/tasks/${task.id}/attachments/${a.id}/`));
-                                    }}>×</button>
+                                    onClick={() => void (async () => {
+                                      const ok = await confirmDialog({
+                                        title: `«${a.original_name}» o'chirilsinmi?`,
+                                        body: "Fayl vazifadan butunlay olib tashlanadi.",
+                                        confirmText: "O'chirish",
+                                        danger: true,
+                                      });
+                                      if (!ok) return;
+                                      await run(() => api.delete(
+                                        `/tasks/${task.id}/attachments/${a.id}/`));
+                                    })()}>×</button>
                           )}
                         </div>
                         <small className="muted">
@@ -380,9 +409,12 @@ export default function TaskDetail() {
           <div>
             {transitions.length > 0 && (
               <Card title="Holatni ozgartirish">
-                <div className="stack">
+                {/* Tugmalar yonma-yon: oltita holat ustma-ust turganda panel
+                    ekranning yarmini egallab, yonidagi «Tekshiruv» va boshqa
+                    bo'limlarni pastga surib yuborardi. */}
+                <div className="status-picker">
                   {transitions.map((t) => (
-                    <button key={t.value} className="btn btn-block" disabled={busy}
+                    <button key={t.value} className="btn btn-sm" disabled={busy}
                             onClick={() => void run(() => api.post(`/tasks/${task.id}/status/`, {
                               status: t.value,
                               blocked_reason: t.value === "BLOCKED" ? blockReason : "",
@@ -392,10 +424,14 @@ export default function TaskDetail() {
                   ))}
                 </div>
                 {transitions.some((t) => t.value === "BLOCKED") && (
-                  <div className="field mt">
-                    <label htmlFor={`${fid}-4`}>Toxtash sababi</label>
+                  /* Sabab «To'xtab qolgan» tugmasidan OLDIN yoziladi - tugma
+                     bosilishi bilanoq holat serverga ketadi. Shuning uchun
+                     maydon ko'rinib turadi, lekin ixcham: yorlig'i yo'q,
+                     tushuntirish o'rniga joy tutuvchi matn. */
+                  <div className="status-reason">
+                    <label className="sr-only" htmlFor={`${fid}-4`}>Toxtash sababi</label>
                     <input id={`${fid}-4`} value={blockReason} onChange={(e) => setBlockReason(e.target.value)}
-                           placeholder="Nega davom eta olmayapsiz?" />
+                           placeholder="«To'xtab qolgan» uchun sabab" />
                   </div>
                 )}
               </Card>
@@ -456,6 +492,54 @@ export default function TaskDetail() {
                 )}
               </ul>
             </Card>
+
+            {/* Ishni boshqa odamga O'TKAZISH. Vazifa formasida ham ijrochini
+                almashtirsa bo'ladi, lekin u yerda butun topshiriq qaytadan
+                ochiladi; bu yerda bitta amal: kimga va nega. Ish bitta odamga
+                o'tadi, oldingisi xabar oladi (serverda ham shunday). */}
+            {canEdit && task.status !== "DONE" && task.status !== "CANCELLED" && (
+              <Card title="Boshqa odamga oʻtkazish">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!handTo) return;
+                  void run(async () => {
+                    await api.post(`/tasks/${task.id}/reassign/`,
+                                   { user_id: Number(handTo), note: handNote.trim() });
+                    setHandTo("");
+                    setHandNote("");
+                  });
+                }}>
+                  <div className="field">
+                    <label htmlFor={`${fid}-5`}>Kimga</label>
+                    <select id={`${fid}-5`} value={handTo} required
+                            onChange={(e) => setHandTo(e.target.value)}>
+                      <option value="">Jamoadan tanlang…</option>
+                      {members.map((m) => {
+                        const now = task.assignees.some((a) => a.id === m.user.id);
+                        return (
+                          <option key={m.id} value={m.user.id}>
+                            {m.user.full_name} — {m.role_display}
+                            {now ? " (hozirgi ijrochi)" : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`${fid}-6`}>Sabab (ixtiyoriy)</label>
+                    <input id={`${fid}-6`} value={handNote} placeholder="Masalan: taʼtilga chiqdi"
+                           onChange={(e) => setHandNote(e.target.value)} />
+                  </div>
+                  <button className="btn btn-primary btn-block" disabled={busy || !handTo}>
+                    Oʻtkazish
+                  </button>
+                  <small className="muted">
+                    Ish bitta odamga oʻtadi: oldingi ijrochilar olib tashlanadi va
+                    ikkala tomon ham xabar oladi.
+                  </small>
+                </form>
+              </Card>
+            )}
 
             {!!task.quality_checklist?.length && (
               <Card title="Topshirishdan oldin tekshiring">

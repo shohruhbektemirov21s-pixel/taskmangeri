@@ -54,7 +54,12 @@ export default function NotificationBell() {
       >
         <IconBell size={17} />
         {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
-        <span className={`live ${connected ? "on" : ""}`} />
+        {/* Ulanish nishoni faqat ulanish YO'Q bo'lganda chiziladi. Ilgari u
+            doim turardi: hammasi joyida bo'lgan holatda ham qo'ng'iroq
+            ostida yashil nuqta osilib, dizaynni chalkashtirardi. Nuqta -
+            ogohlantirish, tasdiq emas; "jonli" ekani bildirishnomalar
+            sahifasidagi yorliqda yozilgan. */}
+        {!connected && <span className="live" title="Jonli ulanish yo'q" />}
       </button>
 
       {open && (

@@ -10,6 +10,7 @@ import Timeline from "@/components/Timeline";
 import {
   AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Priority, Stat, StatusBadge, fmtDate,
 } from "@/components/ui";
+import { confirmDialog } from "@/components/Confirm";
 
 export default function Profile() {
   const fid = useId();
@@ -65,7 +66,13 @@ export default function Profile() {
   }
 
   async function removePhoto() {
-    if (!window.confirm("Profil rasmi ochirilsinmi?")) return;
+    const ok = await confirmDialog({
+      title: "Profil rasmi o'chirilsinmi?",
+      body: "O'rniga ism harflaridan tuzilgan belgi ko'rinadi. Keyin yangisini yuklashingiz mumkin.",
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
     setPhotoBusy(true);
     setError(null);
     setSaved(null);

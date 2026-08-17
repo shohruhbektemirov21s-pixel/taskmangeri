@@ -5,6 +5,7 @@ import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import AddMemberBox from "@/components/AddMemberBox";
 import { Avatar, Card, Empty, ErrorMsg, Loading, SpecialtyTag, fmtDate, timeAgo } from "@/components/ui";
+import { confirmDialog } from "@/components/Confirm";
 import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Members({ project, onChange }: { project: Project; onChange: () => void }) {
@@ -171,26 +172,35 @@ export default function Members({ project, onChange }: { project: Project; onCha
                           /* Berilgan huquqni qaytarib olish. Oxirgi admin va bosh
                              hisob serverda himoyalangan - u yerdan 400 keladi. */
                           <button className="btn btn-sm" title="Tizim admini huquqini bekor qilish"
-                                  onClick={() => {
-                                    if (!window.confirm(
-                                      `${m.user.full_name} tizim admini huquqidan mahrum bo'ladi. `
-                                      + "Loyihadagi roli o'zgarmaydi. Davom etamizmi?")) return;
-                                    void act(() => api.post(
+                                  onClick={() => void (async () => {
+                                    const ok = await confirmDialog({
+                                      title: `${m.user.full_name} adminlikdan chiqarilsinmi?`,
+                                      body: "Tizim admini huquqidan mahrum bo'ladi. "
+                                        + "Loyihadagi roli o'zgarmaydi.",
+                                      confirmText: "Bekor qilish",
+                                      danger: true,
+                                    });
+                                    if (!ok) return;
+                                    await act(() => api.post(
                                       `/projects/${project.id}/members/${m.id}/`,
                                       { action: "revoke_admin" }));
-                                  }}>
+                                  })()}>
                             Adminlikni bekor qilish
                           </button>
                         ) : (
                           <button className="btn btn-sm" title="Tizim admini qilib tayinlash"
-                                  onClick={() => {
-                                    if (!window.confirm(
-                                      `${m.user.full_name} tizim admini bo'ladi va butun platformada `
-                                      + "hamma huquqqa ega bo'ladi. Davom etamizmi?")) return;
-                                    void act(() => api.post(
+                                  onClick={() => void (async () => {
+                                    const ok = await confirmDialog({
+                                      title: `${m.user.full_name} tizim admini bo'lsinmi?`,
+                                      body: "Butun platformada hamma huquqqa ega bo'ladi: "
+                                        + "barcha loyihalar, foydalanuvchilar va sozlamalar.",
+                                      confirmText: "Admin qilish",
+                                    });
+                                    if (!ok) return;
+                                    await act(() => api.post(
                                       `/projects/${project.id}/members/${m.id}/`,
                                       { action: "appoint_admin" }));
-                                  }}>
+                                  })()}>
                             Admin qilish
                           </button>
                         )

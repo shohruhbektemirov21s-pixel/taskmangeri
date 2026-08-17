@@ -1,20 +1,27 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy } from "react";
 import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
-import { api } from "@/api/client";
+import { useFetch } from "@/api/useFetch";
 import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
-import { Loading, Progress } from "@/components/ui";
+import { ErrorMsg, Loading, Progress } from "@/components/ui";
 
-import Overview from "./project/Overview";
-import Board from "./project/Board";
-import TaskList from "./project/TaskList";
-import Members from "./project/Members";
-import History from "./project/History";
-import Onboarding from "./project/Onboarding";
-import Brief from "./project/Brief";
-import Chat from "@/components/Chat";
-import Files from "./project/Files";
-import ForecastTab from "./project/Forecast";
+/**
+ * Bo'limlar talab bo'yicha yuklanadi.
+ *
+ * Ilgari hammasi shu yerda statik import qilinardi va bitta bo'lakka
+ * tushardi: «Umumiy» ni ochgan odam ham doska, suhbat, prognoz, tarix va
+ * hujjatlar kodini yuklab olardi. Endi har bo'lim bosilganda keladi.
+ */
+const Overview = lazy(() => import("./project/Overview"));
+const Board = lazy(() => import("./project/Board"));
+const TaskList = lazy(() => import("./project/TaskList"));
+const Members = lazy(() => import("./project/Members"));
+const History = lazy(() => import("./project/History"));
+const Onboarding = lazy(() => import("./project/Onboarding"));
+const Brief = lazy(() => import("./project/Brief"));
+const Chat = lazy(() => import("@/components/Chat"));
+const Files = lazy(() => import("./project/Files"));
+const ForecastTab = lazy(() => import("./project/Forecast"));
 
 // `team`: faqat jamoa a'zosiga ochiladigan bo'limlar. Loyihani ko'ra
 // oladigan odam hujjatlarni ham, tarixni ham ko'radi — ular loyiha nima
@@ -36,21 +43,16 @@ const TABS = [
 export default function ProjectDetail() {
   const { id, tab } = useParams();
   const nav = useNavigate();
-  const [project, setProject] = useState<Project | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: project, error, loading, reload } = useFetch<Project>(`/projects/${id}/`);
 
-  const reload = async () => {
-    try {
-      setProject(await api.get<Project>(`/projects/${id}/`));
-    } catch {
-      setError("Loyihani ochib bolmadi — ruxsat yoq yoki topilmadi");
-    }
-  };
-
-  useEffect(() => { void reload(); }, [id]);
-
-  if (error) return <div className="content"><div className="msg msg-error">{error}</div></div>;
-  if (!project) return <div className="content"><Loading /></div>;
+  if (loading) return <div className="content"><Loading /></div>;
+  if (!project) {
+    return (
+      <div className="content">
+        <ErrorMsg error={error || "Loyihani ochib bo'lmadi - ruxsat yo'q yoki topilmadi."} />
+      </div>
+    );
+  }
 
   const acc = project.access;
   const active = tab || "";
@@ -121,16 +123,18 @@ export default function ProjectDetail() {
           </span>
         </div>
 
-        {active === "" && <Overview project={project} onChange={reload} />}
-        {active === "doska" && <Board project={project} />}
-        {active === "vazifalar" && <TaskList project={project} />}
-        {active === "jamoa" && <Members project={project} onChange={reload} />}
-        {active === "muddatlar" && <ForecastTab project={project} />}
-        {active === "fayllar" && <Files project={project} />}
-        {active === "chat" && <Chat projectId={project.id} />}
-        {active === "tarix" && <History project={project} />}
-        {active === "kirish" && <Onboarding project={project} />}
-        {active === "brif" && <Brief project={project} onChange={reload} />}
+        <Suspense fallback={<Loading />}>
+          {active === "" && <Overview project={project} onChange={reload} />}
+          {active === "doska" && <Board project={project} />}
+          {active === "vazifalar" && <TaskList project={project} />}
+          {active === "jamoa" && <Members project={project} onChange={reload} />}
+          {active === "muddatlar" && <ForecastTab project={project} />}
+          {active === "fayllar" && <Files project={project} />}
+          {active === "chat" && <Chat projectId={project.id} />}
+          {active === "tarix" && <History project={project} />}
+          {active === "kirish" && <Onboarding project={project} />}
+          {active === "brif" && <Brief project={project} onChange={reload} />}
+        </Suspense>
       </div>
     </>
   );

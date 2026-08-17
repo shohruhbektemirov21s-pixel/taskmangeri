@@ -51,6 +51,20 @@ export default function Chat({
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
+  /**
+   * Yangi xabar kelganda pastga tushamizmi.
+   *
+   * Ilgari har xabarda shartsiz tushardi: eski yozishmalarni o'qib
+   * turganingizda kimdir yozsa, sizni pastga tortib yuborardi va joyingizni
+   * qaytadan qidirishga to'g'ri kelardi. Endi faqat siz allaqachon pastda
+   * bo'lsangiz - ya'ni oxirini kuzatayotgan bo'lsangiz - tushadi.
+   */
+  const nearBottom = () => {
+    const el = bodyRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 90;
+  };
+
   const load = useCallback(async () => {
     try {
       const data = await api.get<any>("/chat/messages/", { ...listParams, page_size: 60 });
@@ -65,7 +79,21 @@ export default function Chat({
 
   useEffect(() => { void load(); }, [load]);
 
-  useEffect(() => { scrollDown(); }, [messages, scrollDown]);
+  // Birinchi yuklanganda - albatta pastga (odam oxirgi xabarlarni ko'rsin).
+  // Keyin esa faqat oxirini kuzatayotgan bo'lsa.
+  const firstPaint = useRef(true);
+  useEffect(() => {
+    if (messages === null) return;
+    if (firstPaint.current) {
+      firstPaint.current = false;
+      scrollDown();
+      return;
+    }
+    if (nearBottom()) scrollDown();
+    // `nearBottom` - o'lchov, bog'liqlik emas: uni ro'yxatga qo'shsak
+    // effekt har renderda qayta ishga tushardi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, scrollDown]);
 
   useEffect(() => {
     if (!scopeId) return;

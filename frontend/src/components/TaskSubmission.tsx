@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ApiError, api, tokens } from "@/api/client";
+import { ApiError, api } from "@/api/client";
 import type { Submission, Task } from "@/api/types";
 import { IconCheck, IconClose, IconFile, IconHistory } from "./icons";
 import { Avatar, Card, DiffView, ErrorMsg, OkMsg, fmtDateTime, timeAgo } from "./ui";
@@ -58,12 +58,8 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
     files.forEach((f) => body.append("file", f));
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "/api"}/tasks/${task.id}/submissions/`,
-        { method: "POST", headers: { Authorization: `Bearer ${tokens.access}` }, body }
-      );
-      if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
-      const saved = await res.json().catch(() => null);
+      // `api.post` - xom `fetch` emas: 401 da token o'zi yangilanadi.
+      const saved = await api.post<any>(`/tasks/${task.id}/submissions/`, body);
       setText("");
       setFiles([]);
       if (fileInput.current) fileInput.current.value = "";

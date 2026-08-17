@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { ApiError, api, listOf } from "@/api/client";
+import { ApiError, listOf } from "@/api/client";
+import { useFetch } from "@/api/useFetch";
 import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
-import { Empty, ErrorMsg, Loading, Progress, RowMenu, confirmDelete }
-  from "@/components/ui";
+import { IconPlus } from "@/components/icons";
+import { Empty, ErrorMsg, Loading, Progress, RowMenu } from "@/components/ui";
+import { deleteProject } from "@/api/projects";
 
 /**
  * Ro'yxat kesimlari.
@@ -26,33 +28,28 @@ export default function Projects() {
   const fid = useId();
   const nav = useNavigate();
   const { user } = useAuth();
-  const [error, setError] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[] | null>(null);
+  // O'chirish xatosi - yuklash xatosidan alohida.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [scope, setScope] = useState("mine");
   // `q` - maydonda yozilayotgan matn, `applied` - serverga yuborilgani.
   // Ikkovi ajratilgani uchun har harfda so'rov ketmaydi.
   const [q, setQ] = useState("");
   const [applied, setApplied] = useState("");
 
-  const load = useCallback(async () => {
-    const d = await api.get<any>("/projects/", { scope, search: applied, page_size: 100 });
-    setProjects(listOf<Project>(d));
-  }, [scope, applied]);
+  // Ilgari bu yerda `catch` yo'q edi: server xato bersa va'da rad etilib,
+  // ro'yxat `null` bo'lib qolardi va sahifa abadiy «Yuklanmoqda» da turardi.
+  const { data, error: loadError, loading, reload } =
+    useFetch<any>("/projects/", { scope, search: applied, page_size: 100 });
+  const projects = useMemo(() => (data ? listOf<Project>(data) : null), [data]);
+  const error = actionError || loadError;
 
-  useEffect(() => {
-    setProjects(null);
-    void load();
-  }, [load]);
-
-  /** Loyihani o'chirish - nomini yozdirib tasdiqlaymiz. */
+  /** Loyihani o'chirish - jarayondagi ish bo'lsa qo'shimcha tasdiq so'raladi. */
   async function removeProject(id: number, name: string) {
-    if (!confirmDelete(name)) return;
-    setError(null);
+    setActionError(null);
     try {
-      await api.delete(`/projects/${id}/`);
-      await load();
+      if (await deleteProject(id, name)) reload();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Loyihani ochirib bolmadi");
+      setActionError(err instanceof ApiError ? err.message : "Loyihani ochirib bolmadi");
     }
   }
 
@@ -60,19 +57,19 @@ export default function Projects() {
     <>
       <PageHead
         title={<strong>Loyihalar</strong>}
+        subtitle="Faol loyihalar va jarayonlar monitoringi"
         actions={
-          <>
-            <div className="btn-group">
-              {SCOPES(user?.is_platform_admin).map(([v, l]) => (
-                <button key={v} className={`btn btn-sm ${scope === v ? "btn-accent" : ""}`}
-                        onClick={() => setScope(v)}>{l}</button>
-              ))}
-            </div>
-            {user?.can_create_project && (
-              <Link className="btn btn-primary btn-sm" to="/loyiha/yangi">Yangi loyiha</Link>
-            )}
-          </>
+          user?.can_create_project && (
+            <Link className="btn btn-primary" to="/loyiha/yangi">
+              <IconPlus size={15} /> Yangi loyiha
+            </Link>
+          )
         }
+        /* Kesimlar - kapsula shaklidagi tablar: sarlavha ostida, dizayndagidek */
+        tabs={SCOPES(user?.is_platform_admin).map(([v, l]) => (
+          <button key={v} type="button" className={`tab ${scope === v ? "active" : ""}`}
+                  onClick={() => setScope(v)}>{l}</button>
+        ))}
       />
       <div className="content">
         <ErrorMsg error={error} />
@@ -81,7 +78,7 @@ export default function Projects() {
             (`ProjectViewSet.search_fields`), ya'ni yuklanmagan
             loyihalar ham topiladi. */}
         <form className="filters" onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); }}>
-          <div className="f" style={{ flex: 1 }}>
+          <div className="f grow">
             <label htmlFor={`${fid}-0`}>Qidiruv</label>
             <input id={`${fid}-0`} value={q} onChange={(e) => setQ(e.target.value)}
                    placeholder="Nom, tavsif yoki hujjat nomi boyicha" />
@@ -95,77 +92,96 @@ export default function Projects() {
           )}
         </form>
 
-        {!projects ? <Loading /> : (
+        {loading ? <Loading /> : !projects ? null : !projects.length ? (
           <div className="card">
-            <div className="card-list">
-              {projects.map((p) => (
-                /* Qatorning istalgan yeriga bosilsa loyiha ochiladi - nomni
-                   aniq nishonga olish shart emas. Ichidagi havola va
-                   tugmalar o'z ishini qiladi (`stopPropagation`). */
-                <div className="repo-item clickable" key={p.id}
-                     onClick={() => nav(`/loyiha/${p.id}`)}>
-                  <div className="row wrap">
-                    <h3 style={{ margin: 0 }}>
-                      <span className="lang-dot" style={{ background: p.color }} />{" "}
-                      <Link to={`/loyiha/${p.id}`}
-                            onClick={(e) => e.stopPropagation()}>{p.name}</Link>
-                    </h3>
-                    <span className={`badge ${p.status === "ACTIVE" ? "badge-ok" : ""}`}>
-                      {p.status_display}
-                    </span>
-                    <span className="spacer" />
-                    <Link className="btn btn-sm" to={`/loyiha/${p.id}/doska`}
-                          onClick={(e) => e.stopPropagation()}>Doska</Link>
-                    <Link className="btn btn-sm" to={`/loyiha/${p.id}/tarix`}
-                          onClick={(e) => e.stopPropagation()}>Tarix</Link>
-                    {/* Boshqarish amallari chekkadagi «⋯» ostida: ro'yxat toza qoladi.
-                        Menejer va admin uchun ko'rinadi, serverda ham shu tekshiriladi. */}
-                    {(p.manager?.id === user?.id || user?.is_platform_admin) && (
-                      <span onClick={(e) => e.stopPropagation()}>
-                        <RowMenu>
-                          <Link to={`/loyiha/${p.id}/tahrir`}>Tahrirlash</Link>
-                          <button type="button" className="danger"
-                                  onClick={() => void removeProject(p.id, p.name)}>
-                            Ochirish
-                          </button>
-                        </RowMenu>
-                      </span>
+            <Empty icon="☰" title="Loyiha topilmadi"
+                   text={applied
+                     ? `«${applied}» boyicha hech narsa topilmadi - boshqacha yozib koring.`
+                     : "Ochiq loyihaga qoshiling yoki yangi yarating."}>
+              <div className="row" style={{ justifyContent: "center" }}>
+                {applied ? (
+                  <button className="btn" onClick={() => { setQ(""); setApplied(""); }}>
+                    Qidiruvni tozalash
+                  </button>
+                ) : (
+                  <>
+                    <Link className="btn btn-primary" to="/qoshilish">Loyiha topish</Link>
+                    {user?.can_create_project && (
+                      <Link className="btn" to="/loyiha/yangi">Yangi loyiha</Link>
                     )}
-                  </div>
-                  {p.description && <p className="muted" style={{ margin: "8px 0 0" }}>{p.description}</p>}
-                  <div style={{ marginTop: 10 }}><Progress value={p.progress} /></div>
-                  <div className="repo-meta">
-                    <span>{p.workspace_name}</span>
-                    <span>{p.open_tasks} ochiq</span>
-                    <span>{p.done_tasks} bajarilgan</span>
-                    <span>{p.member_count} azo</span>
-                    <span>menda: {p.my_tasks}</span>
-                    {p.manager && <span>PM: {p.manager.full_name}</span>}
-                  </div>
+                  </>
+                )}
+              </div>
+            </Empty>
+          </div>
+        ) : (
+          /* Ro'yxat emas, kartalar setkasi: har loyihaning jarayoni va uchta
+             asosiy raqami bir qarashda ko'rinadi. Ikkilamchi havolalar
+             («Doska», «Tarix», tahrirlash) kartaning o'ng yuqorisidagi
+             menyuda - dizaynda ham o'sha yerda kichik tugma turadi. */
+          <div className="grid grid-2">
+            {projects.map((p) => (
+              /* Kartaning istalgan yeriga bosilsa loyiha ochiladi - nomni
+                 aniq nishonga olish shart emas. Ichidagi havola va
+                 tugmalar o'z ishini qiladi (`stopPropagation`). */
+              <div className="pcard" key={p.id} onClick={() => nav(`/loyiha/${p.id}`)}>
+                <div className="pcard-top">
+                  <span className="lang-dot" style={{ background: p.color }} />
+                  <Link className="pcard-name" to={`/loyiha/${p.id}`}
+                        onClick={(e) => e.stopPropagation()}>{p.name}</Link>
+                  {p.status !== "ACTIVE" && (
+                    <span className="badge">{p.status_display}</span>
+                  )}
+                  <span className="spacer" />
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <RowMenu>
+                      <Link to={`/loyiha/${p.id}/doska`}>Doska</Link>
+                      <Link to={`/loyiha/${p.id}/tarix`}>Tarix</Link>
+                      {/* Boshqarish amallari - menejer va adminga. Serverda ham
+                          shu tekshiriladi, bu yerda faqat ko'rinish yashiriladi. */}
+                      {(p.manager?.id === user?.id || user?.is_platform_admin) && (
+                        <Link to={`/loyiha/${p.id}/tahrir`}>Tahrirlash</Link>
+                      )}
+                      {(p.manager?.id === user?.id || user?.is_platform_admin) && (
+                        <button type="button" className="danger"
+                                onClick={() => void removeProject(p.id, p.name)}>
+                          Ochirish
+                        </button>
+                      )}
+                    </RowMenu>
+                  </span>
                 </div>
-              ))}
-              {!projects.length && (
-                <Empty icon="☰" title="Loyiha topilmadi"
-                       text={applied
-                         ? `«${applied}» boyicha hech narsa topilmadi - boshqacha yozib koring.`
-                         : "Ochiq loyihaga qoshiling yoki yangi yarating."}>
-                  <div className="row" style={{ justifyContent: "center" }}>
-                    {applied ? (
-                      <button className="btn" onClick={() => { setQ(""); setApplied(""); }}>
-                        Qidiruvni tozalash
-                      </button>
-                    ) : (
-                      <>
-                        <Link className="btn btn-primary" to="/qoshilish">Loyiha topish</Link>
-                        {user?.can_create_project && (
-                          <Link className="btn" to="/loyiha/yangi">Yangi loyiha</Link>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </Empty>
-              )}
-            </div>
+
+                <div className="pcard-sub">
+                  {p.workspace_name} · <span className="mono">{p.key}</span>
+                </div>
+
+                <div className="pcard-prog">
+                  <span className="muted">Jarayon</span>
+                  <span className="spacer" />
+                  <strong>{p.progress}%</strong>
+                </div>
+                <Progress value={p.progress} />
+
+                <div className="pcard-foot">
+                  <span className="pcard-metric">
+                    <small>Ochiq vazifa</small>
+                    <strong>{p.open_tasks} ta</strong>
+                  </span>
+                  <span className="pcard-metric">
+                    <small>A'zolar</small>
+                    <strong>{p.member_count} kishi</strong>
+                  </span>
+                  <span className="pcard-metric">
+                    <small>Menda</small>
+                    <strong>{p.my_tasks} ta</strong>
+                  </span>
+                  <span className="spacer" />
+                  <Link className="btn btn-sm" to={`/loyiha/${p.id}`}
+                        onClick={(e) => e.stopPropagation()}>Kirish</Link>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

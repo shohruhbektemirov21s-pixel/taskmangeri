@@ -7,31 +7,50 @@
  * O'QISH loyihani ko'rish huquqi bilan bir xil: ochiq loyihada hujjatlarni
  * tizimdagi hamma ko'radi — nima ustida ishlanayotganini bilmasdan turib
  * odam jamoaga qo'shilishga qaror qila olmaydi. YOZISH esa jamoa ichida:
- * yuklashni `can_work` qiladi, o'chirishni esa faqat loyihani boshqaruvchi
- * — menejer, loyiha admini yoki tizim admini. Yuklagan odamning o'zi ham
- * o'chira olmaydi: hujjatga butun jamoaning ishi tayanadi
- * (serverda ham xuddi shunday tekshiriladi).
+ * yuklashni `can_work` qiladi.
+ *
+ * TAHRIRLASH VA O'CHIRISH: hujjatni YUKLAGAN odam o'zinikiga tega oladi,
+ * loyiha menejeri, loyiha admini va tizim admini esa hammasiga. Ilgari
+ * yuklagan odam o'zi qo'ygan faylga ham tega olmasdi — xato nom yoki sana
+ * yozib qo'ysa, menejerni bezovta qilishga to'g'ri kelardi. Serverda ham
+ * xuddi shu qoida (`ProjectViewSet.file_detail`).
+ *
+ * NOM VA SANA MAJBURIY, sana esa LOYIHA ORALIG'IDA bo'lishi kerak:
+ * loyiha boshlanishidan oldingi yoki muddatidan keyingi hujjat sanasi
+ * deyarli har doim xato yozuv. Bu yerda maydon chegaralanadi, serverda
+ * esa qayta tekshiriladi — brauzerdagi cheklov chetlab o'tilishi mumkin.
  *
  * TAHRIR TARIXI: ayni nomli hujjat qayta yuklansa yangi qator emas, shu
  * hujjatning yangi nusxasi bo'ladi. Eskisi yo'qolmaydi — «v2» yorlig'i
  * ostidan ochib ko'rish mumkin: kim yuklagan, kim almashtirgan, qachon.
  */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { ApiError, api, tokens } from "@/api/client";
+import { ApiError, api } from "@/api/client";
 import type { Project, ProjectFile } from "@/api/types";
+import { useAuth } from "@/auth/AuthContext";
+import { confirmDialog } from "@/components/Confirm";
 import { IconFile } from "@/components/icons";
-import { Avatar, Card, Empty, ErrorMsg, FieldDiff, Loading, OkMsg, timeAgo } from "@/components/ui";
+import { Avatar, Card, DateField, Empty, ErrorMsg, FieldDiff, fmtDate, Loading, OkMsg, timeAgo }
+  from "@/components/ui";
 import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Files({ project }: { project: Project }) {
   const fid = useId();
   const acc = project.access;
+  const { user } = useAuth();
   const [items, setItems] = useState<ProjectFile[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [description, setDescription] = useState("");
+  // Hujjatning O'ZIDAGI sana: shartnoma imzolangan kun, topshiriq tasdiqlangan
+  // kun. Yuklangan vaqt bilan aralashmasin - u serverda o'zi yoziladi.
+  // Shu yerda sana bir marta yoziladi va tanlangan fayllarning hammasiga
+  // tegishli bo'ladi (odatda bir martada bitta hujjat yuklanadi).
+  const [docDate, setDocDate] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  // Tahrirlanayotgan hujjat: id va o'zgartirilayotgan qiymatlar.
+  const [edit, setEdit] = useState<{ id: number; name: string; date: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -46,24 +65,51 @@ export default function Files({ project }: { project: Project }) {
   useEffect(() => { void load(); }, [load]);
   useProjectLive(project.id, () => { void load(); });
 
+  // Hujjat sanasi loyiha oralig'idan chiqmasin. Chegara qo'yilmagan bo'lsa
+  // (loyihada sana belgilanmagan) o'sha tomon cheklanmaydi.
+  const minDate = project.start_date || undefined;
+  const maxDate = project.due_date || undefined;
+  const rangeText = minDate || maxDate
+    ? `Loyiha oralig'i: ${minDate ? fmtDate(minDate) : "…"} — ${maxDate ? fmtDate(maxDate) : "…"}`
+    : "";
+
+  /** Sana oraliqdan chiqib ketgan bo'lsa - sabab matni, aks holda bo'sh. */
+  function rangeError(value: string) {
+    if (!value) return "";
+    if (minDate && value < minDate) {
+      return `Hujjat sanasi loyiha boshlanishidan (${fmtDate(minDate)}) oldin bo'lmasin.`;
+    }
+    if (maxDate && value > maxDate) {
+      return `Hujjat sanasi loyiha muddatidan (${fmtDate(maxDate)}) keyin bo'lmasin.`;
+    }
+    return "";
+  }
+
+  /** Nom va sana yozilmaguncha fayl yuklab bo'lmaydi (serverda ham shunday). */
+  const ready = Boolean(description.trim() && docDate && !rangeError(docDate));
+
   async function upload(list: FileList | null) {
     if (!list || !list.length) return;
+    if (!ready) {
+      setError(rangeError(docDate) || "Avval hujjat nomini va sanasini yozing.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setOk(null);
 
     const body = new FormData();
     Array.from(list).forEach((f) => body.append("file", f));
-    if (description.trim()) body.append("description", description.trim());
+    body.append("description", description.trim());
+    // Bitta sana - shu to'plamdagi hamma faylga (serverda shunday o'qiladi).
+    body.append("doc_date", docDate);
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "/api"}/projects/${project.id}/files/`,
-        { method: "POST", headers: { Authorization: `Bearer ${tokens.access}` }, body }
-      );
-      if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+      // `api.post` - xom `fetch` emas: 401 da token o'zi yangilanadi.
+      await api.post(`/projects/${project.id}/files/`, body);
       setOk(`${list.length} ta fayl yuklandi.`);
       setDescription("");
+      setDocDate("");
       if (input.current) input.current.value = "";
       await load();
     } catch (err) {
@@ -73,7 +119,43 @@ export default function Files({ project }: { project: Project }) {
     }
   }
 
+  /** Nom va sanani o'zgartirish. Faylning o'zi almashmaydi. */
+  async function saveEdit() {
+    if (!edit) return;
+    if (!edit.name.trim() || !edit.date) {
+      setError("Hujjat nomi ham, sanasi ham bo'sh qolmasin.");
+      return;
+    }
+    const bad = rangeError(edit.date);
+    if (bad) {
+      setError(bad);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.patch(`/projects/${project.id}/files/${edit.id}/`,
+                      { description: edit.name.trim(), doc_date: edit.date });
+      setEdit(null);
+      setOk("Hujjat ma'lumoti yangilandi.");
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Saqlab bo'lmadi");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove(item: ProjectFile) {
+    // Hujjatni endi uni yuklagan odam ham o'chira oladi - shuning uchun
+    // bir savol: bosib yuborilgan tugma butun hujjatni olib ketmasin.
+    const ok = await confirmDialog({
+      title: `«${item.description || item.original_name}» ochirilsinmi?`,
+      body: "Hujjat royxatdan yoqoladi. Eski nusxalari ham u bilan ketadi.",
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       await api.delete(`/projects/${project.id}/files/${item.id}/`);
@@ -92,18 +174,36 @@ export default function Files({ project }: { project: Project }) {
 
       {acc.can_work && (
         <Card title="Hujjat yuklash">
-          <div className="field">
-            <label htmlFor={`${fid}-0`}>Izoh (ixtiyoriy)</label>
-            <input id={`${fid}-0`} type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
-                   onChange={(e) => setDescription(e.target.value)} />
+          {/* Nom va sana MAJBURIY: nomsiz hujjatni ro'yxatdan faqat uni
+              yuklagan odam taniydi, sanasiz esa qaysi variant yangi ekani
+              bilinmaydi. Shuning uchun ular to'lmaguncha maydon yopiq. */}
+          <div className="row wrap">
+            <div className="field" style={{ flex: 2, minWidth: 200 }}>
+              <label htmlFor={`${fid}-0`}>Hujjat nomi</label>
+              <input id={`${fid}-0`} type="text" value={description} required
+                     placeholder="Masalan: texnik topshiriq v2"
+                     onChange={(e) => setDescription(e.target.value)} />
+            </div>
+            <div className="field" style={{ flex: 1, minWidth: 160 }}>
+              <label htmlFor={`${fid}-1`}>Hujjat sanasi</label>
+              <DateField id={`${fid}-1`} value={docDate} onChange={setDocDate} required
+                         min={minDate} max={maxDate} />
+              {rangeError(docDate)
+                ? <div className="err">{rangeError(docDate)}</div>
+                : rangeText && <div className="help">{rangeText}</div>}
+            </div>
           </div>
           <div
-            className="dropzone"
+            className={`dropzone${ready ? "" : " disabled"}`}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); void upload(e.dataTransfer.files); }}
-            onClick={() => input.current?.click()}
+            onClick={() => (ready ? input.current?.click() : setError("Avval hujjat nomini va sanasini yozing."))}
           >
-            {busy ? "Yuklanmoqda…" : "Faylni shu yerga tashlang yoki bosing (25 MB gacha)"}
+            {busy
+              ? "Yuklanmoqda…"
+              : ready
+                ? "Faylni shu yerga tashlang yoki bosing (25 MB gacha)"
+                : "Avval nom va sanani yozing — keyin fayl tanlanadi"}
           </div>
           <input ref={input} type="file" multiple hidden
                  onChange={(e) => void upload(e.target.files)} />
@@ -137,17 +237,56 @@ export default function Files({ project }: { project: Project }) {
                     <small className="muted">
                       {f.size_display} · {f.uploaded_by?.full_name} ·{" "}
                       {f.version > 1 ? `yangilandi ${timeAgo(f.updated_at)}` : timeAgo(f.created_at)}
+                      {/* Hujjat sanasi - yuklangan vaqtdan boshqa narsa,
+                          shuning uchun nomi bilan yoziladi. */}
+                      {f.doc_date && ` · hujjat sanasi: ${fmtDate(f.doc_date)}`}
                       {f.description && ` · ${f.description}`}
                     </small>
                   </div>
                   <span className="spacer" />
                   <Avatar user={f.uploaded_by} size="sm" />
-                  {acc.can_manage && (
-                    <button className="btn btn-sm btn-danger" onClick={() => void remove(f)}>
-                      O'chirish
-                    </button>
+                  {/* O'z hujjatiga har kim tega oladi, hammasiga - menejer,
+                      loyiha admini va tizim admini (serverda ham shunday). */}
+                  {(acc.can_manage || f.uploaded_by?.id === user?.id) && (
+                    <>
+                      <button className="btn btn-sm"
+                              onClick={() => setEdit({
+                                id: f.id,
+                                name: f.description,
+                                date: f.doc_date || "",
+                              })}>
+                        Tahrirlash
+                      </button>
+                      <button className="btn btn-sm btn-danger" onClick={() => void remove(f)}>
+                        O'chirish
+                      </button>
+                    </>
                   )}
                 </div>
+
+                {edit?.id === f.id && (
+                  <div className="row wrap" style={{ marginTop: 10 }}>
+                    <div className="field" style={{ flex: 2, minWidth: 200, marginBottom: 0 }}>
+                      <label htmlFor={`${fid}-e0`}>Hujjat nomi</label>
+                      <input id={`${fid}-e0`} type="text" value={edit.name}
+                             onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+                    </div>
+                    <div className="field" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
+                      <label htmlFor={`${fid}-e1`}>Hujjat sanasi</label>
+                      <DateField id={`${fid}-e1`} value={edit.date}
+                                 onChange={(v) => setEdit({ ...edit, date: v })}
+                                 min={minDate} max={maxDate} />
+                      {rangeError(edit.date)
+                        ? <div className="err">{rangeError(edit.date)}</div>
+                        : rangeText && <div className="help">{rangeText}</div>}
+                    </div>
+                    <div className="row" style={{ gap: 8 }}>
+                      <button className="btn btn-sm btn-primary" disabled={busy}
+                              onClick={() => void saveEdit()}>Saqlash</button>
+                      <button className="btn btn-sm" onClick={() => setEdit(null)}>Bekor qilish</button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Eski nusxalar — yig'ib qo'yiladi, kerak bo'lganda ochiladi.
                     Har biri o'z havolasi bilan: eski variant ham yuklab olinadi. */}
@@ -166,6 +305,7 @@ export default function Files({ project }: { project: Project }) {
                             </a>
                             <small className="muted">
                               {v.size_display} · {v.uploaded_by?.full_name || "—"} yuklagan
+                              {v.doc_date && ` · hujjat sanasi: ${fmtDate(v.doc_date)}`}
                             </small>
                             <span className="spacer" />
                             <small className="muted nowrap">

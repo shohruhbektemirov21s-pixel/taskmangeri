@@ -61,12 +61,17 @@ export default function Register() {
 
   return (
     <div className="auth-wrap">
-      {/* Kirish sahifasida sarlavha yo'q - rejim tugmasi burchakda turadi */}
+      {/* Sarlavha yo'q - burchaklarda ikkita boshqaruv turadi: chapda
+          ortga qaytish, o'ngda rejim tugmasi. */}
+      <div className="auth-back">
+        <Link to="/">← Bosh sahifa</Link>
+      </div>
       <ThemeToggle className="top-icon theme-float" />
-      <div className="auth-card" style={{ maxWidth: 380 }}>
-        <div className="center mb">
+      <div className="auth-card">
+        <div className="auth-head">
           <Logo size={46} />
-          <h2 style={{ fontWeight: 300, marginTop: 12 }}>TeamFlow hisobini yarating</h2>
+          <h2>Hisob yarating</h2>
+          <p>Mutaxassisligingizga mos vazifalar shu bo'yicha biriktiriladi</p>
         </div>
 
         <ErrorMsg error={error} />
@@ -76,6 +81,7 @@ export default function Register() {
             <div className="field">
               <label htmlFor={`${fid}-0`}>F.I.Sh.</label>
               <input id={`${fid}-0`} value={form.full_name} required autoFocus
+                     name="name" autoComplete="name"
                      onChange={(e) => set("full_name", e.target.value)}
                      placeholder="Ism Familiya" />
               {errors.full_name && <div className="err">{errors.full_name}</div>}
@@ -84,6 +90,7 @@ export default function Register() {
             <div className="field">
               <label htmlFor={`${fid}-1`}>Email</label>
               <input id={`${fid}-1`} type="email" value={form.email} required
+                     name="email" autoComplete="email"
                      onChange={(e) => set("email", e.target.value)}
                      placeholder="siz@example.com" />
               {errors.email && <div className="err">{errors.email}</div>}

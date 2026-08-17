@@ -11,7 +11,6 @@ import type { Conversation, UserBrief } from "@/api/types";
 import Chat from "@/components/Chat";
 import UserSearch from "@/components/UserSearch";
 import { PageHead } from "@/components/Layout";
-import { IconChat } from "@/components/icons";
 import { Avatar, Card, Empty, SpecialtyTag, timeAgo } from "@/components/ui";
 import { useRealtime } from "@/realtime/RealtimeContext";
 
@@ -70,7 +69,8 @@ export default function Messages() {
 
   return (
     <>
-      <PageHead title={<><IconChat size={18} /> <strong>Xabarlar</strong></>} />
+      <PageHead title={<strong>Xabarlar</strong>}
+                subtitle="Loyiha jamoasi va a'zolari bilan real vaqtda muloqot" />
 
       <div className="content">
         <div className="dm-layout">

@@ -1,14 +1,15 @@
 /**
- * Taqvim — shu oyda nima ishda turgani.
+ * Taqvim — shu oyda NIMANING MUDDATI qachon tugashi.
  *
- * Loyiha bitta sanada emas, BUTUN DAVRI bo'yicha tasma bo'lib cho'ziladi:
- * boshlanishdan muddatgacha. Shuning uchun har kunning ostida "o'sha kuni
- * nechta loyiha ishda" degan sanoq turadi — oyning qaysi yeri tig'iz,
- * qaysi yeri bo'sh ekani bir qarashda ko'rinadi.
+ * Taqvimda faqat TUGASH sanalari turadi: loyiha ham, vazifa ham o'z muddati
+ * kunida ko'rinadi. Ilgari har biri boshlanishdan muddatgacha tasma bo'lib
+ * cho'zilardi — oy tasmalar bilan to'lib ketar, "shu kuni nima topshirilishi
+ * kerak" degan savolga esa javob topib bo'lmasdi.
  *
- * Vazifalar ham shu yerda, lekin ajratilgan: har biri ijrochisi bilan.
- * Muddat qo'yilmagan vazifa taqvimda umuman turmaydi — uni qo'yadigan joy
- * yo'q, oy oxirigacha cho'zish esa yolg'on bo'lardi.
+ * Muddat qo'yilmagan loyiha va vazifa taqvimda umuman turmaydi — uni
+ * qo'yadigan kun yo'q.
+ *
+ * Vazifalar ijrochisi bilan ko'rsatiladi va alohida yoqib-o'chiriladi.
  *
  * Sana hisobi UTC da yuritiladi (`Date.UTC`): server "YYYY-MM-DD" yuboradi,
  * uni mahalliy `new Date()` ga bersak mintaqa tufayli kun surilib ketardi.
@@ -154,7 +155,7 @@ export default function CalendarPage() {
     <>
       <PageHead
         title={<strong>Taqvim</strong>}
-        subtitle="Loyiha butun davri bo'yicha ko'rinadi — boshlanishdan muddatgacha"
+        subtitle="Faqat tugash sanalari — qaysi kuni nima topshirilishi kerak"
       />
 
       <div className="content">
@@ -228,14 +229,14 @@ export default function CalendarPage() {
                           <div className={`cal-daynum ${outside ? "out" : ""}`
                                           + (iso === data.today ? " today" : "")} key={`n${d}`}
                                style={{ gridColumn: i + 1, gridRow: 1 }}>
-                            {/* Faqat loyiha boshlangan kunda - har kunda
-                                turgan raqam ma'no bermasdi. */}
+                            {/* Kun raqami chapda - dizaynda shunday. O'ng chetda esa
+                                o'sha kuni nechta loyiha muddati tugashi. */}
+                            <span className="cal-d">{dayOfMonth(d)}</span>
+                            <span className="spacer" />
                             {!outside && !!n && (
                               <span className="cal-count"
-                                    title={`${n} ta loyiha shu kuni boshlangan`}>{n}</span>
+                                    title={`${n} ta loyiha muddati shu kuni tugaydi`}>{n}</span>
                             )}
-                            <span className="spacer" />
-                            <span className="cal-d">{dayOfMonth(d)}</span>
                           </div>
                         );
                       })}
@@ -319,8 +320,8 @@ export default function CalendarPage() {
               </Card>
             ) : (
               !data.total && !data.task_total && (
-                <Empty icon="🗓" title="Bu oyda hech narsa yo'q"
-                       text="Boshqa oyni ko'ring yoki loyihaga muddat qo'ying." />
+                <Empty icon="🗓" title="Bu oyda tugaydigan ish yo'q"
+                       text="Boshqa oyni ko'ring yoki loyiha va vazifalarga muddat qo'ying." />
               )
             )}
           </>

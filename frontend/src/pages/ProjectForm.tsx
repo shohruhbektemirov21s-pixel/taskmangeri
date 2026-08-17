@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
+import { deleteProject } from "@/api/projects";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import TeamPicker, { addPickedMembers, createPickedTasks, taskCount }
   from "@/components/TeamPicker";
@@ -8,10 +9,13 @@ import type { Pick as TeamPick } from "@/components/TeamPicker";
 import type { Access, Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Card, confirmDelete, DateField, ErrorMsg, Loading } from "@/components/ui";
+import { Card, DateField, ErrorMsg, Loading } from "@/components/ui";
 
 export default function ProjectForm() {
   const fid = useId();
+  // Saqlash tugmasi sarlavhada, ya'ni `<form>` dan tashqarida turadi -
+  // `form` atributi orqali bog'lanadi, shuning uchun formaga id kerak.
+  const formId = `${fid}-form`;
   const { id } = useParams();
   const nav = useNavigate();
   const { meta, user } = useAuth();
@@ -24,6 +28,11 @@ export default function ProjectForm() {
   // Fayllar loyiha yaratilgandan keyin yuklanadi - avval id kerak.
   const [files, setFiles] = useState<File[]>([]);
   const [fileNote, setFileNote] = useState("");
+  // Hujjat sanasi ikki qavat: `fileDate` - butun to'plamga (izoh yonida),
+  // `fileDates[i]` esa aynan `files[i]` uchun. Fayl sanasi bo'sh bo'lsa
+  // umumiy sana ketadi - bir xil sanani har faylga qayta yozish shart emas.
+  const [fileDate, setFileDate] = useState("");
+  const [fileDates, setFileDates] = useState<string[]>([]);
   // Jamoa ham loyiha yaratilgandan keyin qo'shiladi - avval id kerak.
   const [team, setTeam] = useState<TeamPick[]>([]);
   // Tahrirlashda loyihaning ruxsatlari kerak: o'chirish faqat menejer va adminda.
@@ -61,6 +70,20 @@ export default function ProjectForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Hujjat nomsiz va sanasiz yuklanmaydi (server ham shunday tekshiradi) -
+    // buni loyiha yaratilgandan KEYIN aytish kech bo'lardi: fayl o'tmay
+    // qolar, odam esa uni «Hujjatlar» bo'limidan qayta yuklashi kerak edi.
+    if (files.length) {
+      if (!fileNote.trim()) {
+        setError("Fayllar uchun hujjat nomini yozing.");
+        return;
+      }
+      const missing = files.filter((_, i) => !(fileDates[i] || fileDate));
+      if (missing.length) {
+        setError("Hujjat sanasi korsatilmagan: " + missing.map((f) => f.name).join(", "));
+        return;
+      }
+    }
     setBusy(true);
     setError(null);
     setErrors({});
@@ -79,7 +102,8 @@ export default function ProjectForm() {
       // odam fayllarni "Fayllar" bo'limidan qayta yuklay oladi.
       if (files.length) {
         try {
-          await uploadFiles(`/projects/${saved.id}/files/`, files, fileNote);
+          await uploadFiles(`/projects/${saved.id}/files/`, files, fileNote,
+                            files.map((_, i) => fileDates[i] || fileDate));
         } catch {
           setBusy(false);
           setError("Loyiha yaratildi, lekin fayllarni yuklab bolmadi — "
@@ -126,28 +150,50 @@ export default function ProjectForm() {
     }
   }
 
-  /** Loyihani butunlay o'chirish. */
+  /** Loyihani butunlay o'chirish - tasdiq `deleteProject` ichida so'raladi. */
   async function removeProject() {
-    if (!confirmDelete(f.name)) return;
-    setBusy(true);
     setError(null);
+    setBusy(true);
     try {
-      await api.delete(`/projects/${id}/`);
-      nav("/loyihalar");
+      if (await deleteProject(id!, f.name)) {
+        nav("/loyihalar");
+        return;
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Loyihani ochirib bolmadi");
-      setBusy(false);
     }
+    setBusy(false);
   }
 
   if (!loaded) return <div className="content"><Loading /></div>;
 
   return (
     <>
-      <PageHead title={<strong>{editing ? "Loyiha sozlamalari" : "Yangi loyiha"}</strong>} />
+      {/* Holat va tugmalar sarlavha qatorida: bitta maydon uchun butun karta
+          ketmasin, «Loyiha yaratish» esa formaning oxirigacha aylantirmasdan
+          ko'rinib tursin. Tugma formadan tashqarida turgani uchun `form`
+          atributi bilan bog'lanadi - bosilganda odatdagidek `submit` bo'ladi. */}
+      <PageHead
+        title={<strong>{editing ? "Loyiha sozlamalari" : "Yangi loyiha"}</strong>}
+        actions={(
+          <div className="row" style={{ gap: 8 }}>
+            <select aria-label="Loyiha holati" title="Loyiha holati" value={f.status}
+                    style={{ width: "auto", minWidth: 140 }}
+                    onChange={(e) => set("status", e.target.value)}>
+              {(meta?.project_status || []).map((s) => (
+                <option key={s.value} value={String(s.value)}>{s.label}</option>
+              ))}
+            </select>
+            <button className="btn btn-primary" form={formId} disabled={busy}>
+              {busy ? "Saqlanmoqda..." : editing ? "Saqlash" : "Loyiha yaratish"}
+            </button>
+            <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
+          </div>
+        )}
+      />
       <div className="content">
         <ErrorMsg error={error} />
-        <form onSubmit={submit}>
+        <form id={formId} onSubmit={submit}>
           <div className="split">
             {/* Chap ustun: asosiy maydonlar va boshlang'ich fayllar */}
             <div>
@@ -192,28 +238,21 @@ export default function ProjectForm() {
                   withDescription
                   description={fileNote}
                   onDescription={setFileNote}
+                  withDates
+                  date={fileDate}
+                  onDate={setFileDate}
+                  dates={fileDates}
+                  onDates={setFileDates}
+                  /* Hujjat sanasi loyiha oralig'idan chiqmasin - chegaralar
+                     shu formaning o'zidagi maydonlardan olinadi. */
+                  minDate={f.start_date || undefined}
+                  maxDate={f.due_date || undefined}
                 />
               </Card>
             )}
             </div>
 
             <div>
-              {/* Kim korishi, avtomatik qabul va repozitoriy formadan olib
-                  tashlandi - bu yerda faqat holat qoladi. Loyiha ochiq bo'lib
-                  yaratiladi (modeldagi standart), repozitoriy esa keyin
-                  qo'shiladi. */}
-              <Card title="Holat">
-                {/* Kartada bitta maydon qoldi - pastdagi ortiqcha bo'shliq olindi */}
-                <div className="field" style={{ marginBottom: 0 }}>
-                  <label htmlFor={`${fid}-3`}>Loyiha holati</label>
-                  <select id={`${fid}-3`} value={f.status} onChange={(e) => set("status", e.target.value)}>
-                    {(meta?.project_status || []).map((s) => (
-                      <option key={s.value} value={String(s.value)}>{s.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </Card>
-
               {/* O'chirish - faqat loyiha menejeri va admin uchun (serverda ham
                   shunday tekshiriladi). */}
               {editing && (acc?.is_manager || acc?.is_admin) && (
@@ -243,12 +282,6 @@ export default function ProjectForm() {
             </div>
           </div>
 
-          <div className="form-actions">
-            <button className="btn btn-primary" disabled={busy}>
-              {busy ? "Saqlanmoqda..." : editing ? "Saqlash" : "Loyiha yaratish"}
-            </button>
-            <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
-          </div>
         </form>
       </div>
     </>

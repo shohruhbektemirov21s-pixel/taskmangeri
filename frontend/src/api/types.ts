@@ -297,11 +297,37 @@ export interface Paginated<T> {
   results: T[];
 }
 
+/** Yon paneldagi uchta raqam (`/counts/`) - panelning yengil versiyasi. */
+export interface SidebarCounts {
+  open: number;
+  reviews: number;
+  joins: number;
+}
+
+/** Menejer jamoasidagi bitta odam: qaysi loyihalarda va qancha ish bilan. */
+export interface TeamPerson {
+  user: UserBrief;
+  role_label: string;
+  projects: { id: number; name: string; key: string; color: string }[];
+  open_tasks: number;
+  review_tasks: number;
+  done_tasks: number;
+}
+
 export interface DashboardData {
   stats: {
     open: number; review: number; returned: number;
     overdue: number; done_week: number;
     pending_reviews: number; pending_joins: number;
+  };
+  /** Bugungi kesim: bajarish kerak, bajarildi, tekshiruvga topshirildi */
+  today: { date: string; todo: number; done: number; review: number };
+  /** Menejer kesimi - boshqaruvdagi loyihalar va ulardagi odamlar */
+  team: {
+    projects: number;
+    developers: number;
+    pending_reviews: number;
+    people: TeamPerson[];
   };
   next_task: Task | null;
   focus_queue: Task[];
@@ -503,6 +529,8 @@ export interface ProjectFileVersion {
   size_display: string;
   content_type: string;
   description: string;
+  /** Hujjatning o'zidagi sana, "YYYY-MM-DD" — yuklangan vaqt emas */
+  doc_date: string | null;
   is_image: boolean;
   uploaded_by: UserBrief | null;
   created_at: string;
@@ -521,6 +549,8 @@ export interface ProjectFile {
   size_display: string;
   content_type: string;
   description: string;
+  /** Hujjatning o'zidagi sana, "YYYY-MM-DD" — yuklangan vaqt emas */
+  doc_date: string | null;
   extension: string;
   is_image: boolean;
   uploaded_by: UserBrief | null;
@@ -634,6 +664,16 @@ export interface Conversation {
   last_message: string;
   last_at: string;
   outgoing: boolean;
+}
+
+/** `GET /api/counts/` javobi - yon paneldagi uchta raqam. */
+export interface SidebarCounts {
+  /** menga biriktirilgan ochiq vazifalar (TODO + jarayonda) */
+  open: number;
+  /** men tekshirishim kerak bo'lgan vazifalar */
+  reviews: number;
+  /** javob kutayotgan qo'shilish so'rovlari */
+  joins: number;
 }
 
 /** `GET /api/users/:id/work/` javobi */

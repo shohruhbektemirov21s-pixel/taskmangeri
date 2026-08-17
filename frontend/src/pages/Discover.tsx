@@ -32,7 +32,7 @@ export default function Discover() {
         <div className="split">
           <div>
             <form className="filters" onSubmit={(e) => { e.preventDefault(); void load(); }}>
-              <div className="f" style={{ flex: 1 }}>
+              <div className="f grow">
                 <label htmlFor={`${fid}-0`}>Qidiruv</label>
                 <input id={`${fid}-0`} value={q} onChange={(e) => setQ(e.target.value)}
                        placeholder="Loyiha nomi yoki kaliti" />

@@ -76,7 +76,7 @@ export default function History({ project }: { project: Project }) {
               <option value="90">Songgi 90 kun</option>
             </select>
           </div>
-          <div className="f" style={{ flex: 1 }}>
+          <div className="f grow">
             <label htmlFor={`${fid}-3`}>Qidiruv</label>
             <input id={`${fid}-3`} value={f.search} onChange={(e) => set("search", e.target.value)}
                    placeholder="Matn boyicha" />

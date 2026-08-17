@@ -11,9 +11,10 @@
  */
 import { useCallback, useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { api } from "@/api/client";
+import { api, listOf } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
-import type { Activity } from "@/api/types";
+import type { Activity, ProjectFile } from "@/api/types";
+import { IconFile } from "@/components/icons";
 import { PageHead } from "@/components/Layout";
 import Timeline from "@/components/Timeline";
 import { Card, Empty, Loading, timeAgo } from "@/components/ui";
@@ -28,6 +29,64 @@ interface ProjectRow {
   manager_name: string;
   activity_count: number;
   last_activity: string | null;
+}
+
+/** Ochilgan loyihaning hujjatlari — yozuvlardan OLDIN turadi.
+ *
+ * Tarixni ochgan odamning birinchi savoli ko'pincha "bu loyihada qanday
+ * hujjat bor?" bo'ladi: texnik topshiriq, dizayn, shartnoma. Ular yozuvlar
+ * lentasining ostida qolib ketmasin.
+ *
+ * Fayllar faqat loyihani ko'ra oladigan odamga ko'rinadi — begonaga server
+ * 403 qaytaradi, o'shanda bo'lim umuman chizilmaydi.
+ */
+function ProjectDocuments({ projectId }: { projectId: number }) {
+  const [files, setFiles] = useState<ProjectFile[] | null>(null);
+  const [denied, setDenied] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setFiles(null);
+    setDenied(false);
+    void api.get<any>(`/projects/${projectId}/files/`)
+      .then((d) => { if (alive) setFiles(listOf<ProjectFile>(d)); })
+      .catch(() => { if (alive) { setFiles([]); setDenied(true); } });
+    return () => { alive = false; };
+  }, [projectId]);
+
+  if (denied || files === null) return null;
+
+  return (
+    <div className="feed-docs">
+      <div className="row wrap">
+        <span className="muted nowrap">
+          <IconFile size={13} /> Loyiha fayllari
+        </span>
+        {files.length > 0 ? (
+          <>
+            {files.slice(0, 12).map((f) => (
+              <a key={f.id} className="chip" href={f.url || "#"} target="_blank"
+                 rel="noreferrer"
+                 title={[f.original_name, f.size_display, f.description]
+                   .filter(Boolean).join(" · ")}>
+                {/* Uzun nom kesiladi, hajm esa doim ko'rinadi - fayl nomi
+                    ko'pincha uzun bo'ladi, hajmi qisqa va foydali. */}
+                <span className="doc-name">{f.original_name}</span>
+                <span className="muted doc-size">{f.size_display}</span>
+              </a>
+            ))}
+            {files.length > 12 && (
+              <Link className="chip" to={`/loyiha/${projectId}/fayllar`}>
+                yana {files.length - 12} ta
+              </Link>
+            )}
+          </>
+        ) : (
+          <span className="muted">Hujjat yuklanmagan.</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /** Ochilgan loyihaning yozuvlari — faqat ochilganda so'raladi. */
@@ -61,7 +120,7 @@ function ProjectFeed({ projectId }: { projectId: number }) {
   return (
     <div className="card-body">
       <div className="filters">
-        <div className="f" style={{ flex: 1 }}>
+        <div className="f grow">
           <label htmlFor={`${fid}-0`}>Yozuvlar ichidan qidirish</label>
           <input id={`${fid}-0`} defaultValue={f.search} placeholder="Matn boyicha"
                  onKeyDown={(e) => {
@@ -142,7 +201,7 @@ export default function Feed() {
                 actions={<span className="badge">{total} yozuv</span>} />
       <div className="content">
         <div className="filters">
-          <div className="f" style={{ flex: 1 }}>
+          <div className="f grow">
             <label htmlFor={`${fid}-3`}>Loyiha qidirish</label>
             <input id={`${fid}-3`} defaultValue={q} placeholder="Nom, kalit yoki tavsif boyicha"
                    onKeyDown={(e) => {
@@ -187,6 +246,8 @@ export default function Feed() {
                     </div>
                     {isOpen && (
                       <Card padded={false}>
+                        {/* Avval hujjatlar, keyin yozuvlar lentasi. */}
+                        <ProjectDocuments projectId={r.id} />
                         <ProjectFeed projectId={r.id} />
                       </Card>
                     )}

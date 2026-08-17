@@ -1,33 +1,29 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, listOf } from "@/api/client";
+import { listOf } from "@/api/client";
+import { useFetch } from "@/api/useFetch";
 import type { Project, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
-import { Empty, Loading, TaskRow } from "@/components/ui";
+import { Empty, ErrorMsg, Loading, TaskRow } from "@/components/ui";
 
 export default function TaskList({ project }: { project: Project }) {
   const fid = useId();
   const { meta } = useAuth();
   const { subscribe } = useRealtime();
-  const [tasks, setTasks] = useState<Task[] | null>(null);
   const [f, setF] = useState({ status: "", assignee: "", task_type: "", search: "", open: "" });
 
-  const load = useCallback(async () => {
-    const d = await api.get<any>("/tasks/", { project: project.id, ...f, page_size: 200 });
-    setTasks(listOf<Task>(d));
-  }, [project.id, f]);
-
-  useEffect(() => {
-    // Filtr almashganda ro'yxat tozalanadi; jonli yangilanishda esa yo'q -
-    // aks holda har o'zgarishda ro'yxat "sakrab" ketardi.
-    setTasks(null);
-    void load();
-  }, [load]);
+  // Ilgari qidiruv maydoniga yozilgan HAR HARF uchun 200 tagacha vazifa
+  // so'ralardi, ustiga `setTasks(null)` ro'yxatni har harfda "Yuklanmoqda" ga
+  // almashtirardi - ekran pirillardi. Endi so'rov yozish to'xtagach ketadi,
+  // eskisi bekor qilinadi va ro'yxat joyida turadi.
+  const { data, error, loading, reload } = useFetch<any>(
+    "/tasks/", { project: project.id, ...f, page_size: 200 }, { debounceMs: 300 });
+  const tasks = useMemo(() => (data ? listOf<Task>(data) : null), [data]);
 
   useEffect(() => subscribe((d) => {
-    if (d.event === "task.update" && Number(d.project) === project.id) void load();
-  }), [subscribe, load, project.id]);
+    if (d.event === "task.update" && Number(d.project) === project.id) reload();
+  }), [subscribe, reload, project.id]);
 
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
@@ -62,7 +58,7 @@ export default function TaskList({ project }: { project: Project }) {
             ))}
           </select>
         </div>
-        <div className="f" style={{ flex: 1 }}>
+        <div className="f grow">
           <label htmlFor={`${fid}-3`}>Qidiruv</label>
           <input id={`${fid}-3`} value={f.search} onChange={(e) => set("search", e.target.value)}
                  placeholder="Sarlavha yoki tavsif" />
@@ -74,7 +70,8 @@ export default function TaskList({ project }: { project: Project }) {
       </div>
 
       <div className="card">
-        {!tasks ? <Loading /> : tasks.length ? (
+        <ErrorMsg error={error} />
+        {loading ? <Loading /> : tasks?.length ? (
           <div className="table-wrap"><table className="table">
             <thead>
               <tr>

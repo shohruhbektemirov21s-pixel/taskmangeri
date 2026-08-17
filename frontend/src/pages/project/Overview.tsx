@@ -28,7 +28,7 @@ export default function Overview({ project, onChange }: { project: Project; onCh
     <div className="split">
       <div>
         <div className="grid grid-4 mb">
-          <Stat value={c.TODO || 0} label="Bajarilishi kerak" tone="accent" />
+          <Stat value={c.TODO || 0} label="Nazoratda" tone="accent" />
           <Stat value={c.IN_PROGRESS || 0} label="Jarayonda" tone="warn" />
           <Stat value={c.IN_REVIEW || 0} label="Tekshiruvda" tone="done" />
           <Stat value={c.DONE || 0} label="Bajarildi" tone="ok" />

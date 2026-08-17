@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
+import { useFetch } from "@/api/useFetch";
 import type { User } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
@@ -9,23 +10,26 @@ import { Avatar, Card, ErrorMsg, Loading, fmtDate } from "@/components/ui";
 export default function People() {
   const fid = useId();
   const { user, meta } = useAuth();
-  const [users, setUsers] = useState<User[] | null>(null);
   const [f, setF] = useState({ search: "", specialty: "", role: "", seniority: "" });
-  const [error, setError] = useState<string | null>(null);
+  // Rol o'zgartirish xatosi - yuklash xatosidan alohida.
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setUsers(listOf<User>(await api.get<any>("/users/", { ...f, page_size: 200 })));
-  }, [f]);
-
-  useEffect(() => { void load(); }, [load]);
+  // Ilgari bu ro'yxat har bosilgan tugma uchun qaytadan so'ralardi (200 tagacha
+  // foydalanuvchi), so'rovlar bekor qilinmasdi va `catch` ham yo'q edi - server
+  // xato bersa sahifa abadiy «Yuklanmoqda» da qolardi. Endi so'rov yozish
+  // to'xtagach ketadi, eskisi bekor qilinadi, xato esa ekranga chiqadi.
+  const { data, error: loadError, loading, reload } =
+    useFetch<any>("/users/", { ...f, page_size: 200 }, { debounceMs: 300 });
+  const users = useMemo(() => (data ? listOf<User>(data) : null), [data]);
+  const error = actionError || loadError;
 
   async function change(target: User, patch: Record<string, unknown>) {
-    setError(null);
+    setActionError(null);
     try {
       await api.patch(`/users/${target.id}/role/`, patch);
-      await load();
+      reload();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Ozgartirib bolmadi");
+      setActionError(err instanceof ApiError ? err.message : "Ozgartirib bolmadi");
     }
   }
 
@@ -43,7 +47,7 @@ export default function People() {
         <ErrorMsg error={error} />
 
         <div className="filters">
-          <div className="f" style={{ flex: 1 }}>
+          <div className="f grow">
             <label htmlFor={`${fid}-0`}>Qidiruv</label>
             <input id={`${fid}-0`} value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })}
                    placeholder="Ism, email yoki konikma" />
@@ -79,7 +83,7 @@ export default function People() {
 
         <div className="split">
           <div className="card">
-            {!users ? <Loading /> : (
+            {loading ? <Loading /> : !users ? null : (
               <div className="table-wrap"><table className="table">
                 <thead>
                   <tr>
