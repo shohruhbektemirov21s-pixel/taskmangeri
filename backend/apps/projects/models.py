@@ -479,6 +479,11 @@ class ProjectFile(SoftDeleteModel):
     size = models.PositiveBigIntegerField("Hajmi (bayt)", default=0)
     content_type = models.CharField("Turi", max_length=120, blank=True)
     description = models.CharField("Izoh", max_length=250, blank=True)
+    # Hujjatning O'ZIDAGI sana: shartnoma imzolangan kun, texnik topshiriq
+    # tasdiqlangan kun. `created_at` (fayl tizimga yuklangan lahza) bilan bir
+    # xil emas - o'tgan yilgi shartnoma bugun yuklanishi mumkin. Shuning
+    # uchun alohida maydon; ko'rsatilmasa bo'sh qoladi.
+    doc_date = models.DateField("Hujjat sanasi", null=True, blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                     null=True, related_name="project_files")
     # Nechanchi nusxa. Bir xil nomli hujjat qayta yuklansa yangi qator emas,
@@ -543,6 +548,9 @@ class ProjectFileVersion(models.Model):
     size = models.PositiveBigIntegerField("Hajmi (bayt)", default=0)
     content_type = models.CharField("Turi", max_length=120, blank=True)
     description = models.CharField("Izoh", max_length=250, blank=True)
+    # Eski nusxadagi hujjat sanasi - almashtirishda u ham o'zgargan bo'lishi
+    # mumkin, tarixda qanday bo'lgani ko'rinib tursin.
+    doc_date = models.DateField("Hujjat sanasi", null=True, blank=True)
 
     # Shu nusxani kim va qachon yuklagan edi
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,

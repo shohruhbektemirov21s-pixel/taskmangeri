@@ -24,6 +24,7 @@ VERB_META = {
     "task.created": ("T", "task"),
     "task.assigned": ("@", "task"),
     "task.unassigned": ("@", "task"),
+    "task.reassigned": ("@", "task"),
     "task.status": (">", "task"),
     "task.updated": ("*", "task"),
     "task.submitted": ("^", "review"),

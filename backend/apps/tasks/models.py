@@ -8,7 +8,7 @@ from apps.core.softdelete import SoftDeleteModel, SoftDeleteQuerySet
 
 class TaskStatus(models.TextChoices):
     BACKLOG = "BACKLOG", "Backlog"
-    TODO = "TODO", "Bajarilishi kerak"
+    TODO = "TODO", "Nazoratda"
     IN_PROGRESS = "IN_PROGRESS", "Jarayonda"
     IN_REVIEW = "IN_REVIEW", "Tekshiruvda"
     CHANGES_REQUESTED = "CHANGES_REQUESTED", "Tuzatish kerak"

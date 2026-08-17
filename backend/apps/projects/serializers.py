@@ -175,7 +175,7 @@ class ProjectFileVersionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectFileVersion
         fields = ["id", "version", "url", "original_name", "size", "size_display",
-                  "content_type", "description", "is_image", "uploaded_by",
+                  "content_type", "description", "doc_date", "is_image", "uploaded_by",
                   "created_at", "replaced_by", "replaced_at"]
 
     def get_url(self, obj):
@@ -204,7 +204,7 @@ class ProjectFileSerializer(serializers.ModelSerializer):  # noqa: E301
     class Meta:
         model = ProjectFile
         fields = ["id", "file", "url", "original_name", "size", "size_display", "content_type",
-                  "description", "extension", "is_image", "uploaded_by", "version",
+                  "description", "doc_date", "extension", "is_image", "uploaded_by", "version",
                   "versions", "created_at", "updated_at"]
         read_only_fields = ["original_name", "size", "content_type", "uploaded_by",
                             "version", "created_at", "updated_at"]
@@ -223,6 +223,7 @@ class ProjectFileSerializer(serializers.ModelSerializer):  # noqa: E301
         "size_display": "Hajmi",
         "content_type": "Turi",
         "description": "Izoh",
+        "doc_date": "Hujjat sanasi",
     }
 
     @staticmethod
@@ -232,6 +233,8 @@ class ProjectFileSerializer(serializers.ModelSerializer):  # noqa: E301
             "size_display": obj.size_display,
             "content_type": obj.content_type or "—",
             "description": obj.description or "",
+            # Sana o'zbekcha ko'rinishda solishtiriladi - ekranda ham shunday.
+            "doc_date": obj.doc_date.strftime("%d.%m.%Y") if obj.doc_date else "—",
         }
 
     def get_versions(self, obj):

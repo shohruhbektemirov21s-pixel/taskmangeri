@@ -15,6 +15,9 @@ class NotificationKind(models.TextChoices):
 
     # Ish - odamning o'z vazifasi
     TASK_ASSIGNED = "task.assigned", "Vazifa biriktirildi"
+    # Ish boshqa odamga o'tdi: eski ijrochi eski topshiriq ustida ishlab
+    # yurmasin. Yangi ijrochiga esa odatdagi "biriktirildi" ketadi.
+    TASK_REASSIGNED = "task.reassigned", "Vazifa o'tkazildi"
     TASK_REVIEW = "task.review", "Tekshiruvga tushdi"
     TASK_DECIDED = "task.decided", "Tekshiruv natijasi"
     TASK_COMMENT = "task.comment", "Yangi izoh"

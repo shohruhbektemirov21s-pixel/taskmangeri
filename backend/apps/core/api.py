@@ -1,5 +1,7 @@
 import logging
 
+from datetime import datetime, time as dtime
+
 from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
@@ -14,6 +16,7 @@ from apps.core.queries import int_param
 from apps.projects.api import project_counters
 from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
+from apps.accounts.serializers import UserBriefSerializer
 from apps.tasks.serializers import TaskSerializer
 
 logger = logging.getLogger(__name__)
@@ -76,6 +79,28 @@ def dashboard(request):
     waiting_review = my_tasks.filter(status=TaskStatus.IN_REVIEW)
     overdue = focus_queue.filter(due_date__lt=now)
 
+    # ------------------------------------------------------------ bugun
+    # Kun chegarasi TOSHKENT vaqtida hisoblanadi va aniq lahzalar bilan
+    # solishtiriladi (`__date` emas): Db2 da sanani ustundan ajratib olish
+    # mintaqani hisobga olmaydi va tunda son noto'g'ri chiqardi.
+    today = timezone.localdate()
+    day_start = timezone.make_aware(datetime.combine(today, dtime.min))
+    day_end = day_start + timezone.timedelta(days=1)
+
+    # "Bugun bajarish kerak": muddati bugun yoki allaqachon o'tgan, hali
+    # yopilmagan ishlar - kechikkani ham bugungi ish hisoblanadi.
+    today_todo = my_tasks.filter(
+        status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS,
+                    TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED],
+        due_date__lt=day_end).count()
+    today_done = my_tasks.filter(status=TaskStatus.DONE,
+                                 completed_at__gte=day_start,
+                                 completed_at__lt=day_end).count()
+    # Bugun topshirilgan va hamon javob kutayotgan ishlar.
+    today_review = my_tasks.filter(status=TaskStatus.IN_REVIEW,
+                                   submitted_at__gte=day_start,
+                                   submitted_at__lt=day_end).count()
+
     member_of = Exists(ProjectMember.objects.filter(
         project=OuterRef("pk"), user=user, is_active=True))
 
@@ -112,6 +137,7 @@ def dashboard(request):
     # qaytarardi: bazada 12 ta tekshiruv bo'lsa ham panelda "10" turardi.
     review_total = review_qs.count()
     join_total = join_qs.count()
+    managed_total = managed.count()
     review_qs = (review_qs.select_related("project")
                  .prefetch_related("assignments__user").order_by("submitted_at")[:10])
     join_qs = join_qs.select_related("user", "project").order_by("created_at")[:10]
@@ -125,6 +151,55 @@ def dashboard(request):
                     .annotate(**project_counters(user))
                     .order_by("-updated_at")[:8])
 
+    # ---------------------------------------------------------- menejer kesimi
+    # Menejerga o'z jamoasi bir ekranda kerak: nechta loyiha boshqaryapti,
+    # unda nechta ishchi odam bor, kim qaysi loyihaga biriktirilgan va
+    # kimning ishi hozir uning tekshiruvini kutyapti.
+    #
+    # Sanoqlar ikkita so'rovda olinadi (a'zolar va vazifa sanog'i), keyin
+    # Python da birlashtiriladi - odam boshiga alohida so'rov ketmasin.
+    team_rows = []
+    dev_roles = (ProjectRole.DEVELOPER, ProjectRole.QA)
+    memberships = (ProjectMember.objects
+                   .filter(project__in=managed, is_active=True, role__in=dev_roles)
+                   .exclude(user=user)
+                   .select_related("user", "project"))
+    load = {}
+    for row in (TaskAssignment.objects
+                .filter(is_active=True, task__project__in=managed,
+                        task__project__deleted_at__isnull=True)
+                .values("user_id", "task__status")
+                .annotate(n=Count("id"))):
+        cell = load.setdefault(row["user_id"], {"open": 0, "review": 0, "done": 0})
+        status = row["task__status"]
+        if status in (TaskStatus.TODO, TaskStatus.IN_PROGRESS,
+                      TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED):
+            cell["open"] += row["n"]
+        elif status == TaskStatus.IN_REVIEW:
+            cell["review"] += row["n"]
+        elif status == TaskStatus.DONE:
+            cell["done"] += row["n"]
+
+    people = {}
+    for m in memberships:
+        item = people.setdefault(m.user_id, {
+            "user": UserBriefSerializer(m.user, context=ctx).data,
+            "role_label": m.get_role_display(),
+            "projects": [],
+        })
+        item["projects"].append({"id": m.project_id, "name": m.project.name,
+                                 "key": m.project.key, "color": m.project.color})
+    for uid, item in people.items():
+        cell = load.get(uid, {})
+        item["open_tasks"] = cell.get("open", 0)
+        item["review_tasks"] = cell.get("review", 0)
+        item["done_tasks"] = cell.get("done", 0)
+        team_rows.append(item)
+    # Tekshiruv kutayotgani tepada, keyin ish ko'pi - menejer avval nima
+    # qilishi kerakligi ko'rinib tursin.
+    team_rows.sort(key=lambda r: (-r["review_tasks"], -r["open_tasks"],
+                                  r["user"]["full_name"]))
+
     return Response({
         "stats": {
             "open": focus_queue.count(),
@@ -137,6 +212,13 @@ def dashboard(request):
             "pending_reviews": review_total,
             "pending_joins": join_total,
         },
+        # Bugungi kesim - panelning yuqorisidagi uchta katak.
+        "today": {
+            "date": today,
+            "todo": today_todo,
+            "done": today_done,
+            "review": today_review,
+        },
         "next_task": TaskSerializer(next_task, context=ctx).data if next_task else None,
         "focus_queue": TaskSerializer(focus_queue[:8], many=True, context=ctx).data,
         "returned": TaskSerializer(returned, many=True, context=ctx).data,
@@ -145,6 +227,12 @@ def dashboard(request):
         "my_projects": ProjectSerializer(my_projects, many=True, context=ctx).data,
         "managed_projects": ProjectSerializer(managed_page, many=True, context=ctx).data,
         "review_queue": TaskSerializer(review_qs, many=True, context=ctx).data,
+        "team": {
+            "projects": managed_total,
+            "developers": len(team_rows),
+            "pending_reviews": review_total,
+            "people": team_rows,
+        },
         "join_queue": JoinRequestSerializer(join_qs, many=True, context=ctx).data,
         "feed": ActivitySerializer(feed, many=True, context=ctx).data,
     })

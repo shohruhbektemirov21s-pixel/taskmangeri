@@ -112,7 +112,28 @@ def resolve_workspace(user):
     return ws
 
 
-def _replace_document(current, upload, actor, content_type, note):
+def _check_doc_date(project, value):
+    """Hujjat sanasi loyiha oralig'idan chiqib ketmasin.
+
+    Loyiha boshlanishidan oldingi yoki muddatidan keyingi sana deyarli har
+    doim xato yozuv: odam yilni chalkashtirgan yoki bugungi sanani qo'yib
+    yuborgan. Bunday hujjat keyin taqvimda ham, tartibda ham noto'g'ri
+    joyda turadi.
+
+    Loyihada chegara qo'yilmagan bo'lsa (`start_date` yoki `due_date` bo'sh),
+    o'sha tomon tekshirilmaydi - yo'q chegarani talab qilib bo'lmaydi.
+    """
+    if value is None:
+        return
+    if project.start_date and value < project.start_date:
+        raise ValidationError({"doc_date": "Hujjat sanasi loyiha boshlanishidan ({}) oldin bo'lmasin.".format(
+            project.start_date.strftime("%d.%m.%Y"))})
+    if project.due_date and value > project.due_date:
+        raise ValidationError({"doc_date": "Hujjat sanasi loyiha muddatidan ({}) keyin bo'lmasin.".format(
+            project.due_date.strftime("%d.%m.%Y"))})
+
+
+def _replace_document(current, upload, actor, content_type, note, doc_date=None):
     """Hujjatning joriy nusxasini tarixga kochirib, ornini yangisiga beradi.
 
     Fayl BAYTLARI kochirilmaydi: yangi `ProjectFileVersion` qatoriga eskisining
@@ -127,6 +148,7 @@ def _replace_document(current, upload, actor, content_type, note):
         size=current.size,
         content_type=current.content_type,
         description=current.description,
+        doc_date=current.doc_date,
         uploaded_by=current.uploaded_by,
         created_at=current.created_at,
         replaced_by=actor,
@@ -137,9 +159,13 @@ def _replace_document(current, upload, actor, content_type, note):
     current.content_type = content_type
     if note:
         current.description = note
+    # Sana ko'rsatilmasa eskisi qoladi - izoh bilan bir xil qoida. Aks holda
+    # faylni tez almashtirgan odam hujjat sanasini bilmasdan yo'qotib qo'yardi.
+    if doc_date:
+        current.doc_date = doc_date
     current.uploaded_by = actor
     current.save(update_fields=["file", "version", "size", "content_type",
-                                "description", "uploaded_by", "updated_at"])
+                                "description", "doc_date", "uploaded_by", "updated_at"])
     return current
 
 
@@ -285,6 +311,46 @@ class ProjectViewSet(viewsets.ModelViewSet):
         log(actor=self.request.user, verb="project.updated", project=project, target=project,
             summary="Loyiha sozlamalari yangilandi")
 
+    def destroy(self, request, *args, **kwargs):
+        """Tugallanmagan ish bo'lsa o'chirishni TO'SADI - avval tasdiq kerak.
+
+        Birinchi so'rov 409 bilan qaytadi va ichida sanoq keladi: nechta ish
+        jarayonda, nechtasi tekshiruvda. Ekranda aynan shu raqamlar qizil
+        yozuv bo'lib chiqadi. Odam ko'rib turib rozi bo'lsa, ikkinchi so'rov
+        `?confirm=1` bilan keladi va loyiha o'chadi.
+
+        Tekshiruv SERVERDA: brauzerdagi oyna kod bilan ham, boshqa mijoz
+        bilan ham chetlab o'tilishi mumkin. Ilgari loyiha jarayondagi ishlari
+        bilan birga bir bosishda yo'q bo'lardi.
+        """
+        project = self.get_object()
+        confirmed = str(request.query_params.get("confirm", "")).lower() in ("1", "true", "yes")
+        if not confirmed:
+            live = (Task.objects.filter(project=project)
+                    .exclude(status__in=[TaskStatus.DONE, TaskStatus.CANCELLED]))
+            counts = {row["status"]: row["n"] for row in
+                      live.values("status").annotate(n=Count("id"))}
+            total = sum(counts.values())
+            if total:
+                # Ruxsatni ham shu yerda tekshiramiz: begona odamga loyihada
+                # nechta ish borligini aytib qo'ymaylik.
+                access = ProjectAccess(request.user, project)
+                if not (access.is_admin or access.is_manager):
+                    raise PermissionDenied(
+                        "Loyihani faqat loyiha menejeri yoki admin ochira oladi.")
+                return Response({
+                    "detail": ("Loyihada {} ta tugallanmagan ish bor. Ochirish uchun "
+                               "tasdiqlash kerak.".format(total)),
+                    "needs_confirm": True,
+                    "open_tasks": total,
+                    "in_progress": counts.get(TaskStatus.IN_PROGRESS, 0),
+                    "in_review": counts.get(TaskStatus.IN_REVIEW, 0),
+                    "todo": counts.get(TaskStatus.TODO, 0),
+                    "blocked": counts.get(TaskStatus.BLOCKED, 0),
+                    "changes_requested": counts.get(TaskStatus.CHANGES_REQUESTED, 0),
+                }, status=409)
+        return super().destroy(request, *args, **kwargs)
+
     def perform_destroy(self, instance):
         """Loyihani o'chirish - loyiha menejeri yoki tizim admini.
 
@@ -294,10 +360,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
         O'chirish YUMSHOQ: yozuv bazada `deleted_at` bilan qoladi, ro'yxatlarda
         va qidiruvda ko'rinmaydi. Vazifa, fayl, izoh va tarix o'chmaydi -
         kerak bo'lsa admin panelidan qaytarish mumkin.
+
+        Tugallanmagan ish bo'lsa o'chirish `destroy` da to'siladi - avval
+        tasdiq so'raladi (`?confirm=1`).
         """
         access = ProjectAccess(self.request.user, instance)
         if not (access.is_admin or access.is_manager):
             raise PermissionDenied("Loyihani faqat loyiha menejeri yoki admin ochira oladi.")
+
         log(actor=self.request.user, verb="project.deleted", workspace=instance.workspace,
             summary="Loyiha ochirildi: " + instance.name,
             meta={"project": instance.pk, "key": instance.key})
@@ -496,20 +566,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ taqvim
     @action(detail=False, methods=["get"], url_path="calendar")
     def calendar(self, request):
-        """Oylik taqvim: qaysi kunda qaysi loyihalar ishda turgan.
+        """Oylik taqvim: shu oyning qaysi kunida NIMANING MUDDATI tugaydi.
 
-        `?month=YYYY-MM` (bo'sh bo'lsa - joriy oy). Loyiha bitta sanada emas,
-        BUTUN DAVRI bo'yicha ko'rinadi: boshlanishdan muddatgacha. Shuning
-        uchun har bir kun uchun "o'sha kuni nechta loyiha ishda edi" degan
-        sanoq ham qaytadi.
+        `?month=YYYY-MM` (bo'sh bo'lsa - joriy oy).
 
-        Sana qo'yilmagan hollar:
-          - boshlanish yo'q  -> loyiha ochilgan kun olinadi (u har doim bor);
-          - muddat yo'q      -> loyiha davom etayapti, oy oxirigacha cho'ziladi
-                                (`open_ended` bilan belgilanadi).
+        Taqvimda faqat TUGASH sanalari turadi - loyiha ham, vazifa ham o'z
+        muddati kuniga qo'yiladi. Ilgari har biri boshlanishdan muddatgacha
+        tasma bo'lib cho'zilardi: oy tasmalar bilan to'lib ketar, "shu kuni
+        nima topshirilishi kerak" degan savolga esa javob topib bo'lmasdi.
+
+        Muddati qo'yilmagan loyiha va vazifa taqvimda umuman turmaydi -
+        uni qo'yadigan kun yo'q.
         """
         from calendar import monthrange
-        from datetime import date, timedelta
+        from datetime import date, datetime, time as dtime, timedelta
 
         from apps.accounts.serializers import UserBriefSerializer
 
@@ -524,38 +594,30 @@ class ProjectViewSet(viewsets.ModelViewSet):
         last = date(first.year, first.month, monthrange(first.year, first.month)[1])
 
         user = request.user
+        # Ko'rish doirasi tarix sahifasidagi bilan bir xil: admin hammasini,
+        # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi. Bu ro'yxat
+        # VAZIFALAR uchun ham kerak: loyihaning o'zi shu oyda tugamasa ham,
+        # ichidagi ishning muddati shu oyga tushishi mumkin.
+        seen = Project.objects.filter(deleted_at__isnull=True)
+        if not user.is_platform_admin:
+            seen = seen.filter(visible_projects_q(user))
+        visible_ids = list(seen.values_list("pk", flat=True))
+
         # `progress()` uchun sanoqlar oldindan olinadi - aks holda taqvimdagi
-        # har loyiha ikkita qo'shimcha so'rov yuborardi.
-        qs = (Project.objects.filter(deleted_at__isnull=True)
+        # har loyiha ikkita qo'shimcha so'rov yuborardi. Faqat MUDDATI shu
+        # oyga tushadiganlar olinadi: taqvim - tugash sanalari taqvimi.
+        qs = (Project.objects.filter(pk__in=visible_ids,
+                                     due_date__gte=first, due_date__lte=last)
               .select_related("manager")
               .annotate(**project_counters(user)))
-        # Ko'rish doirasi tarix sahifasidagi bilan bir xil: admin hammasini,
-        # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi.
-        if not user.is_platform_admin:
-            qs = qs.filter(visible_projects_q(user))
-        # Oyga tegmaydiganlarni bazadayoq tashlab yuboramiz. Sanasi bo'sh
-        # bo'lganlar bu yerda saqlanadi - ular pastda aniqlab olinadi.
-        qs = qs.filter(Q(due_date__isnull=True) | Q(due_date__gte=first))
-        qs = qs.filter(Q(start_date__isnull=True) | Q(start_date__lte=last))
 
         rows, counts = [], {}
         for project in qs:
             begin = project.start_date or timezone.localtime(project.created_at).date()
             finish = project.due_date
-            if begin > last or (finish is not None and finish < first):
-                continue
 
-            visible_from = max(begin, first)
-            visible_to = min(finish or last, last)
-            if visible_to < visible_from:
-                continue
-
-            # Sanoq har kunda emas, faqat loyiha BOSHLANGAN kunda. Uzoq
-            # loyihada har bir katakda "1" turib qolsa, u ma'no bermay
-            # shunchaki shovqin bo'lardi - tasmaning o'zi davomiylikni
-            # ko'rsatib turibdi.
-            if begin >= first:
-                counts[begin] = counts.get(begin, 0) + 1
+            # Sanoq - o'sha kuni nechta loyiha muddati tugashi.
+            counts[finish] = counts.get(finish, 0) + 1
 
             rows.append({
                 "id": project.pk,
@@ -567,47 +629,46 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "is_public": project.is_public,
                 "manager_name": project.manager.full_name if project.manager else "",
                 "progress": project.progress(),
-                # Haqiqiy sanalar - tasmani chizish uchun oy chegarasi ham.
+                # Loyiha taqvimda BITTA kunda turadi - o'z muddati kunida.
+                # `start_date` faqat ma'lumot uchun qoladi (kun kartasida
+                # "qachondan beri" ko'rinib tursin).
                 "start_date": begin,
                 "due_date": finish,
-                "from": visible_from,
-                "to": visible_to,
-                "starts_here": begin >= first,
-                "ends_here": finish is not None and finish <= last,
-                # Muddat qo'yilmagan - tasma ochiq qoladi, "tugadi" demaymiz.
-                "open_ended": finish is None,
-                "overdue": bool(finish and finish < today
+                "from": finish,
+                "to": finish,
+                "starts_here": True,
+                "ends_here": True,
+                "open_ended": False,
+                "overdue": bool(finish < today
                                 and project.status not in ("DONE", "ARCHIVED")),
                 # Boshlanish sanasi kiritilmagan bo'lsa buni yashirmaymiz.
                 "start_assumed": project.start_date is None,
             })
 
-        rows.sort(key=lambda r: (r["from"], r["due_date"] or last, r["name"]))
+        rows.sort(key=lambda r: (r["from"], r["name"]))
 
         # ---- Vazifalar: kimga qanday ish berilgani ham shu taqvimda ko'rinsin.
-        # Loyihalardan farqi: muddat qo'yilmagan vazifa taqvimda umuman
-        # turmaydi - qo'yadigan joyi yo'q va oy oxirigacha cho'zish yolg'on
-        # bo'lardi. Bekor qilingan ish ham chiqmaydi.
+        # Bu yerda ham faqat MUDDAT: vazifa o'z tugash sanasi kunida turadi.
+        # Muddati yo'q vazifa ham, bekor qilingani ham chiqmaydi.
         def as_date(value):
             if value is None:
                 return None
             return timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
 
-        visible_ids = [r["id"] for r in rows] or [p.pk for p in qs]
+        # Muddat - sana+soat. Oy chegarasi mahalliy vaqtdagi aniq lahzalarga
+        # aylantiriladi: `__date` bilan solishtirilsa Db2 mintaqani hisobga
+        # olmaydi va tungi ishlar qo'shni kunga tushib qolardi.
+        span_start = timezone.make_aware(datetime.combine(first, dtime.min))
+        span_end = timezone.make_aware(datetime.combine(last, dtime.min)) + timedelta(days=1)
         task_rows = []
         tasks = (Task.objects
-                 .filter(project_id__in=visible_ids)
+                 .filter(project_id__in=visible_ids,
+                         due_date__gte=span_start, due_date__lt=span_end)
                  .exclude(status=TaskStatus.CANCELLED)
-                 .filter(Q(start_date__isnull=False) | Q(due_date__isnull=False))
                  .select_related("project")
                  .prefetch_related("assignments__user"))
         for task in tasks:
-            begin = as_date(task.start_date) or as_date(task.due_date)
-            finish = as_date(task.due_date) or as_date(task.start_date)
-            if begin is None or begin > last or finish < first:
-                continue
-            if finish < begin:
-                begin, finish = finish, begin
+            finish = as_date(task.due_date)
 
             people = [a.user for a in task.assignments.all() if a.is_active and a.user]
             task_rows.append({
@@ -622,18 +683,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "assignees": UserBriefSerializer(people, many=True,
                                                  context={"request": request}).data,
                 "start_date": as_date(task.start_date),
-                "due_date": as_date(task.due_date),
-                "from": max(begin, first),
-                "to": min(finish, last),
-                "starts_here": begin >= first,
-                "ends_here": finish <= last,
+                "due_date": finish,
+                "from": finish,
+                "to": finish,
+                "starts_here": True,
+                "ends_here": True,
                 "done": task.status == TaskStatus.DONE,
-                "overdue": bool(task.due_date and as_date(task.due_date) < today
-                                and task.status != TaskStatus.DONE),
+                "overdue": bool(finish < today and task.status != TaskStatus.DONE),
             })
-        task_rows.sort(key=lambda r: (r["from"], r["to"], r["code"]))
+        task_rows.sort(key=lambda r: (r["from"], r["code"]))
 
-        # `count` - o'sha kuni nechta loyiha BOSHLANGANI.
+        # `count` - o'sha kuni nechta loyiha MUDDATI tugashi.
         days = [{"date": first + timedelta(days=i),
                  "count": counts.get(first + timedelta(days=i), 0)}
                 for i in range((last - first).days + 1)]
@@ -676,12 +736,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
             raise ValidationError({"file": "Fayl tanlanmagan."})
         check_uploads(uploads)
 
-        note = request.data.get("description", "")
+        # NOM VA SANA MAJBURIY. Nomsiz hujjat ro'yxatda "shartnoma_final_2.pdf"
+        # bo'lib turadi va uni faqat yuklagan odam taniydi; sanasiz esa qaysi
+        # variant yangi ekanini ayta olmaydi. Ikkovi ham serverda talab
+        # qilinadi - brauzerdagi tekshiruv chetlab o'tilishi mumkin.
+        note = (request.data.get("description") or "").strip()
+        if not note:
+            raise ValidationError({"description": "Hujjat nomini (izohini) yozing."})
+        # Hujjat sanasi (`doc_date`) fayllar bilan BIR TARTIBDA keladi: har
+        # fayl uchun bittadan. Bitta sana yuborilsa - u butun to'plamga
+        # tegishli. Umuman kelmasa - sana ko'rsatilmagan.
+        dates = (request.data.getlist("doc_date")
+                 if hasattr(request.data, "getlist") else [])
         created, updated = [], []
-        for f in uploads:
-            ser = ProjectFileSerializer(data={"file": f, "description": note},
-                                        context={"request": request})
+        for i, f in enumerate(uploads):
+            raw_date = dates[0] if len(dates) == 1 else (dates[i] if i < len(dates) else "")
+            if not raw_date:
+                raise ValidationError({"doc_date": "Hujjat sanasini korsating."})
+            ser = ProjectFileSerializer(
+                data={"file": f, "description": note, "doc_date": raw_date or None},
+                context={"request": request})
             ser.is_valid(raise_exception=True)
+            _check_doc_date(project, ser.validated_data.get("doc_date"))
             ctype = (getattr(f, "content_type", "") or "")[:120]
             name = (getattr(f, "name", "") or "").rsplit("/", 1)[-1][:255]
 
@@ -693,7 +769,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
                                         content_type=ctype))
                 continue
 
-            updated.append(_replace_document(current, f, request.user, ctype, note))
+            updated.append(_replace_document(current, f, request.user, ctype, note,
+                                             ser.validated_data.get("doc_date")))
 
         touched = created + updated
         if created:
@@ -711,20 +788,49 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(ProjectFileSerializer(touched, many=True,
                                               context={"request": request}).data, status=201)
 
-    @action(detail=True, methods=["delete"], url_path="files/(?P<file_id>[^/.]+)")
-    def delete_file(self, request, pk=None, file_id=None):
-        """Hujjatni faqat loyihani boshqaruvchi ochira oladi.
+    @action(detail=True, methods=["patch", "delete"], url_path="files/(?P<file_id>[^/.]+)")
+    def file_detail(self, request, pk=None, file_id=None):
+        """Hujjatni tahrirlash (PATCH) yoki ochirish (DELETE).
 
-        Yuklagan odamning ozi ham ochira olmaydi: hujjat - texnik topshiriq,
-        shartnoma, dizayn - butun jamoaning ishi unga tayanadi. Bitta odam
-        ketayotganda yoki xafa bolganda uni olib ketmasin.
+        KIM TEGA OLADI: hujjatni YUKLAGAN odam ozinikiga, loyiha menejeri,
+        loyiha admini va tizim admini esa hammasiga. Ilgari yuklagan odam
+        ozi qoygan faylga ham tega olmasdi - xato nom yoki sana yozib
+        qoysa, menejerni bezovta qilishga togri kelardi.
+
+        PATCH da faqat NOM (izoh) va HUJJAT SANASI ozgaradi. Faylning ozini
+        almashtirish alohida yol bilan: ayni nomli faylni qayta yuklash yangi
+        versiya ochadi va eskisi tarixda qoladi.
         """
         project = object_or_404(Project, pk=pk)
         item = object_or_404(ProjectFile, pk=file_id, project=project)
         access = ProjectAccess(request.user, project)
-        if not access.can_manage:
+        mine = item.uploaded_by_id == request.user.pk
+        if not (access.can_manage or mine):
             raise PermissionDenied(
-                "Hujjatni faqat loyiha menejeri, loyiha admini yoki tizim admini ochira oladi.")
+                "Hujjatga faqat uni yuklagan odam yoki loyiha menejeri tega oladi.")
+
+        if request.method == "PATCH":
+            ser = ProjectFileSerializer(item, data=request.data, partial=True,
+                                        context={"request": request})
+            ser.is_valid(raise_exception=True)
+            note = (ser.validated_data.get("description", item.description) or "").strip()
+            doc_date = ser.validated_data.get("doc_date", item.doc_date)
+            if not note:
+                raise ValidationError({"description": "Hujjat nomini (izohini) yozing."})
+            if not doc_date:
+                raise ValidationError({"doc_date": "Hujjat sanasini korsating."})
+            _check_doc_date(project, doc_date)
+
+            before = (item.description, item.doc_date)
+            item.description = note
+            item.doc_date = doc_date
+            item.save(update_fields=["description", "doc_date", "updated_at"])
+            if before != (note, doc_date):
+                log(actor=request.user, verb="project.file", project=project, target=project,
+                    summary="Hujjat malumoti ozgardi: " + (item.original_name or ""),
+                    detail="{} · {}".format(note, doc_date))
+                live_project(project, "file", request.user, count=1)
+            return Response(ProjectFileSerializer(item, context={"request": request}).data)
 
         name = item.original_name
         # Yumshoq o'chirish: hujjat ham, uning eski nusxalari ham diskda va
