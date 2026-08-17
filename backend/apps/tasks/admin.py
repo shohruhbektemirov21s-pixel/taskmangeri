@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.core.softdelete import SoftDeleteAdminMixin
+
 from .models import Attachment, Comment, Label, Review, Task, TaskAssignment, WorkLog
 
 
@@ -10,9 +12,10 @@ class AssignmentInline(admin.TabularInline):
 
 
 @admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
-    list_display = ("code_display", "title", "project", "status", "priority", "due_date", "updated_at")
-    list_filter = ("status", "priority", "task_type", "project")
+class TaskAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("code_display", "title", "project", "status", "priority", "due_date",
+                    "updated_at", "ochirilgan")
+    list_filter = ("status", "priority", "task_type", "project", "deleted_at")
     search_fields = ("title", "description")
     inlines = [AssignmentInline]
 
@@ -33,8 +36,10 @@ class WorkLogAdmin(admin.ModelAdmin):
 
 
 @admin.register(Attachment)
-class AttachmentAdmin(admin.ModelAdmin):
-    list_display = ("original_name", "task", "size_display", "uploaded_by", "created_at")
+class AttachmentAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("original_name", "task", "size_display", "uploaded_by", "created_at",
+                    "ochirilgan")
+    list_filter = ("deleted_at",)
     search_fields = ("original_name",)
 
 

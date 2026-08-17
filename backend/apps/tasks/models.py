@@ -3,6 +3,8 @@ from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.core.softdelete import SoftDeleteModel, SoftDeleteQuerySet
+
 
 class TaskStatus(models.TextChoices):
     BACKLOG = "BACKLOG", "Backlog"
@@ -74,7 +76,7 @@ class Label(models.Model):
         return self.name
 
 
-class TaskQuerySet(models.QuerySet):
+class TaskQuerySet(SoftDeleteQuerySet):
     """Vazifalarni ko'rsatishga tayyorlash - bitta joyda.
 
     `TaskSerializer` har vazifa uchun loyihasini, ijrochilarini, sarflangan
@@ -94,7 +96,18 @@ class TaskQuerySet(models.QuerySet):
                 ))
 
 
-class Task(models.Model):
+class AliveTaskManager(models.Manager.from_queryset(TaskQuerySet)):
+    """Standart menejer: o'chirilgan vazifalarni ko'rsatmaydi.
+
+    `AliveManager` dan meros olib bo'lmaydi - unga `TaskQuerySet` dagi
+    `for_display()` kerak, shuning uchun shu yerda alohida yig'iladi.
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class Task(SoftDeleteModel):
     project = models.ForeignKey("projects.Project", on_delete=models.CASCADE, related_name="tasks")
     number = models.PositiveIntegerField("Raqam", default=1, editable=False)
 
@@ -144,7 +157,9 @@ class Task(models.Model):
     submitted_at = models.DateTimeField("Tekshiruvga yuborilgan", null=True, blank=True)
     completed_at = models.DateTimeField("Yakunlangan", null=True, blank=True)
 
-    objects = TaskQuerySet.as_manager()
+    # Tartib muhim: birinchisi standart menejer.
+    objects = AliveTaskManager()
+    all_objects = models.Manager.from_queryset(TaskQuerySet)()
 
     class Meta:
         verbose_name = "Vazifa"
@@ -329,7 +344,7 @@ def attachment_path(instance, filename):
     return "tasks/{}/{}".format(instance.task_id, filename)
 
 
-class Attachment(models.Model):
+class Attachment(SoftDeleteModel):
     """Vazifaga biriktirilgan fayl: skrinshot, hujjat, log, arxiv."""
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="attachments")
@@ -402,7 +417,7 @@ class WorkLog(models.Model):
         return "{} - {} soat".format(self.user, self.hours)
 
 
-class Submission(models.Model):
+class Submission(SoftDeleteModel):
     """Ish topshirig'i: dasturchi vazifani yakunlab, nima qilganini yozadi.
 
     Menejer (yoki loyiha admini) tasdiqlamaguncha vazifa tekshiruvda turadi -

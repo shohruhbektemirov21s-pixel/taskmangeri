@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import (TokenObtainPairSerializer,
+                                                  TokenRefreshSerializer)
 
 from .models import GlobalRole
 from .specialties import Seniority, Specialty, specialty_catalog
@@ -163,6 +165,24 @@ class TokenSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user, context=self.context).data
         return data
+
+
+class RefreshSerializer(TokenRefreshSerializer):
+    """`djangorestframework-simplejwt` 5.5.1 dagi xato ustidan qoplama.
+
+    Kutubxona refresh tokendagi foydalanuvchini `objects.get()` bilan oladi
+    va topilmasa `DoesNotExist` ni ushlamaydi. Natijada hisobi o'chirilgan
+    odamning brauzeri token yangilashga urinsa 401 o'rniga 500 ko'rardi.
+    Token to'g'ri-yu egasi yo'q bo'lsa - bu autentifikatsiya xatosi,
+    server xatosi emas.
+    """
+
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except User.DoesNotExist:
+            raise AuthenticationFailed("Hisob topilmadi yoki o'chirilgan.",
+                                       code="no_active_account")
 
 
 class ChangePasswordSerializer(serializers.Serializer):

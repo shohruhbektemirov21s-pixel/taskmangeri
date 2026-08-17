@@ -226,10 +226,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_object(self):
         # Ro'yxatdagi kabi: yo'nalishlar va a'zolar seriyalizatorda bir necha
         # marta o'qiladi (tarkib, kamchilik, ruxsatlar) - bir marta olamiz.
+        # `annotate` ro'yxatdagi bilan bir xil bo'lishi shart: usiz
+        # seriyalizatordagi `member_count`, `open_tasks` kabi maydonlar
+        # javobdan jimgina tushib qolardi (read-only maydon atributi yo'q
+        # bo'lsa DRF uni xatosiz tashlab yuboradi) va loyiha sahifasida
+        # "50% bajarildi - ochiq - azo" kabi sonsiz satr chiqardi.
         project = object_or_404(
             Project.objects
             .select_related("workspace", "manager", "created_by")
-            .prefetch_related("specialties", "memberships__user"),
+            .prefetch_related("specialties", "memberships__user")
+            .annotate(**project_counters(self.request.user)),
             pk=self.kwargs["pk"])
         need = "view" if self.request.method in ("GET", "HEAD", "OPTIONS") else "manage"
         check_access(self.request.user, project, need)
@@ -715,11 +721,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "Hujjatni faqat loyiha menejeri, loyiha admini yoki tizim admini ochira oladi.")
 
         name = item.original_name
-        # Eski nusxalarning fayllari ham diskda qolib ketmasin.
-        for old in item.versions.all():
-            old.file.delete(save=False)
-        item.file.delete(save=False)
-        item.delete()
+        # Yumshoq o'chirish: hujjat ham, uning eski nusxalari ham diskda va
+        # bazada qoladi. Ilgari baytlar o'chirilardi va hujjatni qaytarish
+        # imkoni yo'q edi - versiyalar tarixi ham u bilan ketardi.
+        item.soft_delete(request.user)
         log(actor=request.user, verb="project.file_deleted", project=project, target=project,
             summary="Fayl ochirildi: " + name)
         live_project(project, "file_deleted", request.user)

@@ -10,6 +10,7 @@ from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
+from apps.core.queries import int_param
 from apps.projects.api import project_counters
 from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
@@ -156,7 +157,8 @@ def my_work(request):
 
     project_id = request.query_params.get("project")
     if project_id:
-        qs = qs.filter(project_id=project_id)
+        # Yaroqsiz qiymat 500 emas, 400 (sababi `int_param` da).
+        qs = qs.filter(project_id=int_param(project_id, "project"))
 
     groups = []
     for status in [TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED, TaskStatus.IN_PROGRESS,

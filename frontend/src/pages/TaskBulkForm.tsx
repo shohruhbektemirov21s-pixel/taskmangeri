@@ -4,7 +4,7 @@ import { ApiError, api } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Avatar, Card, ErrorMsg, Loading, fromDateTimeInput } from "@/components/ui";
+import { Avatar, Card, DateTimeField, ErrorMsg, fromDateTimeInput, Loading } from "@/components/ui";
 
 export default function TaskBulkForm() {
   const fid = useId();
@@ -207,8 +207,8 @@ export default function TaskBulkForm() {
                 </div>
                 <div className="field">
                   <label htmlFor={`${fid}-3`}>Umumiy muddat</label>
-                  <input id={`${fid}-3`} type="datetime-local" value={f.due_date}
-                         onChange={(e) => setF({ ...f, due_date: e.target.value })} />
+                  <DateTimeField id={`${fid}-3`} value={f.due_date}
+                                 onChange={(v) => setF({ ...f, due_date: v })} />
                 </div>
                 <div className="field">
                   <label htmlFor={`${fid}-4`}>Umumiy tayyorlik mezoni</label>

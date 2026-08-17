@@ -8,7 +8,7 @@ import type { Pick as TeamPick } from "@/components/TeamPicker";
 import type { Access, Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Card, ErrorMsg, Loading, confirmDelete } from "@/components/ui";
+import { Card, confirmDelete, DateField, ErrorMsg, Loading } from "@/components/ui";
 
 export default function ProjectForm() {
   const fid = useId();
@@ -166,17 +166,17 @@ export default function ProjectForm() {
               <div className="row">
                 <div className="field" style={{ flex: 1 }}>
                   <label htmlFor={`${fid}-2`}>Boshlanish sanasi</label>
-                  <input id={`${fid}-2`} type="date" value={f.start_date}
-                         max={f.due_date || undefined}
-                         onChange={(e) => set("start_date", e.target.value)} />
+                  <DateField id={`${fid}-2`} value={f.start_date}
+                             max={f.due_date || undefined}
+                             onChange={(v) => set("start_date", v)} />
                   {errors.start_date && <div className="err">{errors.start_date}</div>}
                 </div>
                 <div className="field" style={{ flex: 1 }}>
                   <label htmlFor={`${fid}-4`}>Tugash sanasi (muddat)</label>
                   {/* min: tugash boshlanishdan oldin bo'lib qolmasin */}
-                  <input id={`${fid}-4`} type="date" value={f.due_date}
-                         min={f.start_date || undefined}
-                         onChange={(e) => set("due_date", e.target.value)} />
+                  <DateField id={`${fid}-4`} value={f.due_date}
+                             min={f.start_date || undefined}
+                             onChange={(v) => set("due_date", v)} />
                   {errors.due_date && <div className="err">{errors.due_date}</div>}
                 </div>
               </div>

@@ -130,7 +130,7 @@ export default function Board({ project }: { project: Project }) {
                 />
               ))}
               {!col.tasks.length && (
-                <p className="muted center" style={{ fontSize: 12, padding: "16px 0" }}>bosh</p>
+                <p className="muted center" style={{ fontSize: 12, padding: "16px 0" }}>bo'sh</p>
               )}
             </div>
           </div>

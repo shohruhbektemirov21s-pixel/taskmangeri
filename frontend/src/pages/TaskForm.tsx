@@ -6,7 +6,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { IconSearch } from "@/components/icons";
-import { Avatar, Card, ErrorMsg, Loading, fromDateTimeInput, toDateTimeInput }
+import { Avatar, Card, DateTimeField, ErrorMsg, Loading, fromDateTimeInput, toDateTimeInput }
   from "@/components/ui";
 
 interface Suggestion {
@@ -296,16 +296,16 @@ export default function TaskForm() {
                 <div className="row wrap">
                   <div className="field" style={{ flex: 1, minWidth: 190 }}>
                     <label htmlFor={`${fid}-7`}>Boshlanish</label>
-                    <input id={`${fid}-7`} type="datetime-local" value={f.start_date}
-                           max={f.due_date || undefined}
-                           onChange={(e) => set("start_date", e.target.value)} />
+                    <DateTimeField id={`${fid}-7`} value={f.start_date}
+                                   max={f.due_date || undefined}
+                                   onChange={(v) => set("start_date", v)} />
                   </div>
                   <div className="field" style={{ flex: 1, minWidth: 190 }}>
                     <label htmlFor={`${fid}-9`}>Muddat</label>
                     {/* min: muddat boshlanishdan oldin bo'lib qolmasin */}
-                    <input id={`${fid}-9`} type="datetime-local" value={f.due_date}
-                           min={f.start_date || undefined}
-                           onChange={(e) => set("due_date", e.target.value)} />
+                    <DateTimeField id={`${fid}-9`} value={f.due_date}
+                                   min={f.start_date || undefined}
+                                   onChange={(v) => set("due_date", v)} />
                     {errors.due_date && <div className="err">{errors.due_date}</div>}
                   </div>
                 </div>

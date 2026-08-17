@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { Activity, Project, Task } from "@/api/types";
 import Timeline from "@/components/Timeline";
-import { Avatar, Card, Empty, Priority, SpecialtyTag, Stat, StatusBadge } from "@/components/ui";
+import { Avatar, Card, Empty, Priority, SpecialtyTag, Stat, StatusBadge, fmtDate } from "@/components/ui";
 
 export default function Overview({ project, onChange }: { project: Project; onChange: () => void }) {
   const [feed, setFeed] = useState<Activity[]>([]);
@@ -104,7 +104,7 @@ export default function Overview({ project, onChange }: { project: Project; onCh
         <Card title="Maʼlumotlar">
           <ul className="list-plain" style={{ fontSize: 13 }}>
             <li><span className="muted">Menejer:</span> {project.manager?.full_name || "—"}</li>
-            <li><span className="muted">Muddat:</span> {project.due_date || "—"}</li>
+            <li><span className="muted">Muddat:</span> {fmtDate(project.due_date)}</li>
             {project.access.can_manage && (
               <li><span className="muted">Qoshilish kodi:</span> <code>{project.join_code}</code></li>
             )}

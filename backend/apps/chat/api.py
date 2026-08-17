@@ -128,7 +128,9 @@ class ChatMessageViewSet(mixins.ListModelMixin,
         is_admin = getattr(self.request.user, "is_platform_admin", False)
         if instance.author_id != self.request.user.pk and not is_admin:
             raise PermissionDenied("Faqat o'z xabaringizni o'chira olasiz.")
-        instance.delete()
+        # Xabar suhbatdan yo'qoladi, lekin bazada qoladi - kerak bo'lsa
+        # admin panelidan ko'rish va qaytarish mumkin.
+        instance.soft_delete(self.request.user)
 
     # ------------------------------------------------------------ shaxsiy
     @action(detail=False, methods=["get"])

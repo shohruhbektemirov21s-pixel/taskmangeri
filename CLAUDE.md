@@ -45,7 +45,7 @@ docker compose exec -T frontend npm run <script>
 # Backend
 docker compose exec -T backend python manage.py makemigrations
 docker compose exec -T backend python manage.py migrate
-docker compose exec -T backend python manage.py test          # Django test runner (pytest YO'Q)
+docker compose exec -T backend python manage.py test --noinput   # Django test runner (pytest YO'Q; --noinput shart - aks holda ibm_db_django interaktiv savol berib qotib qoladi)
 
 # Bazani o'qish — SQL emas, ORM orqali
 docker exec teamflow_backend python manage.py shell -c "
@@ -62,7 +62,7 @@ docker compose exec -T frontend npm run build                  # tsc -b && vite 
 
 Backend `./backend/.env` faylini `env_file` orqali oladi. U yerda `DB2_*`, `REDIS_URL`, `SECRET_KEY`, `ADMIN_*`, `CORS_ALLOWED_ORIGINS` bor.
 
-> Ildizdagi `.env` da `POSTGRES_DB/USER/PASSWORD` qolib ketgan — bu **eski qoldiq**, loyiha PostgreSQL ishlatmaydi. Ularga tayanma va yangi kodda ishlatma.
+> Ildizdagi `.env` Db2 konteyneri uchun `DB2_DB` va `DB2_PASSWORD` ni beradi (docker-compose.yml o'qiydi) — qiymatlari `backend/.env` dagi bilan mos bo'lishi shart.
 
 ## Backend tuzilishi va konvensiyalar
 

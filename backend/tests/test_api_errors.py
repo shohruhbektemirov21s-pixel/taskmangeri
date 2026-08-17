@@ -6,7 +6,7 @@ Yaroqsiz identifikator 500 emas, 404 berishi kerak edi: `/api/tasks/abc/`
 
 from apps.tasks.models import Task
 
-from .base import ApiTestCase
+from .base import ApiTestCase, make_user
 
 
 class BadIdentifierTest(ApiTestCase):
@@ -122,3 +122,66 @@ class TaskCodeTest(ApiTestCase):
 
         self.assertEqual(len(set(codes)), 3)
         self.assertEqual([t.number for t in Task.objects.order_by("number")], [1, 2, 3])
+
+
+class QueryParamTest(ApiTestCase):
+    """Yaroqsiz query param 500 emas, 400 beradi.
+
+    `object_or_404` yo'l parametrlarini qamragan edi, filtrga esa qiymat
+    tekshirilmasdan tushardi: `/api/tasks/?project=abc` ValueError bilan
+    yiqilardi.
+    """
+
+    URLS = ["/api/tasks/?project=abc", "/api/tasks/?priority=xyz",
+            "/api/tasks/?assignee=abc", "/api/my-work/?project=abc"]
+
+    def test_yaroqsiz_param_400_beradi(self):
+        for url in self.URLS:
+            with self.subTest(url=url):
+                self.assertEqual(self.api.get(url).status_code, 400, url)
+
+    def test_togri_param_ishlayveradi(self):
+        url = "/api/tasks/?project=%d&assignee=me&priority=2" % self.project.id
+        self.assertEqual(self.api.get(url).status_code, 200)
+
+
+class RefreshTokenTest(ApiTestCase):
+    """Hisobi o'chirilgan odamning refresh tokeni 500 emas, 401 beradi.
+
+    `simplejwt` 5.5.1 foydalanuvchini `objects.get()` bilan olib,
+    `DoesNotExist` ni ushlamaydi - `RefreshSerializer` shuni yopadi.
+    """
+
+    def test_ochirilgan_hisob_401(self):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        ghost = make_user("vaqtincha@sinov.uz")
+        token = str(RefreshToken.for_user(ghost))
+        ghost.delete()
+        r = self.anon.post("/api/auth/refresh/", {"refresh": token}, format="json")
+        self.assertEqual(r.status_code, 401)
+
+    def test_tirik_hisob_yangilay_oladi(self):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        token = str(RefreshToken.for_user(self.dev))
+        r = self.anon.post("/api/auth/refresh/", {"refresh": token}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("access", r.json())
+
+
+class ProjectDetailCountersTest(ApiTestCase):
+    """Loyiha sahifasi (detail) ham ro'yxatdagi kabi sanoqlarni beradi.
+
+    Ilgari `get_object` annotatsiyasiz edi va `member_count`, `open_tasks`
+    javobdan jimgina tushib qolardi - sahifada "50% bajarildi - ochiq - azo"
+    kabi sonsiz satr chiqardi.
+    """
+
+    def test_detail_sanoqlar_bilan_keladi(self):
+        r = self.api.get("/api/projects/%d/" % self.project.id)
+        self.assertEqual(r.status_code, 200)
+        d = r.json()
+        for field in ("member_count", "open_tasks", "done_tasks", "my_tasks"):
+            self.assertIn(field, d, field)
+        self.assertEqual(d["member_count"], 2)  # menejer + dasturchi

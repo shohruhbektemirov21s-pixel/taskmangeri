@@ -45,7 +45,10 @@ export default function Login() {
           <form onSubmit={submit}>
             <div className="field">
               <label htmlFor={`${fid}-0`}>Email</label>
-              <input id={`${fid}-0`} type="email" value={email} autoFocus required
+              {/* `type="email"` emas: brauzer "@" yo'q qiymatni o'zi to'sib qo'yadi va
+                  xizmat hisoblari (masalan `admin`) bilan kirib bo'lmasdi. Tekshiruv
+                  serverda qoladi - `EmailBackend` baribir emailni topa olmasa rad etadi. */}
+              <input id={`${fid}-0`} type="text" inputMode="email" value={email} autoFocus required
                      onChange={(e) => setEmail(e.target.value)} placeholder="siz@example.com" />
             </div>
             <div className="field">

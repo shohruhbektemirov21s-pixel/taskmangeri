@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -230,6 +231,15 @@ CACHES = {
         "LOCATION": REDIS_URL,
     }
 }
+
+# Testlarda kesh xotirada bo'ladi. Aks holda testlar dev server bilan BITTA
+# Redis ni bo'lishadi va bir-biriga aralashadi: kunlik eslatma qulfi
+# (`deadline-reminders:<sana>`) qaysi tomon birinchi tegsa o'shaniki bo'lib,
+# testlardagi so'rov sanog'i o'zgarib turardi (test_panel ba'zan yiqilardi),
+# dev server esa o'sha kungi eslatmalarini yubormay qolardi. Throttle
+# hisoblagichlari ham shu keshda - ular ham izolyatsiyada bo'lgani ma'qul.
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 LOGGING = {
     "version": 1,

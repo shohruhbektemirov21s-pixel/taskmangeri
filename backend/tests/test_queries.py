@@ -47,6 +47,11 @@ class QueryCountTest(ApiTestCase):
         """
         with self.settings(DEBUG=True):
             grow(3)
+            # Isitish: kunlik eslatma "tick" i kabi kuniga bir marta
+            # bajariladigan ishlar birinchi o'lchovga tushib qolmasin -
+            # ular so'rov sonini bir martagina o'zgartirib, testni
+            # ma'lumot hajmiga aloqasiz sabab bilan yiqitardi.
+            self.api.get(url)
             base = self.count_for(url)
             grow(9)
             after = self.count_for(url)

@@ -6,6 +6,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.core.softdelete import SoftDeleteModel
+
 
 # Loyiha rangi foydalanuvchidan sorlmaydi - shu palitradan avtomatik tanlanadi.
 PROJECT_COLORS = [
@@ -318,7 +320,13 @@ class Project(models.Model):
         # Qulf loyihaning o'ziga qo'yiladi: vazifalar jadvalini emas, bitta
         # qatorni band qilamiz - boshqa loyihalar erkin ishlayveradi.
         type(self).objects.select_for_update().filter(pk=self.pk).exists()
-        last = self.tasks.order_by("-number").values_list("number", flat=True).first()
+        # `self.tasks` standart menejerdan yasaladi va o'chirilganlarni
+        # yashiradi - u bilan sanasak o'chirilgan vazifaning raqami qayta
+        # ishlatilib, `unique_together (project, number)` buzilardi.
+        from apps.tasks.models import Task
+
+        last = (Task.all_objects.filter(project=self)
+                .order_by("-number").values_list("number", flat=True).first())
         return (last or 0) + 1
 
 
@@ -458,7 +466,7 @@ def project_file_version_path(instance, filename):
     return "projects/{}/versions/{}".format(instance.document.project_id, filename)
 
 
-class ProjectFile(models.Model):
+class ProjectFile(SoftDeleteModel):
     """Loyihaga tegishli fayl: texnik topshiriq, dizayn, hujjat, arxiv.
 
     Vazifa fayllaridan (`tasks.Attachment`) farqi: bu fayllar bitta ishga emas,

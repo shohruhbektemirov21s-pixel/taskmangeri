@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from apps.core.queries import object_or_404
+from apps.core.queries import int_param, object_or_404
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
 from apps.core.permissions import ProjectAccess, check_access
@@ -156,17 +156,19 @@ class TaskViewSet(viewsets.ModelViewSet):
             qs = qs.filter(Q(project__is_public=True) | Exists(ProjectMember.objects.filter(
                 project=OuterRef("project_id"), user=user, is_active=True)))
 
+        # Raqamli filtrlar `int_param` dan o'tadi: yaroqsiz qiymat ("abc")
+        # so'rov bajarilayotganda ValueError bilan 500 bermasin - 400 qaytsin.
         p = self.request.query_params
         if p.get("project"):
-            qs = qs.filter(project_id=p["project"])
+            qs = qs.filter(project_id=int_param(p["project"], "project"))
         if p.get("status"):
             qs = qs.filter(status__in=p["status"].split(","))
         if p.get("task_type"):
             qs = qs.filter(task_type=p["task_type"])
         if p.get("priority"):
-            qs = qs.filter(priority=p["priority"])
+            qs = qs.filter(priority=int_param(p["priority"], "priority"))
         if p.get("assignee"):
-            who = user.pk if p["assignee"] == "me" else p["assignee"]
+            who = user.pk if p["assignee"] == "me" else int_param(p["assignee"], "assignee")
             qs = qs.filter(Exists(TaskAssignment.objects.filter(
                 task=OuterRef("pk"), user_id=who, is_active=True)))
         if p.get("open") == "1":
@@ -259,9 +261,12 @@ class TaskViewSet(viewsets.ModelViewSet):
         check_access(request.user, task.project, "manage")
         log(actor=request.user, verb="task.deleted", project=task.project,
             summary="{} ochirildi: {}".format(task.code, task.title))
-        # Signal o'chirishdan OLDIN: keyin `task.pk` va `code` yo'q bo'ladi.
         live_task(task, "deleted", request.user)
-        task.delete()
+        # Yumshoq o'chirish: yozuv bazada qoladi. Ilgari `delete()` edi va u
+        # bilan birga izohlar, ish jurnali, tekshiruvlar va biriktirilgan
+        # fayllar ham CASCADE bilan yo'q bo'lardi - bitta tugma butun
+        # vazifaning tarixini o'chirib yuborardi.
+        task.soft_delete(request.user)
         return Response(status=204)
 
     # ------------------------------------------------------------ ommaviy yaratish
@@ -515,13 +520,15 @@ class TaskViewSet(viewsets.ModelViewSet):
             # va "Fayllar" bolimidan ochilaveradi. Skrinshot, log, patch - bular
             # qilingan ishning isboti, matn ochirilgani bilan ular kerak boladi.
             kept = list(submission.files.values_list("original_name", flat=True))
-            submission.files.update(submission=None)
             log(actor=request.user, verb="task.handover_deleted", task=task,
                 summary="{}: ish topshirigi ochirildi".format(task.code),
                 detail="{}{}".format(
                     submission.text[:500],
                     "\n\nFayllar vazifada qoldirildi: " + ", ".join(kept) if kept else ""))
-            submission.delete()
+            # Yumshoq o'chirish. Fayllarni topshiriqdan uzish ham endi shart
+            # emas: CASCADE ishlamaydi, ya'ni ular joyida qoladi va topshiriq
+            # tiklansa butun holicha qaytadi.
+            submission.soft_delete(request.user)
             return Response(status=204)
 
         new_text = (request.data.get("text") or "").strip()
@@ -591,8 +598,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         if not (access.can_manage or att.uploaded_by_id == request.user.id):
             raise PermissionDenied("Faylni faqat yuklagan odam yoki menejer ochira oladi.")
         name = att.original_name
-        att.file.delete(save=False)
-        att.delete()
+        # Fayl diskdan ham, bazadan ham yo'q qilinmaydi: yozuv `deleted_at`
+        # bilan belgilanadi va admin panelidan qaytarib bo'ladi. Ilgari
+        # baytlar ham o'chirilardi - xato bosilgan tugmani tiklab bo'lmasdi.
+        att.soft_delete(request.user)
         log(actor=request.user, verb="task.attachment_deleted", task=task,
             summary="{}: fayl ochirildi ({})".format(task.code, name))
         return Response(status=204)

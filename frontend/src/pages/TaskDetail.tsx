@@ -7,10 +7,7 @@ import { PageHead } from "@/components/Layout";
 import TaskSubmission from "@/components/TaskSubmission";
 import Timeline from "@/components/Timeline";
 import { useRealtime } from "@/realtime/RealtimeContext";
-import {
-  Avatar, AvatarStack, Card, ErrorMsg, Loading, Priority, StatusBadge,
-  fmtDate, fmtDateTime, fromDateTimeInput, timeAgo, toDateTimeInput, todayInTz,
-} from "@/components/ui";
+import { Avatar, AvatarStack, Card, DateField, DateTimeField, ErrorMsg, fmtDate, fmtDateTime, fromDateTimeInput, Loading, Priority, StatusBadge, timeAgo, toDateTimeInput, todayInTz } from "@/components/ui";
 
 const FILE_ICON: Record<string, string> = {
   pdf: "PDF", doc: "DOC", docx: "DOC", xls: "XLS", xlsx: "XLS",
@@ -154,8 +151,7 @@ export default function TaskDetail() {
               Soat bilan: "13.08.2026 13:00 gacha tugatilsin". */}
           {canEdit && (editDue ? (
             <span className="row" style={{ gap: 6 }}>
-              <input type="datetime-local" style={{ width: 210, minHeight: 0 }}
-                     value={due} onChange={(e) => setDue(e.target.value)} />
+              <DateTimeField style={{ width: 210 }} value={due} onChange={setDue} />
               <button className="btn btn-sm btn-primary" onClick={() => void run(async () => {
                 await api.patch(`/tasks/${task.id}/`, { due_date: fromDateTimeInput(due) });
                 setEditDue(false);
@@ -360,8 +356,8 @@ export default function TaskDetail() {
                     </div>
                     <div className="field" style={{ width: 170 }}>
                       <label htmlFor={`${fid}-0`}>Sana</label>
-                      <input id={`${fid}-0`} type="date" value={log.work_date}
-                             onChange={(e) => setLog({ ...log, work_date: e.target.value })} />
+                      <DateField id={`${fid}-0`} value={log.work_date}
+                                 onChange={(v) => setLog({ ...log, work_date: v })} />
                     </div>
                   </div>
                   <div className="field">

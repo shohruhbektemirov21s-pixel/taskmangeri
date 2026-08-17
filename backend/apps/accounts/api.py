@@ -7,15 +7,16 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.activity.services import log
 from apps.core.permissions import IsPlatformAdmin
 from apps.tasks.models import TaskStatus
 
 from .specialties import Seniority, Specialty, specialty_catalog
-from .serializers import (ChangePasswordSerializer, RegisterSerializer, TokenSerializer,
-                          UserAdminSerializer, UserBriefSerializer, UserSerializer)
+from .serializers import (ChangePasswordSerializer, RefreshSerializer, RegisterSerializer,
+                          TokenSerializer, UserAdminSerializer, UserBriefSerializer,
+                          UserSerializer)
 
 User = get_user_model()
 
@@ -40,6 +41,16 @@ class LoginView(TokenObtainPairView):
     serializer_class = TokenSerializer
     throttle_scope = "auth"
     throttle_classes = [ScopedRateThrottle]
+
+
+class RefreshView(TokenRefreshView):
+    """POST /api/auth/refresh/ - muddati o'tgan access o'rniga yangisini beradi.
+
+    Standart view emas, chunki seriyalizator almashtirilgan - sababi
+    `RefreshSerializer` da.
+    """
+
+    serializer_class = RefreshSerializer
 
 
 class RegisterView(generics.CreateAPIView):

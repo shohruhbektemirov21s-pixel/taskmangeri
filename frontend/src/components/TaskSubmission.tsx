@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { ApiError, api, tokens } from "@/api/client";
 import type { Submission, Task } from "@/api/types";
 import { IconCheck, IconClose, IconFile, IconHistory } from "./icons";
-import { Avatar, Card, ErrorMsg, OkMsg, fmtDateTime, timeAgo } from "./ui";
+import { Avatar, Card, DiffView, ErrorMsg, OkMsg, fmtDateTime, timeAgo } from "./ui";
 
 interface Props {
   task: Task;
@@ -123,12 +123,20 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
           </div>
           <div className="field">
             <label htmlFor={`${fid}-1`}>Fayl biriktirish (ixtiyoriy)</label>
+            {/* Xom input yashirin: uning tugmasi brauzer tilida chiqardi
+                (masalan ruscha "Vybrat fayly"). Ochish o'zbekcha tugma
+                orqali - loyihadagi boshqa yuklash joylari bilan bir xil. */}
             <input id={`${fid}-1`}
               ref={fileInput}
               type="file"
               multiple
+              hidden
               onChange={(e) => setFiles(Array.from(e.target.files || []))}
             />
+            <button type="button" className="btn btn-sm"
+                    onClick={() => fileInput.current?.click()}>
+              Fayl tanlash
+            </button>
             {!!files.length && (
               <div className="help">{files.map((f) => f.name).join(", ")}</div>
             )}
@@ -214,8 +222,10 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
                           <strong>{e.editor?.full_name || "Kimdir"}</strong>
                           <span className="tl-time">{fmtDateTime(e.edited_at)}</span>
                         </div>
-                        <div className="edit-old">− {e.old_text}</div>
-                        <div className="edit-new">+ {e.new_text}</div>
+                        {/* Yonma-yon solishtirish: o'zgargan bo'laklar ajratilgan.
+                            Bo'laklarni server beradi (`diff`). */}
+                        <DiffView diff={e.diff} oldLabel="Tahrirdan oldin"
+                                  newLabel="Tahrirdan keyin" />
                       </div>
                     ))}
                   </div>

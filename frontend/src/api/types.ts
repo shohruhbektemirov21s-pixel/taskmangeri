@@ -485,6 +485,15 @@ export interface PublicProject {
 }
 
 /** Hujjatning eski nusxasi - almashtirilganda saqlanib qoladi */
+/** Maydonlar bo'yicha solishtirish qatori (`apps/core/textdiff.field_diff`). */
+export interface DiffRow {
+  key: string;
+  label: string;
+  old: string;
+  new: string;
+  changed: boolean;
+}
+
 export interface ProjectFileVersion {
   id: number;
   version: number;
@@ -499,6 +508,8 @@ export interface ProjectFileVersion {
   created_at: string;
   replaced_by: UserBrief | null;
   replaced_at: string;
+  /** Shu nusxa o'zidan keyingi holatga aylanganda nima o'zgargani. */
+  diff: DiffRow[];
 }
 
 export interface ProjectFile {
@@ -521,12 +532,28 @@ export interface ProjectFile {
   updated_at: string;
 }
 
+/** Solishtirishdagi bitta bo'lak. `changed` bo'lsa interfeys uni ajratadi. */
+export interface DiffPiece {
+  text: string;
+  changed: boolean;
+}
+
+/** Server hisoblab bergan solishtirish (`apps/core/textdiff.py`). */
+export interface TextDiff {
+  old: DiffPiece[];
+  new: DiffPiece[];
+  has_changes: boolean;
+  /** Matn juda uzun bo'lsa bo'laklarga bo'linmaydi - butunicha belgilanadi. */
+  truncated?: boolean;
+}
+
 export interface SubmissionEdit {
   id: number;
   editor: UserBrief | null;
   old_text: string;
   new_text: string;
   edited_at: string;
+  diff: TextDiff;
 }
 
 /** Dasturchining ish topshirig'i */

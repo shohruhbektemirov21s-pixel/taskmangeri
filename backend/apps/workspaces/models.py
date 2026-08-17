@@ -6,6 +6,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
 
+from apps.core.softdelete import SoftDeleteModel
+
 
 # Ish maydoni rangi foydalanuvchidan sorlmaydi - shu palitradan avtomatik tanlanadi.
 WORKSPACE_COLORS = [
@@ -24,7 +26,7 @@ class WorkspaceRole(models.TextChoices):
     MEMBER = "MEMBER", "Azo"
 
 
-class Workspace(models.Model):
+class Workspace(SoftDeleteModel):
     """GitHub organization kabi: ichida bir nechta loyiha va umumiy jamoa."""
 
     name = models.CharField("Nomi", max_length=120)
@@ -51,7 +53,9 @@ class Workspace(models.Model):
         if not self.slug:
             base = slugify(self.name) or "workspace"
             slug, i = base, 2
-            while Workspace.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            # `all_objects`: o'chirilgan maydonning manzili ham band
+            # hisoblanadi - aks holda `slug` unikalligi buzilardi.
+            while Workspace.all_objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug = "{}-{}".format(base, i)
                 i += 1
             self.slug = slug

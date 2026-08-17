@@ -234,11 +234,20 @@ class SubmissionEditSerializer(serializers.ModelSerializer):
     """Topshiriq tahriri - kim, qachon, nimadan nimaga."""
 
     editor = UserBriefSerializer(read_only=True)
+    # Solishtirish SERVERDA hisoblanadi: interfeys faqat belgilangan
+    # bo'laklarni chizadi. Shu tufayli qoida bitta joyda turadi va
+    # brauzerga uzun matnni qayta ishlash yuki tushmaydi.
+    diff = serializers.SerializerMethodField()
 
     class Meta:
         model = SubmissionEdit
-        fields = ["id", "editor", "old_text", "new_text", "edited_at"]
+        fields = ["id", "editor", "old_text", "new_text", "edited_at", "diff"]
         read_only_fields = fields
+
+    def get_diff(self, obj):
+        from apps.core.textdiff import word_diff
+
+        return word_diff(obj.old_text, obj.new_text)
 
 
 class SubmissionSerializer(serializers.ModelSerializer):

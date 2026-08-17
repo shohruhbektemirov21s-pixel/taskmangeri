@@ -78,3 +78,19 @@ def object_or_404(source, **filters):
         return get_object_or_404(source, **filters)
     except (ValueError, TypeError, ValidationError):
         raise Http404("Topilmadi.")
+
+
+def int_param(value, name):
+    """Query paramdagi butun son. Yaroqsiz qiymat 500 emas, 400 beradi.
+
+    `object_or_404` faqat yo'l parametrlarini qamrab olgan edi. Filtrga esa
+    qiymat tekshirilmasdan tushardi: `/api/tasks/?project=abc` so'rov
+    bajarilganda `ValueError` bilan yiqilib, foydalanuvchi 500 ko'rardi
+    (DEBUG yoqilgan bo'lsa - traceback bilan birga).
+    """
+    from rest_framework.exceptions import ValidationError as DrfValidationError
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise DrfValidationError({name: "Butun son kutilgan edi."})

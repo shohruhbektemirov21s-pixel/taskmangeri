@@ -541,6 +541,30 @@ input:focus, select:focus, textarea:focus {
   box-shadow: var(--ring), var(--sh-inset);
 }
 input::placeholder, textarea::placeholder { color: var(--subtle); }
+
+/* ---- Sana maydoni (DateField / DateTimeField) ----
+   Native `<input type=date>` brauzer tilida chizilardi ("08/18/2026") va
+   uni sahifadan boshqarib bo'lmasdi. Endi ko'rinadigan maydon oddiy matn,
+   taqvim esa yonidagi tugmadagi yashirin native maydondan chaqiriladi. */
+.dt-field { position: relative; display: block; width: 100%; }
+.dt-field > input[type=text] { width: 100%; padding-right: 40px; }
+/* Yashirin native maydon: `showPicker()` chizilmagan elementda ishlamaydi,
+   shuning uchun o'chirilmaydi - shaffof va o'lchamsiz qilinadi. */
+.dt-field .dt-native {
+  position: absolute; inset-inline-end: 8px; bottom: 0;
+  width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0;
+  border: 0; opacity: 0; pointer-events: none;
+}
+.dt-field .dt-pick {
+  position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 9px; background: transparent;
+  color: var(--muted); cursor: pointer;
+  transition: background .16s, color .16s;
+}
+.dt-field .dt-pick:hover { background: var(--veil); color: var(--text); }
+.dt-field .dt-pick:disabled { opacity: .5; cursor: default; }
 select { cursor: pointer; }
 select option { background: var(--surface); color: var(--text); }
 input[type=checkbox], input[type=radio] { accent-color: var(--accent); cursor: pointer; }
@@ -1389,6 +1413,48 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .edit-new {
   color: var(--success); background: rgba(79, 168, 111, .09);
   border-radius: 8px; padding: 6px 9px; margin-top: 5px; white-space: pre-wrap;
+}
+
+/* ---- Yonma-yon solishtirish (DiffView / FieldDiff) ----
+   Hujjat solishtirgichlaridagi kabi: chapda eski nusxa, o'ngda yangisi,
+   o'zgargan bo'laklar ajratilgan. Tor ekranda ustunlar pastma-past tushadi. */
+.diff { margin-top: 8px; }
+.diff-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--border-muted);
+  border: 1px solid var(--border-muted); border-radius: 10px; overflow: hidden;
+}
+.diff-col { display: flex; flex-direction: column; background: var(--surface); }
+.diff-head {
+  padding: 5px 10px; font-size: 11.5px; font-weight: 600;
+  color: var(--muted); background: var(--border-muted);
+  text-transform: uppercase; letter-spacing: .03em;
+}
+.diff-body {
+  padding: 8px 10px; font-size: 13px; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word; flex: 1;
+}
+/* O'zgargan bo'lak - hujjat solishtirgichlaridagidek ajratib ko'rsatiladi.
+   Rangi eski/yangi tomonga qarab farqlanadi: qaysi biri olib tashlangani va
+   qaysi biri qo'shilgani rangdan ham bilinsin, faqat joyidan emas. */
+.diff-mark {
+  background: rgba(210, 153, 34, .30); color: inherit;
+  border-radius: 3px; padding: 0 1px;
+}
+.diff-old .diff-mark { background: rgba(217, 115, 108, .26); }
+.diff-new .diff-mark { background: rgba(79, 168, 111, .26); }
+.diff-note { font-size: 12px; margin: 6px 0 0; }
+
+/* Maydonlar bo'yicha solishtirish: har bir qator ikki katakdan iborat. */
+.diff-fields .diff-field {
+  background: var(--surface); padding: 7px 10px; font-size: 13px;
+}
+.diff-fields .diff-field.is-changed { background: rgba(210, 153, 34, .12); }
+.diff-fields .diff-field small { display: block; font-size: 11px; margin-bottom: 2px; }
+
+@media (max-width: 620px) {
+  /* Tor ekranda yonma-yon o'qib bo'lmaydi - ustma-ust qo'yamiz. */
+  .diff-grid { grid-template-columns: 1fr; }
 }
 
 .dropzone {
