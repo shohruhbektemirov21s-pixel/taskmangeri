@@ -107,6 +107,11 @@ def dashboard(request):
             .select_related("actor", "project", "task")
             .order_by("-created_at")[:20])
 
+    # Sanoq KESISHDAN OLDIN olinadi. Ilgari `[:10]` dan keyin `.count()`
+    # chaqirilardi va Django limitni hisobga olib doim 10 dan oshmagan son
+    # qaytarardi: bazada 12 ta tekshiruv bo'lsa ham panelda "10" turardi.
+    review_total = review_qs.count()
+    join_total = join_qs.count()
     review_qs = (review_qs.select_related("project")
                  .prefetch_related("assignments__user").order_by("submitted_at")[:10])
     join_qs = join_qs.select_related("user", "project").order_by("created_at")[:10]
@@ -129,8 +134,8 @@ def dashboard(request):
             "done_week": my_tasks.filter(
                 status=TaskStatus.DONE,
                 completed_at__gte=now - timezone.timedelta(days=7)).count(),
-            "pending_reviews": review_qs.count() if hasattr(review_qs, "count") else 0,
-            "pending_joins": len(join_qs),
+            "pending_reviews": review_total,
+            "pending_joins": join_total,
         },
         "next_task": TaskSerializer(next_task, context=ctx).data if next_task else None,
         "focus_queue": TaskSerializer(focus_queue[:8], many=True, context=ctx).data,
@@ -142,6 +147,49 @@ def dashboard(request):
         "review_queue": TaskSerializer(review_qs, many=True, context=ctx).data,
         "join_queue": JoinRequestSerializer(join_qs, many=True, context=ctx).data,
         "feed": ActivitySerializer(feed, many=True, context=ctx).data,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def sidebar_counts(request):
+    """Yon paneldagi uchta raqam - boshqa hech narsa.
+
+    Ilgari buning uchun `/dashboard/` chaqirilardi: u o'nlab vazifa, loyiha va
+    tasmani seriyalizatsiya qiladi, ustiga muddat eslatmalarini ham tekshiradi.
+    Yon panelga esa faqat uchta son kerak edi va u har sahifa almashganda
+    so'ralardi - ya'ni har navigatsiyada butun panel bekorga yig'ilardi.
+
+    Bu yerda faqat `COUNT` bor. Ruxsat qoidasi `dashboard` dagi bilan bir xil:
+    tekshiruv va qo'shilish navbati odam boshqaradigan loyihalar bo'yicha,
+    admin uchun esa hammasi.
+    """
+    user = request.user
+
+    mine = Exists(TaskAssignment.objects.filter(
+        task=OuterRef("pk"), user=user, is_active=True))
+    open_count = Task.objects.filter(
+        mine, project__deleted_at__isnull=True,
+        status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS]).count()
+
+    if user.is_platform_admin:
+        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
+                                        project__deleted_at__isnull=True)
+        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
+                                             project__deleted_at__isnull=True)
+    else:
+        managed = Project.objects.filter(
+            Q(manager=user) | Exists(ProjectMember.objects.filter(
+                project=OuterRef("pk"), user=user, is_active=True,
+                role=ProjectRole.MANAGER)))
+        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
+        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
+                                             project__in=managed)
+
+    return Response({
+        "open": open_count,
+        "reviews": review_qs.count(),
+        "joins": join_qs.count(),
     })
 
 

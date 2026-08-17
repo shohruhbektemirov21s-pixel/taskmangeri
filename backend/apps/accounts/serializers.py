@@ -89,6 +89,31 @@ class UserAdminSerializer(UserSerializer):
         read_only_fields = ["email", "date_joined"]
 
 
+class UserListSerializer(UserBriefSerializer):
+    """Odamlar ro'yxati - kartochka uchun yetarli, shaxsiy kontaktsiz.
+
+    Ilgari ro'yxat `UserAdminSerializer` bilan qaytardi, ya'ni har bir
+    so'rovda tizimdagi HAMMA odamning `bio`, `skills`, `telegram` va
+    `github_username` maydonlari ham chiqib ketardi. Ro'yxatda ular
+    ko'rsatilmaydi ham - kerak bo'lsa odamning o'z sahifasidan o'qiladi
+    (`GET /api/users/<id>/`).
+
+    Email qoldi: u jamoa ichida odamni aniqlashning asosiy yo'li -
+    qidiruv ham, odam tanlash oynasi ham unga tayanadi.
+    """
+
+    global_role_display = serializers.CharField(source="get_global_role_display",
+                                                read_only=True)
+    project_count = serializers.IntegerField(read_only=True)
+    open_tasks = serializers.IntegerField(read_only=True)
+
+    class Meta(UserBriefSerializer.Meta):
+        fields = UserBriefSerializer.Meta.fields + [
+            "global_role", "global_role_display", "years_experience",
+            "is_active", "date_joined", "project_count", "open_tasks",
+        ]
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     """Royxatdan otish - faqat mutaxassislik majburiy.
 

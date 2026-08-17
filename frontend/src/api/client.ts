@@ -3,10 +3,26 @@
  * JWT tokenni localStorage da saqlaydi va 401 da avtomatik yangilaydi.
  */
 
-const BASE = import.meta.env.VITE_API_URL || "/api";
+export const BASE = import.meta.env.VITE_API_URL || "/api";
 
 const ACCESS_KEY = "tf_access";
 const REFRESH_KEY = "tf_refresh";
+
+/**
+ * Seans tugaganda yuboriladigan hodisa.
+ *
+ * Ilgari token yaroqsiz bo'lib qolsa (refresh ham o'tmadi) bu yerda
+ * `tokens.clear()` chaqirilardi-yu, React bundan bexabar qolardi: yon panel,
+ * avatar va menyular joyida turaverardi, lekin har bir so'rov 401 qaytarardi.
+ * Odam nima bo'layotganini tushunmay, sahifani qo'lda yangilashga majbur edi.
+ * Endi `AuthContext` shu hodisani eshitib, darrov kirish sahifasiga chiqaradi.
+ */
+export const AUTH_EXPIRED = "teamflow:auth-expired";
+
+function sessionEnded() {
+  tokens.clear();
+  window.dispatchEvent(new Event(AUTH_EXPIRED));
+}
 
 export const tokens = {
   get access() {
@@ -130,9 +146,12 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
     signal: opts.signal,
   });
 
-  if (res.status === 401 && retry && tokens.refresh) {
-    if (await tryRefresh()) return request<T>(path, opts, false);
-    tokens.clear();
+  // 401: avval tokenni yangilab ko'ramiz. Yangilanmasa - seans tugagan.
+  // Refresh token umuman bo'lmasa ham shu yo'l: aks holda ilova "kirgan"
+  // ko'rinishida qolib, har so'rovda xato bergan bo'lardi.
+  if (res.status === 401 && retry) {
+    if (tokens.refresh && (await tryRefresh())) return request<T>(path, opts, false);
+    if (tokens.access || tokens.refresh) sessionEnded();
   }
 
   if (res.status === 204) return undefined as T;

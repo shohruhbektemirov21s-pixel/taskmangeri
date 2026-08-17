@@ -7,16 +7,19 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.accounts.models import GlobalRole
 from apps.activity.services import log
-from apps.core.permissions import IsPlatformAdmin
+from apps.core.permissions import IsPlatformAdmin, visible_projects_q
 from apps.tasks.models import TaskStatus
 
 from .specialties import Seniority, Specialty, specialty_catalog
 from .serializers import (ChangePasswordSerializer, RefreshSerializer, RegisterSerializer,
                           TokenSerializer, UserAdminSerializer, UserBriefSerializer,
-                          UserSerializer)
+                          UserListSerializer, UserSerializer)
 
 User = get_user_model()
 
@@ -133,6 +136,58 @@ class AvatarView(generics.GenericAPIView):
         return Response(UserSerializer(user, context={"request": request}).data)
 
 
+def revoke_refresh_tokens(user):
+    """Foydalanuvchining barcha refresh tokenlarini bekor qiladi.
+
+    Access token JWT - u imzo bilan tekshiriladi va serverdan so'ramaydi,
+    ya'ni o'z muddati (`ACCESS_TOKEN_LIFETIME`) tugaguncha ishlaydi. Lekin
+    refresh bekor qilinsa yangi access olinmaydi: sessiya shu muddat ichida
+    o'z-o'zidan uziladi.
+    """
+    from rest_framework_simplejwt.token_blacklist.models import (BlacklistedToken,
+                                                                 OutstandingToken)
+
+    count = 0
+    for token in OutstandingToken.objects.filter(user=user):
+        _, created = BlacklistedToken.objects.get_or_create(token=token)
+        count += int(created)
+    return count
+
+
+class LogoutView(APIView):
+    """POST /api/auth/logout/  {refresh}
+
+    Ilgari chiqish faqat brauzerda bo'lardi: token localStorage dan
+    o'chirilar, lekin serverda amal qilishda davom etardi. Endi refresh
+    token bekor qilinadi.
+
+    `all=1` bilan - hamma qurilmadan chiqish.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        if str(request.data.get("all", "")).lower() in ("1", "true"):
+            return Response({"revoked": revoke_refresh_tokens(request.user)})
+
+        raw = request.data.get("refresh")
+        if not raw:
+            # Token yuborilmasa ham chiqish muvaffaqiyatli hisoblanadi:
+            # brauzer tomonda tozalash allaqachon bo'lgan, serverga esa
+            # ayta olmadi. Xato qaytarish foydalanuvchini "chiqa olmadim"
+            # degan holatda qoldirardi.
+            return Response({"revoked": 0})
+        try:
+            RefreshToken(raw).blacklist()
+        except TokenError:
+            # Muddati o'tgan yoki allaqachon bekor qilingan - natija bir xil.
+            return Response({"revoked": 0})
+        return Response({"revoked": 1})
+
+
 class ChangePasswordView(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated]
@@ -144,7 +199,17 @@ class ChangePasswordView(generics.GenericAPIView):
             return Response({"old_password": ["Joriy parol xato."]}, status=400)
         request.user.set_password(s.validated_data["new_password"])
         request.user.save(update_fields=["password"])
-        return Response({"detail": "Parol yangilandi."})
+        # Parol almashtirilgan sessiyalar bekor qilinadi: aks holda "parolimni
+        # o'zgartirdim" degani hujum oynasini yopmasdi - eski refresh token
+        # 14 kun yangi access token olib turardi.
+        revoke_refresh_tokens(request.user)
+        refresh = RefreshToken.for_user(request.user)
+        return Response({
+            "detail": "Parol yangilandi.",
+            # Joriy qurilma chiqib qolmasin - unga darrov yangi juftlik.
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        })
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -156,6 +221,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ["full_name", "email", "skills", "job_title"]
     ordering_fields = ["date_joined", "full_name"]
     ordering = ["-date_joined"]
+
+    def get_serializer_class(self):
+        # Ro'yxatda qisqa ko'rinish: shaxsiy kontakt ma'lumotlari (bio,
+        # telegram, github) faqat odamning o'z sahifasida chiqadi.
+        if self.action == "list":
+            return UserListSerializer
+        return UserAdminSerializer
 
     def get_queryset(self):
         from apps.core.queries import related_count
@@ -169,6 +241,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 task__status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS,
                                   TaskStatus.IN_REVIEW]),
         )
+        # O'chirilgan hisoblar ro'yxatda turmaydi - ular na qidiruvda, na
+        # odam tanlash oynasida kerak. Adminga kerak bo'lsa `?inactive=1`.
+        if self.request.query_params.get("inactive") == "1":
+            if self.request.user.is_platform_admin:
+                qs = qs.filter(is_active=False)
+        else:
+            qs = qs.filter(is_active=True)
+
         role = self.request.query_params.get("role")
         if role:
             qs = qs.filter(global_role=role)
@@ -200,17 +280,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         ctx = {"request": request}
         wide = bool(me.is_platform_admin or me.pk == target.pk)
 
-        # So'rovchi ko'ra oladigan loyihalar doirasi
-        def limit(qs, prefix=""):
+        # So'rovchi ko'ra oladigan loyihalar doirasi. Qoida `ProjectAccess.can_view`
+        # dan keladi (`visible_projects_q`) - ya'ni boshqa odamning sahifasida
+        # ham begona ish maydonining loyihasi ko'rinmaydi.
+        def limit(qs, path=""):
             if wide:
                 return qs
-            f = lambda name: prefix + name  # noqa: E731
-            from apps.projects.models import ProjectMember
-
-            return qs.filter(
-                Q(**{f("is_public"): True}) | Exists(ProjectMember.objects.filter(
-                    project=OuterRef("pk"), user=me, is_active=True))
-            )
+            return qs.filter(visible_projects_q(me, path))
 
         from apps.projects.models import ProjectMember
 
@@ -226,24 +302,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
         tasks = Task.objects.filter(Exists(TaskAssignment.objects.filter(
             task=OuterRef("pk"), user=target, is_active=True)))
-        if not wide:
-            tasks = tasks.filter(
-                Q(project__is_public=True) | Exists(ProjectMember.objects.filter(
-                    project=OuterRef("project_id"), user=me, is_active=True))
-            )
-        tasks = tasks.select_related("project")
+        tasks = limit(tasks, "project__").select_related("project")
 
         by_status = {row["status"]: row["c"]
                      for row in tasks.values("status").annotate(c=Count("id"))}
         hours = (WorkLog.objects.filter(user=target, task__in=tasks)
                  .aggregate(s=Sum("hours"))["s"] or 0)
 
-        activity = Activity.objects.timeline().filter(actor=target)
-        if not wide:
-            activity = activity.filter(
-                Q(project__is_public=True) | Exists(ProjectMember.objects.filter(
-                    project=OuterRef("project_id"), user=me, is_active=True))
-            )
+        activity = limit(Activity.objects.timeline().filter(actor=target), "project__")
 
         return Response({
             "user": UserBriefSerializer(target, context=ctx).data,
@@ -274,6 +340,29 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         target = self.get_object()
         old = target.get_global_role_display()
         role = request.data.get("global_role")
+
+        # Uchta himoya - `projects.api.member_action` dagi «adminlikni bekor
+        # qilish» bilan bir xil. Ilgari bu endpointda ular yo'q edi: admin
+        # o'zini ham, bosh hisobni ham tushirib qo'ya olardi va platforma
+        # boshqaruvsiz qolishi mumkin edi.
+        losing_admin = (target.is_platform_admin
+                        and ((role and role != GlobalRole.ADMIN)
+                             or request.data.get("is_active") is False))
+        if losing_admin:
+            if target.is_superuser:
+                raise ValidationError({
+                    "detail": "Bosh hisobning huquqini olib qo'yib bo'lmaydi."})
+            if target.pk == request.user.pk:
+                raise ValidationError({
+                    "detail": "O'z adminlik huquqingizni o'zingiz olib qo'ya olmaysiz - "
+                              "buni boshqa admin qiladi."})
+            others = User.objects.filter(global_role=GlobalRole.ADMIN,
+                                         is_active=True).exclude(pk=target.pk).count()
+            if not others:
+                raise ValidationError({
+                    "detail": "Bu oxirgi tizim admini - uni tushirsak platforma "
+                              "boshqaruvsiz qoladi."})
+
         if role and role in dict(User._meta.get_field("global_role").choices):
             target.global_role = role
         if "is_active" in request.data:

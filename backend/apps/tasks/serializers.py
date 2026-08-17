@@ -142,6 +142,32 @@ class TaskSerializer(serializers.ModelSerializer):
         return UserBriefSerializer(users, many=True, context=self.context).data
 
 
+class BoardTaskSerializer(TaskSerializer):
+    """Doskadagi karta - ustiga «qayerga kochirsa boladi» royxati qoshiladi.
+
+    Sensorli ekranda kartani sudrab bolmaydi (HTML5 drag&drop barmoqni
+    eshitmaydi), klaviatura bilan ham. Shuning uchun kartada holat tanlash
+    menyusi turadi - unga shu royxat kerak. Qoida frontendda takrorlanmaydi:
+    u `Task.allowed_transitions` da, bitta joyda qoladi.
+
+    Ruxsat butun doska uchun bir marta hisoblanib, kontekstda beriladi. Har
+    karta uchun qaytadan hisoblansa, kartalar soniga teng ortiqcha tekshiruv
+    bolardi.
+    """
+
+    allowed_transitions = serializers.SerializerMethodField()
+
+    class Meta(TaskSerializer.Meta):
+        fields = TaskSerializer.Meta.fields + ["allowed_transitions"]
+
+    def get_allowed_transitions(self, obj):
+        access = self.context.get("board_access")
+        if not access:
+            return []
+        return [{"value": s, "label": TaskStatus(s).label}
+                for s in obj.allowed_transitions(access)]
+
+
 class TaskDetailSerializer(TaskSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)

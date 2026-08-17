@@ -10,6 +10,8 @@ router.register("users", UserViewSet, basename="user")
 
 urlpatterns = [
     path("dashboard/", api.dashboard, name="dashboard"),
+    # Yon paneldagi uchta raqam - panelning ogir versiyasi ornida
+    path("counts/", api.sidebar_counts, name="sidebar_counts"),
     path("my-work/", api.my_work, name="my_work"),
     path("meta/", api.meta, name="meta"),
     # Jamoaga a'zo qo'shish - to'g'ridan-to'g'ri (ilgari taklif orqali edi)

@@ -56,9 +56,26 @@ export default function Board({ project }: { project: Project }) {
     if (d.event === "task.update" && Number(d.project) === project.id) void load();
   }), [subscribe, load, project.id]);
 
+  // Karta shu ustunga tashlanishi mumkinmi. «Bajarildi» - alohida holat:
+  // uni qo'lda qo'yib bo'lmaydi, faqat TEKSHIRUVDAGI ishni tekshiruvchi
+  // tasdiqlaganda qo'yiladi (server ham shu qoidada). Shuning uchun ustun
+  // ijrochiga qabul qilmaydigan qilib ko'rsatiladi - u kartani sudrab
+  // borib, keyin xato xabarini o'qimasin.
+  function accepts(status: TaskStatusValue) {
+    if (!access?.can_work) return false;
+    if (status !== "DONE") return true;
+    if (!access?.can_review) return false;
+    const task = columns?.flatMap((c) => c.tasks).find((t) => t.id === dragId);
+    return task?.status === "IN_REVIEW";
+  }
+
   async function drop(status: TaskStatusValue) {
     setOver(null);
     if (dragId == null) return;
+    if (!accepts(status)) {
+      setDragId(null);
+      return;
+    }
     setError(null);
     try {
       await api.post(`/tasks/${dragId}/status/`, { status });
@@ -111,7 +128,11 @@ export default function Board({ project }: { project: Project }) {
           <div
             key={col.status}
             className={`column ${over === col.status ? "drag-over" : ""}`}
-            onDragOver={(e) => { e.preventDefault(); setOver(col.status); }}
+            onDragOver={(e) => {
+              if (dragId != null && !accepts(col.status)) return;
+              e.preventDefault();
+              setOver(col.status);
+            }}
             onDragLeave={() => setOver((o) => (o === col.status ? null : o))}
             onDrop={() => void drop(col.status)}
           >
@@ -120,6 +141,11 @@ export default function Board({ project }: { project: Project }) {
               {col.label}
               <span className="n">{col.count}</span>
             </div>
+            {col.status === "DONE" && access?.can_review && (
+              <p className="muted" style={{ fontSize: 11, padding: "0 12px 8px" }}>
+                Tekshiruvdagi ishni shu yerga tashlab tasdiqlaysiz.
+              </p>
+            )}
             <div className="column-body">
               {col.tasks.map((t) => (
                 <TaskCard

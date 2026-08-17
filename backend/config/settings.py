@@ -58,6 +58,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # uchinchi tomon
     "rest_framework",
+    # Bekor qilingan refresh tokenlar ro'yxati. Usiz "chiqish" degani faqat
+    # brauzerdagi tokenni tashlash bo'lardi: o'g'irlangan refresh token
+    # 14 kun ishlayverar, parol almashtirish ham unga tegmasdi.
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
     "channels",
@@ -189,7 +193,10 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    # Yangilangandan keyin eskisi ishlamaydi: bir refresh token faqat bir
+    # marta ishlatiladi. Aks holda o'g'irlangan eski token muddati
+    # tugagunga qadar (14 kun) yangi access token olib turardi.
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",

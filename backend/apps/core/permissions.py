@@ -11,6 +11,7 @@ MENEJER himoyalangan: uni na loyiha admini, na tizim admini chiqara oladi.
 Menejer faqat ozi chiqadi yoki boshqa menejer almashtiradi. Loyiha menejersiz
 qolib ketgan holat istisno - unda tizim admini yangi menejer tayinlay oladi.
 """
+from django.db.models import Exists, OuterRef, Q
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 from apps.core.queries import object_or_404
@@ -65,6 +66,55 @@ def get_membership(user, project):
     return project.memberships.filter(user=user, is_active=True).select_related("user").first()
 
 
+def in_workspace(user, project):
+    """Foydalanuvchi loyihaning ish maydonida bormi.
+
+    `is_public` loyihani ko'rish uchun shu tekshiruv kerak (`can_view`).
+    Maydon egasi ham a'zo hisoblanadi - u a'zolik jadvalida bo'lmasligi mumkin.
+    """
+    from apps.workspaces.models import WorkspaceMember
+
+    if not user or not user.is_authenticated:
+        return False
+    ws_id = project.workspace_id
+    if not ws_id:
+        return False
+    workspace = getattr(project, "workspace", None)
+    if workspace is not None and workspace.owner_id == user.id:
+        return True
+    return WorkspaceMember.objects.filter(workspace_id=ws_id, user=user).exists()
+
+
+def visible_projects_q(user, path=""):
+    """Foydalanuvchi ko'ra oladigan loyihalar sharti - `ProjectAccess.can_view` ning
+    queryset ko'rinishi.
+
+    `path` - so'rov Project dan boshlanmasa, unga boradigan yo'l
+    (`Task` uchun `"project__"`, `Activity` uchun ham shunday).
+
+    NEGA BITTA JOYDA. Ilgari bu shart besh joyda qo'lda takrorlanardi
+    (vazifalar, taqvim, tarix kesimi, foydalanuvchi sahifasi, tarix lentasi) va
+    hech birida ish maydoni tekshirilmasdi - `Q(is_public=True)` deb yozilar,
+    natijada tizimdagi har kim begona jamoaning loyihasini ko'rardi. Shart
+    endi bir manbada: birini tuzatib, ikkinchisini esdan chiqarish mumkin emas.
+    """
+    from apps.projects.models import ProjectMember
+    from apps.workspaces.models import WorkspaceMember
+
+    if not user or not user.is_authenticated:
+        # Hech narsa ko'rinmaydi. Ochiq (tokensiz) ko'rinish alohida joyda -
+        # `apps/core/public.py`.
+        return Q(pk__in=[])
+
+    project_ref = "pk" if not path else "project_id"
+    member_of = Exists(ProjectMember.objects.filter(
+        project=OuterRef(project_ref), user=user, is_active=True))
+    in_ws = Exists(WorkspaceMember.objects.filter(
+        workspace=OuterRef(path + "workspace_id"), user=user))
+    owns_ws = Q(**{path + "workspace__owner": user})
+    return member_of | (Q(**{path + "is_public": True}) & (in_ws | owns_ws))
+
+
 class ProjectAccess:
     """Bitta joyda jamlangan ruxsat javoblari."""
 
@@ -81,10 +131,31 @@ class ProjectAccess:
         self.is_project_admin = self.role == ProjectRole.ADMIN
         self.is_developer = self.role in (ProjectRole.DEVELOPER, ProjectRole.QA)
         self.is_member = self.membership is not None
+        # `can_view` bir necha marta so'raladi (`as_dict` ham chaqiradi) -
+        # ish maydoni a'zoligi uchun bazaga ko'pi bilan bir marta boriladi.
+        self._in_workspace = None
 
     @property
     def can_view(self):
-        return self.is_admin or self.is_member or self.project.is_public
+        """Loyihani ochib ko'rish huquqi.
+
+        `is_public` - modelda ham shunday nomlangan: «ISH MAYDONI ICHIDA
+        ochiq». Ilgari maydon a'zoligi tekshirilmasdi, ya'ni tizimda
+        ro'yxatdan o'tgan har qanday odam begona jamoaning loyihasini,
+        vazifalarini, brifini va hujjatlar ro'yxatini o'qiy olardi.
+
+        Bosh sahifadagi ochiq qidiruv bundan ALOHIDA: u `apps/core/public.py`
+        da va faqat xavfsiz maydonlarni beradi (a'zolar, vazifalar, fayllar
+        chiqmaydi). Ya'ni "platformada nima bor" ko'rinib turadi, ichiga esa
+        maydon a'zosi kiradi.
+        """
+        if self.is_admin or self.is_member:
+            return True
+        if not self.project.is_public:
+            return False
+        if self._in_workspace is None:
+            self._in_workspace = in_workspace(self.user, self.project)
+        return self._in_workspace
 
     @property
     def can_manage(self):

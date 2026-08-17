@@ -14,6 +14,10 @@ from .models import Workspace, WorkspaceMember, WorkspaceRole
 from .serializers import WorkspaceDetailSerializer, WorkspaceSerializer
 
 
+# Qo'lda beriladigan rollar: egalik bundan tashqarida.
+GRANTABLE_ROLES = [r for r in WorkspaceRole.values if r != WorkspaceRole.OWNER]
+
+
 class WorkspaceViewSet(viewsets.ModelViewSet):
     """Ish maydonlari - GitHub organization ekvivalenti."""
 
@@ -106,7 +110,10 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             return Response({"removed": True})
 
         role = request.data.get("role")
-        if role not in WorkspaceRole.values:
+        # Egalik rol almashtirish orqali berilmaydi - u maydonning `owner`
+        # maydonida turadi va bir kishilik. `apps/core/team.py` da bu qoida
+        # ilgaridan bor edi, bu yerda esa `OWNER` ham ro'yxatdan o'tib ketardi.
+        if role not in GRANTABLE_ROLES:
             raise ValidationError({"role": "Notogri rol."})
         member.role = role
         member.save(update_fields=["role"])

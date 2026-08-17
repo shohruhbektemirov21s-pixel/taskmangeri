@@ -27,9 +27,30 @@ class PublicSearchThrottle(ScopedRateThrottle):
 
 
 def visible_projects():
+    """Ochiq loyihalar - ko'rsatishga tayyor holda.
+
+    `progress()` va `needed_specialties` annotatsiya yoki prefetch bo'lmasa
+    har loyiha uchun bazaga boradi. Bu endpoint TOKENSIZ ochiq va daqiqada
+    120 so'rovga ruxsat etilgan, ya'ni N+1 bu yerda eng qimmat: 12 loyiha
+    37 so'rovga aylanardi.
+    """
+    from apps.core.queries import related_count
+    from apps.projects.models import ProjectMember
+    from apps.tasks.models import Task
+
     return (Project.objects.filter(is_public=True)
             .exclude(status="ARCHIVED")
-            .select_related("workspace", "manager"))
+            .select_related("workspace", "manager")
+            .prefetch_related("specialties")
+            .annotate(
+                member_count=related_count(ProjectMember, group_by="project",
+                                           is_active=True),
+                # `progress()` shu ikkitasini qaraydi va bazaga bormaydi.
+                total_tasks=related_count(Task, group_by="project",
+                                          status__in=[s for s in TaskStatus.values
+                                                      if s != TaskStatus.CANCELLED]),
+                done_tasks=related_count(Task, group_by="project",
+                                         status=TaskStatus.DONE)))
 
 
 def pack(project, counts=None):
@@ -67,16 +88,14 @@ def public_projects(request):
     Bosh sahifadagi qidiruv shu yerga murojaat qiladi.
     """
     from apps.core.queries import related_count
-    from apps.projects.models import ProjectMember
     from apps.tasks.models import Task
 
     open_statuses = [s for s in TaskStatus.values
                      if s not in (TaskStatus.DONE, TaskStatus.CANCELLED)]
+    # `member_count`, `done_tasks` va progress uchun sanoqlar `visible_projects()`
+    # da olinadi; bu yerda faqat ochiq vazifalar qo'shiladi.
     qs = visible_projects().annotate(
-        member_count=related_count(ProjectMember, group_by="project", is_active=True),
-        open_tasks=related_count(Task, group_by="project", status__in=open_statuses),
-        done_tasks=related_count(Task, group_by="project", status=TaskStatus.DONE),
-    )
+        open_tasks=related_count(Task, group_by="project", status__in=open_statuses))
 
     q = (request.query_params.get("q") or "").strip()
     if q:

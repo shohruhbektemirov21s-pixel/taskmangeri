@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { api, tokens } from "@/api/client";
+import { AUTH_EXPIRED, api, tokens } from "@/api/client";
 import type { MetaData, User } from "@/api/types";
 
 interface AuthState {
@@ -50,6 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refreshUser();
   }, [refreshUser]);
 
+  // Token yaroqsiz bo'lib qolsa (`client.ts`) - darrov chiqaramiz.
+  // `Protected` marshruti keyin o'zi `/kirish` ga yo'naltiradi.
+  useEffect(() => {
+    const onExpired = () => {
+      setUser(null);
+      setMeta(null);
+      setLoading(false);
+    };
+    window.addEventListener(AUTH_EXPIRED, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED, onExpired);
+  }, []);
+
   const login = useCallback(
     async (email: string, password: string) => {
       const data = await api.post<{ access: string; refresh: string; user: User }>(
@@ -77,6 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // Serverga ham aytamiz: refresh token bekor qilinsin. Ilgari chiqish
+    // faqat brauzerda bo'lardi - token localStorage dan o'chirilar, lekin
+    // serverda 14 kun amal qilishda davom etardi.
+    const refresh = tokens.refresh;
+    if (refresh) void api.post("/auth/logout/", { refresh }).catch(() => {});
     tokens.clear();
     setUser(null);
   }, []);

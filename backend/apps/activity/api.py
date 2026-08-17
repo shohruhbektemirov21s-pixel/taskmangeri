@@ -7,8 +7,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.serializers import UserBriefSerializer
-from apps.core.permissions import check_access
-from apps.core.queries import object_or_404
+from apps.core.permissions import check_access, visible_projects_q
+from apps.core.queries import int_param, object_or_404
 from apps.projects.models import Project, ProjectMember
 from apps.projects.serializers import ProjectBriefSerializer, ProjectMemberSerializer
 from apps.tasks.models import (Review, ReviewVerdict, Task, TaskAssignment, TaskStatus,
@@ -46,7 +46,7 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 
         actor = self.request.query_params.get("actor")
         if actor:
-            qs = qs.filter(actor_id=actor)
+            qs = qs.filter(actor_id=int_param(actor, "actor"))
 
         category = self.request.query_params.get("category")
         if category:
@@ -59,7 +59,7 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 
         task = self.request.query_params.get("task")
         if task:
-            qs = qs.filter(task_id=task)
+            qs = qs.filter(task_id=int_param(task, "task"))
         return qs
 
     # ------------------------------------------------------------ loyihalar kesimi
@@ -81,11 +81,7 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
         # Ko'rish doirasi lentaning o'zi bilan bir xil: admin hammasini,
         # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi.
         if not request.user.is_platform_admin:
-            qs = qs.filter(
-                Q(is_public=True)
-                | Exists(ProjectMember.objects.filter(
-                    project=OuterRef("pk"), user=request.user, is_active=True))
-            )
+            qs = qs.filter(visible_projects_q(request.user))
 
         q = (request.query_params.get("q") or "").strip()
         if q:

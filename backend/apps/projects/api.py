@@ -10,7 +10,8 @@ from rest_framework.response import Response
 
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
-from apps.core.permissions import CanCreateProject, ProjectAccess, check_access
+from apps.core.permissions import (CanCreateProject, ProjectAccess, check_access,
+                                    visible_projects_q)
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
 from apps.core.queries import object_or_404, related_count
@@ -182,7 +183,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 project=OuterRef("pk"), value=value))
 
         if scope == "discover":
-            qs = qs.filter(is_public=True).exclude(status="ARCHIVED").exclude(member_of())
+            # "Qo'shilish uchun loyiha izlash" - o'z ish maydonlari ichida.
+            # Butun platformadagi ochiq loyihalar bosh sahifadagi ochiq
+            # qidiruvda (`/api/public/projects/`) qoladi.
+            qs = (qs.filter(visible_projects_q(user))
+                  .filter(is_public=True)
+                  .exclude(status="ARCHIVED").exclude(member_of()))
         elif scope == "managed":
             qs = qs.filter(Q(manager=user) | member_of(role=ProjectRole.MANAGER))
         elif scope == "all" and user.is_platform_admin:
@@ -518,15 +524,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
         last = date(first.year, first.month, monthrange(first.year, first.month)[1])
 
         user = request.user
-        qs = Project.objects.filter(deleted_at__isnull=True).select_related("manager")
+        # `progress()` uchun sanoqlar oldindan olinadi - aks holda taqvimdagi
+        # har loyiha ikkita qo'shimcha so'rov yuborardi.
+        qs = (Project.objects.filter(deleted_at__isnull=True)
+              .select_related("manager")
+              .annotate(**project_counters(user)))
         # Ko'rish doirasi tarix sahifasidagi bilan bir xil: admin hammasini,
         # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi.
         if not user.is_platform_admin:
-            qs = qs.filter(
-                Q(is_public=True)
-                | Exists(ProjectMember.objects.filter(
-                    project=OuterRef("pk"), user=user, is_active=True))
-            )
+            qs = qs.filter(visible_projects_q(user))
         # Oyga tegmaydiganlarni bazadayoq tashlab yuboramiz. Sanasi bo'sh
         # bo'lganlar bu yerda saqlanadi - ular pastda aniqlab olinadi.
         qs = qs.filter(Q(due_date__isnull=True) | Q(due_date__gte=first))
@@ -769,7 +775,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         rows = (TaskAssignment.objects
                 .filter(task__project=project, is_active=True)
-                .select_related("task", "user"))
+                .select_related("task", "task__project", "user"))
 
         people = {}
         for row in rows:
@@ -829,7 +835,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Vazifalarning haqiqiy oynasi: eng erta boshlanish - eng kech muddat.
         task_start = task_due = None
         overdue_total = 0
-        for t in project.tasks.all():
+        # `t.code` loyiha kalitini so'raydi - `select_related` bo'lmasa har
+        # vazifa uchun alohida so'rov ketardi.
+        for t in project.tasks.select_related("project"):
             d_due = to_date(t.due_date)
             if t.status not in closed:
                 if d_due and d_due < today:
@@ -933,6 +941,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
             role = request.data.get("role") or req.desired_role
             if role not in ProjectRole.values:
                 raise ValidationError({"role": "Notogri rol."})
+            # Menejer rolini kim bera olishi - umumiy qoida (`can_grant_role`).
+            # Ilgari bu yerda tekshirilmasdi: loyiha admini so'rovni tasdiqlash
+            # orqali yangi MENEJER yasay olardi, u esa amaldagi menejerni
+            # chiqarib yuborishga huquqli bo'lardi. So'rovchining o'zi menejer
+            # rolini so'ray olmaydi (serializator to'sadi) - qaror qabul
+            # qiluvchi ham shu qoidadan chetda qolmasin.
+            if not ProjectAccess(request.user, project).can_grant_role(role):
+                raise PermissionDenied(
+                    "Menejer rolini faqat amaldagi menejer bera oladi.")
             req.status = RequestStatus.APPROVED
             req.save()
             ProjectMember.objects.update_or_create(

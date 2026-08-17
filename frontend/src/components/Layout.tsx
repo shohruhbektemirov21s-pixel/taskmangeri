@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
-import type { UserBrief } from "@/api/types";
+import type { SidebarCounts, UserBrief } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
+import ErrorBoundary from "./ErrorBoundary";
 import { Logo } from "./Logo";
 import {
   IconBell, IconBoard, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout,
@@ -32,23 +33,25 @@ export default function Layout() {
     let alive = true;
     void (async () => {
       try {
-        const d = await api.get<any>("/dashboard/");
-        if (!alive) return;
-        setCounts({
-          open: d.stats.open,
-          reviews: d.review_queue?.length ?? 0,
-          joins: d.join_queue?.length ?? 0,
-        });
+        // Yengil endpoint: faqat uchta `COUNT`. Ilgari bu yerda `/dashboard/`
+        // chaqirilardi - u o'nlab vazifa, loyiha va tasmani seriyalizatsiya
+        // qiladi, ustiga muddat eslatmalarini tekshiradi. Uchta raqam uchun.
+        const d = await api.get<SidebarCounts>("/counts/");
+        if (alive) setCounts(d);
       } catch { /* jim */ }
     })();
     return () => { alive = false; };
-  }, [loc.pathname, tick]);
+  }, [tick]);
 
-  // Qo'shilish so'rovi kelsa yon paneldagi sanoq o'zi yangilansin.
+  // Sanoq navigatsiyada emas, HODISADA yangilanadi. Ilgari u har sahifa
+  // almashganda qayta so'ralardi - ya'ni menyu bo'ylab yurgan odam o'nlab
+  // ortiqcha so'rov yuborardi, holbuki raqamlar o'zgarmagan. WebSocket
+  // baribir ulangan: vazifa yoki qo'shilish so'rovi o'zgarsa shu yerdan
+  // xabar keladi.
   useEffect(() => subscribe((data) => {
-    if (data.event === "notification" && data.notification?.kind === "join.request") {
-      setTick((n) => n + 1);
-    }
+    const joinRequest =
+      data.event === "notification" && data.notification?.kind === "join.request";
+    if (joinRequest || data.event === "task.update") setTick((n) => n + 1);
   }), [subscribe]);
 
   // Yozish to'xtagach odam qidiriladi - har harfda so'rov yubormaymiz.
@@ -220,7 +223,13 @@ export default function Layout() {
         </aside>
 
         <div className="main">
-          <Outlet />
+          {/* Sahifa to'sig'i: bitta bo'lim yiqilsa yon panel, qidiruv va
+              bildirishnomalar joyida qoladi - odam boshqa bo'limga o'tib
+              ketaveradi. `key` manzil: yangi sahifada to'siq o'zi tiklanadi,
+              aks holda xato holati saqlanib qolardi. */}
+          <ErrorBoundary key={loc.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </div>
     </>
