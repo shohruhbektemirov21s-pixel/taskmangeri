@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.accounts.serializers import UserBriefSerializer
@@ -47,9 +48,8 @@ class ProjectBriefSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectBrief
-        fields = ["goal", "tech_stack", "architecture", "setup_steps", "conventions",
-                  "definition_of_done", "pitfalls", "contacts", "updated_by",
-                  "updated_at", "filled_ratio"]
+        fields = ["goal", "tech_stack", "architecture", "pitfalls", "contacts",
+                  "updated_by", "updated_at", "filled_ratio"]
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -234,7 +234,10 @@ class ProjectFileSerializer(serializers.ModelSerializer):  # noqa: E301
             "content_type": obj.content_type or "—",
             "description": obj.description or "",
             # Sana o'zbekcha ko'rinishda solishtiriladi - ekranda ham shunday.
-            "doc_date": obj.doc_date.strftime("%d.%m.%Y") if obj.doc_date else "—",
+            # Soat ham chiqadi: bir kunda ikki nusxa almashsa, tarixda ular
+            # bir xil qator bo'lib qolmasin.
+            "doc_date": (timezone.localtime(obj.doc_date).strftime("%d.%m.%Y %H:%M")
+                         if obj.doc_date else "—"),
         }
 
     def get_versions(self, obj):

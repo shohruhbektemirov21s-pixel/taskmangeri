@@ -1,15 +1,16 @@
 import { useEffect, useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Card, ErrorMsg, Loading, SpecialtyTag } from "@/components/ui";
+import { Card, Empty, ErrorMsg, Loading, SpecialtyTag } from "@/components/ui";
+import { toProject, useEntityId, useGo } from "@/nav";
 
 export default function JoinProject() {
   const fid = useId();
-  const { id } = useParams();
-  const nav = useNavigate();
+  const id = useEntityId("project");
+  const go = useGo();
   const { user, meta } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [message, setMessage] = useState("");
@@ -19,6 +20,7 @@ export default function JoinProject() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
     let alive = true;
     void api.get<Project>(`/projects/${id}/`).then((p) => {
       if (!alive) return;
@@ -30,19 +32,33 @@ export default function JoinProject() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!id) return;
     setBusy(true);
     setError(null);
     try {
       const res = await api.post<any>(`/projects/${id}/join/`, {
         message, desired_role: role, code,
       });
-      if (res.joined) nav(`/loyiha/${id}/kirish`);
-      else nav("/qoshilish");
+      if (res.joined) go(toProject(id, "kirish"));
+      else go("/qoshilish");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Sorov yuborishda xatolik");
     } finally {
       setBusy(false);
     }
+  }
+
+  // Manzilda loyiha raqami saqlanmaydi - havolani qo'lda ochgan odam shu
+  // yerga tushadi. Oq ekran emas, chiqish yo'li ko'rsatiladi.
+  if (!id) {
+    return (
+      <div className="content">
+        <Empty title="Loyiha tanlanmagan"
+               text="Bu sahifa loyiha ichidan ochiladi.">
+          <Link className="btn btn-primary" to="/loyihalar">Loyihalarim</Link>
+        </Empty>
+      </div>
+    );
   }
 
   if (!project) return <div className="content"><Loading /></div>;

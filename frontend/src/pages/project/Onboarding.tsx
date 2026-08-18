@@ -3,14 +3,12 @@ import { useFetch } from "@/api/useFetch";
 import type { OnboardingData, Project } from "@/api/types";
 import Timeline from "@/components/Timeline";
 import { Avatar, Card, ErrorMsg, Loading, Priority, Progress, StatusBadge, fmtDate, timeAgo } from "@/components/ui";
+import { toDeveloper, toProject, toTask } from "@/nav";
 
 const BRIEF_SECTIONS: [keyof NonNullable<OnboardingData["brief"]>, string][] = [
   ["goal", "Loyiha maqsadi"],
   ["tech_stack", "Texnologiyalar"],
   ["architecture", "Arxitektura"],
-  ["setup_steps", "Ishga tushirish"],
-  ["conventions", "Kelishuvlar"],
-  ["definition_of_done", "Tayyorlik mezoni"],
   ["pitfalls", "Ehtiyot boling"],
   ["contacts", "Kim nima boyicha javob beradi"],
 ];
@@ -49,10 +47,10 @@ export default function Onboarding({ project }: { project: Project }) {
             </div>
           </Card>
 
-          <Card title="2. Loyiha brifi"
+          <Card title="2. Loyiha arxitekturasi"
                 badge={d.brief && <span className="badge">{d.brief.filled_ratio}% toldirilgan</span>}
                 action={project.access.can_manage &&
-                  <Link className="btn btn-sm" to={`/loyiha/${project.id}/brif`}>Tahrirlash</Link>}>
+                  <Link className="btn btn-sm" {...toProject(project.id, "brif")}>Tahrirlash</Link>}>
             {d.brief ? (
               <div className="stack">
                 {BRIEF_SECTIONS.map(([key, label]) => {
@@ -66,10 +64,10 @@ export default function Onboarding({ project }: { project: Project }) {
                   );
                 })}
                 {d.brief.filled_ratio === 0 && (
-                  <p className="muted">Brif toldirilmagan.</p>
+                  <p className="muted">Arxitektura toldirilmagan.</p>
                 )}
               </div>
-            ) : <p className="muted">Brif yaratilmagan.</p>}
+            ) : <p className="muted">Arxitektura yozilmagan.</p>}
           </Card>
 
           <Card title="3. Muhim qarorlar va eslatmalar"
@@ -80,7 +78,9 @@ export default function Onboarding({ project }: { project: Project }) {
                   <div className="row">
                     <Avatar user={w.user} size="sm" />
                     <strong style={{ fontSize: 13 }}>{w.user.full_name}</strong>
-                    <Link className="mono muted" to={`/vazifa/${w.task}`}>{w.task_code}</Link>
+                    {w.task
+                      ? <Link className="mono muted" {...toTask(w.task)}>{w.task_code}</Link>
+                      : <span className="mono muted">{w.task_code}</span>}
                     <span className="spacer" />
                     <small className="muted">{w.hours} soat · {fmtDate(w.work_date)}</small>
                   </div>
@@ -98,7 +98,9 @@ export default function Onboarding({ project }: { project: Project }) {
                 <li key={r.id}>
                   <div className="row">
                     <span className="badge badge-warn">{r.verdict_display}</span>
-                    <Link className="mono" to={`/vazifa/${r.task}`}>{r.task_code}</Link>
+                    {r.task
+                      ? <Link className="mono" {...toTask(r.task)}>{r.task_code}</Link>
+                      : <span className="mono">{r.task_code}</span>}
                     <span className="muted">{r.task_title}</span>
                     <span className="spacer" />
                     <small className="muted">{r.reviewer?.full_name} · {timeAgo(r.created_at)}</small>
@@ -120,7 +122,7 @@ export default function Onboarding({ project }: { project: Project }) {
             <div className="card-list">
               {d.contributions.map((c) => (
                 <Link key={c.member.id} className="card-body tight"
-                      to={`/loyiha/${project.id}/dasturchi/${c.member.user.id}`}
+                      {...toDeveloper(project.id, c.member.user.id)}
                       style={{ color: "inherit", textDecoration: "none", display: "block" }}>
                   <div className="row">
                     <Avatar user={c.member.user} size="sm" />
@@ -154,7 +156,7 @@ export default function Onboarding({ project }: { project: Project }) {
                 {d.open_now.map((t) => (
                   <tr key={t.id}>
                     <td className="mono muted nowrap">{t.code}</td>
-                    <td><Link to={`/vazifa/${t.id}`}>{t.title}</Link></td>
+                    <td><Link {...toTask(t.id)}>{t.title}</Link></td>
                     <td><Priority task={t} /></td>
                   </tr>
                 ))}
@@ -171,7 +173,7 @@ export default function Onboarding({ project }: { project: Project }) {
                 {d.recent_done.map((t) => (
                   <tr key={t.id}>
                     <td className="mono muted nowrap">{t.code}</td>
-                    <td><Link to={`/vazifa/${t.id}`}>{t.title}</Link></td>
+                    <td><Link {...toTask(t.id)}>{t.title}</Link></td>
                     <td><StatusBadge task={t} /></td>
                   </tr>
                 ))}

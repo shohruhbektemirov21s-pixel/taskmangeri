@@ -9,6 +9,7 @@ import {
   AvatarStack, Card, Empty, ErrorMsg, Loading, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
 import { useLive } from "@/realtime/RealtimeContext";
+import { toTask } from "@/nav";
 
 /** «Qaytarish» uchun qaror kodi - serverdagi ro'yxatdan qidiriladi. */
 const REJECT_HINTS = ["CHANGES_REQUESTED", "REJECTED", "RETURNED"];
@@ -99,7 +100,7 @@ export default function ReviewQueue() {
                   <Fragment key={t.id}>
                     <tr>
                       <td>
-                        <Link to={`/vazifa/${t.id}`} style={{ fontWeight: 600 }}>{t.title}</Link>
+                        <Link {...toTask(t.id)} style={{ fontWeight: 600 }}>{t.title}</Link>
                         <div className="row" style={{ gap: 6, marginTop: 3 }}>
                           <span className="mono muted" style={{ fontSize: 11.5 }}>{t.code}</span>
                           <Priority task={t} />
@@ -159,7 +160,7 @@ export default function ReviewQueue() {
                             <div className="row">
                               <button className="btn btn-primary" disabled={busy}
                                       onClick={() => void submit(t.id)}>Qarorni saqlash</button>
-                              <Link className="btn" to={`/vazifa/${t.id}`}>Vazifani toliq korish</Link>
+                              <Link className="btn" {...toTask(t.id)}>Vazifani toliq korish</Link>
                               <button className="btn btn-ghost" onClick={() => setOpen(null)}>
                                 Bekor qilish
                               </button>

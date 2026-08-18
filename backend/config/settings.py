@@ -76,6 +76,9 @@ INSTALLED_APPS = [
     "apps.activity",
     "apps.notifications",
     "apps.chat",
+    # Telegram boti: bildirishnomalarni Telegramga ham uzatadi.
+    # Token qo'yilmasa butunlay jim turadi (`apps/telegram/client.is_configured`).
+    "apps.telegram",
 ]
 
 MIDDLEWARE = [
@@ -147,6 +150,16 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "uz"
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
+
+# ---------------------------------------------------------------- Telegram
+# Token @BotFather dan olinadi va `backend/.env` da turadi. Qo'yilmasa
+# Telegram qismi butunlay o'chadi: ilova oldingidek ishlayveradi, faqat
+# xabar yuborilmaydi va profildagi bo'lim ko'rinmaydi.
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
+# Telegramdagi tugmalar shu manzilga olib boradi. Bo'sh bo'lsa tugma
+# umuman chizilmaydi - ishlamaydigan havoladan ko'ra yo'g'i yaxshi.
+SITE_URL = os.getenv("SITE_URL", "")
 USE_I18N = True
 USE_TZ = True
 

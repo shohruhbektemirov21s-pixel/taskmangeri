@@ -77,6 +77,34 @@
   --btn: #1b212a;
   --btn-hover: #242c37;
 
+  /* ---------- shisha (glassmorphism) ----------
+     Butun ilova shu tilda: qobiq sathlari (yon panel, sarlavha, kartalar)
+     yarim shaffof va orqasidagini xiralashtiradi.
+
+     Ikki qism bor. `--glass-tint-*` - tuval ortidagi rangli yoyilmalar:
+     ularsiz `backdrop-filter` xiralashtiradigan narsa topmaydi va shisha
+     oddiy shaffof qutiga aylanadi. `--glass-fill/border/edge/shadow` -
+     shishaning o'zi: yarim shaffof to'ldirma, yorug' qirra va soya.
+
+     Uchala yoyilma BITTA ohangda (asosiy ko'k), faqat quyuqligi har xil.
+     Har xil rang qo'yilganda kartalar har xil rangga bo'yalib ketardi -
+     biri ko'k, biri yashil, biri siyohrang.
+
+     Quyuqlik ataylab past: fon ko'zga tashlansa uzoq ishlaganda charchatadi.
+     U yerda turgani sezilsin, lekin o'qilayotgan narsa bilan raqobatlashmasin. */
+  --glass-tint-1: rgba(106, 141, 255, .26);
+  --glass-tint-2: rgba(106, 141, 255, .17);
+  --glass-tint-3: rgba(106, 141, 255, .12);
+  --glass-fill: linear-gradient(140deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .035));
+  --glass-border: rgba(255, 255, 255, .13);
+  --glass-line: rgba(255, 255, 255, .14);
+  --glass-shadow: 0 10px 34px rgba(0, 0, 0, .42);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, .14);
+  /* Xiralik: kuchli blur chiroyli ko'rinadi-yu, har bir sath uchun brauzer
+     alohida qatlam chizadi - sahifada o'nlab shisha bo'lsa aylantirish
+     sekinlashadi. 14px yetarli va yengil. */
+  --glass-blur: blur(14px) saturate(150%);
+
   --radius: 10px;
   --radius-lg: 12px;
   --radius-pill: 999px;
@@ -136,6 +164,19 @@
   --green-hover: #2a54e6;
   --btn: #ffffff;
   --btn-hover: #f1f5f9;
+
+  /* Oq fonda shisha OQ bo'ladi, qora emas: to'ldirma ham, qirra ham oqning
+     shaffof qatlami. To'ldirma quyuqroq - och tuvalda matn kontrasti
+     tushib ketmasin (kartadagi kulrang yozuvlar o'qilishi kerak). */
+  --glass-tint-1: rgba(53, 98, 255, .26);
+  --glass-tint-2: rgba(53, 98, 255, .17);
+  --glass-tint-3: rgba(53, 98, 255, .12);
+  --glass-fill: linear-gradient(140deg, rgba(255, 255, 255, .70), rgba(255, 255, 255, .50));
+  --glass-border: rgba(255, 255, 255, .85);
+  --glass-line: rgba(148, 163, 184, .30);
+  --glass-shadow: 0 10px 30px rgba(16, 24, 40, .08);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, .95);
+  --glass-blur: blur(14px) saturate(150%);
 }
 
 * { box-sizing: border-box; }
@@ -152,12 +193,20 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Fon: bitta zaif, qimirlamaydigan yorugʻlik. Avval bu yerda aylanib
-   turadigan to'rtta rangli dogʻ bor edi - u har doim harakatda bo'lib,
-   uzoq ishlaganda charchatardi. */
+/* Fon: uchta zaif, QIMIRLAMAYDIGAN yorugʻlik. Shisha sathlar shuni
+   xiralashtiradi - tekis tuval ustida `backdrop-filter` hech narsa
+   bermaydi va karta oddiy shaffof qutiga o'xshab qolardi.
+
+   Avval bu yerda aylanib turadigan to'rtta rangli dogʻ bor edi - u har
+   doim harakatda bo'lib, uzoq ishlaganda charchatardi. Shuning uchun
+   bular qo'zg'almaydi, bitta ohangda va juda zaif: sezilsin, lekin
+   o'qilayotgan matn bilan raqobatlashmasin. */
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(70% 55% at 50% -8%, rgba(95, 131, 232, .07), transparent 70%);
+  background:
+    radial-gradient(58% 40% at 16% -8%, var(--glass-tint-1), transparent 68%),
+    radial-gradient(50% 36% at 90% 2%, var(--glass-tint-2), transparent 70%),
+    radial-gradient(66% 46% at 46% 106%, var(--glass-tint-3), transparent 72%);
 }
 
 a { color: var(--accent); text-decoration: none; transition: color .15s, opacity .15s; }
@@ -412,6 +461,10 @@ html, body { transition: background-color .18s ease, color .18s ease; }
   box-shadow: var(--gloss), var(--shadow);
 }
 .card + .card { margin-top: 16px; }
+/* `id` berilgan karta - sahifa ichidan olib tushiladigan karta (masalan
+   panelda «Dasturchilarim» → «Jamoam»). Tepa panel yopishqoq, shuning uchun
+   kartaning sarlavhasi uning ostida qolib ketmasin. */
+.card[id] { scroll-margin-top: calc(var(--header-h) + 16px); }
 /* Karta sarlavhasi dizaynda kulrang tasma emas - oq sathda qolib, faqat
    nozik chiziq bilan ajraladi. */
 .card-head {
@@ -457,6 +510,18 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 /* Dizaynda kontent ustuni ~1170px va kartalar uchtadan turadi - shuning
    uchun eng kichik kenglik shunga qarab tanlangan. */
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+/* Loyihalar setkasi: bir qatorda ATAYLAB uchta.
+   `auto-fit` bilan bo'lmaydi - kontent ustuni ~890px, ya'ni u o'zi
+   ikkitaga bo'lib qo'yardi. Tor ekranda ikkitaga, telefonda bittaga
+   tushadi: uchta karta 300px dan tor bo'lsa raqamlar siqilib ketadi. */
+.grid-projects { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+/* Uchtalik noutbukda ham saqlanadi - ikkitaga faqat yon panel yig'ilgan
+   kenglikda tushadi, telefonda esa bittaga. */
+@media (max-width: 900px) { .grid-projects { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .grid-projects { grid-template-columns: minmax(0, 1fr); } }
+/* Uchtadan turganda karta tor - ichki bo'shliqlar ham qisqaradi. */
+.grid-projects .pcard { padding: 16px; }
+.grid-projects .pcard-foot { gap: 14px; }
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .grid-4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .split { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
@@ -519,7 +584,6 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 .badge-info { color: var(--accent); background: var(--accent-soft); }
 .badge-brand { color: var(--done); background: var(--done-soft); }
 
-.st-BACKLOG { color: var(--muted); background: var(--surface-3); }
 .st-TODO { color: var(--accent); background: var(--accent-soft); }
 .st-IN_PROGRESS { color: var(--attention); background: var(--attention-soft); }
 .st-IN_REVIEW { color: var(--done); background: var(--done-soft); }
@@ -806,7 +870,6 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   box-shadow: var(--gloss), var(--shadow);
   transition: transform .18s cubic-bezier(.3, .9, .3, 1), box-shadow .18s;
 }
-.stat:hover { transform: translateY(-2px); box-shadow: var(--gloss-strong), var(--shadow-lg); }
 .stat .v { font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; }
 .stat .k { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
 .stat.accent .v { color: var(--accent); }
@@ -815,9 +878,21 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .stat.warn .v { color: var(--attention); }
 .stat.done .v { color: var(--done); }
 /* Bosiladigan ko'rsatkich: havola bo'lsa ham matn rangi o'zgarmasin,
-   lekin sichqoncha va chekka rangi "bosilaman" deb tursin. */
-.stat.clickable { display: block; text-decoration: none; color: inherit; cursor: pointer; }
-.stat.clickable:hover { border-color: var(--accent); }
+   lekin sichqoncha va chekka rangi "bosilaman" deb tursin.
+   `width`/`text-align`/`font`: katak `<button>` bo'lganda ham `<a>` bilan
+   bir xil ko'rinsin - brauzer tugmaga o'z shrifti va markazlashini beradi. */
+.stat.clickable {
+  display: block; width: 100%; text-align: left; font: inherit;
+  text-decoration: none; color: inherit; cursor: pointer;
+}
+/* Ko'tarilish FAQAT shu yerda. Ilgari `.stat:hover` HAMMA katakka tegishli
+   edi: sichqoncha tekkanda «Sarflangan soat» ham, «Loyiha boshlanish sanasi»
+   ham ko'tarilardi - odam ularni bosib ko'rar va hech narsa ochilmagach
+   "buzuq" deb o'ylardi. */
+.stat.clickable:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px); box-shadow: var(--gloss-strong), var(--shadow-lg);
+}
 
 /* Ko'rsatkich kataklari qatori.
    `grid-4` dagi `1fr` katakni butun ekran bo'ylab cho'zib yuborardi: keng
@@ -839,6 +914,101 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   /* Telefonda ikkitadan - bitta ustunda raqamlar juda uzun ro'yxat bo'lardi */
   .grid-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-stats .stat { min-height: 88px; padding: 16px; }
+}
+
+/* ============ PANELDAGI TAXTALAR ============
+   Ikki qator: yuqorida davr kesimi (yil / oy / hafta), pastda muddat
+   holati. Oltala karta BIR XIL: bitta ko'k sath, bitta chegara, bitta
+   radius. Ilgari pastki qator sariq va pushti edi - bir ekranda uch xil
+   rang turgach, ko'z ma'noni emas, rangni o'qiy boshlardi. */
+/* Raqamlar kimniki - taxtalardan yuqorida, bir qatorda. */
+.scope-note {
+  margin: 0 0 12px; font-size: 12.5px; color: var(--muted);
+}
+
+.period-grid,
+.deadline-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.deadline-grid { margin-top: 14px; }
+
+/* Ko'rinishi (shisha to'ldirmasi, qirra, soya) fayl oxiridagi umumiy
+   SHISHA blokidan keladi - bu yerda faqat shu ikki kartaga xos o'lchamlar. */
+.stat-band,
+.deadline-card { border-radius: 18px; }
+.stat-band:hover,
+.deadline-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), var(--glass-edge);
+}
+
+/* ---- Yuqori qator: davr kesimi ---- */
+.stat-band { padding: 16px 8px 18px; }
+.stat-band-head { text-align: center; padding: 0 10px; }
+.stat-band-title {
+  margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text);
+  letter-spacing: -.01em;
+}
+/* Sarlavha ostidagi sana: «yil boshidan» degani qaysi kundan sanalayotganini
+   aytmaydi - shu qator aytadi. */
+.stat-band-since {
+  margin: 3px 0 0; font-size: 11px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-band-row {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+}
+/* Raqamlar YUQORIDAN tekislanadi. `center` bo'lganda ikki qatorga tushgan
+   yorliq ("Muddati o'tgan") o'z katagidagi raqamni tepaga surib yuborardi
+   va uchta son bir chiziqda turmasdi. */
+.stat-band-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 5px; padding: 2px 3px; text-align: center; min-width: 0;
+}
+/* Ajratgich - ingichka chiziq, taxtaning ko'k fonida ko'rinadigan darajada.
+   Ilgari qalin ko'k tayoq edi: uchta taxtada oltita tayoq ekranning eng
+   to'q elementi bo'lib qolib, ko'z raqamlarga emas, chiziqlarga tushardi. */
+.stat-band-cell + .stat-band-cell { border-left: 1px solid var(--glass-line); }
+/* 11px - «Muddati o'tgan» eng tor ustunda ham BIR QATORDA sig'sin.
+   Ikki qatorga tushganda karta baland bo'lib, uchta taxta bir tekisda
+   turmay qolardi. */
+.stat-band-cell .k { font-size: 11px; color: var(--muted); text-wrap: balance; }
+
+/* ---- Pastki qator: muddat holati ----
+   Sarlavha tepada, raqam ostida - yuqoridagi taxtalarda aksincha (raqam
+   tepada). Ataylab shunday: ikki qator bir xil bo'lsa ular bitta uzun
+   ro'yxatga qo'shilib ketardi, endi ko'z ularni ikki blok deb ajratadi. */
+.deadline-card {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 18px 14px; text-align: center;
+}
+.deadline-card .k {
+  font-size: 12.5px; font-weight: 600; color: var(--text); text-wrap: balance;
+}
+
+/* ---- Raqamlar: ikkala qatorda ham bir xil ---- */
+.stat-band-cell .v,
+.deadline-card .v {
+  font-size: 28px; font-weight: 750; line-height: 1.1; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;   /* son o'zgarganda kenglik sakramasin */
+  color: var(--accent);
+}
+/* Nol - so'ngan rangda: "0 ta kechikkan ish" xabar emas, tinchlik. */
+.stat-band-cell .v.zero,
+.deadline-card .v.zero { color: var(--subtle); }
+
+/* Yon panel shu kenglikda yig'iladi - taxtalar ham shu yerda ustma-ust
+   tushadi: uchovi yonma-yon qolsa raqamlar siqilib o'qilmay qolardi. */
+@media (max-width: 900px) {
+  .period-grid, .deadline-grid { grid-template-columns: minmax(0, 1fr); }
+  .stat-band { padding: 16px 12px 18px; }
+}
+@media (max-width: 620px) {
+  .stat-band-cell .v, .deadline-card .v { font-size: 24px; }
+  .stat-band-cell .k { font-size: 11px; }
 }
 
 .progress {
@@ -1092,6 +1262,80 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    1-qator kun raqamlari, qolganlari tasma qatorlari. Katak foni
    (`.cal-col`) butun hafta balandligiga cho'ziladi va DOM da birinchi
    turadi, ya'ni tasmalar uning ustiga tushadi. */
+/* Orqaga tugmasi. Bosilmaydigan holatda ham JOYIDA qoladi - yashirilsa
+   qidiruv maydoni har sahifada o'ngga-chapga sakrab turardi. */
+.top-back:disabled { opacity: .35; cursor: default; }
+.top-back:disabled:hover { background: transparent; color: var(--muted); }
+@media (max-width: 620px) { .top-back { margin-right: 2px; } }
+
+/* Admin jadvalidagi rol tanlagichi: standart `select` katak kengligiga
+   siqilib, matni ko'rinmay qolardi. */
+.admin-role { min-width: 150px; }
+
+/* Telegramga ulanish qadamlari - ikkinchisini ilova bajara olmaydi
+   (odam botga o'zi `/start` bosishi kerak), shuning uchun ular ochiq
+   ro'yxat bo'lib turadi, yashirin yo'riqnoma emas. */
+.tg-steps { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.7; }
+.tg-steps li + li { margin-top: 4px; }
+.tg-steps code { font-size: 12px; }
+
+/* ---- «Jamoa tarkibi»: mutaxassislik ochiladi ----
+   «Frontend dasturchi 1» degani KIM ekanini aytmaydi. Qator bosilganda
+   ism-familiya chiqadi, ism esa o'sha odamning shu loyihadagi hisobotiga
+   olib boradi. */
+.spec-row {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 8px; border-radius: var(--radius); font: inherit;
+  color: var(--text); text-align: left; cursor: pointer;
+  transition: background .15s;
+}
+.spec-row:hover { background: var(--veil-soft); }
+.spec-row.open { background: var(--accent-soft); }
+/* Bosilmaydigan qator: a'zosi ko'rinmaydigan mutaxassislik. */
+.spec-row.static { cursor: default; }
+.spec-row.static:hover { background: transparent; }
+.spec-caret { color: var(--muted); font-size: 11px; width: 10px; }
+
+.spec-people {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: 2px 0 6px; padding-left: 8px;
+  border-left: 2px solid var(--accent-soft);
+}
+.spec-person {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 8px; border-radius: var(--radius); color: var(--text);
+  transition: background .15s;
+}
+.spec-person:hover { background: var(--veil-soft); text-decoration: none; }
+.spec-person-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.spec-person-text strong { font-size: 13px; font-weight: 600; }
+.spec-person-text small { font-size: 11.5px; }
+
+/* ---- Taqvim sahifasi: chapda oy, o'ngda tanlangan kun ----
+   Kun ro'yxati ilgari taqvimning OSTIDA ochilardi. Uni o'qish uchun
+   sahifani pastga aylantirish kerak edi, o'sha payt esa taqvimning o'zi
+   ekrandan chiqib ketardi: "men qaysi kunni bosgan edim?" degan savol
+   javobsiz qolardi. Endi ikkovi bir ekranda.
+
+   Kun tanlanmagan bo'lsa o'ng ustun UMUMAN yo'q - taqvim butun kenglikni
+   oladi (`with-day` sinfisiz `grid-template-columns` berilmaydi). */
+.cal-layout { display: grid; gap: 16px; align-items: start; margin-bottom: 18px; }
+.cal-layout.with-day { grid-template-columns: minmax(0, 1fr) 330px; }
+/* Panel yopishib turadi: uzun ro'yxatni aylantirganda ham taqvim
+   yonida qoladi. */
+.cal-day { position: sticky; top: 88px; }
+.cal-day .card-body.tight { padding: 10px 14px; }
+/* Tor ustunda `spacer` faqat qatorni uzaytirardi - endi u qator uzuvchi:
+   sana va ijrochilar o'z satriga tushadi. */
+.cal-day .card-body .spacer { flex: 1 0 100%; height: 0; }
+.cal-day .nowrap { white-space: normal; }
+
+@media (max-width: 1100px) {
+  /* Tor ekranda yonma-yon sig'maydi - panel yana pastga tushadi. */
+  .cal-layout.with-day { grid-template-columns: minmax(0, 1fr); }
+  .cal-day { position: static; }
+}
+
 .cal-bar-top {
   display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
   padding: 14px 16px; border-bottom: 1px solid var(--border);
@@ -1671,10 +1915,22 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   border-top: 1px dashed var(--border-muted);
 }
 .pick-task { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+/* Vazifa nomi - TUGMA: bosilganda o'sha qatorning o'rnida tahrir formasi
+   ochiladi. Brauzer tugmasidan qolgan hamma narsa (fon, ramka, shrift,
+   markazlash) qaytariladi - qator ilgarigidek matn bo'lib ko'rinsin. */
 .pick-task-title {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
 }
+.pick-task-title:hover { color: var(--accent); text-decoration: underline; }
 .pick-add { display: grid; gap: 7px; }
+/* Tahrir ochilgan forma - qo'shish formasidan ajralib tursin: odam qaysi
+   qatorni ochganini bir qarashda ko'rsin. */
+.pick-add.editing {
+  border: 1px solid var(--accent); border-radius: 10px;
+  padding: 9px; background: var(--accent-soft);
+}
 .pick-add input, .pick-add select { min-height: 34px; padding: 5px 11px; font-size: 13px; }
 .pick-add .err { color: var(--danger); font-size: 12px; }
 .pick-date { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 132px; }
@@ -1810,3 +2066,75 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .pw-toggle:active { transform: translateY(-50%) scale(.92); }
 /* Brauzerning o'z "parolni ko'rsatish" tugmasi ikkilanmasin */
 .pw-input::-ms-reveal, .pw-input::-ms-clear { display: none; }
+
+/* ============ SHISHA (glassmorphism) — butun ilova ============
+
+   NEGA FAYL OXIRIDA. Bu blok yuqoridagi `background: var(--surface)`
+   qoidalarini qayta yozadi. Tanlagichlar kuchi bir xil bo'lgani uchun
+   g'alaba TARTIBGA bog'liq: shu sabab u eng oxirida turadi va har bir
+   sathga alohida qo'l tegizish shart bo'lmaydi.
+
+   NIMA SHISHA BO'LADI. Faqat QOBIQ: yon panel, sarlavha, kartalar, doska
+   ustunlari, filtr paneli. Ular tuval ustida turadi - orqasida sahifa
+   foni bor, ya'ni xiralashtiradigan narsa bor.
+
+   NIMA SHISHA BO'LMAYDI (ataylab). Ochiluvchi ro'yxatlar (`.popover`,
+   `.top-hits`, `.menu-pop`), modal oyna va jadvalning yopishqoq ustuni -
+   ular BOSHQA MATN ustida turadi. Shaffof bo'lsa ostidagi yozuv ko'rinib,
+   ikki qatlam matn bir-biriga qorishib ketardi. Ular qattiq sathda qoladi. */
+.gh-top, .sidebar, .sidebar-footer,
+.card, .pcard, .stat, .column, .filters,
+.auth-box, .lp-card, .flow, .demo,
+.stat-band, .deadline-card {
+  background: var(--glass-fill);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-edge);
+}
+
+/* Ichma-ich shisha ISHLAMAYDI: yon panel etagi yon panelning o'zi ustida
+   turadi, ikki qavat to'ldirma bir-biriga qo'shilib oqarib ketardi.
+   Shuning uchun ichkaridagilar faqat nozik qirra oladi. */
+.sidebar-footer {
+  background: var(--veil-soft); box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+
+/* Yon panel va sarlavha - butun ekran bo'ylab cho'zilgan katta sathlar.
+   Ularga karta soyasi kerak emas, faqat ajratuvchi chegara. */
+.gh-top, .sidebar { box-shadow: var(--glass-edge); }
+
+/* Kartani bosish mumkin bo'lsa - ko'tariladi. Shisha qirrasi saqlanadi,
+   aks holda hover paytida yuqoridagi yorug' chiziq yo'qolib, karta
+   "o'chib qolgandek" ko'rinardi. */
+.pcard:hover, .stat.clickable:hover, .lp-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg), var(--glass-edge);
+}
+
+/* KO'Z QULAYLIGI. Windows'da «Transparency effects» o'chirilgan bo'lsa
+   (yoki macOS'da «Reduce transparency») brauzer shuni aytadi. Bu odamning
+   ATAYLAB qilgan tanlovi: shaffof sath ostidan ko'rinib turgan narsa uni
+   charchatadi yoki chalg'itadi - ustiga yozilgan matnni o'qish qiyin.
+   Shuning uchun bunday holda sath QATTIQ bo'ladi.
+
+   Lekin ko'rinish butunlay o'zgarmaydi: fon yoyilmasi, radiuslar, yorug'
+   qirra va soyalar o'z joyida qoladi. Yoyilma sathning ORQASIDA turadi va
+   matn ostidan ko'rinmaydi - ya'ni u shaffoflik muammosi emas. Natijada
+   ikkala rejim bitta ilovaga o'xshaydi, faqat birida shisha xiralashtiradi,
+   ikkinchisida yo'q. */
+@media (prefers-reduced-transparency: reduce) {
+  .gh-top, .sidebar, .card, .pcard, .stat, .column, .filters,
+  .auth-box, .lp-card, .flow, .demo, .stat-band, .deadline-card {
+    background: var(--surface); border-color: var(--border);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: var(--glass-shadow), var(--glass-edge);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .gh-top, .sidebar, .card, .pcard, .stat, .column, .filters,
+  .auth-box, .lp-card, .flow, .demo, .stat-band, .deadline-card {
+    background: var(--surface); border-color: var(--border);
+  }
+}

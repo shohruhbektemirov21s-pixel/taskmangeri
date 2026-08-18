@@ -1,3 +1,10 @@
+/**
+ * Marshrutlarda IDENTIFIKATOR YO'Q: `/loyiha/6` emas, `/loyiha`.
+ *
+ * Qaysi loyiha (yoki vazifa, odam, ish maydoni) ochilayotgani sahifa
+ * holatida uzatiladi - `src/nav/index.ts` ga qarang. Shu sabab bu yerda
+ * `:id` ham, `:taskId` ham, `:slug` ham yo'q.
+ */
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -38,12 +45,22 @@ const Search = lazy(() => import("@/pages/Search"));
 const PublicProject = lazy(() => import("@/pages/PublicProject"));
 const Notifications = lazy(() => import("@/pages/Notifications"));
 const Messages = lazy(() => import("@/pages/Messages"));
+const Admin = lazy(() => import("@/pages/Admin"));
 const WorkspaceChat = lazy(() => import("@/pages/WorkspaceChat"));
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Loading text="Yuklanmoqda..." />;
   if (!user) return <Navigate to="/kirish" replace />;
+  return <>{children}</>;
+}
+
+/** Admin panel - faqat platforma admini. Serverda ham shu tekshiriladi
+    (`IsPlatformAdmin`), bu yerda faqat sahifa yashiriladi. */
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Loading />;
+  if (!user?.is_platform_admin) return <Navigate to="/panel" replace />;
   return <>{children}</>;
 }
 
@@ -70,7 +87,7 @@ export default function App() {
       <Route path="/" element={<GuestOnly><Landing /></GuestOnly>} />
       {/* Ochiq sahifalar: kirmagan odam ham ko'radi */}
       <Route path="/qidiruv" element={<Search />} />
-      <Route path="/ochiq-loyiha/:id" element={<PublicProject />} />
+      <Route path="/ochiq-loyiha" element={<PublicProject />} />
 
       <Route path="/kirish" element={<GuestOnly><Login /></GuestOnly>} />
       <Route path="/royxatdan-otish" element={<GuestOnly><Register /></GuestOnly>} />
@@ -80,28 +97,30 @@ export default function App() {
         <Route path="/mening-ishim" element={<MyWork />} />
         <Route path="/loyihalar" element={<Projects />} />
         <Route path="/qoshilish" element={<Discover />} />
+        {/* Aniq nomli marshrutlar `:tab` dan OLDIN turishi shart emas -
+            React Router qat'iy bo'lakni har doim o'zgaruvchidan ustun
+            qo'yadi - lekin o'qiganda tartib tushunarli bo'lsin. */}
         <Route path="/loyiha/yangi" element={<ManagerOnly><ProjectForm /></ManagerOnly>} />
-        <Route path="/loyiha/:id/tahrir" element={<ProjectForm />} />
-        <Route path="/loyiha/:id/qoshilish" element={<JoinProject />} />
-        <Route path="/loyiha/:id/vazifa-yaratish" element={<TaskForm />} />
-        <Route path="/loyiha/:id/koplab-vazifa" element={<TaskBulkForm />} />
-        <Route path="/loyiha/:id/dasturchi/:userId" element={<DeveloperReport />} />
-        <Route path="/loyiha/:id/:tab?" element={<ProjectDetail />} />
-        <Route path="/vazifa/:taskId" element={<TaskDetail />} />
-        <Route path="/vazifa/:taskId/tahrir" element={<TaskForm />} />
+        <Route path="/loyiha/tahrir" element={<ProjectForm />} />
+        <Route path="/loyiha/qoshilish" element={<JoinProject />} />
+        <Route path="/loyiha/vazifa-yaratish" element={<TaskForm />} />
+        <Route path="/loyiha/koplab-vazifa" element={<TaskBulkForm />} />
+        <Route path="/loyiha/dasturchi" element={<DeveloperReport />} />
+        <Route path="/loyiha/:tab?" element={<ProjectDetail />} />
+        <Route path="/vazifa/tahrir" element={<TaskForm />} />
+        <Route path="/vazifa" element={<TaskDetail />} />
         <Route path="/tekshiruv" element={<ReviewQueue />} />
         <Route path="/tarix" element={<Feed />} />
         <Route path="/taqvim" element={<CalendarPage />} />
         <Route path="/jamoa" element={<People />} />
         <Route path="/ish-maydonlari" element={<Workspaces />} />
         <Route path="/ish-maydoni/yangi" element={<ManagerOnly><WorkspaceForm /></ManagerOnly>} />
-        <Route path="/ish-maydoni/:slug/chat" element={<WorkspaceChat />} />
-        <Route path="/ish-maydoni/:slug" element={<WorkspaceDetail />} />
+        <Route path="/ish-maydoni/chat" element={<WorkspaceChat />} />
+        <Route path="/ish-maydoni" element={<WorkspaceDetail />} />
         <Route path="/xabarlar" element={<Messages />} />
-        <Route path="/xabarlar/:userId" element={<Messages />} />
         <Route path="/bildirishnomalar" element={<Notifications />} />
         <Route path="/profil" element={<Profile />} />
-        <Route path="/profil/:userId" element={<Profile />} />
+        <Route path="/admin" element={<AdminOnly><Admin /></AdminOnly>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/panel" replace />} />

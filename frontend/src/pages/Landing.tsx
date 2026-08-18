@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { Logo } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -7,6 +7,7 @@ import {
   IconBoard, IconFile, IconHistory, IconReview, IconSearch, IconTasks, IconUsers,
   IconWorkspace,
 } from "@/components/icons";
+import { toSearch, useGo } from "@/nav";
 
 const FEATURES = [
   { cls: "", ico: <IconWorkspace size={20} />, h: "Loyihalar",
@@ -49,7 +50,7 @@ interface PublicStats {
 }
 
 export default function Landing() {
-  const nav = useNavigate();
+  const go = useGo();
   const [q, setQ] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
   // Raqamlar qo'lda yozilmaydi - ochiq endpointdan olinadi, hisobsiz ham ishlaydi.
@@ -94,7 +95,7 @@ export default function Landing() {
             className="gh-search"
             onSubmit={(e) => {
               e.preventDefault();
-              nav(`/qidiruv?q=${encodeURIComponent(q.trim())}`);
+              go(toSearch(q.trim()));
             }}
           >
             <IconSearch size={14} />
@@ -234,7 +235,7 @@ export default function Landing() {
                  qaysi tasklari qaytarilgan va nima yozib qoldirgan.</p>
             </div>
             <div className="lp-card">
-              <h3>Loyiha brifi</h3>
+              <h3>Loyiha arxitekturasi</h3>
               <p>Maqsad, texnologiyalar, arxitektura, ishga tushirish qadamlari,
                  kelishuvlar va ehtiyot boling royxati.</p>
             </div>

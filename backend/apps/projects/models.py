@@ -423,12 +423,6 @@ class ProjectBrief(models.Model):
                                   help_text="Django 5, PostgreSQL, Docker, React ...")
     architecture = models.TextField("Arxitektura", blank=True,
                                     help_text="Papkalar tuzilishi, asosiy modullar, integratsiyalar")
-    setup_steps = models.TextField("Ishga tushirish", blank=True,
-                                   help_text="docker compose up ... kabi qadamlar")
-    conventions = models.TextField("Kelishuvlar", blank=True,
-                                   help_text="Kod uslubi, branch nomlash, commit qoidalari, PR jarayoni")
-    definition_of_done = models.TextField("Umumiy 'tayyor' mezoni", blank=True,
-                                          help_text="Har bir task qachon tugagan hisoblanadi")
     pitfalls = models.TextField("Ehtiyot boling", blank=True,
                                 help_text="Avval yol qoyilgan xatolar, tuzoqlar")
     contacts = models.TextField("Kim nima boyicha javob beradi", blank=True)
@@ -445,8 +439,7 @@ class ProjectBrief(models.Model):
 
     @property
     def filled_ratio(self):
-        fields = ["goal", "tech_stack", "architecture", "setup_steps",
-                  "conventions", "definition_of_done", "pitfalls", "contacts"]
+        fields = ["goal", "tech_stack", "architecture", "pitfalls", "contacts"]
         filled = sum(1 for f in fields if (getattr(self, f) or "").strip())
         return round(filled * 100 / len(fields))
 
@@ -483,7 +476,11 @@ class ProjectFile(SoftDeleteModel):
     # tasdiqlangan kun. `created_at` (fayl tizimga yuklangan lahza) bilan bir
     # xil emas - o'tgan yilgi shartnoma bugun yuklanishi mumkin. Shuning
     # uchun alohida maydon; ko'rsatilmasa bo'sh qoladi.
-    doc_date = models.DateField("Hujjat sanasi", null=True, blank=True)
+    #
+    # SOAT ham saqlanadi: bir kunda bir necha bayonnoma yoki tuzatish
+    # kelganda faqat kun bilan qaysi biri keyingi ekanini ayta olmasdik -
+    # ro'yxatda ular bir xil sana bilan yonma-yon turardi.
+    doc_date = models.DateTimeField("Hujjat sanasi va vaqti", null=True, blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                     null=True, related_name="project_files")
     # Nechanchi nusxa. Bir xil nomli hujjat qayta yuklansa yangi qator emas,
@@ -550,7 +547,7 @@ class ProjectFileVersion(models.Model):
     description = models.CharField("Izoh", max_length=250, blank=True)
     # Eski nusxadagi hujjat sanasi - almashtirishda u ham o'zgargan bo'lishi
     # mumkin, tarixda qanday bo'lgani ko'rinib tursin.
-    doc_date = models.DateField("Hujjat sanasi", null=True, blank=True)
+    doc_date = models.DateTimeField("Hujjat sanasi va vaqti", null=True, blank=True)
 
     # Shu nusxani kim va qachon yuklagan edi
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,

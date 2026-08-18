@@ -19,6 +19,7 @@ import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import AddMemberBox from "./AddMemberBox";
 import { Avatar, Card, ErrorMsg, SpecialtyTag, timeAgo } from "./ui";
+import { toProject, toUser } from "@/nav";
 
 export default function TeamBuilder({
   projects, onChange,
@@ -82,7 +83,7 @@ export default function TeamBuilder({
       title="Jamoa yigish"
       badge={requests.length ? <span className="badge badge-warn">{requests.length} sorov</span> : undefined}
       action={project && (
-        <Link className="btn btn-sm" to={`/loyiha/${project.id}/jamoa`}>Toliq bolim</Link>
+        <Link className="btn btn-sm" {...toProject(project.id, "jamoa")}>Toliq bolim</Link>
       )}
     >
       <ErrorMsg error={error} />
@@ -164,7 +165,7 @@ export default function TeamBuilder({
                    style={{ padding: "7px 10px", border: "1px solid var(--border)", borderRadius: 8 }}>
                 <Avatar user={m.user} size="sm" />
                 <div style={{ minWidth: 0 }}>
-                  <Link to={`/profil/${m.user.id}`}>{m.user.full_name}</Link>
+                  <Link {...toUser(m.user.id)}>{m.user.full_name}</Link>
                   <br />
                   <small className="muted">{m.user.email}</small>
                 </div>

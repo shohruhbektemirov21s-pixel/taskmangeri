@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project, Task, UserBrief } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -8,6 +7,7 @@ import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { IconSearch } from "@/components/icons";
 import { Avatar, Card, DateTimeField, ErrorMsg, Loading, fromDateTimeInput, toDateTimeInput }
   from "@/components/ui";
+import { toTask, useEntityId, useGo, useIsPath } from "@/nav";
 
 interface Suggestion {
   user: UserBrief;
@@ -18,8 +18,15 @@ interface Suggestion {
 
 export default function TaskForm() {
   const fid = useId();
-  const { id, taskId } = useParams();
-  const nav = useNavigate();
+  // `taskId` bo'lsa - tahrirlash, bo'lmasa - `id` loyihasida yangi vazifa.
+  // Rejim MARSHRUTDAN aniqlanadi: `/loyiha/vazifa-yaratish` da sessiyada
+  // qolgan vazifa raqami bo'lsa, forma yangi vazifa o'rniga eskisini
+  // tahrirlashga o'tib ketardi.
+  const creating = useIsPath("/loyiha/vazifa-yaratish");
+  const id = useEntityId("project");
+  const storedTask = useEntityId("task");
+  const taskId = creating ? null : storedTask;
+  const go = useGo();
   const { meta } = useAuth();
   const editing = Boolean(taskId);
 
@@ -118,11 +125,11 @@ export default function TaskForm() {
           setBusy(false);
           setError("Vazifa yaratildi, lekin fayllarni biriktirib bolmadi — "
                    + "ularni vazifa sahifasidan qayta yuklang.");
-          nav(`/vazifa/${saved.id}`);
+          go(toTask(saved.id));
           return;
         }
       }
-      nav(`/vazifa/${saved.id}`);
+      go(toTask(saved.id));
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields);
@@ -334,7 +341,7 @@ export default function TaskForm() {
             <button className="btn btn-primary" disabled={busy}>
               {busy ? "Saqlanmoqda..." : editing ? "Saqlash" : "Vazifa yaratish"}
             </button>
-            <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
+            <button type="button" className="btn" onClick={() => go(-1)}>Bekor qilish</button>
           </div>
         </form>
       </div>

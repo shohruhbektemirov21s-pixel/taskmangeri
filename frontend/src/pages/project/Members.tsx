@@ -7,6 +7,7 @@ import AddMemberBox from "@/components/AddMemberBox";
 import { Avatar, Card, Empty, ErrorMsg, Loading, SpecialtyTag, fmtDate, timeAgo } from "@/components/ui";
 import { confirmDialog } from "@/components/Confirm";
 import { useProjectLive } from "@/realtime/RealtimeContext";
+import { toDeveloper, toProjectJoin } from "@/nav";
 
 export default function Members({ project, onChange }: { project: Project; onChange: () => void }) {
   const { meta, user } = useAuth();
@@ -127,7 +128,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
                       <div className="row">
                         <Avatar user={m.user} size="sm" />
                         <div>
-                          <Link to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}>{m.user.full_name}</Link>
+                          <Link {...toDeveloper(project.id, m.user.id)}>{m.user.full_name}</Link>
                           <br />
                           <small className="muted">{m.user.email}</small>
                           {m.user.is_platform_admin && (
@@ -240,7 +241,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
                   <div className="card-body tight" key={m.id}>
                     <div className="row">
                       <Avatar user={m.user} size="sm" />
-                      <Link to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}>{m.user.full_name}</Link>
+                      <Link {...toDeveloper(project.id, m.user.id)}>{m.user.full_name}</Link>
                       <span className="badge">{m.role_display}</span>
                       <span className="spacer" />
                       <small className="muted">chiqqan: {fmtDate(m.left_at)}</small>
@@ -289,7 +290,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
 
           {!acc.is_member && (
             <Card title="Qoshilish">
-              <Link className="btn btn-primary btn-block" to={`/loyiha/${project.id}/qoshilish`}>
+              <Link className="btn btn-primary btn-block" {...toProjectJoin(project.id)}>
                 Sorov yuborish
               </Link>
             </Card>

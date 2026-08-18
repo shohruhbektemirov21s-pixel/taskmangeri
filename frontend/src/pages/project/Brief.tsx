@@ -9,9 +9,6 @@ const FIELDS: { key: keyof BriefType; label: string; hint: string; rows: number 
   { key: "goal", label: "Loyiha maqsadi", hint: "Bir-ikki gapda: nima uchun bu loyiha bor", rows: 3 },
   { key: "tech_stack", label: "Texnologiyalar", hint: "Django 5, PostgreSQL, React, Docker ...", rows: 3 },
   { key: "architecture", label: "Arxitektura", hint: "Papkalar tuzilishi, asosiy modullar, integratsiyalar", rows: 5 },
-  { key: "setup_steps", label: "Ishga tushirish", hint: "docker compose up --build kabi qadamlar", rows: 5 },
-  { key: "conventions", label: "Kelishuvlar", hint: "Kod uslubi, branch nomlash, commit qoidalari, PR jarayoni", rows: 4 },
-  { key: "definition_of_done", label: "Umumiy tayyorlik mezoni", hint: "Har bir vazifa qachon tugagan hisoblanadi", rows: 4 },
   { key: "pitfalls", label: "Ehtiyot boling", hint: "Avval yol qoyilgan xatolar, tuzoqlar", rows: 4 },
   { key: "contacts", label: "Kim nima boyicha javob beradi", hint: "Masalan: tolovlar - Sardor, UI - Malika", rows: 3 },
 ];
@@ -33,7 +30,7 @@ export default function Brief({ project, onChange }: { project: Project; onChang
       FIELDS.forEach((f) => { v[f.key as string] = (b[f.key] as string) || ""; });
       setValues(v);
     }).catch((e) => {
-      if (alive) setError(e instanceof ApiError ? e.message : "Brifni ochib bo'lmadi.");
+      if (alive) setError(e instanceof ApiError ? e.message : "Arxitekturani ochib bo'lmadi.");
     });
     return () => { alive = false; };
   }, [project.id]);
@@ -46,7 +43,7 @@ export default function Brief({ project, onChange }: { project: Project; onChang
     try {
       const b = await api.patch<BriefType>(`/projects/${project.id}/brief/`, values);
       setBrief(b);
-      setSaved("Brif saqlandi.");
+      setSaved("Arxitektura saqlandi.");
       setEdit(false);
       onChange();
     } catch (err) {

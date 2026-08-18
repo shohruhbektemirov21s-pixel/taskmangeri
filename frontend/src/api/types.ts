@@ -1,7 +1,7 @@
 // Backend (Django REST) javoblariga mos turlar
 
 export type TaskStatusValue =
-  | "BACKLOG" | "TODO" | "IN_PROGRESS" | "IN_REVIEW"
+  | "TODO" | "IN_PROGRESS" | "IN_REVIEW"
   | "CHANGES_REQUESTED" | "BLOCKED" | "DONE" | "CANCELLED";
 
 export type ProjectRoleValue = "MANAGER" | "ADMIN" | "DEVELOPER" | "QA" | "VIEWER";
@@ -159,9 +159,6 @@ export interface Brief {
   goal: string;
   tech_stack: string;
   architecture: string;
-  setup_steps: string;
-  conventions: string;
-  definition_of_done: string;
   pitfalls: string;
   contacts: string;
   updated_by: UserBrief | null;
@@ -314,7 +311,41 @@ export interface TeamPerson {
   done_tasks: number;
 }
 
+/** Panel taxtasining davri - serverdagi `PERIODS` bilan bir xil kalitlar. */
+export type DashboardPeriod = "year" | "month" | "week";
+
+/** Bitta taxta: davr va undagi uchta raqam. */
+export interface DashboardPeriodRow {
+  key: DashboardPeriod;
+  /** Davr boshlangan lahza (ISO) */
+  since: string;
+  todo: number;
+  overdue: number;
+  done: number;
+}
+
+/**
+ * Panel raqamlari kimniki:
+ *   `all`     - butun tizim (platforma admini);
+ *   `managed` - boshqaruvdagi loyihalar + o'zi (menejer);
+ *   `mine`    - faqat o'ziga biriktirilgani.
+ */
+export type DashboardScope = "all" | "managed" | "mine";
+
 export interface DashboardData {
+  /** Panelning uchta taxtasi - yil, oy va hafta boshidan (shu tartibda) */
+  periods: DashboardPeriodRow[];
+  /** Raqamlar qaysi ishlar bo'yicha sanalgan */
+  scope: DashboardScope;
+  /** Muddat holati (butun tarix bo'yicha) - panelning pastki qatori */
+  deadlines: {
+    /** Yopilgan, lekin muddatdan keyin */
+    late_done: number;
+    /** Yopilmagan va muddati o'tib ketgan */
+    overdue: number;
+    /** Yopilmagan, muddati hali kelmagan yoki qo'yilmagan */
+    waiting: number;
+  };
   stats: {
     open: number; review: number; returned: number;
     overdue: number; done_week: number;

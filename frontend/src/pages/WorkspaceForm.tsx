@@ -1,13 +1,13 @@
 import { useId, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Workspace } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { Card, ErrorMsg } from "@/components/ui";
+import { toWorkspace, useGo } from "@/nav";
 
 export default function WorkspaceForm() {
   const fid = useId();
-  const nav = useNavigate();
+  const go = useGo();
   const [f, setF] = useState({ name: "", description: "", is_open: true });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -18,7 +18,7 @@ export default function WorkspaceForm() {
     setError(null);
     try {
       const ws = await api.post<Workspace>("/workspaces/", f);
-      nav(`/ish-maydoni/${ws.slug}`);
+      go(toWorkspace(ws.slug));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Yaratib bolmadi");
     } finally {
@@ -54,7 +54,7 @@ export default function WorkspaceForm() {
               <button className="btn btn-primary" disabled={busy}>
                 {busy ? "Yaratilmoqda..." : "Yaratish"}
               </button>
-              <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
+              <button type="button" className="btn" onClick={() => go(-1)}>Bekor qilish</button>
             </div>
           </form>
         </Card>

@@ -6,6 +6,7 @@ import type { Access, Project, ProjectFile, Task, TaskStatusValue } from "@/api/
 import { IconFile } from "@/components/icons";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { ErrorMsg, Loading, STATUS_DOT, TaskCard } from "@/components/ui";
+import { toProject } from "@/nav";
 
 interface Column {
   status: TaskStatusValue;
@@ -117,7 +118,7 @@ export default function Board({ project }: { project: Project }) {
             </a>
           ))}
           {files.length > 5 && (
-            <Link className="chip" to={`/loyiha/${project.id}/fayllar`}>
+            <Link className="chip" {...toProject(project.id, "fayllar")}>
               yana {files.length - 5} ta
             </Link>
           )}

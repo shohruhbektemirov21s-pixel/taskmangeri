@@ -1,15 +1,16 @@
 import { useEffect, useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Avatar, Card, DateTimeField, ErrorMsg, fromDateTimeInput, Loading } from "@/components/ui";
+import { Avatar, Card, DateTimeField, Empty, ErrorMsg, fromDateTimeInput, Loading } from "@/components/ui";
+import { toProject, useEntityId, useGo } from "@/nav";
 
 export default function TaskBulkForm() {
   const fid = useId();
-  const { id } = useParams();
-  const nav = useNavigate();
+  const id = useEntityId("project");
+  const go = useGo();
   const { meta } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
@@ -25,6 +26,7 @@ export default function TaskBulkForm() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
     let alive = true;
     void api.get<Project>(`/projects/${id}/`)
       .then((p) => { if (alive) setProject(p); })
@@ -57,6 +59,7 @@ export default function TaskBulkForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!id) return;
     setBusy(true);
     setError(null);
     try {
@@ -73,12 +76,25 @@ export default function TaskBulkForm() {
         due_date: fromDateTimeInput(f.due_date),
         acceptance_criteria: f.acceptance_criteria,
       });
-      nav(`/loyiha/${id}/doska`);
+      go(toProject(id, "doska"));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Vazifalarni yaratib bolmadi");
     } finally {
       setBusy(false);
     }
+  }
+
+  // Manzilda loyiha raqami saqlanmaydi - havolani qo'lda ochgan odam shu
+  // yerga tushadi. Oq ekran emas, chiqish yo'li ko'rsatiladi.
+  if (!id) {
+    return (
+      <div className="content">
+        <Empty title="Loyiha tanlanmagan"
+               text="Bu sahifa loyiha ichidan ochiladi.">
+          <Link className="btn btn-primary" to="/loyihalar">Loyihalarim</Link>
+        </Empty>
+      </div>
+    );
   }
 
   if (!project) return <div className="content"><Loading /></div>;
@@ -224,7 +240,7 @@ export default function TaskBulkForm() {
             <button className="btn btn-primary" disabled={busy || !titles.length}>
               {busy ? "Yaratilmoqda..." : `${titles.length} ta vazifa yaratish`}
             </button>
-            <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
+            <button type="button" className="btn" onClick={() => go(-1)}>Bekor qilish</button>
           </div>
         </form>
       </div>

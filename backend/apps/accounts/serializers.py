@@ -114,6 +114,59 @@ class UserListSerializer(UserBriefSerializer):
         ]
 
 
+class AdminCreateUserSerializer(serializers.ModelSerializer):
+    """Admin panelidan hisob ochish.
+
+    `RegisterSerializer` dan farqi ikkita:
+      * parol TAKRORLANMAYDI - uni admin qo'yadi, egasiga aytadi;
+      * `email` odatdagi pochta bo'lishi shart emas. Bo'limda loginlar
+        familiya ko'rinishida beriladi (`Abdraxmanov`) va tizim shu
+        maydonni login sifatida ishlatadi (`USERNAME_FIELD = "email"`).
+
+    Parol siyosati esa BIR XIL: `validate_password` shu yerda ham
+    chaqiriladi, ya'ni admin ham qisqa parol qo'ya olmaydi.
+    """
+
+    # `EmailField` EMAS: model maydoni `EmailField` bo'lgani uchun
+    # `ModelSerializer` uni o'zi shunday yasab qo'yardi va `Abdraxmanov`
+    # kabi login «to'g'ri pochta emas» deb rad etilardi. Tekshiruv
+    # `validate_email` da - u loginga mos qoidalarni qo'llaydi.
+    email = serializers.CharField(max_length=254)
+    password = serializers.CharField(write_only=True, min_length=8)
+    specialty = serializers.ChoiceField(choices=Specialty.choices, required=False,
+                                        default=Specialty.BACKEND)
+    seniority = serializers.ChoiceField(choices=Seniority.choices, required=False,
+                                        default=Seniority.JUNIOR)
+    global_role = serializers.ChoiceField(choices=GlobalRole.choices, required=False,
+                                          default=GlobalRole.DEVELOPER)
+
+    class Meta:
+        model = User
+        fields = ["email", "full_name", "specialty", "seniority", "global_role",
+                  "job_title", "password"]
+
+    def validate_email(self, value):
+        login = (value or "").strip().lower()
+        if not login:
+            raise serializers.ValidationError("Login yozing.")
+        if " " in login:
+            raise serializers.ValidationError("Loginda bo'sh joy bo'lmaydi.")
+        if User.objects.filter(email__iexact=login).exists():
+            raise serializers.ValidationError("Bu login band.")
+        return login
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def create(self, data):
+        password = data.pop("password")
+        user = User(**data)
+        user.set_password(password)
+        user.save()
+        return user
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     """Royxatdan otish - faqat mutaxassislik majburiy.
 

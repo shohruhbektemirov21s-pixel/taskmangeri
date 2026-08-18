@@ -64,6 +64,28 @@ services:
     restart: unless-stopped
     networks: [teamflow]
 
+  # ---------------------------------------------------------- Telegram boti
+  # Alohida jarayon: bot Telegramga uzoq so'rov (long polling) yuborib
+  # turadi va javobni 25 soniya kutadi. Uni web serverga qo'shib bo'lmaydi -
+  # u yerda so'rov kelganda ishlaydi, bu yerda esa doim tinglab turishi kerak.
+  #
+  # Token qo'yilmagan bo'lsa buyruq darrov to'xtaydi va konteyner qayta
+  # urinaveradi - shuning uchun `restart` ataylab `on-failure:3`: ilova
+  # ishlayveradi, log esa to'lib ketmaydi.
+  telegram:
+    build: ./backend
+    container_name: teamflow_telegram
+    command: python manage.py telegram_bot
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db2:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    restart: on-failure:3
+    networks: [teamflow]
+
   # ---------------------------------------------------------- Frontend: React + TypeScript
   frontend:
     build: ./frontend

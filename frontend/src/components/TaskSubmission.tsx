@@ -12,6 +12,7 @@ import { ApiError, api } from "@/api/client";
 import type { Submission, Task } from "@/api/types";
 import { IconCheck, IconClose, IconFile, IconHistory } from "./icons";
 import { Avatar, Card, DiffView, ErrorMsg, OkMsg, fmtDateTime, timeAgo } from "./ui";
+import { toTask } from "@/nav";
 
 interface Props {
   task: Task;
@@ -233,7 +234,7 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       </div>
 
       <p className="muted" style={{ fontSize: 12.5, marginTop: 12, marginBottom: 0 }}>
-        Vazifa: <Link to={`/vazifa/${task.id}`}>{task.code}</Link> · holat: {task.status_display}
+        Vazifa: <Link {...toTask(task.id)}>{task.code}</Link> · holat: {task.status_display}
       </p>
     </Card>
   );

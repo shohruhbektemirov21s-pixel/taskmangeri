@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { DiffPiece, Task, TextDiff, UserBrief } from "@/api/types";
 import { confirmDialog } from "./Confirm";
 import { IconCalendar, IconEye, IconEyeOff, IconFile } from "./icons";
+import { toTask, useGo, type NavTarget } from "@/nav";
 
 /* ---------------------------------------------------------------- Avatar */
 export function Avatar({ user, size = "" }: { user?: UserBrief | null; size?: "sm" | "lg" | "xl" | "" }) {
@@ -172,12 +173,15 @@ export function OkMsg({ text }: { text?: string | null }) {
 
 /* ---------------------------------------------------------------- Karta / Panel */
 export function Card({
+  id,
   title,
   action,
   children,
   badge,
   padded = true,
 }: {
+  /** Sahifa ichidan shu kartaga olib tushish uchun (`scrollIntoView`). */
+  id?: string;
   title?: ReactNode;
   action?: ReactNode;
   badge?: ReactNode;
@@ -185,7 +189,7 @@ export function Card({
   padded?: boolean;
 }) {
   return (
-    <div className="card">
+    <div className="card" id={id}>
       {title && (
         <div className="card-head">
           <h3>{title}</h3>
@@ -203,10 +207,24 @@ export function Card({
  * Raqamli ko'rsatkich.
  *
  * `to` berilsa karta bosiladigan bo'ladi: raqamni ko'rgan odam "buni qayerdan
- * ko'raman?" deb qidirib o'tirmaydi, ustiga bosaveradi.
+ * ko'raman?" deb qidirib o'tirmaydi, ustiga bosaveradi. Ro'yxat SHU sahifada
+ * turgan bo'lsa `onClick` beriladi - katak boshqa manzilga olib ketmaydi,
+ * o'sha kartaga olib tushadi.
+ *
+ * `to` ham, `onClick` ham berilmasa - oddiy `div`. Bu MUHIM: `.stat:hover`
+ * hamma katakni ko'taradi, ya'ni bosilmaydigani ham "bosilaman" deb turadi.
+ * Shuning uchun raqam ortida ko'rsatadigan narsa bo'lsa, ikkovidan biri
+ * albatta berilsin.
  */
-export function Stat({ value, label, tone = "", to, title }: {
-  value: ReactNode; label: string; tone?: string; to?: string; title?: string;
+export function Stat({ value, label, tone = "", to, onClick, title }: {
+  value: ReactNode; label: string; tone?: string;
+  /**
+   * Oddiy manzil (`/mening-ishim`) yoki `src/nav` dagi maqsad. Ikkinchisi
+   * identifikatorni ham olib yuradi - u manzilda emas, sahifa holatida
+   * uzatiladi.
+   */
+  to?: string | NavTarget;
+  onClick?: () => void; title?: string;
 }) {
   const body = (
     <>
@@ -214,12 +232,26 @@ export function Stat({ value, label, tone = "", to, title }: {
       <div className="k">{label}</div>
     </>
   );
-  if (!to) return <div className={`stat ${tone}`}>{body}</div>;
-  return (
-    <Link className={`stat ${tone} clickable`} to={to} title={title || label}>
-      {body}
-    </Link>
-  );
+  if (to) {
+    const target = typeof to === "string" ? { to, state: undefined } : to;
+    return (
+      <Link className={`stat ${tone} clickable`} to={target.to} state={target.state}
+            title={title || label}>
+        {body}
+      </Link>
+    );
+  }
+  // Havola emas, TUGMA: sahifa almashmaydi, lekin klaviaturadan ham
+  // bosiladi va o'quvchi dasturga "bu bosiladi" deb yetkaziladi.
+  if (onClick) {
+    return (
+      <button type="button" className={`stat ${tone} clickable`}
+              onClick={onClick} title={title || label}>
+        {body}
+      </button>
+    );
+  }
+  return <div className={`stat ${tone}`}>{body}</div>;
 }
 
 export function Progress({ value }: { value: number }) {
@@ -314,7 +346,7 @@ export function TaskCard({ task, draggable = false, onDragStart, onMove }: {
 
   const card = (
     <Link
-      to={`/vazifa/${task.id}`}
+      {...toTask(task.id)}
       className={`tcard ${task.is_overdue ? "overdue" : ""}`}
       draggable={draggable}
       onDragStart={onDragStart}
@@ -379,7 +411,6 @@ export function TaskCard({ task, draggable = false, onDragStart, onMove }: {
  * o'zi moslashadi.
  */
 export const STATUS_DOT: Record<string, string> = {
-  BACKLOG: "var(--subtle)",
   TODO: "var(--accent)",
   IN_PROGRESS: "var(--attention)",
   CHANGES_REQUESTED: "var(--danger)",
@@ -388,14 +419,14 @@ export const STATUS_DOT: Record<string, string> = {
 };
 
 export function TaskRow({ task, showProject = false }: { task: Task; showProject?: boolean }) {
-  const nav = useNavigate();
+  const go = useGo();
   return (
     /* Qatorning istalgan yeriga bosilsa vazifa ochiladi - sarlavhani
        aniq nishonga olish shart emas. */
-    <tr className="clickable" onClick={() => nav(`/vazifa/${task.id}`)}>
+    <tr className="clickable" onClick={() => go(toTask(task.id))}>
       <td className="nowrap mono muted">{task.code}</td>
       <td>
-        <Link to={`/vazifa/${task.id}`} style={{ color: "var(--text)", fontWeight: 500 }}
+        <Link {...toTask(task.id)} style={{ color: "var(--text)", fontWeight: 500 }}
               onClick={(e) => e.stopPropagation()}>
           {task.title}
         </Link>

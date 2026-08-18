@@ -7,6 +7,10 @@ from apps.core.fields import JSONTextField
 VERB_META = {
     "user.registered": ("+", "user"),
     "user.role_changed": ("*", "user"),
+    # Admin panelidagi ikkita amal - ular ham tarixda qolsin: kim kimga
+    # hisob ochgani va kimning parolini almashtirgani izsiz ketmasin.
+    "user.created": ("+", "user"),
+    "user.password_reset": ("!", "user"),
     "workspace.created": ("W", "workspace"),
     "workspace.joined": ("+", "workspace"),
     "project.created": ("P", "project"),

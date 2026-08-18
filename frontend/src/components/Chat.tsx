@@ -12,6 +12,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { openSocket } from "@/realtime/socket";
 import { IconSend } from "./icons";
 import { Avatar, ErrorMsg, Loading, fmtDateTime, timeAgo } from "./ui";
+import { toUser } from "@/nav";
 
 interface Props {
   projectId?: number;
@@ -184,7 +185,7 @@ export default function Chat({
               <div className="chat-bubble">
                 {!grouped && (
                   <div className="chat-meta">
-                    <Link to={`/profil/${m.author.id}`}>{m.author.full_name}</Link>
+                    <Link {...toUser(m.author.id)}>{m.author.full_name}</Link>
                     <span className="tl-time" title={fmtDateTime(m.created_at)}>
                       {timeAgo(m.created_at)}
                     </span>

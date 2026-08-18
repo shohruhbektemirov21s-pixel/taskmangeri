@@ -125,10 +125,15 @@ def _check_doc_date(project, value):
     """
     if value is None:
         return
-    if project.start_date and value < project.start_date:
+    # `doc_date` - sana+soat, loyiha chegaralari esa sana. Solishtirishdan
+    # oldin MAHALLIY (Toshkent) kunga keltiramiz: aks holda kechqurun
+    # 23:00 da qo'yilgan hujjat UTC da ertangi kunga o'tib, chegaraga
+    # tegib qolardi.
+    day = timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
+    if project.start_date and day < project.start_date:
         raise ValidationError({"doc_date": "Hujjat sanasi loyiha boshlanishidan ({}) oldin bo'lmasin.".format(
             project.start_date.strftime("%d.%m.%Y"))})
-    if project.due_date and value > project.due_date:
+    if project.due_date and day > project.due_date:
         raise ValidationError({"doc_date": "Hujjat sanasi loyiha muddatidan ({}) keyin bo'lmasin.".format(
             project.due_date.strftime("%d.%m.%Y"))})
 
@@ -217,6 +222,19 @@ class ProjectViewSet(viewsets.ModelViewSet):
                   .exclude(status="ARCHIVED").exclude(member_of()))
         elif scope == "managed":
             qs = qs.filter(Q(manager=user) | member_of(role=ProjectRole.MANAGER))
+        elif scope == "visible":
+            # «Loyihalar» sahifasidagi YAGONA ro'yxat - kesim tugmalari
+            # olib tashlangandan keyingi qamrov: odam ocha oladigan hamma
+            # loyiha. Ilgari uchta tugma («Meniki», «Boshqaruvim», «Ochiq»)
+            # bir xil ro'yxatni uch bo'lakka bo'lib turardi va menejer o'z
+            # loyihasini «Meniki» da topolmasdi - u a'zo emas, boshqaruvchi.
+            #
+            # Chegara kengaymadi: `visible_projects_q` - `ProjectAccess`
+            # ning queryset ko'rinishi, ya'ni bu yerda ham o'sha qoida.
+            # `manager` alohida qo'shiladi: menejerda a'zolik yozuvi
+            # bo'lmasligi mumkin.
+            if not user.is_platform_admin:
+                qs = qs.filter(visible_projects_q(user) | Q(manager=user))
         elif scope == "all" and user.is_platform_admin:
             pass
         else:  # mine
@@ -828,7 +846,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
             if before != (note, doc_date):
                 log(actor=request.user, verb="project.file", project=project, target=project,
                     summary="Hujjat malumoti ozgardi: " + (item.original_name or ""),
-                    detail="{} · {}".format(note, doc_date))
+                    # Sana MAHALLIY vaqtda yoziladi: xom `datetime` tarixda
+                    # "2026-03-05 06:00:00+00:00" bo'lib chiqardi - odam uni
+                    # ekranda ko'rgan soat bilan bog'lay olmasdi.
+                    detail="{} · {}".format(
+                        note, timezone.localtime(doc_date).strftime("%d.%m.%Y %H:%M")))
                 live_project(project, "file", request.user, count=1)
             return Response(ProjectFileSerializer(item, context={"request": request}).data)
 

@@ -168,9 +168,26 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
   return data as T;
 }
 
+/**
+ * O'qish shlyuzi — hamma o'qish shu manzilga POST bo'lib ketadi.
+ *
+ * Ilgari `api.get("/projects/6/")` to'g'ridan-to'g'ri `GET /api/projects/6/`
+ * ga aylanardi: identifikator manzilda, filtrlar esa `?` dan keyin turardi.
+ * Endi ikkovi ham so'rov TANASIDA ketadi:
+ *
+ *     POST /api/read/
+ *     {"path": "/projects/6/", "params": {"status": "ACTIVE"}}
+ *
+ * Chaqiruvchi kod o'zgarmadi - `api.get` o'sha-o'sha. Shu sabab ellikdan
+ * ortiq joyni qayta yozish shart bo'lmadi va serverda ham ikkinchi kod
+ * yo'li paydo bo'lmadi: shlyuz ichkarida O'SHA view ni chaqiradi
+ * (`backend/apps/core/read.py`).
+ */
+const READ_PATH = "/read/";
+
 export const api = {
   get: <T,>(path: string, params?: RequestOptions["params"], signal?: AbortSignal) =>
-    request<T>(path, { params, signal }),
+    request<T>(READ_PATH, { method: "POST", body: { path, params: params || {} }, signal }),
   post: <T,>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   patch: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   put: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),

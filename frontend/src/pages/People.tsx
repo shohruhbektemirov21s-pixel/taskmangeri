@@ -6,6 +6,7 @@ import type { User } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, ErrorMsg, Loading, fmtDate } from "@/components/ui";
+import { toUser } from "@/nav";
 
 export default function People() {
   const fid = useId();
@@ -98,7 +99,7 @@ export default function People() {
                         <div className="row">
                           <Avatar user={u} size="sm" />
                           <div>
-                            <Link to={`/profil/${u.id}`}>{u.full_name}</Link>
+                            <Link {...toUser(u.id)}>{u.full_name}</Link>
                             {!u.is_active && <span className="badge badge-danger">bloklangan</span>}
                             <br /><small className="muted">{u.email}</small>
                           </div>

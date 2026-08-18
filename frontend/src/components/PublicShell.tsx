@@ -7,11 +7,12 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { IconSearch } from "./icons";
 import ThemeToggle from "./ThemeToggle";
 import { Logo } from "./Logo";
+import { toSearch, useGo } from "@/nav";
 
 export default function PublicShell({
   children, query = "", showSearch = true,
@@ -21,7 +22,7 @@ export default function PublicShell({
   showSearch?: boolean;
 }) {
   const { user } = useAuth();
-  const nav = useNavigate();
+  const go = useGo();
   const [q, setQ] = useState(query);
   const input = useRef<HTMLInputElement>(null);
 
@@ -58,7 +59,7 @@ export default function PublicShell({
               className="gh-search"
               onSubmit={(e) => {
                 e.preventDefault();
-                nav(`/qidiruv?q=${encodeURIComponent(q.trim())}`);
+                go(toSearch(q.trim()));
               }}
             >
               <IconSearch size={14} />

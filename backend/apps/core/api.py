@@ -2,7 +2,7 @@ import logging
 
 from datetime import datetime, time as dtime
 
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Exists, F, OuterRef, Q
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -46,6 +46,30 @@ def _tick_deadline_reminders():
         send_due_reminders()
     except Exception:
         logger.exception("Muddat eslatmalarini yuborib bo'lmadi")
+
+
+# Bosh paneldagi uchta taxta: «yil boshidan», «oy boshidan», «hafta
+# boshidan». Tartib shu yerda belgilanadi - javobdagi ro'yxat ham shu
+# ketma-ketlikda keladi.
+PERIODS = ("year", "month", "week")
+
+
+def _period_start(period):
+    """Tanlangan davr boshlanadigan lahza.
+
+    Chegara TOSHKENT vaqtida hisoblanadi va aniq lahza bo'lib qaytadi
+    (`__date` emas): Db2 da sanani ustundan ajratib olish mintaqani
+    hisobga olmaydi va tunda son noto'g'ri chiqardi - `dashboard` dagi
+    «bugun» kesimida ham shu sabab bor.
+    """
+    today = timezone.localdate()
+    if period == "week":
+        start = today - timezone.timedelta(days=today.weekday())   # dushanba
+    elif period == "month":
+        start = today.replace(day=1)
+    else:
+        start = today.replace(month=1, day=1)
+    return timezone.make_aware(datetime.combine(start, dtime.min))
 
 
 @api_view(["GET"])
@@ -101,6 +125,7 @@ def dashboard(request):
                                    submitted_at__gte=day_start,
                                    submitted_at__lt=day_end).count()
 
+
     member_of = Exists(ProjectMember.objects.filter(
         project=OuterRef("pk"), user=user, is_active=True))
 
@@ -138,6 +163,84 @@ def dashboard(request):
     review_total = review_qs.count()
     join_total = join_qs.count()
     managed_total = managed.count()
+
+    # ------------------------------------------------------- panel raqamlari
+    # QAYSI ISHLAR SANALADI. Ilgari faqat odamning O'ZIGA biriktirilgan
+    # ishlari sanalardi. Menejer va admin uchun bu noto'g'ri javob berardi:
+    # loyihasida ikkita ochiq ish tursa ham panel «0» deb ko'rsatardi,
+    # chunki ular boshqaruvchi, ijrochi emas. Endi qamrov ROLGA qarab:
+    #
+    #   admin    - tirik loyihalardagi hamma ish;
+    #   menejer  - boshqaradigan loyihalari + o'ziga biriktirilgani;
+    #   dasturchi- faqat o'ziga biriktirilgani.
+    #
+    # Qoida yangi emas - `managed` yuqorida aynan shu tamoyil bo'yicha
+    # yig'ilgan, panel endi undan foydalanadi.
+    if user.is_platform_admin:
+        panel_tasks = Task.objects.filter(project__deleted_at__isnull=True)
+        panel_scope = "all"
+    elif managed_total:
+        panel_tasks = Task.objects.filter(
+            Q(project__in=managed) | Q(mine), project__deleted_at__isnull=True)
+        panel_scope = "managed"
+    else:
+        panel_tasks = my_tasks
+        panel_scope = "mine"
+
+    # ---------------------------------------------------------- davrlar
+    # Panelning uchta taxtasi: yil, oy va hafta boshidan. Har birida bir xil
+    # uch raqam, lekin har biri O'Z sanasi bo'yicha sanaladi:
+    #   Nazoratda      - shu davrda OCHILGAN va hamon yopilmagan ishlar;
+    #   Muddati o'tgan - muddati shu davrga tushgan va o'tib ketgan ishlar;
+    #   Bajarilganlar  - shu davrda yakunlangan ishlar.
+    #
+    # Hamma sonlar BITTA so'rovda olinadi. Har biriga alohida `.count()`
+    # yozilsa panel bazaga o'n ikki marta borardi; shartli `Count(filter=...)`
+    # da esa GROUP BY yo'q, ya'ni Db2 ning CLOB cheklovi ham qo'zg'almaydi.
+    #
+    # «Yopilmagan» - DONE dan boshqa hamma holat, TEKSHIRUVDAGISI HAM.
+    # Tekshiruvga topshirilgan ish ham muddati o'tsa kechikkan hisoblanadi:
+    # uni ro'yxatdan chiqarib tashlasak, panel «hammasi joyida» deb turardi.
+    unfinished = [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW,
+                  TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED]
+    period_starts = {key: _period_start(key) for key in PERIODS}
+    counters = {}
+    for key, start in period_starts.items():
+        counters[key + "_todo"] = Count("id", filter=Q(
+            status__in=unfinished, created_at__gte=start))
+        counters[key + "_overdue"] = Count("id", filter=Q(
+            status__in=unfinished, due_date__gte=start, due_date__lt=now))
+        counters[key + "_done"] = Count("id", filter=Q(
+            status=TaskStatus.DONE, completed_at__gte=start))
+
+    # ------------------------------------------------------- muddat holati
+    # Panelning pastki qatori. Uchovi butun tarix bo'yicha va bir-birini
+    # takrorlamaydi: yopilmagan ish yo kechikkan, yo hali kutilmoqda.
+    #   Muddati buzib bajarilgan - yopilgan, lekin muddatdan KEYIN;
+    #   Muddati o'tgan          - yopilmagan va muddati o'tib ketgan;
+    #   Kutilmoqda              - yopilmagan, muddati hali kelmagan
+    #                             (yoki umuman qo'yilmagan).
+    counters["late_done"] = Count("id", filter=Q(
+        status=TaskStatus.DONE, due_date__isnull=False,
+        completed_at__gt=F("due_date")))
+    counters["overdue_now"] = Count("id", filter=Q(
+        status__in=unfinished, due_date__lt=now))
+    counters["waiting"] = Count("id", filter=(
+        Q(status__in=unfinished) & (Q(due_date__gte=now) | Q(due_date__isnull=True))))
+
+    nums = panel_tasks.aggregate(**counters)
+    periods = [{
+        "key": key,
+        "since": period_starts[key],
+        "todo": nums[key + "_todo"],
+        "overdue": nums[key + "_overdue"],
+        "done": nums[key + "_done"],
+    } for key in PERIODS]
+    deadlines = {
+        "late_done": nums["late_done"],
+        "overdue": nums["overdue_now"],
+        "waiting": nums["waiting"],
+    }
     review_qs = (review_qs.select_related("project")
                  .prefetch_related("assignments__user").order_by("submitted_at")[:10])
     join_qs = join_qs.select_related("user", "project").order_by("created_at")[:10]
@@ -212,6 +315,13 @@ def dashboard(request):
             "pending_reviews": review_total,
             "pending_joins": join_total,
         },
+        # Panelning uchta taxtasi: yil, oy va hafta boshidan.
+        "periods": periods,
+        # Pastki qator: muddat holati (butun tarix bo'yicha).
+        "deadlines": deadlines,
+        # Raqamlar KIMNIKI - panel buni yozib qo'ysin, aks holda menejer
+        # «bu mening ishimmi yoki jamoanikimi» deb taxmin qilishi kerak edi.
+        "scope": panel_scope,
         # Bugungi kesim - panelning yuqorisidagi uchta katak.
         "today": {
             "date": today,

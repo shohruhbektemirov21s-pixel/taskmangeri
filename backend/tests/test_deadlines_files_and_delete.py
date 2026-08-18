@@ -14,7 +14,7 @@ Endi birinchi so'rov 409 va sanoq bilan qaytadi, o'chirish esa faqat
 """
 
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
@@ -23,6 +23,20 @@ from apps.projects.models import Project, ProjectFile, ProjectMember, ProjectRol
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 
 from .base import ApiTestCase, make_user
+
+
+def local_stamp(value):
+    """Saqlangan `doc_date` ni TOSHKENT vaqtida "2026-02-21 14:30" ko'rinishida.
+
+    Bazada UTC yotadi, tekshiradigan narsamiz esa odam kiritgan mahalliy
+    soat - shuning uchun solishtirishdan oldin qaytarib o'giramiz.
+    """
+    return timezone.localtime(value).strftime("%Y-%m-%d %H:%M")
+
+
+def local_dt(year, month, day, hour=0, minute=0):
+    """Toshkent vaqtidagi mintaqali sana+soat - fixture'lar uchun."""
+    return timezone.make_aware(datetime(year, month, day, hour, minute))
 
 
 class ProjectFileDateTest(ApiTestCase):
@@ -48,11 +62,24 @@ class ProjectFileDateTest(ApiTestCase):
         except OSError:
             pass
 
-    def test_sana_saqlanadi_va_javobda_qaytadi(self):
-        response = self.upload([SimpleUploadedFile("shartnoma.txt", b"matn")], ["2026-02-21"])
+    def test_sana_va_soat_saqlanadi(self):
+        """Hujjat sanasida SOAT ham bor: bir kunda kelgan ikki bayonnomani
+        faqat kun bilan tartiblab bo'lmasdi - ro'yxatda ular bir xil sana
+        bilan yonma-yon turardi."""
+        response = self.upload([SimpleUploadedFile("shartnoma.txt", b"matn")],
+                               ["2026-02-21T14:30"])
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertEqual(response.data[0]["doc_date"], "2026-02-21")
-        self.assertEqual(str(ProjectFile.objects.get().doc_date), "2026-02-21")
+        self.assertEqual(local_stamp(ProjectFile.objects.get().doc_date),
+                         "2026-02-21 14:30")
+        self.assertTrue(response.data[0]["doc_date"].startswith("2026-02-21T14:30"))
+
+    def test_soatsiz_sana_ham_qabul_qilinadi(self):
+        """Faqat kun yozilsa kun boshi tushuniladi - eski yozuvlar va qo'lda
+        yuborilgan so'rovlar ishlayversin."""
+        response = self.upload([SimpleUploadedFile("eskisi.txt", b"matn")], ["2026-02-21"])
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(local_stamp(ProjectFile.objects.get().doc_date),
+                         "2026-02-21 00:00")
 
     def test_sanasiz_yuklab_bolmaydi(self):
         """Sanasiz hujjat: qaysi variant yangi ekanini hech kim ayta olmaydi."""
@@ -73,17 +100,19 @@ class ProjectFileDateTest(ApiTestCase):
         """Sanalar fayllar bilan bir tartibda: indeks siljib ketmasin."""
         response = self.upload(
             [SimpleUploadedFile("bir.txt", b"a"), SimpleUploadedFile("ikki.txt", b"b")],
-            ["2026-01-05", "2026-03-09"])
+            ["2026-01-05T09:00", "2026-03-09T17:45"])
         self.assertEqual(response.status_code, 201, response.data)
-        got = {row["original_name"]: row["doc_date"] for row in response.data}
-        self.assertEqual(got, {"bir.txt": "2026-01-05", "ikki.txt": "2026-03-09"})
+        got = {f.original_name: local_stamp(f.doc_date) for f in ProjectFile.objects.all()}
+        self.assertEqual(got, {"bir.txt": "2026-01-05 09:00",
+                               "ikki.txt": "2026-03-09 17:45"})
 
     def test_bitta_sana_butun_toplamga_tegishli(self):
         response = self.upload(
             [SimpleUploadedFile("uch.txt", b"a"), SimpleUploadedFile("tort.txt", b"b")],
-            ["2026-04-01"])
+            ["2026-04-01T08:15"])
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertEqual({row["doc_date"] for row in response.data}, {"2026-04-01"})
+        self.assertEqual({local_stamp(f.doc_date) for f in ProjectFile.objects.all()},
+                         {"2026-04-01 08:15"})
 
     def test_yaroqsiz_sana_400_beradi(self):
         response = self.upload([SimpleUploadedFile("besh.txt", b"a")], ["kecha"])
@@ -91,11 +120,11 @@ class ProjectFileDateTest(ApiTestCase):
         self.assertEqual(ProjectFile.objects.count(), 0)
 
     def test_qayta_yuklashda_eski_sana_tarixda_qoladi(self):
-        self.upload([SimpleUploadedFile("olti.txt", b"a")], ["2026-01-01"])
-        self.upload([SimpleUploadedFile("olti.txt", b"b")], ["2026-05-05"])
+        self.upload([SimpleUploadedFile("olti.txt", b"a")], ["2026-01-01T10:00"])
+        self.upload([SimpleUploadedFile("olti.txt", b"b")], ["2026-05-05T16:20"])
         doc = ProjectFile.objects.get()
-        self.assertEqual(str(doc.doc_date), "2026-05-05")
-        self.assertEqual(str(doc.versions.get().doc_date), "2026-01-01")
+        self.assertEqual(local_stamp(doc.doc_date), "2026-05-05 16:20")
+        self.assertEqual(local_stamp(doc.versions.get().doc_date), "2026-01-01 10:00")
 
 
 class ProjectFileEditTest(ApiTestCase):
@@ -111,11 +140,11 @@ class ProjectFileEditTest(ApiTestCase):
         self.doc = ProjectFile.objects.create(
             project=self.project, file="projects/1/hujjat.txt",
             original_name="hujjat.txt", description="Eski nom",
-            doc_date=date(2026, 2, 21), uploaded_by=self.dev)
+            doc_date=local_dt(2026, 2, 21), uploaded_by=self.dev)
         self.url = "/api/projects/%d/files/%d/" % (self.project.pk, self.doc.pk)
 
     def patch(self, client, **body):
-        payload = {"description": "Yangi nom", "doc_date": "2026-03-05"}
+        payload = {"description": "Yangi nom", "doc_date": "2026-03-05T11:00"}
         payload.update(body)
         return client.patch(self.url, payload, format="json")
 
@@ -124,7 +153,7 @@ class ProjectFileEditTest(ApiTestCase):
         self.assertEqual(response.status_code, 200, response.data)
         self.doc.refresh_from_db()
         self.assertEqual(self.doc.description, "Yangi nom")
-        self.assertEqual(str(self.doc.doc_date), "2026-03-05")
+        self.assertEqual(local_stamp(self.doc.doc_date), "2026-03-05 11:00")
 
     def test_yuklagan_odam_ozinikini_ochiradi(self):
         response = self.client_for(self.dev).delete(self.url)
@@ -342,23 +371,35 @@ class ProjectFileDateRangeTest(ApiTestCase):
         return response
 
     def test_oraliq_ichidagi_sana_qabul_qilinadi(self):
-        response = self.upload("shartnoma.txt", "2026-03-15")
+        response = self.upload("shartnoma.txt", "2026-03-15T12:00")
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertEqual(str(ProjectFile.objects.get().doc_date), "2026-03-15")
+        self.assertEqual(local_stamp(ProjectFile.objects.get().doc_date),
+                         "2026-03-15 12:00")
 
     def test_chegaralar_ozi_ham_qabul_qilinadi(self):
         """Oraliq YOPIQ: boshlanish va tugash kunining o'zi ham to'g'ri sana."""
-        self.assertEqual(self.upload("boshi.txt", "2026-02-01").status_code, 201)
-        self.assertEqual(self.upload("oxiri.txt", "2026-04-30").status_code, 201)
+        self.assertEqual(self.upload("boshi.txt", "2026-02-01T00:00").status_code, 201)
+        self.assertEqual(self.upload("oxiri.txt", "2026-04-30T23:59").status_code, 201)
+
+    def test_kun_boshidagi_soat_chegaraga_tegmaydi(self):
+        """Boshlanish kunining ertalabki soati ham qabul qilinadi.
+
+        Toshkent UTC+5: mahalliy 00:30 bazada bir kun OLDINGI 19:30 bo'lib
+        yotadi. Tekshiruv UTC sanasi bo'yicha ketsa, shu hujjat "loyiha
+        boshlanishidan oldin" deb rad etilardi - shuning uchun
+        `_check_doc_date` solishtirishdan oldin mahalliy kunga keltiradi.
+        """
+        response = self.upload("erta.txt", "2026-02-01T00:30")
+        self.assertEqual(response.status_code, 201, response.data)
 
     def test_boshlanishdan_oldingi_sana_rad_etiladi(self):
-        response = self.upload("eski.txt", "2026-01-31")
+        response = self.upload("eski.txt", "2026-01-31T23:00")
         self.assertEqual(response.status_code, 400)
         self.assertIn("doc_date", response.data)
         self.assertEqual(ProjectFile.objects.count(), 0)
 
     def test_muddatdan_keyingi_sana_rad_etiladi(self):
-        response = self.upload("kelasi.txt", "2026-05-01")
+        response = self.upload("kelasi.txt", "2026-05-01T00:30")
         self.assertEqual(response.status_code, 400)
         self.assertIn("doc_date", response.data)
         self.assertEqual(ProjectFile.objects.count(), 0)
@@ -368,16 +409,17 @@ class ProjectFileDateRangeTest(ApiTestCase):
         doc = ProjectFile.objects.create(
             project=self.project, file="projects/1/hujjat.txt",
             original_name="hujjat.txt", description="Nom",
-            doc_date=date(2026, 3, 1), uploaded_by=self.dev)
+            doc_date=local_dt(2026, 3, 1), uploaded_by=self.dev)
         url = "/api/projects/%d/files/%d/" % (self.project.pk, doc.pk)
-        response = self.api.patch(url, {"description": "Nom", "doc_date": "2026-06-01"},
+        response = self.api.patch(url,
+                                  {"description": "Nom", "doc_date": "2026-06-01T09:00"},
                                   format="json")
         self.assertEqual(response.status_code, 400)
         doc.refresh_from_db()
-        self.assertEqual(str(doc.doc_date), "2026-03-01")
+        self.assertEqual(local_stamp(doc.doc_date), "2026-03-01 00:00")
 
     def test_chegarasiz_loyihada_istalgan_sana(self):
         """Loyihada sana belgilanmagan bo'lsa - cheklov ham yo'q."""
         Project.objects.filter(pk=self.project.pk).update(start_date=None, due_date=None)
         self.project.refresh_from_db()
-        self.assertEqual(self.upload("arxiv.txt", "2019-07-04").status_code, 201)
+        self.assertEqual(self.upload("arxiv.txt", "2019-07-04T12:00").status_code, 201)

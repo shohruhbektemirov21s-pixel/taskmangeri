@@ -6,16 +6,17 @@
  * loyihalarning xavfsiz maydonlari keladi.
  */
 import { useCallback, useEffect, useId, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PublicProject } from "@/api/types";
 import PublicShell from "@/components/PublicShell";
 import { Empty, Loading, Progress } from "@/components/ui";
 import { useAuth } from "@/auth/AuthContext";
+import { toPublicProject, useNavParams } from "@/nav";
 
 export default function Search() {
   const fid = useId();
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useNavParams();
   const { user } = useAuth();
   const q = params.get("q") || "";
   const specialty = params.get("specialty") || "";
@@ -102,7 +103,7 @@ export default function Search() {
 
         <div className="lp-cards">
           {(items || []).map((p) => (
-            <Link key={p.id} className="lp-card" to={`/ochiq-loyiha/${p.id}`}
+            <Link key={p.id} className="lp-card" {...toPublicProject(p.id)}
                   style={{ display: "block", color: "inherit", textDecoration: "none" }}>
               <div className="row wrap" style={{ gap: 8 }}>
                 <span className="lang-dot" style={{ background: p.color }} />

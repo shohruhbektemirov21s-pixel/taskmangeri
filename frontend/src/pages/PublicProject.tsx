@@ -6,15 +6,16 @@
  * degan savolga javob beradigan ma'lumot chiqadi.
  */
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { PublicProject as PublicProjectData } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import PublicShell from "@/components/PublicShell";
 import { Card, Empty, Loading, Progress, Stat, fmtDate } from "@/components/ui";
+import { toProject, toProjectJoin, useEntityId } from "@/nav";
 
 export default function PublicProject() {
-  const { id } = useParams();
+  const id = useEntityId("project");
   const { user } = useAuth();
   const [project, setProject] = useState<PublicProjectData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,10 +104,10 @@ export default function PublicProject() {
                   <p className="muted" style={{ marginTop: 0 }}>
                     Siz tizimdasiz — loyihaga so'rov yuborishingiz mumkin.
                   </p>
-                  <Link className="btn btn-primary btn-block" to={`/loyiha/${project.id}/qoshilish`}>
+                  <Link className="btn btn-primary btn-block" {...toProjectJoin(project.id)}>
                     So'rov yuborish
                   </Link>
-                  <Link className="btn btn-block mt" to={`/loyiha/${project.id}`}>
+                  <Link className="btn btn-block mt" {...toProject(project.id)}>
                     Loyihani ochish
                   </Link>
                 </>

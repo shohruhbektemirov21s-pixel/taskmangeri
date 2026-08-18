@@ -5,6 +5,7 @@ import { ApiError, api, listOf } from "@/api/client";
 import type { Workspace } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { Card, Empty, ErrorMsg, Loading } from "@/components/ui";
+import { toNewWorkspace, toWorkspace } from "@/nav";
 
 export default function Workspaces() {
   const fid = useId();
@@ -36,13 +37,13 @@ export default function Workspaces() {
       <div className="row wrap">
         <h3 style={{ margin: 0 }}>
           <span className="lang-dot" style={{ background: w.color }} />{" "}
-          <Link to={`/ish-maydoni/${w.slug}`}>{w.name}</Link>
+          <Link {...toWorkspace(w.slug)}>{w.name}</Link>
         </h3>
         {w.is_open && <span className="badge badge-ok">ochiq</span>}
         {joined && <span className="badge">{w.my_role}</span>}
         <span className="spacer" />
         {joined ? (
-          <Link className="btn btn-sm" to={`/ish-maydoni/${w.slug}`}>Ochish</Link>
+          <Link className="btn btn-sm" {...toWorkspace(w.slug)}>Ochish</Link>
         ) : (
           <button className="btn btn-sm btn-primary" onClick={() => void join(w)}>Qoshilish</button>
         )}
@@ -61,7 +62,7 @@ export default function Workspaces() {
       <PageHead
         title={<strong>Ish maydonlari</strong>}
         actions={user?.can_create_project
-                 ? <Link className="btn btn-sm btn-primary" to="/ish-maydoni/yangi">Yangi maydon</Link>
+                 ? <Link className="btn btn-sm btn-primary" {...toNewWorkspace()}>Yangi maydon</Link>
                  : undefined}
       />
       <div className="content">

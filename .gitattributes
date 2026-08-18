@@ -1,0 +1,12 @@
+# Satr oxirlari.
+#
+# `core.autocrlf=true` Windows'da ish nusxasini CRLF ga o'giradi. Bu
+# tahrirlash uchun qulay, lekin KONTEYNER ichida bajariladigan skriptlar
+# uchun halokatli: `#!/bin/sh\r` ni yadro topa olmaydi va konteyner
+# "exec ...: no such file or directory" bilan yiqiladi.
+#
+# Shuning uchun shell skriptlar har doim LF bo'lib qoladi.
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf

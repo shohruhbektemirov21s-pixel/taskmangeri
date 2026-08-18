@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Activity, ProjectMember, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -9,6 +9,7 @@ import Timeline from "@/components/Timeline";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { Avatar, AvatarStack, Card, DateField, DateTimeField, ErrorMsg, fmtDate, fmtDateTime, fromDateTimeInput, Loading, Priority, StatusBadge, timeAgo, toDateTimeInput, todayInTz } from "@/components/ui";
 import { confirmDialog } from "@/components/Confirm";
+import { toProject, toTaskEdit, useEntityId, useGo } from "@/nav";
 
 const FILE_ICON: Record<string, string> = {
   pdf: "PDF", doc: "DOC", docx: "DOC", xls: "XLS", xlsx: "XLS",
@@ -18,8 +19,8 @@ const FILE_ICON: Record<string, string> = {
 
 export default function TaskDetail() {
   const fid = useId();
-  const { taskId } = useParams();
-  const nav = useNavigate();
+  const taskId = useEntityId("task");
+  const go = useGo();
   const { user, meta } = useAuth();
   const { subscribe } = useRealtime();
 
@@ -123,7 +124,7 @@ export default function TaskDetail() {
       <PageHead
         title={
           <>
-            <Link className="muted" to={`/loyiha/${task.project}`}>{task.project_name}</Link>
+            <Link className="muted" {...toProject(task.project)}>{task.project_name}</Link>
             <span className="muted"> / </span>
             <span className="mono muted">{task.code}</span>{" "}
             <strong>{task.title}</strong>
@@ -132,7 +133,7 @@ export default function TaskDetail() {
         actions={
           <>
             {canEdit && (
-              <Link className="btn btn-sm" to={`/vazifa/${task.id}/tahrir`}>Tahrirlash</Link>
+              <Link className="btn btn-sm" {...toTaskEdit(task.id)}>Tahrirlash</Link>
             )}
             {acc.can_manage && (
               <button className="btn btn-sm btn-danger" onClick={() => void (async () => {
@@ -145,7 +146,7 @@ export default function TaskDetail() {
                 if (!ok) return;
                 await run(async () => {
                   await api.delete(`/tasks/${task.id}/`);
-                  nav(`/loyiha/${task.project}/vazifalar`);
+                  go(toProject(task.project, "vazifalar"));
                 });
               })()}>Ochirish</button>
             )}

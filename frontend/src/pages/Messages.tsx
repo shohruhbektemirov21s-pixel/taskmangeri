@@ -5,7 +5,6 @@
  * O'ngda: tanlangan odam bilan real vaqtdagi suhbat.
  */
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { Conversation, UserBrief } from "@/api/types";
 import Chat from "@/components/Chat";
@@ -13,10 +12,12 @@ import UserSearch from "@/components/UserSearch";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, SpecialtyTag, timeAgo } from "@/components/ui";
 import { useRealtime } from "@/realtime/RealtimeContext";
+import { toMessages, toUser, useEntityId, useGo } from "@/nav";
 
 export default function Messages() {
-  const { userId } = useParams();
-  const nav = useNavigate();
+  // Suhbatdosh manzilda emas: `/xabarlar/12` emas, `/xabarlar`.
+  const userId = useEntityId("user");
+  const go = useGo();
   const { subscribe } = useRealtime();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -78,7 +79,7 @@ export default function Messages() {
             <Card title="Kimga yozamiz">
               <UserSearch
                 search={search}
-                onPick={(u) => nav(`/xabarlar/${u.id}`)}
+                onPick={(u) => go(toMessages(u.id))}
                 activeId={activeId}
                 placeholder="Email yoki ism bo'yicha qidiring"
                 emptyText="Hech kim topilmadi"
@@ -97,7 +98,7 @@ export default function Messages() {
                   <button
                     key={c.partner.id}
                     className={`conv ${activeId === c.partner.id ? "on" : ""}`}
-                    onClick={() => nav(`/xabarlar/${c.partner.id}`)}
+                    onClick={() => go(toMessages(c.partner.id))}
                   >
                     <Avatar user={c.partner} size="sm" />
                     <span className="conv-text">
@@ -127,7 +128,7 @@ export default function Messages() {
                     <small className="muted mono">{partner.email}</small>
                   </div>
                   <span className="spacer" />
-                  <button className="btn btn-sm" onClick={() => nav(`/profil/${partner.id}`)}>
+                  <button className="btn btn-sm" onClick={() => go(toUser(partner.id))}>
                     Profil
                   </button>
                 </div>

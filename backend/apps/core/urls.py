@@ -3,12 +3,14 @@ from rest_framework.routers import DefaultRouter
 
 from apps.accounts.api import UserViewSet
 
-from . import api, public, team
+from . import api, public, read, team
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
 
 urlpatterns = [
+    # O'qish shlyuzi: GET o'rniga POST. Tafsiloti - `read.py` da.
+    path("read/", read.read, name="read"),
     path("dashboard/", api.dashboard, name="dashboard"),
     # Yon paneldagi uchta raqam - panelning ogir versiyasi ornida
     path("counts/", api.sidebar_counts, name="sidebar_counts"),

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Activity } from "@/api/types";
 import { Avatar, fmtDateTime, timeAgo } from "./ui";
+import { toProject, toTask } from "@/nav";
 
 /**
  * Tarix lentasi.
@@ -19,12 +20,12 @@ export default function Timeline({
         const meta = (
           <>
             {showProject && a.project && (
-              <Link to={`/loyiha/${a.project}`}>{a.project_name}</Link>
+              <Link {...toProject(a.project)}>{a.project_name}</Link>
             )}
             {a.task && (
               <>
                 {showProject && a.project ? " · " : ""}
-                <Link className="mono" to={`/vazifa/${a.task}`}>{a.task_code}</Link>
+                <Link className="mono" {...toTask(a.task)}>{a.task_code}</Link>
               </>
             )}
           </>

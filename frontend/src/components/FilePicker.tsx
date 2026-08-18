@@ -11,16 +11,18 @@
  */
 import { useId, useRef, useState } from "react";
 import { api } from "@/api/client";
-import { DateField } from "./ui";
+import { DateTimeField, fromDateTimeInput } from "./ui";
 import { IconClose, IconFile } from "./icons";
 
 /** Ikkala endpoint ham 25 MB gacha qabul qiladi (serverda ham tekshiriladi). */
 export const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
-/** "2026-02-21" -> "21.02.2026" (ekranda ko'rsatish uchun). */
+/** "2026-02-21T14:30" -> "21.02.2026 14:30" (ekranda ko'rsatish uchun). */
 function isoToUz(value: string) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : value;
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(value);
+  if (!m) return value;
+  const day = `${m[3]}.${m[2]}.${m[1]}`;
+  return m[4] ? `${day} ${m[4]}:${m[5]}` : day;
 }
 
 export function fileSize(bytes: number) {
@@ -48,7 +50,12 @@ export async function uploadFiles(path: string, files: File[], description = "",
   // Hujjat sanasi fayllar bilan BIR TARTIBDA ketadi: server i-chi sanani
   // i-chi faylga beradi. Sanasi yozilmagan fayl uchun ham bo'sh qiymat
   // qo'yiladi - aks holda tartib siljib, sana boshqa faylga tushib qolardi.
-  if (dates.some((d) => d)) files.forEach((_, i) => body.append("doc_date", dates[i] || ""));
+  // Maydondagi qiymat ("2026-02-21T14:30") TOSHKENT vaqti deb o'qiladi va
+  // mintaqali ISO ga o'giriladi - «Fayllar» bo'limidagi yuklash bilan bir xil
+  // yo'l. Aks holda soatni server o'z sozlamasiga qarab taxmin qilardi.
+  if (dates.some((d) => d)) {
+    files.forEach((_, i) => body.append("doc_date", fromDateTimeInput(dates[i] || "") || ""));
+  }
 
   await api.post(path, body);
 }
@@ -91,6 +98,13 @@ export default function FilePicker({
   const fid = useId();
   const input = useRef<HTMLInputElement>(null);
   const [tooBig, setTooBig] = useState<string[]>([]);
+
+  // Chegara loyihaning KUNI bilan beriladi, maydon esa sana+soat kutadi -
+  // kun boshi va kun oxirigacha kengaytiramiz. Aks holda taqvim boshlanish
+  // kunining o'zini ham bermay qo'yardi (00:00 dan keyingi hamma soat
+  // "chegaradan tashqarida" bo'lib qolardi).
+  const minAt = minDate ? `${minDate}T00:00` : undefined;
+  const maxAt = maxDate ? `${maxDate}T23:59` : undefined;
 
   function add(list: FileList | null) {
     if (!list || !list.length) return;
@@ -135,9 +149,9 @@ export default function FilePicker({
               yozadigan joy ko'rinmasdi. */}
           {withDates && (
             <div className="field" style={{ flex: 1, minWidth: 170 }}>
-              <label htmlFor={`${fid}-1`}>Hujjat sanasi</label>
-              <DateField id={`${fid}-1`} value={date} onChange={(v) => onDate?.(v)}
-                         min={minDate} max={maxDate} />
+              <label htmlFor={`${fid}-1`}>Hujjat sanasi va vaqti</label>
+              <DateTimeField id={`${fid}-1`} value={date} onChange={(v) => onDate?.(v)}
+                             min={minAt} max={maxAt} />
             </div>
           )}
         </div>
@@ -192,12 +206,12 @@ export default function FilePicker({
                 <div className="row wrap" style={{ marginTop: 7, gap: 8 }}>
                   <label htmlFor={`${fid}-d${i}`} className="muted"
                          style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>
-                    Hujjat sanasi
+                    Hujjat sanasi va vaqti
                   </label>
-                  <div style={{ maxWidth: 190, flex: 1 }}>
-                    <DateField id={`${fid}-d${i}`} value={dates[i] || ""}
-                               onChange={(v) => setDate(i, v)}
-                               min={minDate} max={maxDate} />
+                  <div style={{ maxWidth: 230, flex: 1 }}>
+                    <DateTimeField id={`${fid}-d${i}`} value={dates[i] || ""}
+                                   onChange={(v) => setDate(i, v)}
+                                   min={minAt} max={maxAt} />
                   </div>
                   {/* Bo'sh qolsa yuqoridagi umumiy sana ketadi - odam har
                       faylga bir xil sanani qayta yozib chiqmasin. */}

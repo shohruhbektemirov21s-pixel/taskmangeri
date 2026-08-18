@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { User, UserWork } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -11,10 +11,13 @@ import {
   AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Priority, Stat, StatusBadge, fmtDate,
 } from "@/components/ui";
 import { confirmDialog } from "@/components/Confirm";
+import { toMessages, toMyWork, toProject, toTask, useEntityId } from "@/nav";
+import TelegramCard from "@/components/TelegramCard";
 
 export default function Profile() {
   const fid = useId();
-  const { userId } = useParams();
+  // Kimning profili - sahifa holatidan. Bo'sh bo'lsa - o'ziniki.
+  const userId = useEntityId("user");
   const { user: me, meta, refreshUser } = useAuth();
   const isSelf = !userId || Number(userId) === me?.id;
 
@@ -117,7 +120,7 @@ export default function Profile() {
         actions={
           <>
             {!isSelf && (
-              <Link className="btn btn-sm" to={`/xabarlar/${target.id}`}>
+              <Link className="btn btn-sm" {...toMessages(target.id)}>
                 <IconChat size={14} /> Xabar yozish
               </Link>
             )}
@@ -247,7 +250,7 @@ export default function Profile() {
                     <tr key={t.id}>
                       <td className="mono muted nowrap">{t.code}</td>
                       <td>
-                        <Link to={`/vazifa/${t.id}`}>{t.title}</Link>
+                        <Link {...toTask(t.id)}>{t.title}</Link>
                         <br /><small className="muted">{t.project_name}</small>
                       </td>
                       <td><StatusBadge task={t} /></td>
@@ -270,9 +273,19 @@ export default function Profile() {
 
           <div>
             <div className="grid grid-2 mb">
-              <Stat value={stats?.open ?? 0} label="Ochiq vazifa" tone="accent" />
-              <Stat value={stats?.done ?? 0} label="Bajarilgan" tone="ok" />
-              <Stat value={stats?.in_review ?? 0} label="Tekshiruvda" tone="done" />
+              {/* Faqat O'Z sahifasida bosiladi: «Mening ishim» boshqa
+                  odamning vazifalarini ko'rsatmaydi, ya'ni begona profilda
+                  bu havola noto'g'ri ro'yxatga olib borardi. Soat esa
+                  ro'yxatga aylanmaydi - u yig'indi. */}
+              <Stat value={stats?.open ?? 0} label="Ochiq vazifa" tone="accent"
+                    to={isSelf ? "/mening-ishim" : undefined}
+                    title={isSelf ? "Ochiq ishlaringizni korish" : undefined} />
+              <Stat value={stats?.done ?? 0} label="Bajarilgan" tone="ok"
+                    to={isSelf ? toMyWork("status=DONE") : undefined}
+                    title={isSelf ? "Bajarilgan ishlaringizni korish" : undefined} />
+              <Stat value={stats?.in_review ?? 0} label="Tekshiruvda" tone="done"
+                    to={isSelf ? toMyWork("status=IN_REVIEW") : undefined}
+                    title={isSelf ? "Tekshiruvdagi ishlaringizni korish" : undefined} />
               <Stat value={stats?.hours ?? 0} label="Sarflangan soat" tone="warn" />
             </div>
 
@@ -284,7 +297,7 @@ export default function Profile() {
                     <div className="card-body tight row" key={p.id}>
                       <span className="lang-dot" style={{ background: p.color }} />
                       <div style={{ minWidth: 0 }}>
-                        <Link to={`/loyiha/${p.id}`}>{p.name}</Link>
+                        <Link {...toProject(p.id)}>{p.name}</Link>
                         <br /><small className="muted">{p.workspace_name}</small>
                       </div>
                       <span className="spacer" />
@@ -294,6 +307,10 @@ export default function Profile() {
                 </div>
               </Card>
             )}
+
+            {/* Telegram bog'lanishi - faqat o'z profilida. Boshqa odamning
+                sahifasida bu bo'lim ma'nosiz (uni ulash mumkin emas). */}
+            {isSelf && <TelegramCard />}
 
             <Card title="Aloqa">
               <ul className="list-plain" style={{ fontSize: 13 }}>

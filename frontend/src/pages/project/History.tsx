@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthContext";
 import type { Activity, Project, ProjectMember } from "@/api/types";
 import Timeline from "@/components/Timeline";
 import { Avatar, Card, ErrorMsg, Loading } from "@/components/ui";
+import { toDeveloper, toProject } from "@/nav";
 
 export default function History({ project }: { project: Project }) {
   const fid = useId();
@@ -103,7 +104,7 @@ export default function History({ project }: { project: Project }) {
           <div className="card-list">
             {members.map((m) => (
               <Link className="card-body tight row" key={m.id}
-                    to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}
+                    {...toDeveloper(project.id, m.user.id)}
                     style={{ color: "inherit", textDecoration: "none" }}>
                 <Avatar user={m.user} size="sm" />
                 <div>
@@ -122,7 +123,7 @@ export default function History({ project }: { project: Project }) {
         </Card>
 
         <Card title="Nima uchun bu kerak">
-          <Link className="btn btn-sm btn-block" to={`/loyiha/${project.id}/kirish`}>
+          <Link className="btn btn-sm btn-block" {...toProject(project.id, "kirish")}>
             Loyihaga kirish qollanmasi
           </Link>
         </Card>

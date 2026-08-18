@@ -7,7 +7,10 @@ from apps.core.softdelete import SoftDeleteModel, SoftDeleteQuerySet
 
 
 class TaskStatus(models.TextChoices):
-    BACKLOG = "BACKLOG", "Backlog"
+    # `BACKLOG` olib tashlandi: doskada u doim bo'sh turadigan birinchi
+    # ustun edi va «Nazoratda» bilan bir xil ma'noni bildirardi - ish
+    # ochilgan, lekin hali boshlanmagan. Ikkita nom bitta holat uchun
+    # odamni ikkilantirardi: yangi vazifani qayerga qo'yish kerak?
     TODO = "TODO", "Nazoratda"
     IN_PROGRESS = "IN_PROGRESS", "Jarayonda"
     IN_REVIEW = "IN_REVIEW", "Tekshiruvda"
@@ -19,7 +22,6 @@ class TaskStatus(models.TextChoices):
 
 # Kanban ustunlari (tartib bilan)
 BOARD_COLUMNS = [
-    TaskStatus.BACKLOG,
     TaskStatus.TODO,
     TaskStatus.IN_PROGRESS,
     TaskStatus.CHANGES_REQUESTED,
@@ -34,7 +36,6 @@ DEVELOPER_TRANSITIONS = {
     TaskStatus.CHANGES_REQUESTED: [TaskStatus.IN_PROGRESS],
     TaskStatus.BLOCKED: [TaskStatus.IN_PROGRESS, TaskStatus.TODO],
     TaskStatus.IN_REVIEW: [],          # faqat tekshiruvchi harakat qiladi
-    TaskStatus.BACKLOG: [],
     TaskStatus.DONE: [],
     TaskStatus.CANCELLED: [],
 }

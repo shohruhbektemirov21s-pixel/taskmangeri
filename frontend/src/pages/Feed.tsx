@@ -10,7 +10,7 @@
  *   - loyiha ochilganda — o'sha loyihaning yozuvlari matn bo'yicha filtrlanadi.
  */
 import { useCallback, useEffect, useId, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import type { Activity, ProjectFile } from "@/api/types";
@@ -18,6 +18,7 @@ import { IconFile } from "@/components/icons";
 import { PageHead } from "@/components/Layout";
 import Timeline from "@/components/Timeline";
 import { Card, Empty, Loading, timeAgo } from "@/components/ui";
+import { toProject, useNavParams } from "@/nav";
 
 interface ProjectRow {
   id: number;
@@ -76,7 +77,7 @@ function ProjectDocuments({ projectId }: { projectId: number }) {
               </a>
             ))}
             {files.length > 12 && (
-              <Link className="chip" to={`/loyiha/${projectId}/fayllar`}>
+              <Link className="chip" {...toProject(projectId, "fayllar")}>
                 yana {files.length - 12} ta
               </Link>
             )}
@@ -168,7 +169,7 @@ function ProjectFeed({ projectId }: { projectId: number }) {
 
 export default function Feed() {
   const fid = useId();
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useNavParams();
   const [rows, setRows] = useState<ProjectRow[] | null>(null);
 
   const q = params.get("q") || "";
@@ -227,7 +228,7 @@ export default function Feed() {
                       <div className="row wrap">
                         <h3 style={{ margin: 0 }}>
                           <span className="lang-dot" style={{ background: r.color }} />{" "}
-                          <Link to={`/loyiha/${r.id}`}
+                          <Link {...toProject(r.id)}
                                 onClick={(e) => e.stopPropagation()}>{r.name}</Link>
                         </h3>
                         <span className="badge mono">{r.key}</span>

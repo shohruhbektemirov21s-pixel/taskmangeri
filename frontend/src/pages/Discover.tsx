@@ -1,14 +1,15 @@
 import { useEffect, useId, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { Card, Empty, Loading, SpecialtyTag } from "@/components/ui";
+import { toProject, toProjectJoin, useGo } from "@/nav";
 
 export default function Discover() {
   const fid = useId();
-  const nav = useNavigate();
+  const go = useGo();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [q, setQ] = useState("");
@@ -48,11 +49,11 @@ export default function Discover() {
                        qidirib o'tirish shart emas. Ichidagi tugmalar o'z
                        ishini qiladi (`stopPropagation`). */
                     <div className="repo-item clickable" key={p.id}
-                         onClick={() => nav(`/loyiha/${p.id}`)}>
+                         onClick={() => go(toProject(p.id))}>
                       <div className="row wrap">
                         <h3 style={{ margin: 0 }}>
                           <span className="lang-dot" style={{ background: p.color }} />{" "}
-                          <Link to={`/loyiha/${p.id}`}
+                          <Link {...toProject(p.id)}
                                 onClick={(e) => e.stopPropagation()}>{p.name}</Link>
                         </h3>
                         <span className="badge mono">{p.key}</span>
@@ -61,7 +62,7 @@ export default function Discover() {
                         {/* Ochiq loyihani qo'shilmasdan ham ko'rish mumkin:
                             vazifalar va tarix ko'rinadi, fayllar esa faqat
                             jamoaga (serverda shunday cheklangan). */}
-                        <Link className="btn btn-sm btn-primary" to={`/loyiha/${p.id}/qoshilish`}
+                        <Link className="btn btn-sm btn-primary" {...toProjectJoin(p.id)}
                               onClick={(e) => e.stopPropagation()}>
                           Qoshilish
                         </Link>

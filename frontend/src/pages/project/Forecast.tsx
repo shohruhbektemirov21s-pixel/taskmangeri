@@ -11,13 +11,14 @@
  * odam kiritmagan sana ekranda turishi chalkashlikdan boshqa narsa emas.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Forecast, Project } from "@/api/types";
 import { Avatar, Card, Empty, ErrorMsg, Loading, Stat, fmtDate } from "@/components/ui";
+import { toDeveloper, toProject, toTask, useGo } from "@/nav";
 
 export default function ForecastTab({ project }: { project: Project }) {
-  const nav = useNavigate();
+  const go = useGo();
   const [data, setData] = useState<Forecast | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,10 +40,19 @@ export default function ForecastTab({ project }: { project: Project }) {
 
   return (
     <>
+      {/* «Umumiy» sahifasidagi kabi: raqam bosilsa o'sha vazifalar
+          ro'yxati filtrlangan holda ochiladi. Oxirgi katak - sana, uning
+          ortida ro'yxat yo'q, shuning uchun u bosilmaydi. */}
       <div className="grid grid-4 mb">
-        <Stat value={p.open} label="Ochiq vazifa" tone="accent" />
-        <Stat value={p.done} label="Bajarilgan" tone="ok" />
-        <Stat value={p.overdue} label="Muddati otgan" tone={p.overdue ? "danger" : "ok"} />
+        <Stat value={p.open} label="Ochiq vazifa" tone="accent"
+              {...toProject(project.id, "vazifalar", "open=1")}
+              title="Ochiq vazifalarni korish" />
+        <Stat value={p.done} label="Bajarilgan" tone="ok"
+              {...toProject(project.id, "vazifalar", "status=DONE")}
+              title="Bajarilgan vazifalarni korish" />
+        <Stat value={p.overdue} label="Muddati otgan" tone={p.overdue ? "danger" : "ok"}
+              {...toProject(project.id, "vazifalar", "overdue=1")}
+              title="Muddati otgan vazifalarni korish" />
         <Stat
           value={p.start_date ? fmtDate(p.start_date) : "—"}
           label="Loyiha boshlanish sanasi"
@@ -92,7 +102,7 @@ export default function ForecastTab({ project }: { project: Project }) {
               title={
                 <span className="row" style={{ gap: 8 }}>
                   <Avatar user={m.user} size="sm" />
-                  <Link to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}>
+                  <Link {...toDeveloper(project.id, m.user.id)}>
                     {m.user.full_name}
                   </Link>
                   <span className="muted" style={{ fontWeight: 400 }}>
@@ -125,9 +135,9 @@ export default function ForecastTab({ project }: { project: Project }) {
               <tbody>
                 {m.tasks.map((t) => (
                   <tr key={t.id} className={`clickable ${t.overdue ? "row-risk" : ""}`}
-                      onClick={() => nav(`/vazifa/${t.id}`)}>
+                      onClick={() => go(toTask(t.id))}>
                     <td>
-                      <Link to={`/vazifa/${t.id}`} onClick={(e) => e.stopPropagation()}
+                      <Link {...toTask(t.id)} onClick={(e) => e.stopPropagation()}
                             style={{ color: "var(--text)", fontWeight: 500 }}>
                         {t.title}
                       </Link>

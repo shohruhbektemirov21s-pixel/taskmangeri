@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { SidebarCounts, UserBrief } from "@/api/types";
@@ -6,18 +6,50 @@ import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import ErrorBoundary from "./ErrorBoundary";
 import { Logo } from "./Logo";
-import {
-  IconBell, IconBoard, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout,
-  IconCalendar, IconMenu, IconPlus, IconReview, IconSearch, IconTasks,
-} from "./icons";
+import { IconBack, IconBell, IconBoard, IconCalendar, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout, IconMenu, IconPlus, IconReview, IconSearch, IconSettings, IconTasks } from "./icons";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 import { Avatar, SpecialtyTag } from "./ui";
+import { toFeed, toMessages, toNewProject, toSelfProfile, toUser, type NavTarget, useGo } from "@/nav";
+
+/**
+ * Orqaga qaytish tugmasi.
+ *
+ * NEGA KERAK. Manzilda endi identifikator yo'q (`/loyiha`, `/vazifa`) va
+ * qaysi yozuv ochilgani sahifa holatida saqlanadi. Brauzerning o'z
+ * tugmasi buni to'g'ri tiklaydi, lekin u ekranning tepasida, ilovadan
+ * tashqarida - ayniqsa to'liq ekran rejimida ko'rinmaydi. Shuning uchun
+ * ilovaning o'zida ham bo'lsin.
+ *
+ * QACHON O'CHIQ. React Router har bir tarix yozuviga o'z tartib raqamini
+ * qo'yadi (`history.state.idx`). Nol bo'lsa - bu ilovadagi birinchi
+ * sahifa va qaytadigan joy yo'q: tugma bosilmaydigan holatda turadi,
+ * yo'qolib qolmaydi (aks holda panel sakrab turardi).
+ */
+function BackButton() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // `location` o'zgarganda qayta hisoblanadi - shuning uchun u bog'liqlikda.
+  const canGoBack = useMemo(() => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    return typeof idx === "number" ? idx > 0 : window.history.length > 1;
+  }, [location.key]);
+
+  return (
+    <button type="button" className="top-icon top-back" disabled={!canGoBack}
+            onClick={() => navigate(-1)}
+            title={canGoBack ? "Orqaga qaytish" : "Orqaga qaytadigan sahifa yo'q"}
+            aria-label="Orqaga qaytish">
+      <IconBack size={17} />
+    </button>
+  );
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { subscribe } = useRealtime();
-  const nav = useNavigate();
+  const go = useGo();
   const loc = useLocation();
   const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0 });
   const [q, setQ] = useState("");
@@ -85,8 +117,16 @@ export default function Layout() {
     };
   }, [menu]);
 
-  const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) => (
-    <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`} end>
+  const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) =>
+    itemTo({ to, state: {} }, icon, label, count, hot);
+
+  // Ba'zi bo'limlar sessiyadagi raqamni ATAYLAB tozalaydi (masalan
+  // «Xabarlar» - suhbatdosh emas, ro'yxat ochilsin), shuning uchun
+  // maqsadni to'liq qabul qiladigan variant ham bor.
+  const itemTo = (target: NavTarget, icon: React.ReactNode, label: string,
+                  count?: number, hot = false) => (
+    <NavLink to={target.to} state={target.state}
+             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`} end>
       <span className="ico">{icon}</span>
       <span className="label">{label}</span>
       {!!count && <span className={`count ${hot ? "hot" : ""}`}>{count}</span>}
@@ -104,6 +144,9 @@ export default function Layout() {
         {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
       </button>
 
+      {/* Orqaga - qidiruvdan chapda, menyu tugmasi yonida. */}
+      <BackButton />
+
       {/* Yuqori panelda navigatsiya havolalari yo'q: «Loyihalar» va
           «Mening ishim» yon panelda turadi va u har doim ko'rinadi
           (mobilda menyu tugmasi bilan). Bir xil havola ikki joyda
@@ -116,7 +159,7 @@ export default function Layout() {
             onSubmit={(e) => {
               e.preventDefault();
               setOpenHits(false);
-              nav(`/tarix?q=${encodeURIComponent(q)}`);
+              go(toFeed(q));
             }}
           >
             <IconSearch size={14} />
@@ -138,7 +181,7 @@ export default function Layout() {
             <div className="top-hits" onMouseDown={(e) => e.preventDefault()}>
               {people.length > 0 && <div className="top-hits-head">Odamlar</div>}
               {people.map((u) => (
-                <Link key={u.id} className="top-hit" to={`/profil/${u.id}`}
+                <Link key={u.id} className="top-hit" {...toUser(u.id)}
                       onClick={() => { setOpenHits(false); setQ(""); }}>
                   <Avatar user={u} size="sm" />
                   <span className="top-hit-text">
@@ -154,7 +197,7 @@ export default function Layout() {
                 </div>
               )}
               <button type="button" className="top-hit top-hit-all"
-                      onClick={() => { setOpenHits(false); nav(`/tarix?q=${encodeURIComponent(q)}`); }}>
+                      onClick={() => { setOpenHits(false); go(toFeed(q)); }}>
                 «{q.trim()}» bo'yicha tarix va loyihalarni qidirish
               </button>
             </div>
@@ -166,7 +209,7 @@ export default function Layout() {
 
         <ThemeToggle />
         <NotificationBell />
-        <Link className="top-icon hide-sm" to="/xabarlar" title="Xabarlar">
+        <Link className="top-icon hide-sm" {...toMessages()} title="Xabarlar">
           <IconChat size={17} />
         </Link>
         <Link className="top-icon hide-sm" to="/tekshiruv" title="Tekshiruv navbati">
@@ -175,11 +218,11 @@ export default function Layout() {
         </Link>
         {/* Loyiha ochish - faqat menejer va admin */}
         {user?.can_create_project && (
-          <Link className="top-icon hide-sm" to="/loyiha/yangi" title="Yangi loyiha">
+          <Link className="top-icon hide-sm" {...toNewProject()} title="Yangi loyiha">
             <IconPlus size={17} />
           </Link>
         )}
-        <Link to="/profil" title={user?.full_name}>
+        <Link {...toSelfProfile()} title={user?.full_name}>
           <Avatar user={user} />
         </Link>
     </header>
@@ -204,14 +247,19 @@ export default function Layout() {
             {item("/loyihalar", <IconBoard />, "Loyihalar")}
             {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}
             {item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
-            {item("/xabarlar", <IconChat />, "Xabarlar")}
+            {/* Ro'yxat ochilsin: sessiyada qolgan suhbatdosh emas. */}
+            {itemTo(toMessages(), <IconChat />, "Xabarlar")}
             {item("/bildirishnomalar", <IconBell />, "Bildirishnomalar")}
             {item("/taqvim", <IconCalendar />, "Taqvim")}
             {item("/tarix", <IconHistory />, "Umumiy tarix")}
+            {/* Admin panel - faqat platforma adminida ko'rinadi. Marshrut
+                ham himoyalangan (`AdminOnly`), serverdagi amallar ham
+                (`IsPlatformAdmin`) - bu shunchaki qulay havola. */}
+            {user?.is_platform_admin && item("/admin", <IconSettings />, "Admin panel")}
           </div>
 
           <div className="sidebar-footer">
-            <Link to="/profil" className="sidebar-user">
+            <Link {...toSelfProfile()} className="sidebar-user">
               <Avatar user={user} />
               <span style={{ minWidth: 0 }}>
                 <span className="name">{user?.full_name}</span>
@@ -223,7 +271,7 @@ export default function Layout() {
               className="btn btn-sm btn-block btn-logout"
               onClick={() => {
                 logout();
-                nav("/kirish");
+                go("/kirish");
               }}
             >
               <IconLogout size={14} /> Chiqish

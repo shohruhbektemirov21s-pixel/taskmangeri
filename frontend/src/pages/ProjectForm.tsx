@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import { deleteProject } from "@/api/projects";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
@@ -10,14 +9,20 @@ import type { Access, Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { Card, DateField, ErrorMsg, Loading } from "@/components/ui";
+import { toProject, useEntityId, useGo, useIsPath } from "@/nav";
 
 export default function ProjectForm() {
   const fid = useId();
   // Saqlash tugmasi sarlavhada, ya'ni `<form>` dan tashqarida turadi -
   // `form` atributi orqali bog'lanadi, shuning uchun formaga id kerak.
   const formId = `${fid}-form`;
-  const { id } = useParams();
-  const nav = useNavigate();
+  // REJIM marshrutdan aniqlanadi, sessiyadagi raqamdan emas: `/loyiha/yangi`
+  // da eski loyiha raqami qolgan bo'lsa forma tahrirlash rejimiga tushib
+  // ketardi va odam yangi loyiha o'rniga eskisini o'zgartirib qo'yardi.
+  const creating = useIsPath("/loyiha/yangi");
+  const stored = useEntityId("project");
+  const id = creating ? null : stored;
+  const go = useGo();
   const { meta, user } = useAuth();
   const editing = Boolean(id);
 
@@ -108,7 +113,7 @@ export default function ProjectForm() {
           setBusy(false);
           setError("Loyiha yaratildi, lekin fayllarni yuklab bolmadi — "
                    + "ularni «Fayllar» bolimidan qayta yuklang.");
-          nav(`/loyiha/${saved.id}/fayllar`);
+          go(toProject(saved.id, "fayllar"));
           return;
         }
       }
@@ -132,14 +137,14 @@ export default function ProjectForm() {
           setBusy(false);
           setError("Loyiha yaratildi, lekin " + parts.join("; ")
                    + " — «Jamoa» va «Doska» bolimidan qayta urinib koring.");
-          nav(`/loyiha/${saved.id}/${failedMembers.length ? "jamoa" : "doska"}`);
+          go(toProject(saved.id, failedMembers.length ? "jamoa" : "doska"));
           return;
         }
       }
 
       // Vazifa yozilgan bolsa darrov doskani ochamiz - odam ishlar joyiga
       // tushganini oz kozi bilan korsin.
-      nav(`/loyiha/${saved.id}/${tasks ? "doska" : "brif"}`);
+      go(toProject(saved.id, tasks ? "doska" : "brif"));
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields);
@@ -156,7 +161,7 @@ export default function ProjectForm() {
     setBusy(true);
     try {
       if (await deleteProject(id!, f.name)) {
-        nav("/loyihalar");
+        go("/loyihalar");
         return;
       }
     } catch (err) {
@@ -187,7 +192,7 @@ export default function ProjectForm() {
             <button className="btn btn-primary" form={formId} disabled={busy}>
               {busy ? "Saqlanmoqda..." : editing ? "Saqlash" : "Loyiha yaratish"}
             </button>
-            <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
+            <button type="button" className="btn" onClick={() => go(-1)}>Bekor qilish</button>
           </div>
         )}
       />

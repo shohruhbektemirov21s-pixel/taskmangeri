@@ -15,11 +15,12 @@
  * uni mahalliy `new Date()` ga bersak mintaqa tufayli kun surilib ketardi.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CalendarMonth, CalendarProject, CalendarTask } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, ErrorMsg, Loading, fmtDate } from "@/components/ui";
+import { toProject, toTask, useNavParams } from "@/nav";
 
 const WEEKDAYS = ["dushanba", "seshanba", "chorshanba", "payshanba",
                   "juma", "shanba", "yakshanba"];
@@ -76,7 +77,7 @@ function assignLanes(bars: Bar[]) {
 }
 
 export default function CalendarPage() {
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useNavParams();
   const [data, setData] = useState<CalendarMonth | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showTasks, setShowTasks] = useState(true);
@@ -162,7 +163,13 @@ export default function CalendarPage() {
         <ErrorMsg error={error} />
         {!data ? <Loading /> : (
           <>
-            <div className="card mb">
+            {/* Taqvim chapda, tanlangan kun O'NGDA. Ilgari kun ro'yxati
+                taqvimning ostida ochilardi: uni ko'rish uchun sahifani
+                pastga aylantirish kerak edi va o'sha payt taqvimning o'zi
+                ekrandan chiqib ketardi - qaysi kun tanlanganini ko'rib
+                bo'lmasdi. Endi ikkovi bir ekranda turadi. */}
+            <div className={`cal-layout ${picked ? "with-day" : ""}`}>
+            <div className="card">
               {/* Oy nomi, sanoq va boshqaruv - taqvimning o'z ustida turadi:
                   odam bir joyga qarab turib oyni almashtiradi. */}
               <div className="cal-bar-top">
@@ -272,7 +279,8 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {picked ? (
+            {picked && (
+              <aside className="cal-day">
               <Card title={`${dayOfMonth(dayNo(picked))}-${MONTHS[Number(picked.split("-")[1]) - 1].toLowerCase()}`}
                     badge={<button className="btn btn-sm" onClick={() => set("kun", "")}>Yopish</button>}
                     padded={false}>
@@ -283,7 +291,7 @@ export default function CalendarPage() {
                     {dayProjects.map((p) => (
                       <div className="card-body tight row wrap" key={`dp${p.id}`}>
                         <span className="lang-dot" style={{ background: p.color }} />
-                        <Link to={`/loyiha/${p.id}`}><strong>{p.name}</strong></Link>
+                        <Link {...toProject(p.id)}><strong>{p.name}</strong></Link>
                         <span className="badge">{p.status_display}</span>
                         {p.overdue && <span className="badge badge-danger">kechikkan</span>}
                         <span className="spacer" />
@@ -296,7 +304,7 @@ export default function CalendarPage() {
                     {showTasks && dayTasks.map((t) => (
                       <div className="card-body tight row wrap" key={`dt${t.id}`}>
                         <span className="badge mono">{t.code}</span>
-                        <Link to={`/vazifa/${t.id}`}>{t.title}</Link>
+                        <Link {...toTask(t.id)}>{t.title}</Link>
                         <span className="badge">{t.status_display}</span>
                         {t.overdue && <span className="badge badge-danger">kechikkan</span>}
                         <span className="spacer" />
@@ -318,11 +326,13 @@ export default function CalendarPage() {
                   </div>
                 )}
               </Card>
-            ) : (
-              !data.total && !data.task_total && (
-                <Empty icon="🗓" title="Bu oyda tugaydigan ish yo'q"
-                       text="Boshqa oyni ko'ring yoki loyiha va vazifalarga muddat qo'ying." />
-              )
+              </aside>
+            )}
+            </div>
+
+            {!picked && !data.total && !data.task_total && (
+              <Empty icon="🗓" title="Bu oyda tugaydigan ish yo'q"
+                     text="Boshqa oyni ko'ring yoki loyiha va vazifalarga muddat qo'ying." />
             )}
           </>
         )}

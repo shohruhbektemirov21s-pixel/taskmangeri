@@ -30,8 +30,10 @@ import type { Project, ProjectFile } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { confirmDialog } from "@/components/Confirm";
 import { IconFile } from "@/components/icons";
-import { Avatar, Card, DateField, Empty, ErrorMsg, FieldDiff, fmtDate, Loading, OkMsg, timeAgo }
-  from "@/components/ui";
+import {
+  Avatar, Card, DateTimeField, Empty, ErrorMsg, FieldDiff, fmtDate, fmtDateTime,
+  fromDateTimeInput, Loading, OkMsg, timeAgo, toDateTimeInput,
+} from "@/components/ui";
 import { useProjectLive } from "@/realtime/RealtimeContext";
 
 export default function Files({ project }: { project: Project }) {
@@ -69,6 +71,9 @@ export default function Files({ project }: { project: Project }) {
   // (loyihada sana belgilanmagan) o'sha tomon cheklanmaydi.
   const minDate = project.start_date || undefined;
   const maxDate = project.due_date || undefined;
+  // Maydon endi sana+soat: chegarani kun boshi va kun oxirigacha kengaytiramiz.
+  const minAt = minDate ? `${minDate}T00:00` : undefined;
+  const maxAt = maxDate ? `${maxDate}T23:59` : undefined;
   const rangeText = minDate || maxDate
     ? `Loyiha oralig'i: ${minDate ? fmtDate(minDate) : "…"} — ${maxDate ? fmtDate(maxDate) : "…"}`
     : "";
@@ -76,10 +81,14 @@ export default function Files({ project }: { project: Project }) {
   /** Sana oraliqdan chiqib ketgan bo'lsa - sabab matni, aks holda bo'sh. */
   function rangeError(value: string) {
     if (!value) return "";
-    if (minDate && value < minDate) {
+    // Chegara KUN bilan qo'yilgan, qiymatda esa soat ham bor - faqat sana
+    // qismini solishtiramiz, aks holda "2026-08-10T09:00" > "2026-08-10"
+    // bo'lib, muddat kunining o'zi ham rad etilardi.
+    const day = value.slice(0, 10);
+    if (minDate && day < minDate) {
       return `Hujjat sanasi loyiha boshlanishidan (${fmtDate(minDate)}) oldin bo'lmasin.`;
     }
-    if (maxDate && value > maxDate) {
+    if (maxDate && day > maxDate) {
       return `Hujjat sanasi loyiha muddatidan (${fmtDate(maxDate)}) keyin bo'lmasin.`;
     }
     return "";
@@ -102,7 +111,9 @@ export default function Files({ project }: { project: Project }) {
     Array.from(list).forEach((f) => body.append("file", f));
     body.append("description", description.trim());
     // Bitta sana - shu to'plamdagi hamma faylga (serverda shunday o'qiladi).
-    body.append("doc_date", docDate);
+    // Maydondagi qiymat Toshkent vaqti deb o'qiladi va mintaqali ISO ga
+    // o'giriladi - server uni taxmin qilib o'tirmasin.
+    body.append("doc_date", fromDateTimeInput(docDate) || "");
 
     try {
       // `api.post` - xom `fetch` emas: 401 da token o'zi yangilanadi.
@@ -135,7 +146,8 @@ export default function Files({ project }: { project: Project }) {
     setError(null);
     try {
       await api.patch(`/projects/${project.id}/files/${edit.id}/`,
-                      { description: edit.name.trim(), doc_date: edit.date });
+                      { description: edit.name.trim(),
+                        doc_date: fromDateTimeInput(edit.date) });
       setEdit(null);
       setOk("Hujjat ma'lumoti yangilandi.");
       await load();
@@ -185,9 +197,9 @@ export default function Files({ project }: { project: Project }) {
                      onChange={(e) => setDescription(e.target.value)} />
             </div>
             <div className="field" style={{ flex: 1, minWidth: 160 }}>
-              <label htmlFor={`${fid}-1`}>Hujjat sanasi</label>
-              <DateField id={`${fid}-1`} value={docDate} onChange={setDocDate} required
-                         min={minDate} max={maxDate} />
+              <label htmlFor={`${fid}-1`}>Hujjat sanasi va vaqti</label>
+              <DateTimeField id={`${fid}-1`} value={docDate} onChange={setDocDate} required
+                             min={minAt} max={maxAt} />
               {rangeError(docDate)
                 ? <div className="err">{rangeError(docDate)}</div>
                 : rangeText && <div className="help">{rangeText}</div>}
@@ -239,7 +251,7 @@ export default function Files({ project }: { project: Project }) {
                       {f.version > 1 ? `yangilandi ${timeAgo(f.updated_at)}` : timeAgo(f.created_at)}
                       {/* Hujjat sanasi - yuklangan vaqtdan boshqa narsa,
                           shuning uchun nomi bilan yoziladi. */}
-                      {f.doc_date && ` · hujjat sanasi: ${fmtDate(f.doc_date)}`}
+                      {f.doc_date && ` · hujjat sanasi: ${fmtDateTime(f.doc_date)}`}
                       {f.description && ` · ${f.description}`}
                     </small>
                   </div>
@@ -253,7 +265,7 @@ export default function Files({ project }: { project: Project }) {
                               onClick={() => setEdit({
                                 id: f.id,
                                 name: f.description,
-                                date: f.doc_date || "",
+                                date: toDateTimeInput(f.doc_date),
                               })}>
                         Tahrirlash
                       </button>
@@ -272,10 +284,10 @@ export default function Files({ project }: { project: Project }) {
                              onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
                     </div>
                     <div className="field" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
-                      <label htmlFor={`${fid}-e1`}>Hujjat sanasi</label>
-                      <DateField id={`${fid}-e1`} value={edit.date}
-                                 onChange={(v) => setEdit({ ...edit, date: v })}
-                                 min={minDate} max={maxDate} />
+                      <label htmlFor={`${fid}-e1`}>Hujjat sanasi va vaqti</label>
+                      <DateTimeField id={`${fid}-e1`} value={edit.date}
+                                     onChange={(v) => setEdit({ ...edit, date: v })}
+                                     min={minAt} max={maxAt} />
                       {rangeError(edit.date)
                         ? <div className="err">{rangeError(edit.date)}</div>
                         : rangeText && <div className="help">{rangeText}</div>}
@@ -305,7 +317,7 @@ export default function Files({ project }: { project: Project }) {
                             </a>
                             <small className="muted">
                               {v.size_display} · {v.uploaded_by?.full_name || "—"} yuklagan
-                              {v.doc_date && ` · hujjat sanasi: ${fmtDate(v.doc_date)}`}
+                              {v.doc_date && ` · hujjat sanasi: ${fmtDateTime(v.doc_date)}`}
                             </small>
                             <span className="spacer" />
                             <small className="muted nowrap">

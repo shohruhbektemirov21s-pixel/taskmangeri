@@ -98,7 +98,24 @@ def notify(recipient, kind, title, body="", url="", actor=None, meta=None, colla
         return None
 
     send_to_user(obj.recipient_id, {"event": "notification", "notification": serialize(obj)})
+    _to_telegram(obj)
     return obj
+
+
+def _to_telegram(notification):
+    """Bildirishnomani Telegramga ham uzatadi - bog'langan bo'lsa.
+
+    Alohida funksiyada, chunki qoida bitta: Telegram TASHQI xizmat va u
+    ishlamay qolgani uchun bildirishnoma yozilmay qolmasligi kerak.
+    Import ham shu yerda - `apps.telegram` yuklanmagan holatda ham
+    (masalan tanlab o'chirilganda) `notify()` ishlayversin.
+    """
+    try:
+        from apps.telegram.services import send_notification
+
+        send_notification(notification)
+    except Exception:
+        logger.exception("Telegramga uzatib bo'lmadi: id=%s", getattr(notification, "pk", None))
 
 
 def notify_many(recipients, kind, title, body="", url="", actor=None, meta=None, collapse=False):

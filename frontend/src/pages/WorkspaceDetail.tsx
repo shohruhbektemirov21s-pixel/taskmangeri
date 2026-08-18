@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Project, Workspace } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -7,9 +7,10 @@ import AddMemberBox from "@/components/AddMemberBox";
 import { IconChat } from "@/components/icons";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, ErrorMsg, Loading, Progress } from "@/components/ui";
+import { toNewProject, toProject, toUser, toWorkspaceChat, useEntityId } from "@/nav";
 
 export default function WorkspaceDetail() {
-  const { slug } = useParams();
+  const slug = useEntityId("workspace");
   const { meta, user } = useAuth();
   const [ws, setWs] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -67,12 +68,12 @@ export default function WorkspaceDetail() {
               </button>
             )}
             {ws.my_role && (
-              <Link className="btn btn-sm" to={`/ish-maydoni/${ws.slug}/chat`}>
+              <Link className="btn btn-sm" {...toWorkspaceChat(ws.slug)}>
                 <IconChat size={14} /> Suhbat
               </Link>
             )}
             {user?.can_create_project && (
-              <Link className="btn btn-sm btn-primary" to="/loyiha/yangi">Yangi loyiha</Link>
+              <Link className="btn btn-sm btn-primary" {...toNewProject()}>Yangi loyiha</Link>
             )}
           </>
         }
@@ -93,12 +94,12 @@ export default function WorkspaceDetail() {
                     <div className="row wrap">
                       <h3 style={{ margin: 0 }}>
                         <span className="lang-dot" style={{ background: p.color }} />{" "}
-                        <Link to={`/loyiha/${p.id}`}>{p.name}</Link>
+                        <Link {...toProject(p.id)}>{p.name}</Link>
                       </h3>
                       <span className="badge mono">{p.key}</span>
                       {p.matches_my_specialty && <span className="badge badge-info">sizga mos</span>}
                       <span className="spacer" />
-                      <Link className="btn btn-sm" to={`/loyiha/${p.id}/doska`}>Doska</Link>
+                      <Link className="btn btn-sm" {...toProject(p.id, "doska")}>Doska</Link>
                     </div>
                     {p.description && (
                       <p className="muted" style={{ margin: "8px 0 0" }}>{p.description}</p>
@@ -114,7 +115,7 @@ export default function WorkspaceDetail() {
                 {!projects.length && (
                   <Empty title="Loyiha yoq" text="Bu maydonda hali loyiha yaratilmagan.">
                     {user?.can_create_project && (
-                      <Link className="btn btn-primary btn-sm" to="/loyiha/yangi">Loyiha yaratish</Link>
+                      <Link className="btn btn-primary btn-sm" {...toNewProject()}>Loyiha yaratish</Link>
                     )}
                   </Empty>
                 )}
@@ -130,7 +131,7 @@ export default function WorkspaceDetail() {
                   <div className="card-body tight row" key={m.id}>
                     <Avatar user={m.user} size="sm" />
                     <div style={{ minWidth: 0 }}>
-                      <Link to={`/profil/${m.user.id}`}>{m.user.full_name}</Link>
+                      <Link {...toUser(m.user.id)}>{m.user.full_name}</Link>
                       <br /><small className="muted">{m.user.specialty_display}</small>
                     </div>
                     <span className="spacer" />

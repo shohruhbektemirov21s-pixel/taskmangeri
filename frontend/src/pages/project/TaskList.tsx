@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { listOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
@@ -6,12 +6,36 @@ import type { Project, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { Empty, ErrorMsg, Loading, TaskRow } from "@/components/ui";
+import { toNewTask, useNavParams } from "@/nav";
+
+/**
+ * Filtr URL da turadi, komponent ichidagi holatda emas.
+ *
+ * Sababi: «Umumiy» va «Muddatlar» sahifalaridagi raqamli kataklar shu
+ * ro'yxatga tayyor filtr bilan olib keladi. Filtr faqat
+ * `useState` da bo'lganda havola ochilardi-yu, ro'yxat baribir to'liq
+ * chiqardi - odam "1 ta nazoratda" ni bosib, 40 ta vazifani ko'rardi.
+ * URL da turgani uchun havolani ulashsa ham, orqaga qaytsa ham ro'yxat
+ * o'sha ko'rinishda ochiladi.
+ */
+const FILTER_KEYS = ["status", "assignee", "task_type", "search", "open", "overdue"] as const;
+type FilterKey = (typeof FILTER_KEYS)[number];
 
 export default function TaskList({ project }: { project: Project }) {
   const fid = useId();
   const { meta } = useAuth();
   const { subscribe } = useRealtime();
-  const [f, setF] = useState({ status: "", assignee: "", task_type: "", search: "", open: "" });
+  const [params, setParams] = useNavParams();
+
+  // `params` obyekti har renderda yangi bo'ladi - matnga qarab eslab qolamiz.
+  const qs = params.toString();
+  const f = useMemo(() => {
+    const source = new URLSearchParams(qs);
+    return Object.fromEntries(
+      FILTER_KEYS.map((k) => [k, source.get(k) || ""]),
+    ) as Record<FilterKey, string>;
+  }, [qs]);
+  const filtered = FILTER_KEYS.some((k) => f[k]);
 
   // Ilgari qidiruv maydoniga yozilgan HAR HARF uchun 200 tagacha vazifa
   // so'ralardi, ustiga `setTasks(null)` ro'yxatni har harfda "Yuklanmoqda" ga
@@ -25,7 +49,14 @@ export default function TaskList({ project }: { project: Project }) {
     if (d.event === "task.update" && Number(d.project) === project.id) reload();
   }), [subscribe, reload, project.id]);
 
-  const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+  // `replace`: filtrni o'zgartirish tarixga yangi qadam qo'shmasin - aks
+  // holda «orqaga» tugmasi har harfni birma-bir qaytarardi.
+  const set = (k: FilterKey, v: string) => {
+    const next = new URLSearchParams(qs);
+    if (v) next.set(k, v);
+    else next.delete(k);
+    setParams(next, { replace: true });
+  };
 
   return (
     <>
@@ -67,6 +98,17 @@ export default function TaskList({ project }: { project: Project }) {
                 onClick={() => set("open", f.open ? "" : "1")}>
           Faqat ochiqlar
         </button>
+        {/* «Muddatlar» sahifasidagi «Muddati otgan» katagi shu filtr bilan
+            keladi - tugma bo'lmasa odam uni o'chira olmasdi. */}
+        <button className={`btn ${f.overdue ? "btn-accent" : ""}`}
+                onClick={() => set("overdue", f.overdue ? "" : "1")}>
+          Muddati otgan
+        </button>
+        {filtered && (
+          <button className="btn" onClick={() => setParams(new URLSearchParams(), { replace: true })}>
+            Tozalash
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -84,9 +126,17 @@ export default function TaskList({ project }: { project: Project }) {
             </tbody>
           </table></div>
         ) : (
-          <Empty icon="☐" title="Vazifa topilmadi" text="Filtrlarni ozgartiring yoki yangi vazifa yarating.">
+          <Empty icon="☐" title="Vazifa topilmadi"
+                 text={filtered
+                   ? "Tanlangan filtrga mos vazifa yoq - filtrni tozalab koring."
+                   : "Bu loyihada hali vazifa yoq."}>
+            {filtered && (
+              <button className="btn" onClick={() => setParams(new URLSearchParams(), { replace: true })}>
+                Filtrni tozalash
+              </button>
+            )}
             {project.access.can_create_task && (
-              <Link className="btn btn-primary" to={`/loyiha/${project.id}/vazifa-yaratish`}>
+              <Link className="btn btn-primary" {...toNewTask(project.id)}>
                 Yangi vazifa
               </Link>
             )}

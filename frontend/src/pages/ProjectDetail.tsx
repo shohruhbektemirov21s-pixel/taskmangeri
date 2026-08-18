@@ -3,7 +3,8 @@ import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
 import { useFetch } from "@/api/useFetch";
 import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
-import { ErrorMsg, Loading, Progress } from "@/components/ui";
+import { Empty, ErrorMsg, Loading, Progress } from "@/components/ui";
+import { toBulkTasks, toNewTask, toProject, toProjectEdit, useEntityId } from "@/nav";
 
 /**
  * Bo'limlar talab bo'yicha yuklanadi.
@@ -37,13 +38,34 @@ const TABS = [
   { slug: "chat", label: "Suhbat", team: true },
   { slug: "tarix", label: "Tarix" },
   { slug: "kirish", label: "Loyihaga kirish" },
-  { slug: "brif", label: "Brif" },
+  // Slug `brif` bo'lib qoladi - u serverdagi `ProjectBrief` bilan bir
+  // xil nom va marshrutda ham shu. O'zbekcha yorlig'i esa loyihaning
+  // texnik tavsifi ekanini aniqroq aytadi.
+  { slug: "brif", label: "Arxitekturasi" },
 ];
 
 export default function ProjectDetail() {
-  const { id, tab } = useParams();
+  // Loyiha raqami manzilda emas, sahifa holatida - `src/nav` ga qarang.
+  // `tab` esa manzilda qoladi: u maxfiy ham emas, kimningdir raqami ham
+  // emas, lekin orqaga qaytish va sahifani yangilash uchun kerak.
+  const id = useEntityId("project");
+  const { tab } = useParams();
   const nav = useNavigate();
-  const { data: project, error, loading, reload } = useFetch<Project>(`/projects/${id}/`);
+  const { data: project, error, loading, reload } = useFetch<Project>(
+    id ? `/projects/${id}/` : null);
+
+  // Manzilni qo'lda yozib kirgan yoki sessiyasi tozalangan odam shu yerga
+  // tushadi: oq ekran emas, tushunarli chiqish yo'li bo'lsin.
+  if (!id) {
+    return (
+      <div className="content">
+        <Empty title="Loyiha tanlanmagan"
+               text="Manzilda loyiha raqami saqlanmaydi - uni ro'yxatdan tanlang.">
+          <Link className="btn btn-primary" to="/loyihalar">Loyihalarim</Link>
+        </Empty>
+      </div>
+    );
+  }
 
   if (loading) return <div className="content"><Loading /></div>;
   if (!project) {
@@ -87,21 +109,21 @@ export default function ProjectDetail() {
           <>
             {acc.can_create_task && (
               <>
-                <Link className="btn btn-sm" to={`/loyiha/${id}/koplab-vazifa`}>Koplab vazifa</Link>
-                <Link className="btn btn-sm btn-primary" to={`/loyiha/${id}/vazifa-yaratish`}>
+                <Link className="btn btn-sm" {...toBulkTasks(id)}>Koplab vazifa</Link>
+                <Link className="btn btn-sm btn-primary" {...toNewTask(id)}>
                   Yangi vazifa
                 </Link>
               </>
             )}
             {acc.can_manage && (
-              <Link className="btn btn-sm" to={`/loyiha/${id}/tahrir`}>Sozlamalar</Link>
+              <Link className="btn btn-sm" {...toProjectEdit(id)}>Sozlamalar</Link>
             )}
           </>
         }
         tabs={TABS.filter((t) => !t.team || acc.is_member || acc.is_manager || acc.is_admin).map((t) => (
           <NavLink
             key={t.slug}
-            to={`/loyiha/${id}${t.slug ? "/" + t.slug : ""}`}
+            {...toProject(id, t.slug || undefined)}
             end
             className={`tab ${active === t.slug ? "active" : ""}`}
           >
