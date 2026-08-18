@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
-import type { User, UserWork } from "@/api/types";
+import type { Task, User, UserWork } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import SkillEditor from "@/components/SkillEditor";
@@ -30,6 +30,20 @@ export default function Profile() {
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  /**
+   * Katak bosilganda ro'yxat SHU SAHIFADA filtrlanadi.
+   *
+   * Ilgari kataklar «Mening ishim» ga olib ketardi va faqat O'Z
+   * profilida bosilardi - begona profilda ular umuman jonsiz edi.
+   * Endi ikkovida ham ishlaydi: raqamni ko'rgan odam "bu qaysi ishlar?"
+   * degan savolni sahifani tark etmasdan ochadi.
+   *
+   * Hook SHU YERDA - qolgan holatlar bilan birga. Pastroqda, `if (!target)`
+   * dan keyin turganda React "oldingi renderga qaraganda ko'proq hook"
+   * deb yiqilardi: birinchi renderda sahifa hali yuklanmagan va erta
+   * `return` bu qatorgacha yetib bormasdi.
+   */
+  const [pickedStat, setPickedStat] = useState<string | null>(null);
 
   useEffect(() => {
     // Bir profildan boshqasiga tez o'tilsa eski javob kelib qolmasin.
@@ -112,7 +126,16 @@ export default function Profile() {
   if (!target) return <div className="content">{error ? <div className="msg msg-error">{error}</div> : <Loading />}</div>;
 
   const stats = work?.stats;
-  const tasks = work?.tasks || [];
+  const allTasks = work?.tasks || [];
+
+  const matches = (t: Task) => {
+    if (pickedStat === "done") return t.status === "DONE";
+    if (pickedStat === "in_review") return t.status === "IN_REVIEW";
+    if (pickedStat === "open") return t.status !== "DONE" && t.status !== "CANCELLED";
+    return true;
+  };
+  const tasks = allTasks.filter(matches);
+  const pickStat = (key: string) => setPickedStat((v) => (v === key ? null : key));
 
   return (
     <>
@@ -258,7 +281,13 @@ export default function Profile() {
             )}
 
             <Card title={isSelf ? "Songgi vazifalarim" : "Songgi vazifalari"} padded={false}
-                  badge={<span className="badge">{tasks.length}</span>}>
+                  badge={<span className="badge">{tasks.length}</span>}
+                  action={pickedStat && (
+                    <button type="button" className="btn btn-sm"
+                            onClick={() => setPickedStat(null)}>
+                      Filtrni tozalash
+                    </button>
+                  )}>
               <div className="table-wrap"><table className="table">
                 <tbody>
                   {tasks.map((t) => (
@@ -272,7 +301,11 @@ export default function Profile() {
                       <td><Priority task={t} /></td>
                     </tr>
                   ))}
-                  {!tasks.length && <tr><td className="muted center">Vazifa yoq</td></tr>}
+                  {!tasks.length && (
+                    <tr><td className="muted center">
+                      {pickedStat ? "Bu kesimda vazifa yoq" : "Vazifa yoq"}
+                    </td></tr>
+                  )}
                 </tbody>
               </table></div>
             </Card>
@@ -292,19 +325,17 @@ export default function Profile() {
 
           <div>
             <div className="grid grid-2 mb">
-              {/* Faqat O'Z sahifasida bosiladi: «Mening ishim» boshqa
-                  odamning vazifalarini ko'rsatmaydi, ya'ni begona profilda
-                  bu havola noto'g'ri ro'yxatga olib borardi. Soat esa
-                  ro'yxatga aylanmaydi - u yig'indi. */}
+              {/* Uchtasi ro'yxatni filtrlaydi, soat esa yo'q - u yig'indi,
+                  ro'yxatga aylanmaydi. */}
               <Stat value={stats?.open ?? 0} label="Ochiq vazifa" tone="accent"
-                    to={isSelf ? "/mening-ishim" : undefined}
-                    title={isSelf ? "Ochiq ishlaringizni korish" : undefined} />
+                    onClick={() => pickStat("open")}
+                    title="Ochiq ishlarni royxatda korish" />
               <Stat value={stats?.done ?? 0} label="Bajarilgan" tone="ok"
-                    to={isSelf ? toMyWork("status=DONE") : undefined}
-                    title={isSelf ? "Bajarilgan ishlaringizni korish" : undefined} />
+                    onClick={() => pickStat("done")}
+                    title="Bajarilgan ishlarni royxatda korish" />
               <Stat value={stats?.in_review ?? 0} label="Tekshiruvda" tone="done"
-                    to={isSelf ? toMyWork("status=IN_REVIEW") : undefined}
-                    title={isSelf ? "Tekshiruvdagi ishlaringizni korish" : undefined} />
+                    onClick={() => pickStat("in_review")}
+                    title="Tekshiruvdagi ishlarni royxatda korish" />
               <Stat value={stats?.hours ?? 0} label="Sarflangan soat" tone="warn" />
             </div>
 

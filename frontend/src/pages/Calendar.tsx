@@ -47,6 +47,8 @@ function shiftMonth(month: string, by: number) {
 interface Bar {
   key: string;
   kind: "project" | "task";
+  /** Vazifa holati - tasma rangi shunga qarab tanlanadi. */
+  status?: string;
   from: number;
   to: number;
   label: string;
@@ -128,7 +130,7 @@ export default function CalendarPage() {
     const fromTasks: Bar[] = data.tasks.map((t: CalendarTask) => ({
       key: `t${t.id}`, kind: "task", from: dayNo(t.from), to: dayNo(t.to),
       label: `${t.code} · ${t.title}`, color: t.project.color, overdue: t.overdue,
-      done: t.done, startsHere: t.starts_here, endsHere: t.ends_here,
+      done: t.done, status: t.status, startsHere: t.starts_here, endsHere: t.ends_here,
       to_: `/vazifa/${t.id}`,
       people: t.assignees.map((u) => u.full_name).join(", ") || "biriktirilmagan",
     }));
@@ -184,6 +186,16 @@ export default function CalendarPage() {
                          onChange={() => setShowTasks((v) => !v)} />
                   Vazifalar
                 </label>
+                {/* Rang izohi: rangni ko'rgan odam nimani anglatishini
+                    taxmin qilib o'tirmasin. */}
+                {showTasks && (
+                  <div className="cal-legend">
+                    <span><i className="cal-st-TODO" /> Nazoratda</span>
+                    <span><i className="cal-st-IN_PROGRESS" /> Jarayonda</span>
+                    <span><i className="cal-st-DONE" /> Bajarildi</span>
+                    <span><i className="cal-legend-late" /> Muddati o'tgan</span>
+                  </div>
+                )}
                 <div className="cal-nav">
                   <button type="button" title="Oldingi oy"
                           onClick={() => set("oy", shiftMonth(data.month, -1))}>‹</button>
@@ -257,6 +269,7 @@ export default function CalendarPage() {
                             ? `${bar.label} — ${bar.people}`
                             : `${bar.label}${bar.openEnded ? " (muddat qo'yilmagan)" : ""}`}
                           className={`cal-bar ${bar.kind}`
+                                     + (bar.status ? ` cal-st-${bar.status}` : "")
                                      + (bar.overdue ? " overdue" : "")
                                      + (bar.done ? " done" : "")
                                      + (bar.startsHere ? " starts" : "")
@@ -264,7 +277,13 @@ export default function CalendarPage() {
                           style={{
                             gridColumn: `${weekday(bar.from) + 1} / ${weekday(bar.to) + 2}`,
                             gridRow: lane + 2,
-                            ["--bar" as string]: bar.color,
+                            // Rang FAQAT loyiha tasmasiga inline beriladi.
+                            // Vazifada u holatga qarab CSS dan keladi, inline
+                            // qiymat esa har qanday sinfni bosib qo'yardi -
+                            // shuning uchun bu yerda umuman yozilmaydi.
+                            ...(bar.kind === "project"
+                              ? { ["--bar" as string]: bar.color }
+                              : {}),
                           }}
                         >
                           {bar.label}

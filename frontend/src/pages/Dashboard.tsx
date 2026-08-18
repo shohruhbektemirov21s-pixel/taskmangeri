@@ -14,12 +14,18 @@
  * Hamma raqam `/api/dashboard/` dan keladi va u Db2 ni ORM orqali o'qiydi:
  * bu yerda hech qanday hisob-kitob ham, namuna qiymat ham yo'q.
  */
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { listOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
 import type {
-  DashboardData, DashboardPeriod, DashboardPeriodRow, DashboardScope,
+  DashboardData, DashboardPeriod, DashboardPeriodRow, DashboardScope, Task,
 } from "@/api/types";
 import { useLive } from "@/realtime/RealtimeContext";
-import { ErrorMsg, Loading, fmtDate } from "@/components/ui";
+import {
+  Card, Empty, ErrorMsg, Loading, Priority, StatusBadge, fmtDate,
+} from "@/components/ui";
+import { toTask } from "@/nav";
 
 // Davr sarlavhalari. Kalitlar serverdagi `PERIODS` bilan bir xil, tartibni
 // esa server beradi - bu yerda faqat o'zbekcha nomi turadi.
@@ -68,7 +74,18 @@ const DEADLINE_CARDS = [
     hint: "Yopilmagan, muddati hali kelmagan yoki qo'yilmagan ishlaringiz" },
 ] as const;
 
-function Band({ p }: { p: DashboardPeriodRow }) {
+/** Bosilgan katak: qaysi davr va qaysi ko'rsatkich. */
+interface Picked {
+  period?: DashboardPeriod;
+  metric: string;
+  title: string;
+}
+
+function Band({ p, onPick, picked }: {
+  p: DashboardPeriodRow;
+  onPick: (v: Picked) => void;
+  picked: Picked | null;
+}) {
   return (
     <section className="stat-band">
       <header className="stat-band-head">
@@ -79,33 +96,108 @@ function Band({ p }: { p: DashboardPeriodRow }) {
       </header>
 
       <div className="stat-band-row">
-        {COLUMNS.map((col) => (
-          <div className="stat-band-cell" key={col.key} title={col.hint}>
-            {/* Nol - so'ngan rangda: bo'sh katak ko'zni tortmasin,
-                haqiqiy son esa darrov ajralib tursin. */}
-            <span className={`v ${p[col.key] ? "" : "zero"}`}>{p[col.key]}</span>
-            <span className="k">{col.label}</span>
-          </div>
-        ))}
+        {COLUMNS.map((col) => {
+          const active = picked?.period === p.key && picked?.metric === col.key;
+          return (
+            // Katak BOSILADI: raqamni ko'rgan odam "bu qaysi ishlar?" degan
+            // savolni sahifani tark etmasdan ochadi. Nol bo'lsa bosilmaydi -
+            // bo'sh ro'yxat ochish faqat chalg'itadi.
+            <button type="button" key={col.key} title={col.hint}
+                    className={`stat-band-cell ${p[col.key] ? "pickable" : ""}`
+                               + (active ? " picked" : "")}
+                    disabled={!p[col.key]}
+                    onClick={() => onPick({
+                      period: p.key, metric: col.key,
+                      title: `${LABELS[p.key]} — ${col.label}`,
+                    })}>
+              {/* Nol - so'ngan rangda: bo'sh katak ko'zni tortmasin,
+                  haqiqiy son esa darrov ajralib tursin. */}
+              <span className={`v ${p[col.key] ? "" : "zero"}`}>{p[col.key]}</span>
+              <span className="k">{col.label}</span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function Deadlines({ d }: { d: DashboardData["deadlines"] }) {
+// Muddat kartalari serverdagi ko'rsatkich nomiga moslanadi: kartaning
+// kaliti «overdue», endpointda esa «overdue_now» (davr katagidagi
+// «overdue» dan farqli - bu butun tarix bo'yicha).
+const DEADLINE_METRIC: Record<string, string> = {
+  late_done: "late_done", overdue: "overdue_now", waiting: "waiting",
+};
+
+function Deadlines({ d, onPick, picked }: {
+  d: DashboardData["deadlines"];
+  onPick: (v: Picked) => void;
+  picked: Picked | null;
+}) {
   return (
     <div className="deadline-grid">
-      {DEADLINE_CARDS.map((c) => (
-        <div className="deadline-card" key={c.key} title={c.hint}>
-          <span className="k">{c.label}</span>
-          <span className={`v ${d[c.key] ? "" : "zero"}`}>{d[c.key]}</span>
-        </div>
-      ))}
+      {DEADLINE_CARDS.map((c) => {
+        const metric = DEADLINE_METRIC[c.key];
+        const active = !picked?.period && picked?.metric === metric;
+        return (
+          <button type="button" key={c.key} title={c.hint}
+                  className={`deadline-card ${d[c.key] ? "pickable" : ""}`
+                             + (active ? " picked" : "")}
+                  disabled={!d[c.key]}
+                  onClick={() => onPick({ metric, title: c.label })}>
+            <span className="k">{c.label}</span>
+            <span className={`v ${d[c.key] ? "" : "zero"}`}>{d[c.key]}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
+/** Bosilgan katakdagi ishlar - panelning ostida. */
+function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void }) {
+  const { data, loading } = useFetch<any>("/dashboard/tasks/",
+    { period: picked.period || "", metric: picked.metric });
+  const tasks = data ? listOf<Task>(data) : null;
+
+  return (
+    <Card title={picked.title} padded={false}
+          badge={data ? <span className="badge">{data.count}</span> : undefined}
+          action={<button type="button" className="btn btn-sm" onClick={onClose}>Yopish</button>}>
+      {loading ? <Loading /> : !tasks?.length ? (
+        <Empty title="Ish yo'q" text="Bu katakka kirgan vazifa topilmadi." />
+      ) : (
+        <div className="table-wrap"><table className="table">
+          <tbody>
+            {tasks.map((t) => (
+              <tr key={t.id}>
+                <td className="nowrap mono muted">{t.code}</td>
+                <td>
+                  <Link {...toTask(t.id)}>{t.title}</Link>
+                  <br /><small className="muted">{t.project_name}</small>
+                </td>
+                <td className="nowrap"><StatusBadge task={t} /></td>
+                <td className="nowrap"><Priority task={t} /></td>
+                <td className="nowrap muted right">{fmtDate(t.due_date)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      )}
+      {/* Ro'yxat yuztada cheklangan - jimgina qirqilmasin. */}
+      {data && data.count > tasks!.length && (
+        <div className="card-body muted" style={{ fontSize: 12.5 }}>
+          {data.count} tadan {tasks!.length} tasi ko'rsatildi — qolganini
+          «Mening ishim» yoki loyiha ro'yxatidan ko'ring.
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function Dashboard() {
+  const [picked, setPicked] = useState<Picked | null>(null);
+
   // Xato yutilmaydi: sabab ekranga chiqadi, aks holda sahifa abadiy
   // «Yuklanmoqda» da qolardi.
   const { data: d, error, loading, reload } = useFetch<DashboardData>("/dashboard/");
@@ -123,9 +215,17 @@ export default function Dashboard() {
       <p className="scope-note">{SCOPE_LABELS[d.scope]}</p>
 
       <div className="period-grid">
-        {d.periods.map((p) => <Band p={p} key={p.key} />)}
+        {d.periods.map((p) => (
+          <Band p={p} key={p.key} picked={picked} onPick={setPicked} />
+        ))}
       </div>
-      <Deadlines d={d.deadlines} />
+      <Deadlines d={d.deadlines} picked={picked} onPick={setPicked} />
+
+      {picked && (
+        <div className="mt">
+          <PickedTasks picked={picked} onClose={() => setPicked(null)} />
+        </div>
+      )}
     </div>
   );
 }

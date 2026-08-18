@@ -978,6 +978,21 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 /* Raqamlar YUQORIDAN tekislanadi. `center` bo'lganda ikki qatorga tushgan
    yorliq ("Muddati o'tgan") o'z katagidagi raqamni tepaga surib yuborardi
    va uchta son bir chiziqda turmasdi. */
+/* Katak endi `<button>`: brauzer unga o'z shrifti, chegarasi va
+   markazlashini beradi - ularni qaytarib olamiz. */
+.stat-band-cell, .deadline-card {
+  font: inherit; color: inherit; border: 0; background: none;
+}
+/* Bosiladigan katak: sichqoncha tekkanda ko'tariladi. Bo'sh katak (nol)
+   bosilmaydi - bo'sh ro'yxat ochish faqat chalg'itadi, shuning uchun u
+   oddiy matn bo'lib qoladi. */
+.stat-band-cell.pickable, .deadline-card.pickable { cursor: pointer; }
+.stat-band-cell.pickable:hover .v, .deadline-card.pickable:hover .v { text-decoration: underline; }
+.stat-band-cell.picked, .deadline-card.picked {
+  background: var(--accent-soft); border-radius: 12px;
+}
+.stat-band-cell:disabled, .deadline-card:disabled { cursor: default; }
+
 .stat-band-cell {
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   gap: 5px; padding: 2px 3px; text-align: center; min-width: 0;
@@ -1438,14 +1453,43 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .cal-bar:hover { background: color-mix(in srgb, var(--bar) 42%, transparent); }
 /* Vazifa loyihadan yupqaroq va so'nikroq - ikkovi aralashib ketmasin */
 .cal-bar.task {
+  /* Holat sinfi kelmasa ham tasma rangsiz qolmasin. */
+  --bar: var(--accent);
   background: transparent; border-left-width: 2px;
   border-top: 1px solid color-mix(in srgb, var(--bar) 45%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--bar) 45%, transparent);
   color: var(--muted);
 }
 .cal-bar.task:hover { background: color-mix(in srgb, var(--bar) 18%, transparent); }
-.cal-bar.done { opacity: .5; text-decoration: line-through; }
+/* HOLAT RANGI. Ilgari tasma LOYIHA rangida bo'lardi: bitta loyihaning
+   yetmishta vazifasi bir xil ko'k bo'lib turar va "qaysi biri bajarilgan,
+   qaysi biri jarayonda" degan savolga taqvim javob bermasdi. Endi rang
+   holatni bildiradi - `--bar` almashadi, qolgan qoidalar o'sha-o'sha. */
+.cal-bar.task.cal-st-TODO { --bar: var(--accent); }
+.cal-bar.task.cal-st-IN_PROGRESS { --bar: var(--attention); }
+.cal-bar.task.cal-st-IN_REVIEW { --bar: var(--done); }
+.cal-bar.task.cal-st-CHANGES_REQUESTED { --bar: var(--danger); }
+.cal-bar.task.cal-st-BLOCKED { --bar: var(--subtle); }
+.cal-bar.task.cal-st-DONE { --bar: var(--success); }
+
+.cal-bar.done { opacity: .55; text-decoration: line-through; }
+/* Muddati o'tgani hamma holatdan ustun turadi - eng avval ko'zga
+   tashlanishi kerak bo'lgan narsa shu. */
+.cal-bar.overdue.task { --bar: var(--danger); }
 .cal-bar.overdue { border-left-color: var(--danger); }
+
+/* Rang izohi - sarlavha qatorida */
+.cal-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; color: var(--muted); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cal-legend i {
+  width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+  background: color-mix(in srgb, var(--bar) 34%, transparent);
+  border-left: 3px solid var(--bar);
+}
+.cal-legend .cal-st-TODO { --bar: var(--accent); }
+.cal-legend .cal-st-IN_PROGRESS { --bar: var(--attention); }
+.cal-legend .cal-st-DONE { --bar: var(--success); }
+.cal-legend .cal-legend-late { --bar: var(--danger); }
 /* Oy yoki hafta chetida qirqilgan tasma - burchagi to'g'ri qoladi */
 .cal-bar:not(.starts) { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; }
 .cal-bar:not(.ends) { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }

@@ -207,3 +207,75 @@ class BoardCoversAllWorkTest(ApiTestCase):
         bazada = Task.objects.filter(project=self.project).exclude(
             status=TaskStatus.CANCELLED).count()
         self.assertEqual(doskada, bazada)
+
+
+class PanelDrillDownTest(ApiTestCase):
+    """Katak bosilganda chiqadigan ro'yxat SANOQ bilan bir xil bo'lsin.
+
+    Ikkovi bir manbadan (`panel_metric_q`) oladi - shu bog'lanish
+    uzilmasin: katakda «5» turib, ochilganda 4 ta ish chiqsa, qaysi biri
+    to'g'riligi noma'lum bo'lib qolardi.
+    """
+
+    URL = "/api/dashboard/tasks/"
+
+    def setUp(self):
+        super().setUp()
+        self.api = self.client_for(self.dev)      # dasturchi - qamrov «o'zimniki»
+
+    def make(self, status, **fields):
+        task = Task.objects.create(project=self.project, title="Ish",
+                                   created_by=self.manager, status=status)
+        TaskAssignment.objects.create(task=task, user=self.dev)
+        if fields:
+            Task.objects.filter(pk=task.pk).update(**fields)
+        return task
+
+    def panel(self):
+        return self.api.get("/api/dashboard/").data
+
+    def test_royxat_va_sanoq_mos_keladi(self):
+        self.make(TaskStatus.TODO, created_at=at(2))
+        self.make(TaskStatus.IN_PROGRESS, created_at=at(1))
+        self.make(TaskStatus.DONE, created_at=at(3), completed_at=at(1))
+
+        d = self.panel()
+        for key in ("year", "month", "week"):
+            row = next(p for p in d["periods"] if p["key"] == key)
+            for metric in ("todo", "overdue", "done"):
+                with self.subTest(period=key, metric=metric):
+                    r = self.api.get(self.URL, {"period": key, "metric": metric})
+                    self.assertEqual(r.status_code, 200, r.data)
+                    self.assertEqual(r.data["count"], row[metric])
+                    self.assertEqual(len(r.data["results"]), row[metric])
+
+    def test_muddat_kataklari_ham_mos(self):
+        self.make(TaskStatus.TODO, created_at=at(5), due_date=at(2))       # kechikkan
+        self.make(TaskStatus.TODO, created_at=at(5), due_date=at(-3))      # kutilmoqda
+        self.make(TaskStatus.DONE, created_at=at(9), due_date=at(5),
+                  completed_at=at(2))                                       # kech bajarilgan
+
+        d = self.panel()
+        for metric, key in (("late_done", "late_done"), ("overdue_now", "overdue"),
+                            ("waiting", "waiting")):
+            with self.subTest(metric=metric):
+                r = self.api.get(self.URL, {"metric": metric})
+                self.assertEqual(r.status_code, 200, r.data)
+                self.assertEqual(r.data["count"], d["deadlines"][key])
+
+    def test_begona_ish_royxatga_tushmaydi(self):
+        """Qamrov sanoqdagi bilan bir xil - dasturchi faqat o'zinikini ko'radi."""
+        alien = Task.objects.create(project=self.project, title="Begona",
+                                    created_by=self.manager, status=TaskStatus.TODO)
+        r = self.api.get(self.URL, {"period": "year", "metric": "todo"})
+        self.assertNotIn(alien.pk, [t["id"] for t in r.data["results"]])
+
+    def test_notogri_parametr_400(self):
+        for params in ({"period": "asr", "metric": "todo"},
+                       {"period": "year", "metric": "allaqanday"},
+                       {"metric": ""}):
+            with self.subTest(params=params):
+                self.assertEqual(self.api.get(self.URL, params).status_code, 400)
+
+    def test_kirmagan_odam_otmaydi(self):
+        self.assertEqual(self.anon.get(self.URL, {"metric": "waiting"}).status_code, 401)

@@ -12,6 +12,8 @@ urlpatterns = [
     # O'qish shlyuzi: GET o'rniga POST. Tafsiloti - `read.py` da.
     path("read/", read.read, name="read"),
     path("dashboard/", api.dashboard, name="dashboard"),
+    # Panel katagi bosilganda - o'sha kataka kirgan ishlar ro'yxati.
+    path("dashboard/tasks/", api.panel_tasks, name="panel_tasks"),
     # Yon paneldagi uchta raqam - panelning ogir versiyasi ornida
     path("counts/", api.sidebar_counts, name="sidebar_counts"),
     path("my-work/", api.my_work, name="my_work"),

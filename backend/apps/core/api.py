@@ -5,6 +5,7 @@ from datetime import datetime, time as dtime
 from django.db.models import Count, Exists, F, OuterRef, Q
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -70,6 +71,67 @@ def _period_start(period):
     else:
         start = today.replace(month=1, day=1)
     return timezone.make_aware(datetime.combine(start, dtime.min))
+
+
+# «Yopilmagan» - DONE dan boshqa hamma holat, TEKSHIRUVDAGISI HAM.
+# Tekshiruvga topshirilgan ish ham muddati o'tsa kechikkan hisoblanadi:
+# uni ro'yxatdan chiqarib tashlasak, panel «hammasi joyida» deb turardi.
+def unfinished_statuses():
+    return [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW,
+            TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED]
+
+
+def panel_metric_q(metric, start, now):
+    """Panel katagining sharti.
+
+    BITTA MANBA. Sanoq (`dashboard`) ham, ro'yxat (`panel_tasks`) ham shu
+    funksiyadan oladi - aks holda katakda «5» turib, bosilganda 4 ta ish
+    chiqishi mumkin edi va qaysi biri to'g'riligi noma'lum bo'lib qolardi.
+
+    `start` faqat davr kataklariga kerak; muddat holati (pastki qator)
+    butun tarix bo'yicha sanaladi.
+    """
+    open_now = Q(status__in=unfinished_statuses())
+
+    if metric == "todo":            # shu davrda ochilgan, hamon yopilmagan
+        return open_now & Q(created_at__gte=start)
+    if metric == "overdue":         # muddati shu davrga tushgan va o'tgan
+        return open_now & Q(due_date__gte=start, due_date__lt=now)
+    if metric == "done":            # shu davrda yakunlangan
+        return Q(status=TaskStatus.DONE, completed_at__gte=start)
+    if metric == "late_done":       # yopilgan, lekin muddatdan keyin
+        return Q(status=TaskStatus.DONE, due_date__isnull=False,
+                 completed_at__gt=F("due_date"))
+    if metric == "overdue_now":     # yopilmagan va muddati o'tgan
+        return open_now & Q(due_date__lt=now)
+    if metric == "waiting":         # yopilmagan, muddati hali kelmagan
+        return open_now & (Q(due_date__gte=now) | Q(due_date__isnull=True))
+    return None
+
+
+def panel_queryset(user):
+    """Panel qaysi ishlarni sanashi - rolga qarab. `(queryset, qamrov)`.
+
+    admin    - tirik loyihalardagi hamma ish;
+    menejer  - boshqaradigan loyihalari + o'ziga biriktirilgani;
+    dasturchi- faqat o'ziga biriktirilgani.
+    """
+    from apps.tasks.models import TaskAssignment
+
+    live = Task.objects.filter(project__deleted_at__isnull=True)
+    mine = Exists(TaskAssignment.objects.filter(
+        task=OuterRef("pk"), user=user, is_active=True))
+
+    if user.is_platform_admin:
+        return live, "all"
+
+    managed = Project.objects.filter(
+        Q(manager=user) | Exists(ProjectMember.objects.filter(
+            project=OuterRef("pk"), user=user, is_active=True,
+            role=ProjectRole.MANAGER)))
+    if managed.exists():
+        return live.filter(Q(project__in=managed) | Q(mine)), "managed"
+    return live.filter(mine), "mine"
 
 
 @api_view(["GET"])
@@ -176,16 +238,7 @@ def dashboard(request):
     #
     # Qoida yangi emas - `managed` yuqorida aynan shu tamoyil bo'yicha
     # yig'ilgan, panel endi undan foydalanadi.
-    if user.is_platform_admin:
-        panel_tasks = Task.objects.filter(project__deleted_at__isnull=True)
-        panel_scope = "all"
-    elif managed_total:
-        panel_tasks = Task.objects.filter(
-            Q(project__in=managed) | Q(mine), project__deleted_at__isnull=True)
-        panel_scope = "managed"
-    else:
-        panel_tasks = my_tasks
-        panel_scope = "mine"
+    panel_tasks, panel_scope = panel_queryset(user)
 
     # ---------------------------------------------------------- davrlar
     # Panelning uchta taxtasi: yil, oy va hafta boshidan. Har birida bir xil
@@ -201,17 +254,12 @@ def dashboard(request):
     # «Yopilmagan» - DONE dan boshqa hamma holat, TEKSHIRUVDAGISI HAM.
     # Tekshiruvga topshirilgan ish ham muddati o'tsa kechikkan hisoblanadi:
     # uni ro'yxatdan chiqarib tashlasak, panel «hammasi joyida» deb turardi.
-    unfinished = [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW,
-                  TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED]
     period_starts = {key: _period_start(key) for key in PERIODS}
     counters = {}
     for key, start in period_starts.items():
-        counters[key + "_todo"] = Count("id", filter=Q(
-            status__in=unfinished, created_at__gte=start))
-        counters[key + "_overdue"] = Count("id", filter=Q(
-            status__in=unfinished, due_date__gte=start, due_date__lt=now))
-        counters[key + "_done"] = Count("id", filter=Q(
-            status=TaskStatus.DONE, completed_at__gte=start))
+        for metric in ("todo", "overdue", "done"):
+            counters["{}_{}".format(key, metric)] = Count(
+                "id", filter=panel_metric_q(metric, start, now))
 
     # ------------------------------------------------------- muddat holati
     # Panelning pastki qatori. Uchovi butun tarix bo'yicha va bir-birini
@@ -220,13 +268,8 @@ def dashboard(request):
     #   Muddati o'tgan          - yopilmagan va muddati o'tib ketgan;
     #   Kutilmoqda              - yopilmagan, muddati hali kelmagan
     #                             (yoki umuman qo'yilmagan).
-    counters["late_done"] = Count("id", filter=Q(
-        status=TaskStatus.DONE, due_date__isnull=False,
-        completed_at__gt=F("due_date")))
-    counters["overdue_now"] = Count("id", filter=Q(
-        status__in=unfinished, due_date__lt=now))
-    counters["waiting"] = Count("id", filter=(
-        Q(status__in=unfinished) & (Q(due_date__gte=now) | Q(due_date__isnull=True))))
+    for metric in ("late_done", "overdue_now", "waiting"):
+        counters[metric] = Count("id", filter=panel_metric_q(metric, None, now))
 
     nums = panel_tasks.aggregate(**counters)
     periods = [{
@@ -345,6 +388,52 @@ def dashboard(request):
         },
         "join_queue": JoinRequestSerializer(join_qs, many=True, context=ctx).data,
         "feed": ActivitySerializer(feed, many=True, context=ctx).data,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def panel_tasks(request):
+    """Panel katagi bosilganda ochiladigan ro'yxat.
+
+    `?period=year|month|week&metric=todo|overdue|done`
+    `?metric=late_done|overdue_now|waiting`  (davr kerak emas)
+
+    SANOQ BILAN BIR XIL SHART. Ro'yxat ham, katakdagi son ham
+    `panel_metric_q` dan oladi - aks holda katakda «5» turib, bosilganda
+    to'rtta ish chiqishi mumkin edi va qaysi biri to'g'riligi noma'lum
+    bo'lib qolardi.
+    """
+    from apps.tasks.serializers import TaskSerializer
+
+    metric = request.query_params.get("metric") or ""
+    period = request.query_params.get("period") or ""
+
+    needs_period = metric in ("todo", "overdue", "done")
+    if needs_period and period not in PERIODS:
+        raise DrfValidationError({"period": "Faqat year, month yoki week."})
+
+    start = _period_start(period) if needs_period else None
+    condition = panel_metric_q(metric, start, timezone.now())
+    if condition is None:
+        raise DrfValidationError({"metric": "Bunday ko'rsatkich yo'q."})
+
+    qs, scope = panel_queryset(request.user)
+    tasks = (qs.filter(condition)
+             .select_related("project", "created_by")
+             .prefetch_related("assignments__user")
+             .order_by("-priority", "due_date", "-id"))
+
+    # Sanoq KESISHDAN OLDIN: ro'yxat cheklangan bo'lsa ham son to'g'ri
+    # qolsin va frontend "yana N ta" deb ayta olsin.
+    total = tasks.count()
+    return Response({
+        "metric": metric,
+        "period": period or None,
+        "scope": scope,
+        "count": total,
+        "results": TaskSerializer(tasks[:100], many=True,
+                                  context={"request": request}).data,
     })
 
 
