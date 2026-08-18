@@ -166,3 +166,44 @@ class BacklogRemovedTest(ApiTestCase):
         r = self.api.post("/api/tasks/", {"project": self.project.pk, "title": "Sinov",
                                           "status": "BACKLOG"}, format="json")
         self.assertEqual(r.status_code, 400)
+
+
+class BoardCoversAllWorkTest(ApiTestCase):
+    """Doska HAMMA ochiq ishni ko'rsatsin.
+
+    Ustuni yo'q holatdagi vazifa doskada umuman ko'rinmaydi va jimgina
+    yo'qoladi: loyihada 74 ta ish bo'lgan, doskada 69 tasi turgan edi -
+    farq «to'xtab qolgan» beshta ish edi. Test shu turdagi yo'qotishning
+    qaytishiga yo'l qo'ymaydi.
+    """
+
+    def test_bekor_qilingandan_boshqa_hamma_holat_ustunga_ega(self):
+        from apps.tasks.models import BOARD_COLUMNS, TaskStatus
+
+        columns = {str(s) for s in BOARD_COLUMNS}
+        for status in TaskStatus.values:
+            if status == TaskStatus.CANCELLED:
+                continue          # yopilgan ish - doskada kerak emas
+            with self.subTest(status=status):
+                self.assertIn(status, columns)
+
+    def test_toxtab_qolgan_ish_doskada_korinadi(self):
+        task = Task.objects.create(project=self.project, title="To'xtagan ish",
+                                   created_by=self.manager, status=TaskStatus.BLOCKED)
+        r = self.api.get("/api/tasks/board/", {"project": self.project.pk})
+        self.assertEqual(r.status_code, 200)
+        seen = [t["id"] for col in r.data["columns"] for t in col["tasks"]]
+        self.assertIn(task.pk, seen)
+
+    def test_doskadagi_sanoq_royxatdagi_bilan_bir_xil(self):
+        """Eng muhimi: doskadagi jami = loyihadagi ochiq ishlar soni."""
+        for status in (TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED,
+                       TaskStatus.IN_REVIEW, TaskStatus.CHANGES_REQUESTED, TaskStatus.DONE):
+            Task.objects.create(project=self.project, title="Ish " + status,
+                                created_by=self.manager, status=status)
+
+        r = self.api.get("/api/tasks/board/", {"project": self.project.pk})
+        doskada = sum(col["count"] for col in r.data["columns"])
+        bazada = Task.objects.filter(project=self.project).exclude(
+            status=TaskStatus.CANCELLED).count()
+        self.assertEqual(doskada, bazada)
