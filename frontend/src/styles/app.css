@@ -430,6 +430,20 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 /* Sarlavhadan keyin darrov kontent kelsa - orasi juda tor bo'lib qolmasin */
 .page-head + .content { padding-top: 18px; }
 
+/* Yopishib turadigan sarlavha (uzun formalar uchun).
+   `top` - yuqori panel balandligi: sarlavha uning OSTIGA yopishadi,
+   ustiga chiqib ketmaydi. `z-index` sarlavha panelnikidan (60) past,
+   lekin kontentdan baland: ochiluvchi menyular (80) baribir ustida
+   qoladi. Fon shaffof bo'lsa ostidagi maydonlar ko'rinib turardi -
+   shuning uchun tuval rangi va xiralik. */
+.page-head.sticky {
+  position: sticky; top: var(--header-h); z-index: 40;
+  background: var(--canvas);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-muted);
+}
+
 /* ============ TABS ============
    Dizaynda tablar tagidagi chiziq bilan emas, kapsula shaklidagi yostiq
    bilan ajraladi: tanlangani och ko'k fonda ko'k yozuv, qolganlari oq

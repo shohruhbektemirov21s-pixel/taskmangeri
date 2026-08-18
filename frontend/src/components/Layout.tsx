@@ -300,15 +300,26 @@ export function PageHead({
   subtitle,
   actions,
   tabs,
+  sticky = false,
 }: {
   title: React.ReactNode;
   /** Sarlavha ostidagi qator - masalan loyiha tavsifi */
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   tabs?: React.ReactNode;
+  /**
+   * Aylantirilganda sarlavha tepada YOPISHIB qoladi.
+   *
+   * Uzun formalar uchun: «Saqlash» va «Bekor qilish» sarlavhaning o'ng
+   * chetida turadi va pastdagi maydonni to'ldirayotgan odam ularni
+   * ko'rmay qoladi - saqlash uchun har safar tepaga qaytish kerak
+   * bo'lardi. Doim yoqib qo'yilmagan: qolgan sahifalarda sarlavha
+   * bekorga joy egallardi.
+   */
+  sticky?: boolean;
 }) {
   return (
-    <div className="page-head">
+    <div className={`page-head ${sticky ? "sticky" : ""}`}>
       <div className="title-row">
         <h1>{title}</h1>
         <span className="spacer" />

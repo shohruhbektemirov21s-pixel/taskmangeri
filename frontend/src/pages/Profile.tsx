@@ -116,6 +116,10 @@ export default function Profile() {
   return (
     <>
       <PageHead
+        /* Tahrirlash paytida sarlavha yopishib turadi - forma uzun, saqlash
+           tugmasi esa sarlavhada. Aks holda pastki maydonni to'ldirgan odam
+           tugmani ko'rmay qolardi. */
+        sticky={isSelf && edit}
         title={<><span className="muted">profil / </span><strong>{target.full_name}</strong></>}
         actions={
           <>
@@ -128,6 +132,24 @@ export default function Profile() {
               <button className="btn btn-sm btn-primary" onClick={() => setEdit(true)}>
                 Tahrirlash
               </button>
+            )}
+            {/* Tahrirlash paytida saqlash tugmasi SHU YERDA - sarlavhaning
+                o'ng chetida. Ilgari u formaning ostida turardi: forma uzun
+                (F.I.Sh., lavozim, GitHub, Telegram, ko'nikmalar, daraja,
+                tajriba, ma'lumot) va yuqoridagi maydonni tuzatgan odam
+                saqlash uchun har safar pastga aylantirishi kerak edi.
+                `form` atributi tugmani formaga bog'laydi - u forma
+                ichida bo'lmasa ham `submit` qiladi. */}
+            {isSelf && edit && (
+              <>
+                <button className="btn btn-sm btn-primary" type="submit"
+                        form={`${fid}-form`} disabled={busy}>
+                  {busy ? "Saqlanmoqda..." : "Saqlash"}
+                </button>
+                <button className="btn btn-sm" type="button" onClick={() => setEdit(false)}>
+                  Bekor qilish
+                </button>
+              </>
             )}
           </>
         }
@@ -186,7 +208,7 @@ export default function Profile() {
 
             {edit && (
               <Card title="Profilni tahrirlash">
-                <form onSubmit={save}>
+                <form id={`${fid}-form`} onSubmit={save}>
                   {[
                     ["full_name", "F.I.Sh.", "text"],
                     ["job_title", "Lavozim", "text"],
@@ -229,14 +251,6 @@ export default function Profile() {
                     <label htmlFor={`${fid}-3`}>Qisqacha maʼlumot</label>
                     <textarea id={`${fid}-3`} rows={3} value={form.bio || ""}
                               onChange={(e) => setForm({ ...form, bio: e.target.value })} />
-                  </div>
-                  <div className="form-actions">
-                    <button className="btn btn-primary" disabled={busy}>
-                      {busy ? "Saqlanmoqda..." : "Saqlash"}
-                    </button>
-                    <button type="button" className="btn" onClick={() => setEdit(false)}>
-                      Bekor qilish
-                    </button>
                   </div>
                 </form>
               </Card>
