@@ -4,8 +4,11 @@
  * NEGA DJANGO ADMIN EMAS. `/django-admin/` joyida qoladi va u yerda hamma
  * jadval bor — lekin u jadvallar tilida gapiradi (`ProjectMember`,
  * `TaskAssignment`) va o'zbekcha emas. Bu sahifa esa kundalik uchta ishni
- * qiladi: hisob ochish, rol berish, parol tiklash. Uchovi ham eng ko'p
- * kerak bo'ladigan amallar — qolgani uchun Django admin bor.
+ * qiladi: hisob ochish, rol berish, parol tiklash.
+ *
+ * Django adminga HAVOLA ataylab qo'yilmagan: u boshqa tildagi, boshqa
+ * ko'rinishdagi bo'lim va uni shu yerdan taklif qilish chalkashtiradi.
+ * Kerak bo'lganda manzil qo'lda yoziladi.
  *
  * KO'RINISH ilovaning qolgan qismidan farq qilmaydi: o'sha shisha
  * kartalar, o'sha ranglar. Admin panel «boshqa dastur» bo'lib qolmasin.
@@ -134,11 +137,6 @@ export default function Admin() {
       <PageHead
         title={<strong>Admin panel</strong>}
         subtitle="Hisoblar, rollar va loyihalar — bir joyda"
-        actions={
-          <a className="btn btn-sm" href="/django-admin/" target="_blank" rel="noreferrer">
-            Django admin
-          </a>
-        }
         tabs={[
           ["users", `Foydalanuvchilar${counts.users ? ` (${counts.users})` : ""}`],
           ["projects", `Loyihalar${counts.projects ? ` (${counts.projects})` : ""}`],

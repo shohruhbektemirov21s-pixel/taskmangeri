@@ -46,21 +46,13 @@ const PublicProject = lazy(() => import("@/pages/PublicProject"));
 const Notifications = lazy(() => import("@/pages/Notifications"));
 const Messages = lazy(() => import("@/pages/Messages"));
 const Admin = lazy(() => import("@/pages/Admin"));
+const AdminGate = lazy(() => import("@/pages/AdminGate"));
 const WorkspaceChat = lazy(() => import("@/pages/WorkspaceChat"));
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Loading text="Yuklanmoqda..." />;
   if (!user) return <Navigate to="/kirish" replace />;
-  return <>{children}</>;
-}
-
-/** Admin panel - faqat platforma admini. Serverda ham shu tekshiriladi
-    (`IsPlatformAdmin`), bu yerda faqat sahifa yashiriladi. */
-function AdminOnly({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <Loading />;
-  if (!user?.is_platform_admin) return <Navigate to="/panel" replace />;
   return <>{children}</>;
 }
 
@@ -92,6 +84,17 @@ export default function App() {
       <Route path="/kirish" element={<GuestOnly><Login /></GuestOnly>} />
       <Route path="/royxatdan-otish" element={<GuestOnly><Register /></GuestOnly>} />
 
+      {/* Admin panel ALOHIDA shoxda: `Protected` ichida bo'lsa, kirmagan
+          odam `/admin` deb yozganda kirish sahifasiga otib yuborilardi va
+          «admin bo'lib kirish» degan yo'l umuman qolmasdi. Qorovul o'zi
+          kirish oynasini ko'rsatadi, huquq bo'lsa esa panel odatdagi
+          qobiq ichida ochiladi. */}
+      <Route element={<AdminGate />}>
+        <Route element={<Layout />}>
+          <Route path="/admin" element={<Admin />} />
+        </Route>
+      </Route>
+
       <Route element={<Protected><Layout /></Protected>}>
         <Route path="/panel" element={<Dashboard />} />
         <Route path="/mening-ishim" element={<MyWork />} />
@@ -120,7 +123,6 @@ export default function App() {
         <Route path="/xabarlar" element={<Messages />} />
         <Route path="/bildirishnomalar" element={<Notifications />} />
         <Route path="/profil" element={<Profile />} />
-        <Route path="/admin" element={<AdminOnly><Admin /></AdminOnly>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/panel" replace />} />
