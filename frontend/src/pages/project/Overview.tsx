@@ -101,7 +101,11 @@ export default function Overview({ project, onChange }: { project: Project; onCh
       </div>
 
       <div>
-        <Card title="Jamoa" padded={false}
+        {/* Jamoa o'ttizdan ortiq odam bo'lishi mumkin - ochiq holda u
+            o'ng ustunni cho'zib, «Jamoa tarkibi» va «Ma'lumotlar»ni
+            ekrandan chiqarib yuborardi. Sanoq nishonda ko'rinadi. */}
+        <Card title="Jamoa" padded={false} collapsible defaultOpen={false}
+              badge={<span className="badge">{(project.members || []).length}</span>}
               action={<Link className="btn btn-sm" {...toProject(project.id, "jamoa")}>Boshqarish</Link>}>
           <div className="card-list">
             {(project.members || []).map((m) => (
