@@ -77,12 +77,15 @@ def send_notification(notification):
     if notification is None:
         return False
 
+    # Sarlavha va izoh - boshqa hech narsa.
+    #
+    # Ilgari oxiriga harakat egasining ismi ham qo'shilardi. U ortiqcha
+    # edi: "Shox sizga yozdi" yoki "Shox: 6-vazifa" degan satrdan keyin
+    # yana bir marta "Shox" turardi. Xabar qisqa bo'lgani uchun bu
+    # takror darrov ko'zga tashlanardi.
     lines = ["<b>{}</b>".format(esc(notification.title))]
     if notification.body:
         lines.append(esc(notification.body))
-    actor = getattr(notification, "actor", None)
-    if actor is not None:
-        lines.append("<i>{}</i>".format(esc(actor.full_name)))
 
     buttons = None
     url = app_url(notification.url)
