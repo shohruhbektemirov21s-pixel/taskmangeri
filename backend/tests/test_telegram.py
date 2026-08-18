@@ -6,7 +6,7 @@ tekshiradi: kim kimga bog'lanadi, kim nimani ko'radi.
 """
 from unittest import mock
 
-from apps.tasks.models import Task, TaskAssignment, TaskStatus
+from apps.tasks.models import Task, TaskAssignment
 from apps.telegram import commands
 from apps.telegram.models import TelegramLink, normalize_username
 
@@ -96,55 +96,33 @@ class BotCommandTest(ApiTestCase):
         self.assertFalse(TelegramLink.objects.filter(user=self.dev).exists())
         self.assertEqual(TelegramLink.objects.get(chat_id=self.CHAT).user, self.manager)
 
-    def test_uzish(self):
+    # --------------------------------------------------------- faqat xabar
+    # Bot buyruqlarni qabul qilmaydi: `/vazifalarim`, `/bugun` va
+    # `/tekshiruv` olib tashlandi - ular ilovadagi sahifalarni Telegramda
+    # takrorlardi. Quyidagi testlar shu qarorni bog'laydi.
+    def test_eski_buyruqlar_ishlamaydi(self):
         commands.handle(update(self.CHAT, "/start"))
-        commands.handle(update(self.CHAT, "/uzish"))
-        self.assertFalse(TelegramLink.objects.filter(user=self.dev).exists())
+        for text in ("/vazifalarim", "/bugun", "/tekshiruv", "/uzish", "/yordam"):
+            with self.subTest(text=text):
+                commands.handle(update(self.CHAT, text))
+                self.assertIn("faqat bildirishnoma", self.last())
+                # Vazifa nomi javobga tushib qolmasin.
+                self.assertNotIn("Bot sinovi", self.last())
 
-    # ------------------------------------------------------------ buyruqlar
-    def test_vazifalarim_faqat_ozinikini_koradi(self):
-        other = Task.objects.create(project=self.project, title="Begona ish",
-                                    created_by=self.manager)
-        TaskAssignment.objects.create(task=other, user=self.manager)
-
+    def test_oddiy_matn_ham_shu_javobni_oladi(self):
+        """Bot jim qolmaydi - aks holda odam «yetib bordimi?» deb o'ylardi."""
         commands.handle(update(self.CHAT, "/start"))
-        commands.handle(update(self.CHAT, "/vazifalarim"))
-        self.assertIn("Bot sinovi", self.last())
-        self.assertNotIn("Begona ish", self.last())
+        self.assertTrue(commands.handle(update(self.CHAT, "salom")))
+        self.assertIn("faqat bildirishnoma", self.last())
 
-    def test_ochirilgan_loyihaning_ishi_kormaydi(self):
+    def test_bosh_xabar_javobsiz(self):
+        self.assertFalse(commands.handle(update(self.CHAT, "")))
+
+    def test_start_boglashda_davom_etadi(self):
+        """`/start` ni olib tashlab bo'lmaydi - `chat_id` faqat shundan."""
         commands.handle(update(self.CHAT, "/start"))
-        self.project.soft_delete(actor=self.manager)
-        commands.handle(update(self.CHAT, "/vazifalarim"))
-        # Apostrof HTML uchun qochiriladi (`&#x27;`) - shuning uchun
-        # tekshiruv unsiz bo'lakka tayanadi.
-        self.assertIn("Ochiq ish", self.last())
-        self.assertNotIn("Bot sinovi", self.last())
-
-    def test_tekshiruv_dasturchiga_yopiq(self):
-        """Dasturchi hech kimni boshqarmaydi - navbat ko'rinmasin."""
-        commands.handle(update(self.CHAT, "/start"))
-        commands.handle(update(self.CHAT, "/tekshiruv"))
-        self.assertIn("boshqarmaysiz", self.last())
-
-    def test_tekshiruv_menejerga_korinadi(self):
-        self.manager.telegram = "menejer_bek"
-        self.manager.save(update_fields=["telegram"])
-        self.task.status = TaskStatus.IN_REVIEW
-        self.task.save(update_fields=["status"])
-
-        commands.handle(update(777001, "/start", username="menejer_bek"))
-        commands.handle(update(777001, "/tekshiruv", username="menejer_bek"))
-        self.assertIn("Bot sinovi", self.last())
-
-    def test_notanish_buyruq_yordam_beradi(self):
-        commands.handle(update(self.CHAT, "/start"))
-        commands.handle(update(self.CHAT, "/allaqanday"))
-        self.assertIn("Bunday buyruq yo'q", self.last())
-
-    def test_oddiy_matn_javobsiz_qoladi(self):
-        """Bot suhbatlashmaydi - faqat buyruqqa javob beradi."""
-        self.assertFalse(commands.handle(update(self.CHAT, "salom")))
+        self.assertTrue(TelegramLink.objects.filter(user=self.dev).exists())
+        self.assertIn("bog'landi", self.last())
 
 
 class TelegramApiTest(ApiTestCase):

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { confirmDialog } from "@/components/Confirm";
 import { toMessages, toMyWork, toProject, toTask, useEntityId } from "@/nav";
+import PasswordCard from "@/components/PasswordCard";
 import TelegramCard from "@/components/TelegramCard";
 
 export default function Profile() {
@@ -276,7 +277,11 @@ export default function Profile() {
               </table></div>
             </Card>
 
+            {/* Tarix uzun bo'lishi mumkin (o'nlab yozuv) va u sahifaning
+                qolgan qismini pastga surib yuboradi. Shuning uchun yig'ilgan
+                holda ochiladi - sanoq nishonda ko'rinib turadi. */}
             <Card title={isSelf ? "Nima qilganman" : "Nima qilgan"} padded={false}
+                  collapsible defaultOpen={false}
                   badge={<span className="badge">{(work?.activity || []).length}</span>}>
               {work?.activity?.length
                 ? <div className="card-body"><Timeline items={work.activity} /></div>
@@ -324,6 +329,8 @@ export default function Profile() {
 
             {/* Telegram bog'lanishi - faqat o'z profilida. Boshqa odamning
                 sahifasida bu bo'lim ma'nosiz (uni ulash mumkin emas). */}
+            {/* Hisob sozlamalari - ikkovi ham faqat o'z profilida. */}
+            {isSelf && <PasswordCard />}
             {isSelf && <TelegramCard />}
 
             <Card title="Aloqa">

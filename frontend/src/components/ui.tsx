@@ -179,6 +179,8 @@ export function Card({
   children,
   badge,
   padded = true,
+  collapsible = false,
+  defaultOpen = true,
 }: {
   /** Sahifa ichidan shu kartaga olib tushish uchun (`scrollIntoView`). */
   id?: string;
@@ -187,18 +189,44 @@ export function Card({
   badge?: ReactNode;
   children: ReactNode;
   padded?: boolean;
+  /**
+   * Sarlavha bosilganda karta yig'iladi.
+   *
+   * Uzun ro'yxatlar uchun: profildagi «Nima qilgan» yigirmadan ortiq
+   * yozuvni ochib tashlaydi va sahifaning qolgani ancha pastga tushib
+   * ketadi. Sanoq nishonda ko'rinib turgani uchun yig'ilgan holatda ham
+   * "ichida nima bor" ma'lum bo'ladi.
+   */
+  collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const shown = !collapsible || open;
+
   return (
     <div className="card" id={id}>
       {title && (
         <div className="card-head">
-          <h3>{title}</h3>
-          {badge}
+          {collapsible ? (
+            // Butun sarlavha nishon: kichik uchburchakni aniq bosish shart
+            // emas. `action` esa tashqarida qoladi - u o'z ishini qiladi.
+            <button type="button" className="card-toggle" aria-expanded={open}
+                    onClick={() => setOpen((v) => !v)}>
+              <span className="card-caret" aria-hidden="true">{open ? "▾" : "▸"}</span>
+              <h3>{title}</h3>
+              {badge}
+            </button>
+          ) : (
+            <>
+              <h3>{title}</h3>
+              {badge}
+            </>
+          )}
           <span className="spacer" />
           {action}
         </div>
       )}
-      {padded ? <div className="card-body">{children}</div> : children}
+      {shown && (padded ? <div className="card-body">{children}</div> : children)}
     </div>
   );
 }

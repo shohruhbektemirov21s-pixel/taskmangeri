@@ -1276,6 +1276,17 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    1-qator kun raqamlari, qolganlari tasma qatorlari. Katak foni
    (`.cal-col`) butun hafta balandligiga cho'ziladi va DOM da birinchi
    turadi, ya'ni tasmalar uning ustiga tushadi. */
+/* Yig'iladigan karta sarlavhasi. Butun sarlavha nishon - kichik
+   uchburchakni aniq bosish shart emas. */
+.card-toggle {
+  display: flex; align-items: center; gap: 8px; font: inherit; color: inherit;
+  background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+  min-width: 0;
+}
+.card-toggle h3 { margin: 0; font-size: 15px; font-weight: 700; }
+.card-toggle:hover h3 { color: var(--accent); }
+.card-caret { color: var(--muted); font-size: 11px; width: 10px; flex: 0 0 10px; }
+
 /* Orqaga tugmasi. Bosilmaydigan holatda ham JOYIDA qoladi - yashirilsa
    qidiruv maydoni har sahifada o'ngga-chapga sakrab turardi. */
 .top-back:disabled { opacity: .35; cursor: default; }

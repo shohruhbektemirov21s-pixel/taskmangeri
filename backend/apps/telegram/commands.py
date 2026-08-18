@@ -1,146 +1,53 @@
-"""Botga kelgan buyruqlarga javob.
+"""Botga kelgan xabarlarga javob.
 
-Bu yerda faqat O'QISH bor: bot vazifani o'zgartirmaydi, holatni
-ko'chirmaydi, hech narsa o'chirmaydi. Sabab oddiy — Telegram akkaunti
-username bo'yicha moslanadi, username esa egasi tomonidan almashtirilishi
-mumkin. O'qish uchun bu yetarli, yozish uchun emas.
+BOT SUHBATLASHMAYDI. U bitta ish qiladi - bildirishnoma yetkazadi. Ilgari
+bu yerda `/vazifalarim`, `/bugun` va `/tekshiruv` ham bor edi: ular
+ro'yxatni Telegramda takrorlardi, ya'ni ilovadagi sahifalarning cho'ntak
+nusxasi bo'lib qolgandi. Ikkita joyda turgan bir xil ro'yxat esa
+ertami-kechmi bir-biridan farq qila boshlaydi - endi ish faqat ilovada.
 
-Har bir javob SO'RAGAN odam nomidan yig'iladi: ilovadagi ruxsat qoidalari
-shu yerda ham takrorlanadi (`project__deleted_at__isnull=True`, faqat
-o'ziga biriktirilgan ish, menejerga esa boshqaruvidagi loyihalar).
+`/start` QOLDI, chunki uni olib tashlab bo'lmaydi: Telegram bot API
+xabarni `chat_id` ga yuboradi, `chat_id` esa faqat odam botga o'zi
+yozgandan keyin ma'lum bo'ladi (spamdan himoya). Ya'ni `/start` - buyruq
+emas, bog'lanishning yagona yo'li.
 """
 import logging
 
-from django.db.models import Exists, OuterRef, Q
-from django.utils import timezone
-
 from . import client
 from .models import TelegramLink, normalize_username, user_lookup
-from .services import app_url, esc
+from .services import esc
 
 logger = logging.getLogger(__name__)
 
-# Bir xabarga sig'adigan qatorlar - Telegram 4096 belgini cheklaydi va
-# uzun ro'yxat baribir o'qilmaydi.
-MAX_ROWS = 15
-
-HELP = (
-    "<b>TeamFlow boti</b>\n\n"
-    "/vazifalarim — menga biriktirilgan ochiq ishlar\n"
-    "/bugun — muddati bugun va kechikkanlar\n"
-    "/tekshiruv — tekshiruvimni kutayotgan ishlar\n"
-    "/uzish — Telegram bog'lanishini uzish\n"
-    "/yordam — shu ro'yxat"
+# Bog'langandan keyingi tasdiq. Bot nima QILMASLIGINI ham darrov aytadi -
+# odam undan javob kutib o'tirmasin.
+WELCOME = (
+    "<b>Salom, {name}!</b>\n\n"
+    "Telegram hisobingiz TeamFlow ga bog'landi - endi bildirishnomalar "
+    "shu yerga ham keladi.\n\n"
+    "Bot faqat xabar yuboradi. Ishlar, ro'yxatlar va hisobotlar ilovada."
 )
 
+NOT_LINKED = (
+    "Bu Telegram akkaunti hech qaysi TeamFlow hisobiga bog'lanmagan.\n\n"
+    "Ilovaga kiring -> <b>Profil</b> -> <b>Tahrirlash</b> -> Telegram maydoniga "
+    "<code>{name}</code> deb yozing va shu yerga qaytib /start bosing."
+)
 
-def _unfinished():
-    from apps.tasks.models import TaskStatus
+NO_USERNAME = (
+    "Telegram akkauntingizda username yo'q. Telegram sozlamalaridan username "
+    "qo'ying, keyin ilovadagi profilingizga o'sha nomni yozing va bu yerga "
+    "qaytib /start bosing."
+)
 
-    return [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW,
-            TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED]
+# Har qanday boshqa xabarga - qisqa javob. Bot jim qolsa odam "yetib
+# bordimi?" deb o'ylab qolardi.
+ONLY_NOTIFICATIONS = (
+    "Bu bot faqat bildirishnoma yuboradi.\n\n"
+    "Ishlar ilovada. Xabarlarni to'xtatish yoki bog'lanishni uzish uchun: "
+    "<b>Profil</b> -> <b>Telegram</b>."
+)
 
-
-def _my_tasks(user):
-    """Odamga biriktirilgan, o'chirilmagan loyihalardagi ishlar."""
-    from apps.tasks.models import Task, TaskAssignment
-
-    mine = Exists(TaskAssignment.objects.filter(
-        task=OuterRef("pk"), user=user, is_active=True))
-    return (Task.objects.filter(mine, project__deleted_at__isnull=True)
-            .select_related("project"))
-
-
-def _row(task):
-    code = "{}-{}".format(task.project.key, task.number)
-    return "<code>{}</code> {} — {}".format(
-        esc(code), esc(task.title), esc(task.get_status_display()))
-
-
-def _listing(title, tasks, empty):
-    rows = [_row(t) for t in tasks[:MAX_ROWS]]
-    if not rows:
-        return "<b>{}</b>\n\n{}".format(esc(title), esc(empty))
-    text = "<b>{}</b>\n\n".format(esc(title)) + "\n".join(rows)
-    total = tasks.count()
-    if total > MAX_ROWS:
-        text += "\n\n<i>… va yana {} ta. To'liq ro'yxat ilovada.</i>".format(total - MAX_ROWS)
-    return text
-
-
-# ------------------------------------------------------------------ buyruqlar
-
-def cmd_start(link, _args):
-    return (
-        "<b>Salom, {}!</b>\n\nTelegram hisobingiz TeamFlow ga bog'landi — "
-        "endi bildirishnomalar shu yerga ham keladi.\n\n{}"
-    ).format(esc(link.user.full_name), HELP)
-
-
-def cmd_help(_link, _args):
-    return HELP
-
-
-def cmd_my_tasks(link, _args):
-    tasks = (_my_tasks(link.user).filter(status__in=_unfinished())
-             .order_by("-priority", "due_date", "id"))
-    return _listing("Mening ochiq ishlarim", tasks, "Ochiq ish yo'q.")
-
-
-def cmd_today(link, _args):
-    from datetime import datetime, time as dtime
-
-    today = timezone.localdate()
-    # Kun chegarasi Toshkent vaqtida, aniq lahza bilan - `dashboard` dagi
-    # kabi: Db2 da sanani ustundan ajratib olish mintaqani hisobga olmaydi.
-    day_end = timezone.make_aware(datetime.combine(today, dtime.min)) + timezone.timedelta(days=1)
-    tasks = (_my_tasks(link.user)
-             .filter(status__in=_unfinished(), due_date__lt=day_end)
-             .order_by("due_date", "-priority", "id"))
-    return _listing("Bugun bajarilishi kerak", tasks,
-                    "Muddati bugungi yoki kechikkan ish yo'q.")
-
-
-def cmd_review(link, _args):
-    """Menejer tekshiruvini kutayotgan ishlar."""
-    from apps.projects.models import ProjectMember, ProjectRole, Project
-    from apps.tasks.models import Task, TaskStatus
-
-    user = link.user
-    if user.is_platform_admin:
-        tasks = Task.objects.filter(status=TaskStatus.IN_REVIEW,
-                                    project__deleted_at__isnull=True)
-    else:
-        managed = Project.objects.filter(
-            Q(manager=user) | Exists(ProjectMember.objects.filter(
-                project=OuterRef("pk"), user=user, is_active=True,
-                role=ProjectRole.MANAGER)))
-        if not managed.exists():
-            return "Siz hech bir loyihani boshqarmaysiz — tekshiruv navbati yo'q."
-        tasks = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
-
-    tasks = tasks.select_related("project").order_by("submitted_at")
-    return _listing("Tekshiruvni kutmoqda", tasks, "Navbat bo'sh.")
-
-
-def cmd_unlink(link, _args):
-    link.delete()
-    return ("Bog'lanish uzildi — Telegramga xabar kelmaydi.\n\n"
-            "Qayta ulash uchun shu yerga /start bosing.")
-
-
-COMMANDS = {
-    "start": cmd_start,
-    "yordam": cmd_help,
-    "help": cmd_help,
-    "vazifalarim": cmd_my_tasks,
-    "bugun": cmd_today,
-    "tekshiruv": cmd_review,
-    "uzish": cmd_unlink,
-}
-
-
-# ------------------------------------------------------------------ kirish
 
 def _bind(chat, username):
     """Kelgan xabarni hisobga moslaydi va bog'lanishni yozadi.
@@ -182,42 +89,24 @@ def handle(update):
     sender = message.get("from") or {}
     text = (message.get("text") or "").strip()
 
-    if not chat.get("id") or not text.startswith("/"):
+    chat_id = chat.get("id")
+    if not chat_id or not text:
         return False
 
-    # `/vazifalarim@teamflow_bot` - guruhda bot nomi qo'shiladi.
-    raw = text.split()[0][1:].split("@")[0].lower()
-    args = text.split()[1:]
+    # `/start@teamflow_bot` - guruhda bot nomi qo'shiladi.
+    command = text.split()[0].split("@")[0].lower() if text.startswith("/") else ""
+
+    if command != "/start":
+        # Boshqa hamma narsa - buyruq ham, oddiy matn ham - bir xil javob.
+        client.send_message(chat_id, ONLY_NOTIFICATIONS)
+        return True
 
     link = _bind(chat, sender.get("username"))
     if link is None:
         who = sender.get("username")
-        reply = (
-            "Bu Telegram akkaunti hech qaysi TeamFlow hisobiga bog'lanmagan.\n\n"
-            "Ilovaga kiring → <b>Profil</b> → <b>Tahrirlash</b> → Telegram "
-            "maydoniga <code>{}</code> deb yozing va shu yerga qaytib /start bosing."
-        ).format(esc(who or "username"))
-        if not who:
-            reply = ("Telegram akkauntingizda username yo'q. Telegram sozlamalaridan "
-                     "username qo'ying, keyin ilovadagi profilingizga o'sha nomni "
-                     "yozing va bu yerga qaytib /start bosing.")
-        client.send_message(chat["id"], reply)
+        reply = NOT_LINKED.format(name=esc(who)) if who else NO_USERNAME
+        client.send_message(chat_id, reply)
         return True
 
-    handler = COMMANDS.get(raw)
-    if handler is None:
-        client.send_message(chat["id"], "Bunday buyruq yo'q.\n\n" + HELP)
-        return True
-
-    try:
-        reply = handler(link, args)
-    except Exception:
-        logger.exception("Telegram buyrug'i bajarilmadi: /%s", raw)
-        reply = "Buyruqni bajarib bo'lmadi. Keyinroq urinib ko'ring."
-
-    buttons = None
-    url = app_url("/panel")
-    if url and raw in ("start", "vazifalarim", "bugun", "tekshiruv"):
-        buttons = [[("Ilovani ochish", url)]]
-    client.send_message(chat["id"], reply, buttons=buttons)
+    client.send_message(chat_id, WELCOME.format(name=esc(link.user.full_name)))
     return True
