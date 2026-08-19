@@ -13,7 +13,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Profil", {"fields": ("full_name", "job_title", "skills", "bio",
-                               "github_username", "telegram", "avatar")}),
+                               "telegram", "avatar")}),
         ("Ruxsatlar", {"fields": ("global_role", "is_active", "is_staff",
                                   "is_superuser", "groups", "user_permissions")}),
         ("Sanalar", {"fields": ("last_login", "date_joined", "last_seen")}),

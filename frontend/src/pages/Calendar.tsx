@@ -63,6 +63,19 @@ interface Bar {
 }
 
 /**
+ * Bitta kunda ko'rinadigan tasmalar soni.
+ *
+ * NEGA CHEGARA KERAK. Har tasma o'z qatorini oladi, hafta balandligi esa eng
+ * band kunga qarab o'sadi: bitta kunga 33 ta vazifa muddati tushsa o'sha
+ * hafta 660 piksel bo'lib cho'ziladi va oy setkasi ekranga sig'may qoladi -
+ * qolgan kunlar bo'm-bo'sh turgani holda. Endi kun uchta tasmadan keyin
+ * yig'iladi, qolgani «+N ta» tugmasiga aylanadi va bosilganda o'sha kunning
+ * to'liq ro'yxati CHETDAGI panelda ochiladi (`aside.cal-day`).
+ */
+const LANE_LIMIT = 3;
+
+
+/**
  * Tasmalarni qatorlarga (lane) taqsimlaydi: ustma-ust tushmasin.
  * Ochko'z usul — bo'sh birinchi qatorga qo'yiladi.
  */
@@ -180,6 +193,14 @@ export default function CalendarPage() {
                 {showTasks && !!data.task_total && (
                   <span className="badge badge-info">{data.task_total} vazifa</span>
                 )}
+                {/* Ro'yxat qirqilgan bo'lsa aytib qo'yamiz - ijrochi
+                    "nega jamoaning muddatlari ko'rinmayapti" deb
+                    o'ylamasin. Cheklovsiz odamga bu satr chizilmaydi. */}
+                {showTasks && data.tasks_limited && (
+                  <small className="muted">
+                    Ijrochi bo'lgan loyihalarda faqat sizning ishlaringiz
+                  </small>
+                )}
                 <span className="spacer" />
                 <label className="cal-check" title="Vazifalarni ham ko'rsatish">
                   <input type="checkbox" checked={showTasks}
@@ -220,11 +241,25 @@ export default function CalendarPage() {
                     .map((b) => ({ ...b, from: Math.max(b.from, wFrom), to: Math.min(b.to, wTo) }));
                   const { placed, laneCount } = assignLanes(inWeek);
 
+                  // Chegaradan oshgani chizilmaydi - kun bo'yicha sanaladi va
+                  // «+N ta» bo'lib ko'rinadi. Tasma bir necha kunga cho'zilishi
+                  // mumkin, shuning uchun har bir kuni alohida hisoblanadi.
+                  const visible = placed.filter((x) => x.lane < LANE_LIMIT);
+                  const moreByDay = new Map<number, number>();
+                  for (const { bar, lane } of placed) {
+                    if (lane < LANE_LIMIT) continue;
+                    for (let d = bar.from; d <= bar.to; d += 1) {
+                      moreByDay.set(d, (moreByDay.get(d) || 0) + 1);
+                    }
+                  }
+                  // `repeat(0, ...)` yaroqsiz CSS - tasmasiz haftada ham kamida
+                  // bitta qator qoldiramiz.
+                  const laneRows = Math.max(Math.min(laneCount, LANE_LIMIT), 1);
+                  const rows = laneRows + (moreByDay.size ? 1 : 0);
+
                   return (
                     <div className="cal-week" key={wFrom}
-                         /* `repeat(0, ...)` yaroqsiz CSS - tasmasiz haftada ham kamida
-                            bitta qator qoldiramiz. */
-                         style={{ gridTemplateRows: `auto repeat(${Math.max(laneCount, 1)}, 20px)` }}>
+                         style={{ gridTemplateRows: `auto repeat(${rows}, 20px)` }}>
                       {/* Ustun foni - butun hafta balandligiga cho'ziladi */}
                       {week.map((d, i) => {
                         const iso = isoOf(d);
@@ -261,7 +296,7 @@ export default function CalendarPage() {
                       })}
 
                       {/* Tasmalar */}
-                      {placed.map(({ bar, lane }) => (
+                      {visible.map(({ bar, lane }) => (
                         <Link
                           key={bar.key + bar.from}
                           to={bar.to_}
@@ -292,6 +327,23 @@ export default function CalendarPage() {
                           )}
                         </Link>
                       ))}
+
+                      {/* Sig'magani - «+N ta». Bosilganda o'sha kunning to'liq
+                          ro'yxati chetdagi panelda ochiladi: kun katagi
+                          cho'zilmaydi, ma'lumot esa yo'qolmaydi. */}
+                      {week.map((d, i) => {
+                        const extra = moreByDay.get(d) || 0;
+                        if (!extra) return null;
+                        const iso = isoOf(d);
+                        return (
+                          <button type="button" key={`m${d}`} className="cal-more"
+                                  style={{ gridColumn: i + 1, gridRow: laneRows + 2 }}
+                                  title={`Yana ${extra} ta - kunning to'liq ro'yxatini ochish`}
+                                  onClick={() => set("kun", iso)}>
+                            +{extra} ta
+                          </button>
+                        );
+                      })}
                     </div>
                   );
                 })}

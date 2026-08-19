@@ -111,4 +111,4 @@ Bu qatlamni olib tashlasang migratsiyalar birinchi yozuvdayoq buziladi.
 
 Joriy branch: `kunduzgi-rejim-mobil-ruxsatlar`. Push qilishdan oldin `main` ga emas, o'z branchingga commit qil va foydalanuvchidan tasdiq so'ra.
 ## esingdan chiqmasin
-malumotlarni beckenddan ol
+malumotlarni beckenddan ol db2dan ol

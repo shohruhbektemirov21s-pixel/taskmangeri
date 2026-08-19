@@ -60,7 +60,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     bio = models.TextField("Qisqacha ma'lumot", blank=True)
     skills = models.CharField("Ko'nikmalar", max_length=255, blank=True,
                               help_text="Vergul bilan: Python, Django, React")
-    github_username = models.CharField("GitHub username", max_length=80, blank=True)
     telegram = models.CharField("Telegram", max_length=80, blank=True)
     avatar = models.ImageField("Rasm", upload_to="avatars/", blank=True, null=True)
 

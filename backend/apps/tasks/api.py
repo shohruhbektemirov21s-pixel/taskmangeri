@@ -10,7 +10,8 @@ from rest_framework.response import Response
 from apps.core.queries import int_param, object_or_404
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
-from apps.core.permissions import ProjectAccess, check_access, visible_projects_q
+from apps.core.permissions import (ProjectAccess, check_access, task_scope_q,
+                                   visible_projects_q)
 from apps.core.uploads import check_uploads
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
@@ -258,6 +259,10 @@ class TaskViewSet(viewsets.ModelViewSet):
             # Ko'rish doirasi `ProjectAccess.can_view` bilan bir xil qoidadan
             # keladi: a'zo bo'lgan loyihalar + o'z ish maydonidagi ochiqlar.
             qs = qs.filter(visible_projects_q(user, "project__"))
+
+        # Loyiha ichida esa - kimning ishi ko'rinishi. Menejerga hammasi,
+        # qolganga o'ziniki (`task_scope_q`). Doska ham shu yerdan o'tadi.
+        qs = qs.filter(task_scope_q(user))
 
         # Raqamli filtrlar `int_param` dan o'tadi: yaroqsiz qiymat ("abc")
         # so'rov bajarilayotganda ValueError bilan 500 bermasin - 400 qaytsin.

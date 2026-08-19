@@ -99,6 +99,19 @@ def panel_metric_q(metric, start, now):
         return open_now & Q(due_date__gte=start, due_date__lt=now)
     if metric == "done":            # shu davrda yakunlangan
         return Q(status=TaskStatus.DONE, completed_at__gte=start)
+    if metric == "period":
+        # BUTUN TAXTA: uchala katakning birlashmasi. Davr nomi bosilganda
+        # shu ochiladi - odam «yil boshidan nima bo'ldi» degan savolga
+        # bitta ro'yxatda javob oladi, uchta katakni navbat bilan bosib
+        # emas.
+        #
+        # `|` - birlashma, qo'shuv emas: bitta ish ham «nazoratda», ham
+        # «muddati o'tgan» bo'lishi mumkin (ikkovi ham yopilmagan ishlar
+        # haqida) va u ro'yxatda IKKI MARTA turmasligi kerak. Shart
+        # `WHERE` da qo'shilgani uchun takror umuman paydo bo'lmaydi.
+        return (panel_metric_q("todo", start, now)
+                | panel_metric_q("overdue", start, now)
+                | panel_metric_q("done", start, now))
     if metric == "late_done":       # yopilgan, lekin muddatdan keyin
         return Q(status=TaskStatus.DONE, due_date__isnull=False,
                  completed_at__gt=F("due_date"))
@@ -397,6 +410,8 @@ def panel_tasks(request):
     """Panel katagi bosilganda ochiladigan ro'yxat.
 
     `?period=year|month|week&metric=todo|overdue|done`
+    `?period=year|month|week&metric=period`  (uchala katak birgalikda -
+        davr nomi bosilganda)
     `?metric=late_done|overdue_now|waiting`  (davr kerak emas)
 
     SANOQ BILAN BIR XIL SHART. Ro'yxat ham, katakdagi son ham
@@ -409,7 +424,7 @@ def panel_tasks(request):
     metric = request.query_params.get("metric") or ""
     period = request.query_params.get("period") or ""
 
-    needs_period = metric in ("todo", "overdue", "done")
+    needs_period = metric in ("todo", "overdue", "done", "period")
     if needs_period and period not in PERIODS:
         raise DrfValidationError({"period": "Faqat year, month yoki week."})
 

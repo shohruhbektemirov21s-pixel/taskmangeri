@@ -86,9 +86,46 @@ function Band({ p, onPick, picked }: {
   onPick: (v: Picked) => void;
   picked: Picked | null;
 }) {
+  // Sarlavha bosilsa - BUTUN taxta: nazoratdagi, muddati o'tgan va
+  // bajarilgan ishlar bitta ro'yxatda. Katakning o'zi bosilsa - faqat
+  // o'sha ustun.
+  //
+  // Ya'ni «yil boshidan nima bo'ldi» degan savolga uchta katakni navbat
+  // bilan bosmasdan javob olinadi. Shart serverda ham bitta joyda
+  // (`panel_metric_q` dagi `period`) - sanoq bilan ro'yxat ajralib
+  // ketmasin.
+  //
+  // Ro'yxatdagi son uchta katakning YIG'INDISI bo'lmasligi mumkin va bu
+  // to'g'ri: bitta ish ham «nazoratda», ham «muddati o'tgan» bo'lishi
+  // mumkin, ro'yxatda esa u bir marta turadi.
+  const hasAny = Boolean(p.todo || p.overdue || p.done);
+
+  const pickBand = () => {
+    if (!hasAny) return;
+    onPick({ period: p.key, metric: "period",
+             title: `${LABELS[p.key]} — hammasi` });
+  };
+
   return (
     <section className="stat-band">
-      <header className="stat-band-head">
+      {/* `<header>` `<button>` ga aylantirilmadi: ichida `<h2>` va `<p>` bor,
+          ular tugma ichida yaroqsiz. Shuning uchun tugma ROLI beriladi -
+          klaviatura bilan ham ochiladi. */}
+      <header className={`stat-band-head ${hasAny ? "pickable" : ""}`
+                         + (picked?.period === p.key && picked?.metric === "period"
+                            ? " picked" : "")}
+              role={hasAny ? "button" : undefined}
+              tabIndex={hasAny ? 0 : undefined}
+              title={hasAny
+                ? `${LABELS[p.key]}: nazoratdagi, muddati o'tgan va bajarilgan ishlar`
+                : "Bu davrda ish yo'q"}
+              onClick={pickBand}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  pickBand();
+                }
+              }}>
         <h2 className="stat-band-title">{LABELS[p.key]}</h2>
         {/* Qaysi sanadan sanalayotgani ko'rinib tursin - «yil boshidan»
             degani odamga aniq kunni aytmaydi. */}

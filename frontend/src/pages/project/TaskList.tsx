@@ -5,7 +5,7 @@ import { useFetch } from "@/api/useFetch";
 import type { Project, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
-import { Empty, ErrorMsg, Loading, TaskRow } from "@/components/ui";
+import { Empty, ErrorMsg, Loading, TaskRow, TaskScopeNote } from "@/components/ui";
 import { toNewTask, useNavParams } from "@/nav";
 
 /**
@@ -60,6 +60,7 @@ export default function TaskList({ project }: { project: Project }) {
 
   return (
     <>
+      <TaskScopeNote access={project.access} />
       <div className="filters">
         <div className="f">
           <label htmlFor={`${fid}-0`}>Holat</label>

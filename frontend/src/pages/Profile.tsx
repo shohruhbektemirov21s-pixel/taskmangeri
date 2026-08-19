@@ -54,7 +54,7 @@ export default function Profile() {
       setTarget(u);
       setForm({
         full_name: u.full_name, job_title: u.job_title, skills: u.skills,
-        bio: u.bio, github_username: u.github_username, telegram: u.telegram,
+        bio: u.bio, telegram: u.telegram,
         seniority: u.seniority, years_experience: String(u.years_experience ?? 0),
       });
       // Loyihalar, vazifalar, statistika va tarix - hammasi bitta endpointdan.
@@ -236,7 +236,6 @@ export default function Profile() {
                   {[
                     ["full_name", "F.I.Sh.", "text"],
                     ["job_title", "Lavozim", "text"],
-                    ["github_username", "GitHub username", "text"],
                     ["telegram", "Telegram", "text"],
                   ].map(([k, label]) => (
                     <div className="field" key={k}>
@@ -367,13 +366,6 @@ export default function Profile() {
             <Card title="Aloqa">
               <ul className="list-plain" style={{ fontSize: 13 }}>
                 <li><span className="muted">Email:</span> {target.email}</li>
-                {target.github_username && (
-                  <li>
-                    <span className="muted">GitHub:</span>{" "}
-                    <a href={`https://github.com/${target.github_username}`}
-                       target="_blank" rel="noreferrer">{target.github_username}</a>
-                  </li>
-                )}
                 {target.telegram && <li><span className="muted">Telegram:</span> {target.telegram}</li>}
                 <li><span className="muted">Royxatdan otgan:</span> {fmtDate(target.date_joined)}</li>
               </ul>

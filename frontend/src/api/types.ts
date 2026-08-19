@@ -31,7 +31,6 @@ export interface User extends UserBrief {
   bio: string;
   skills: string;
   skill_list: string[];
-  github_username: string;
   telegram: string;
   is_active: boolean;
   date_joined: string;
@@ -51,6 +50,8 @@ export interface Access {
   role_label: string;
   is_admin: boolean;
   is_project_admin: boolean;
+  /** Ijrochimi (dasturchi yoki QA) - ro'yxatlar shunga qarab qirqiladi. */
+  is_developer: boolean;
   can_delete_task: boolean;
   can_appoint_admin: boolean;
   can_grant_manager: boolean;
@@ -518,6 +519,11 @@ export interface CalendarMonth {
   days: { date: string; count: number }[];
   total: number;
   task_total: number;
+  /**
+   * Vazifalar ro'yxati qirqilganmi: odam birorta loyihada IJROCHI bo'lsa,
+   * o'sha loyihalardan faqat o'ziga biriktirilgan ish taqvimga tushadi.
+   */
+  tasks_limited: boolean;
 }
 
 /** Ochiq (autentifikatsiyasiz) API dan keladigan loyiha - faqat xavfsiz maydonlar */

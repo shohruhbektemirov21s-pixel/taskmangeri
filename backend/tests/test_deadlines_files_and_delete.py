@@ -237,6 +237,61 @@ class CalendarDueDatesTest(ApiTestCase):
         self.assertEqual(str(tasks[0]["to"]), str(self.day))
 
 
+class CalendarTaskScopeTest(ApiTestCase):
+    """Taqvimda kim kimning ishini ko'radi.
+
+    Menejerga butun manzara kerak - u ish taqsimlaydi. Dasturchiga esa
+    o'ziniki: ilgari a'zo bo'lgan loyihaning HAMMA vazifasi ko'rinardi va
+    o'z ishi jamoadagi o'nlab begona muddat orasida yo'qolib ketardi.
+    """
+
+    def setUp(self):
+        super().setUp()
+        today = timezone.localdate()
+        self.month = today.strftime("%Y-%m")
+        day = date(today.year, today.month, 15)
+        due = timezone.make_aware(timezone.datetime(day.year, day.month, day.day, 18, 0))
+
+        self.mine = Task.objects.create(project=self.project, title="Dasturchining ishi",
+                                        due_date=due, created_by=self.manager)
+        TaskAssignment.objects.create(task=self.mine, user=self.dev)
+        self.other = Task.objects.create(project=self.project, title="Begona ish",
+                                         due_date=due, created_by=self.manager)
+
+    def calendar_for(self, user):
+        response = self.client_for(user).get("/api/projects/calendar/", {"month": self.month})
+        self.assertEqual(response.status_code, 200, response.data)
+        return response.data
+
+    def test_menejer_hamma_vazifani_koradi(self):
+        data = self.calendar_for(self.manager)
+        self.assertFalse(data["tasks_limited"])
+        self.assertEqual({t["title"] for t in data["tasks"]},
+                         {"Dasturchining ishi", "Begona ish"})
+
+    def test_dasturchi_faqat_ozining_ishini_koradi(self):
+        data = self.calendar_for(self.dev)
+        self.assertTrue(data["tasks_limited"])
+        self.assertEqual([t["title"] for t in data["tasks"]], ["Dasturchining ishi"])
+
+    def test_admin_hammasini_koradi(self):
+        data = self.calendar_for(self.admin)
+        self.assertFalse(data["tasks_limited"])
+        self.assertEqual(len(data["tasks"]), 2)
+
+    def test_kuzatuvchi_hamma_vazifani_koradi(self):
+        """Kuzatuvchining biriktirilgan ishi bo'lmaydi - cheklov unga tegmaydi.
+
+        Aks holda «Kuzatuvchi» roli bo'm-bo'sh taqvim degani bo'lardi.
+        """
+        viewer = make_user("kuzatuvchi@sinov.uz", "Kuzatuvchi Vali")
+        ProjectMember.objects.create(project=self.project, user=viewer,
+                                     role=ProjectRole.VIEWER)
+        data = self.calendar_for(viewer)
+        self.assertFalse(data["tasks_limited"])
+        self.assertEqual(len(data["tasks"]), 2)
+
+
 class ProjectDeleteConfirmTest(ApiTestCase):
     """Jarayondagi ish bo'lsa loyiha tasdiqsiz o'chmaydi."""
 

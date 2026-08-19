@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import type { DiffPiece, Task, TextDiff, UserBrief } from "@/api/types";
+import type { Access, DiffPiece, Task, TextDiff, UserBrief } from "@/api/types";
 import { confirmDialog } from "./Confirm";
 import { IconCalendar, IconEye, IconEyeOff, IconFile } from "./icons";
 import { toTask, useGo, type NavTarget } from "@/nav";
@@ -438,6 +438,27 @@ export function TaskCard({ task, draggable = false, onDragStart, onMove }: {
  * rangda ko'rinardi. Qiymatlar CSS o'zgaruvchisi: rejim almashganda rang
  * o'zi moslashadi.
  */
+/**
+ * «Ro'yxat qirqilgan» izohi — doska va vazifalar ro'yxati tepasida.
+ *
+ * Server ro'yxatni rolga qarab qirqadi (`apps/core/permissions.py`
+ * `task_scope_q`): IJROCHI (dasturchi, QA) faqat o'ziga biriktirilgan ishni
+ * ko'radi, menejer/loyiha admini/kuzatuvchi esa hammasini. Bu izohsiz
+ * dasturchi 74 ta vazifadan uchtasini ko'rib "ro'yxat buzilibdi" deb
+ * o'ylaydi.
+ *
+ * Cheklov YO'Q bo'lganda hech narsa chizilmaydi: menejerga "siz hammasini
+ * ko'ryapsiz" deb aytishning keragi yo'q, u shundoq ham ko'rib turibdi.
+ */
+export function TaskScopeNote({ access }: { access?: Access | null }) {
+  if (!access?.is_developer) return null;
+  return (
+    <p className="scope-note">
+      Faqat sizga biriktirilgan ishlar — qolganini loyiha menejeri ko'radi
+    </p>
+  );
+}
+
 export const STATUS_DOT: Record<string, string> = {
   TODO: "var(--accent)",
   IN_PROGRESS: "var(--attention)",

@@ -263,6 +263,48 @@ class PanelDrillDownTest(ApiTestCase):
                 self.assertEqual(r.status_code, 200, r.data)
                 self.assertEqual(r.data["count"], d["deadlines"][key])
 
+    def test_davr_nomi_uchala_katakni_birga_beradi(self):
+        """Davr sarlavhasi bosilganda uchala ustun bitta ro'yxatda chiqadi.
+
+        Ilgari sarlavha bitta ko'rsatkichni ochardi va «yil boshidan nima
+        bo'ldi» degan savolga javob olish uchun uchta katakni navbat bilan
+        bosish kerak edi.
+        """
+        todo = self.make(TaskStatus.TODO, created_at=at(2))
+        progress = self.make(TaskStatus.IN_PROGRESS, created_at=at(1))
+        done = self.make(TaskStatus.DONE, created_at=at(3), completed_at=at(1))
+
+        r = self.api.get(self.URL, {"period": "year", "metric": "period"})
+        self.assertEqual(r.status_code, 200, r.data)
+        ids = [t["id"] for t in r.data["results"]]
+        self.assertEqual(set(ids), {todo.pk, progress.pk, done.pk})
+        self.assertEqual(r.data["count"], 3)
+
+    def test_davr_royxatida_bir_ish_ikki_marta_turmaydi(self):
+        """Ish ham «nazoratda», ham «muddati o'tgan» bo'lishi mumkin.
+
+        Ikkovi ham yopilmagan ish haqida, ya'ni birlashmada u ikki marta
+        chiqib qolishi mumkin edi - sanoq esa haqiqiy ishlar sonidan
+        ko'p bo'lib ketardi.
+        """
+        both = self.make(TaskStatus.TODO, created_at=at(5), due_date=at(2))
+
+        counts = {}
+        for metric in ("todo", "overdue", "period"):
+            r = self.api.get(self.URL, {"period": "year", "metric": metric})
+            counts[metric] = r.data["count"]
+            if metric == "period":
+                ids = [t["id"] for t in r.data["results"]]
+                self.assertEqual(ids, [both.pk])
+
+        # Ikkala katakda ham turadi, birlashmada esa bitta.
+        self.assertEqual(counts["todo"], 1)
+        self.assertEqual(counts["overdue"], 1)
+        self.assertEqual(counts["period"], 1)
+
+    def test_davr_kesimi_ham_davrni_talab_qiladi(self):
+        self.assertEqual(self.api.get(self.URL, {"metric": "period"}).status_code, 400)
+
     def test_begona_ish_royxatga_tushmaydi(self):
         """Qamrov sanoqdagi bilan bir xil - dasturchi faqat o'zinikini ko'radi."""
         alien = Task.objects.create(project=self.project, title="Begona",

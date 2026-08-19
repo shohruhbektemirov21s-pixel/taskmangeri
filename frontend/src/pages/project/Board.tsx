@@ -5,7 +5,7 @@ import { useFetch } from "@/api/useFetch";
 import type { Access, Project, ProjectFile, Task, TaskStatusValue } from "@/api/types";
 import { IconFile } from "@/components/icons";
 import { useRealtime } from "@/realtime/RealtimeContext";
-import { ErrorMsg, Loading, STATUS_DOT, TaskCard } from "@/components/ui";
+import { ErrorMsg, Loading, STATUS_DOT, TaskCard, TaskScopeNote } from "@/components/ui";
 import { toProject } from "@/nav";
 
 interface Column {
@@ -94,6 +94,7 @@ export default function Board({ project }: { project: Project }) {
   return (
     <>
       <ErrorMsg error={error} />
+      <TaskScopeNote access={access} />
       <div className="filters">
         <div className="f">
           <label htmlFor={`${fid}-0`}>Ijrochi</label>

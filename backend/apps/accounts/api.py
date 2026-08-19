@@ -227,7 +227,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_class(self):
         # Ro'yxatda qisqa ko'rinish: shaxsiy kontakt ma'lumotlari (bio,
-        # telegram, github) faqat odamning o'z sahifasida chiqadi.
+        # telegram) faqat odamning o'z sahifasida chiqadi.
         if self.action == "list":
             return UserListSerializer
         return UserAdminSerializer

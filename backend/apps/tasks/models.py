@@ -188,6 +188,26 @@ class Task(SoftDeleteModel):
         return "{} {}".format(self.code, self.title)
 
     def save(self, *args, **kwargs):
+        # «Bajarildi» holatidagi vazifada YAKUNLANGAN VAQT bo'lishi shart.
+        #
+        # `apply_status()` uni qo'yadi, lekin holat boshqa yo'llar bilan ham
+        # yoziladi: import skripti, admin paneli, to'g'ridan-to'g'ri ORM.
+        # O'shanda `completed_at` bo'sh qolardi va panel «Bajarilganlar: 0»
+        # deb turardi - bazada 29 ta yopilgan ish bo'lgani holda. Sabab:
+        # sanoq holatga emas, aynan shu maydonga qaraydi
+        # (`panel_metric_q` da `completed_at__gte=start`), chunki "qachon
+        # bajarilgani" bilinmasa uni davr bo'yicha sanab bo'lmaydi.
+        #
+        # Shuning uchun qoida modelning o'zida: qaysi yo'l bilan yozilishidan
+        # qat'i nazar, DONE degan qator vaqtsiz saqlanmaydi.
+        if self.status == TaskStatus.DONE and self.completed_at is None:
+            self.completed_at = timezone.now()
+            # `update_fields` berilgan bo'lsa yangi maydon ham ro'yxatga
+            # tushsin - aks holda o'zgarish jimgina yo'qolardi.
+            fields = kwargs.get("update_fields")
+            if fields is not None and "completed_at" not in fields:
+                kwargs["update_fields"] = list(fields) + ["completed_at"]
+
         if not self.pk:
             # Raqam olish va yozish bitta tranzaksiyada bo'lishi shart -
             # `next_task_number` qo'ygan qulf shunda ma'no kasb etadi.

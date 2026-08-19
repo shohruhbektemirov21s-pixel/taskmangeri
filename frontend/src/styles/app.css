@@ -959,7 +959,13 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 
 /* ---- Yuqori qator: davr kesimi ---- */
 .stat-band { padding: 16px 8px 18px; }
-.stat-band-head { text-align: center; padding: 0 10px; }
+.stat-band-head { text-align: center; padding: 0 10px; border-radius: 12px; }
+/* Sarlavha ham bosiladi: ochiq ro'yxatni shu davrga ko'chiradi. Kataklar
+   bilan bir xil belgilar - bosilsa bo'ladigani ostiga chiziladi, ochilgani
+   yumshoq fonda turadi. */
+.stat-band-head.pickable { cursor: pointer; }
+.stat-band-head.pickable:hover .stat-band-title { text-decoration: underline; }
+.stat-band-head.picked { background: var(--accent-soft); }
 .stat-band-title {
   margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text);
   letter-spacing: -.01em;
@@ -1364,6 +1370,10 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 /* Panel yopishib turadi: uzun ro'yxatni aylantirganda ham taqvim
    yonida qoladi. */
 .cal-day { position: sticky; top: 88px; }
+/* Uzun ro'yxat PANEL ICHIDA aylanadi. Bitta kunga yetmishta vazifa tushsa
+   panel sahifani bir necha ming pikselga cho'zib yuborardi - yopishib
+   turishning ham, taqvimni yonida ko'rishning ham ma'nosi qolmasdi. */
+.cal-day .card-list { max-height: calc(100vh - 190px); overflow-y: auto; }
 .cal-day .card-body.tight { padding: 10px 14px; }
 /* Tor ustunda `spacer` faqat qatorni uzaytirardi - endi u qator uzuvchi:
    sana va ijrochilar o'z satriga tushadi. */
@@ -1374,6 +1384,9 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   /* Tor ekranda yonma-yon sig'maydi - panel yana pastga tushadi. */
   .cal-layout.with-day { grid-template-columns: minmax(0, 1fr); }
   .cal-day { position: static; }
+  /* Pastga tushgan panelda ichki aylanish shart emas - sahifaning o'zi
+     aylanadi va ro'yxat ichida yana bir aylantirgich chalkashtiradi. */
+  .cal-day .card-list { max-height: none; overflow-y: visible; }
 }
 
 .cal-bar-top {
@@ -1495,8 +1508,20 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .cal-bar:not(.ends) { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
 .cal-who { opacity: .75; }
 
+/* Katakka sig'magan tasmalar - «+N ta». Tasma emas, tugma: bosilganda
+   kunning to'liq ro'yxati chetdagi panelda ochiladi. */
+.cal-more {
+  margin: 0 3px 2px; padding: 1px 7px; border: 0; border-radius: 4px;
+  background: var(--surface-2); color: var(--muted);
+  font: inherit; font-size: 11px; font-weight: 600; line-height: 18px;
+  text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden;
+  transition: background .12s, color .12s;
+}
+.cal-more:hover { background: var(--accent); color: #fff; }
+
 @media (max-width: 760px) {
   .cal-bar { font-size: 10px; padding: 1px 4px; }
+  .cal-more { font-size: 10px; padding: 1px 4px; }
   .cal-who { display: none; }
   .cal-col { min-height: 62px; }
 }

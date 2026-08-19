@@ -19,6 +19,75 @@ from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from .base import ApiTestCase, make_user
 
 
+class TaskScopeTest(ApiTestCase):
+    """Doska va vazifalar ro'yxatida kim kimning ishini ko'radi.
+
+    Menejerga butun manzara kerak - u ish taqsimlaydi. Ijrochiga esa o'ziniki:
+    ilgari a'zo bo'lgan loyihaning HAMMA vazifasi ikkala ro'yxatda ham
+    turardi va odam o'z ishini jamoanikilar orasidan qidirardi.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.mine = Task.objects.create(project=self.project, title="Dasturchining ishi",
+                                        status=TaskStatus.TODO, created_by=self.manager)
+        TaskAssignment.objects.create(task=self.mine, user=self.dev)
+        self.other = Task.objects.create(project=self.project, title="Begona ish",
+                                         status=TaskStatus.TODO, created_by=self.manager)
+
+    def board_ids(self, user):
+        r = self.client_for(user).get("/api/tasks/board/", {"project": self.project.pk})
+        self.assertEqual(r.status_code, 200, r.data)
+        return {t["id"] for c in r.data["columns"] for t in c["tasks"]}
+
+    def list_ids(self, user):
+        r = self.client_for(user).get("/api/tasks/", {"project": self.project.pk})
+        self.assertEqual(r.status_code, 200, r.data)
+        return {t["id"] for t in r.data["results"]}
+
+    def test_menejer_doskada_hamma_ishni_koradi(self):
+        self.assertEqual(self.board_ids(self.manager), {self.mine.pk, self.other.pk})
+
+    def test_menejer_royxatda_hamma_ishni_koradi(self):
+        self.assertEqual(self.list_ids(self.manager), {self.mine.pk, self.other.pk})
+
+    def test_dasturchi_doskada_faqat_ozinikini_koradi(self):
+        self.assertEqual(self.board_ids(self.dev), {self.mine.pk})
+
+    def test_dasturchi_royxatda_faqat_ozinikini_koradi(self):
+        self.assertEqual(self.list_ids(self.dev), {self.mine.pk})
+
+    def test_admin_hammasini_koradi(self):
+        self.assertEqual(self.board_ids(self.admin), {self.mine.pk, self.other.pk})
+
+    def test_kuzatuvchi_hammasini_koradi(self):
+        """Cheklov IJROCHIGA qo'yiladi, «menejer emas hammaga» emas.
+
+        Kuzatuvchida biriktirilgan ish bo'lmaydi - uni ham cheklasak doskasi
+        butunlay bo'sh qolardi va rolning ma'nosi yo'qolardi.
+        """
+        viewer = make_user("kuzatuvchi@sinov.uz", "Kuzatuvchi Vali")
+        ProjectMember.objects.create(project=self.project, user=viewer,
+                                     role=ProjectRole.VIEWER)
+        self.assertEqual(self.board_ids(viewer), {self.mine.pk, self.other.pk})
+
+    def test_loyiha_admini_hammasini_koradi(self):
+        """Loyiha admini ishni tekshiradi - ko'rmasa tekshira olmaydi."""
+        boss = make_user("loyiha-admin@sinov.uz", "Loyiha Admini")
+        ProjectMember.objects.create(project=self.project, user=boss,
+                                     role=ProjectRole.ADMIN)
+        self.assertEqual(self.board_ids(boss), {self.mine.pk, self.other.pk})
+
+    def test_dasturchi_begona_vazifani_havola_boyicha_ochaveradi(self):
+        """Ro'yxatda yo'q degani «ochib bo'lmaydi» degani emas.
+
+        Jamoa a'zosi hamkasbining ishini havola bo'yicha ochib ko'ra oladi -
+        cheklov faqat RO'YXATLARDA, ya'ni o'z ishini qidirib o'tirmasin.
+        """
+        r = self.client_for(self.dev).get("/api/tasks/{}/".format(self.other.pk))
+        self.assertEqual(r.status_code, 200, r.data)
+
+
 class BoardTransitionsTest(ApiTestCase):
     """Doskadagi har karta o'zi qayerga ko'chishi mumkinligini aytadi."""
 

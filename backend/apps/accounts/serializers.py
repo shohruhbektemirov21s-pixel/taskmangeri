@@ -66,7 +66,7 @@ class UserSerializer(serializers.ModelSerializer):
             "seniority", "seniority_display", "years_experience",
             "suggested_task_types", "suggested_skills", "quality_checklist",
             "default_project_role",
-            "bio", "skills", "skill_list", "github_username", "telegram", "avatar",
+            "bio", "skills", "skill_list", "telegram", "avatar",
             "initials", "avatar_color", "is_platform_admin", "can_create_project",
             "is_active", "date_joined",
         ]
@@ -93,8 +93,8 @@ class UserListSerializer(UserBriefSerializer):
     """Odamlar ro'yxati - kartochka uchun yetarli, shaxsiy kontaktsiz.
 
     Ilgari ro'yxat `UserAdminSerializer` bilan qaytardi, ya'ni har bir
-    so'rovda tizimdagi HAMMA odamning `bio`, `skills`, `telegram` va
-    `github_username` maydonlari ham chiqib ketardi. Ro'yxatda ular
+    so'rovda tizimdagi HAMMA odamning `bio`, `skills` va `telegram`
+    maydonlari ham chiqib ketardi. Ro'yxatda ular
     ko'rsatilmaydi ham - kerak bo'lsa odamning o'z sahifasidan o'qiladi
     (`GET /api/users/<id>/`).
 
@@ -184,7 +184,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["email", "full_name", "specialty", "seniority", "years_experience",
-                  "job_title", "skills", "github_username", "password", "password_confirm"]
+                  "job_title", "skills", "password", "password_confirm"]
 
     def validate_email(self, value):
         email = value.strip().lower()

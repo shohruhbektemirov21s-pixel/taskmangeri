@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
 from apps.core.permissions import (CanCreateProject, ProjectAccess, check_access,
-                                    visible_projects_q)
+                                    task_scope_q, tasks_limited_for, visible_projects_q)
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
 from apps.core.queries import object_or_404, related_count
@@ -678,9 +678,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # olmaydi va tungi ishlar qo'shni kunga tushib qolardi.
         span_start = timezone.make_aware(datetime.combine(first, dtime.min))
         span_end = timezone.make_aware(datetime.combine(last, dtime.min)) + timedelta(days=1)
+
+        # Kimga qaysi vazifa ko'rinishi - doska va vazifalar ro'yxati bilan
+        # BIR XIL qoidadan (`task_scope_q`): menejerga boshqaruvidagi
+        # loyihaning hammasi, qolganga o'ziniki. Taqvim boshqacha hisoblasa
+        # odam «doskada bor edi, taqvimda yo'q» degan savolda qolardi.
+        tasks_limited = tasks_limited_for(user)
+
         task_rows = []
         tasks = (Task.objects
-                 .filter(project_id__in=visible_ids,
+                 .filter(task_scope_q(user), project_id__in=visible_ids,
                          due_date__gte=span_start, due_date__lt=span_end)
                  .exclude(status=TaskStatus.CANCELLED)
                  .select_related("project")
@@ -726,6 +733,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
             "days": days,
             "total": len(rows),
             "task_total": len(task_rows),
+            # Ro'yxat qirqilganmi - taqvim buni yozib qo'ysin, aks holda
+            # dasturchi "nega jamoaning ishi ko'rinmayapti" deb o'ylaydi.
+            "tasks_limited": tasks_limited,
         })
 
     # ------------------------------------------------------------ loyiha fayllari

@@ -115,6 +115,80 @@ def visible_projects_q(user, path=""):
     return member_of | (Q(**{path + "is_public": True}) & (in_ws | owns_ws))
 
 
+def task_scope_q(user):
+    """Vazifa RO'YXATLARIDA kim kimning ishini ko'radi — queryset sharti.
+
+    Ko'rish HUQUQI bilan aralashtirmang: `visible_projects_q` odam qaysi
+    loyihaga umuman kira olishini aytadi, bu esa o'sha loyiha ichida unga
+    QAYSI ishlar ro'yxatda ko'rinishini aytadi.
+
+    QOIDA: ISHNI BAJARADIGAN odam o'z ishini ko'radi, qolgani hammasini.
+
+      DEVELOPER / QA  - faqat o'ziga biriktirilgan ish;
+      menejer, loyiha admini, kuzatuvchi, tizim admini - loyihaning hammasi.
+
+    NEGA SHUNDAY BO'LINDI. Ilgari a'zo bo'lgan loyihaning hamma vazifasi
+    ko'rinardi: doska, vazifalar ro'yxati va taqvim dasturchi uchun jamoadagi
+    o'nlab begona ish bilan to'lib ketar, o'zinikini orasidan qidirishga
+    to'g'ri kelardi. Menejerga esa aksincha butun manzara kerak - u ish
+    taqsimlaydi.
+
+    Chegara aynan IJROCHIGA qo'yiladi, "menejer emas hammaga" emas. Sababi
+    ikkita: loyiha admini ishni tekshiradi (`can_review`) - ko'rmasa
+    tekshira olmaydi; kuzatuvchi esa umuman kuzatish uchun qo'shilgan va
+    unda biriktirilgan ish bo'lmaydi, ya'ni uning doskasi butunlay bo'sh
+    qolardi va rolning ma'nosi yo'qolardi.
+
+    Bo'linish `ProjectAccess.is_developer` bilan bir xil - interfeysdagi
+    izoh ham o'shanga qarab chiziladi.
+
+    Shart TASK queryset iga qo'yiladi (`Task.objects.filter(...)`) - ichkarida
+    `OuterRef("pk")` va `OuterRef("project_id")` aynan shunga tayanadi.
+
+    Vazifaning O'ZINI ochish bu shartdan o'tmaydi: bitta vazifa sahifasi
+    `check_access` bilan tekshiriladi, ya'ni jamoa a'zosi havola bo'yicha
+    hamkasbining ishini ochib ko'ra oladi. Bu yerda gap faqat RO'YXATDA
+    nima turishi haqida.
+    """
+    from apps.projects.models import ProjectMember, ProjectRole
+    from apps.tasks.models import TaskAssignment
+
+    if not user or not user.is_authenticated:
+        return Q(pk__in=[])
+    if user.is_platform_admin:
+        return Q()
+
+    executor = Exists(ProjectMember.objects.filter(
+        project=OuterRef("project_id"), user=user, is_active=True,
+        role__in=[ProjectRole.DEVELOPER, ProjectRole.QA]))
+    mine = Exists(TaskAssignment.objects.filter(
+        task=OuterRef("pk"), user=user, is_active=True))
+    # Ijrochi bo'lmagan loyihada cheklov yo'q; ijrochi bo'lganida - o'ziniki.
+    return ~Q(executor) | Q(mine)
+
+
+def tasks_limited_for(user):
+    """Odamning ro'yxatlari birortasida qirqilyaptimi (`True`/`False`).
+
+    Interfeys shu asosda "faqat sizga biriktirilgan ishlar" deb yozib
+    qo'yadi - aks holda dasturchi 45 ta vazifadan ikkitasini ko'rib
+    "ro'yxat buzilibdi" deb o'ylaydi.
+
+    Shartdan ALOHIDA, chunki javob bazaga qo'shimcha so'rov qiladi: uni
+    faqat haqiqatan ko'rsatadigan joy (taqvim) to'laydi. Doska va vazifalar
+    ro'yxatiga bu kerak emas - ular loyiha ichida turadi va javobda
+    allaqachon keladigan `access.is_developer` dan bilib oladi.
+    """
+    from apps.projects.models import ProjectMember, ProjectRole
+
+    if not user or not user.is_authenticated or user.is_platform_admin:
+        return False
+    return ProjectMember.objects.filter(
+        user=user, is_active=True,
+        role__in=[ProjectRole.DEVELOPER, ProjectRole.QA],
+        project__deleted_at__isnull=True).exists()
+
+
 class ProjectAccess:
     """Bitta joyda jamlangan ruxsat javoblari."""
 
@@ -227,6 +301,9 @@ class ProjectAccess:
             "is_admin": self.is_admin,
             "is_manager": self.is_manager,
             "is_project_admin": self.is_project_admin,
+            # Ijrochimi - ro'yxatlar shunga qarab qirqiladi (`task_scope_q`)
+            # va interfeys buni yozib qo'yadi.
+            "is_developer": self.is_developer,
             "is_member": self.is_member,
             "can_view": self.can_view,
             "can_manage": self.can_manage,
