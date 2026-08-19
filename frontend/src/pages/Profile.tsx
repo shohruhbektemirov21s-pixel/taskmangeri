@@ -8,12 +8,16 @@ import SkillEditor from "@/components/SkillEditor";
 import { IconChat } from "@/components/icons";
 import Timeline from "@/components/Timeline";
 import {
-  AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Priority, Stat, StatusBadge, fmtDate,
+  AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Pager, Priority, Stat, StatusBadge,
+  fmtDate,
 } from "@/components/ui";
 import { confirmDialog } from "@/components/Confirm";
 import { toMessages, toMyWork, toProject, toTask, useEntityId } from "@/nav";
 import PasswordCard from "@/components/PasswordCard";
 import TelegramCard from "@/components/TelegramCard";
+
+/** Profil kartasidagi vazifalar ro'yxati bir sahifada nechta. */
+const TASKS_PER_PAGE = 10;
 
 export default function Profile() {
   const fid = useId();
@@ -44,6 +48,10 @@ export default function Profile() {
    * `return` bu qatorgacha yetib bormasdi.
    */
   const [pickedStat, setPickedStat] = useState<string | null>(null);
+  // Vazifalar kartasi o'ntadan sahifalanadi. Sahifa BRAUZERDA almashadi:
+  // ro'yxat profil javobi bilan birga allaqachon kelgan, ya'ni server bilan
+  // yana gaplashishning hojati yo'q va o'tish bir zumda bo'ladi.
+  const [taskPage, setTaskPage] = useState(1);
 
   useEffect(() => {
     // Bir profildan boshqasiga tez o'tilsa eski javob kelib qolmasin.
@@ -135,7 +143,17 @@ export default function Profile() {
     return true;
   };
   const tasks = allTasks.filter(matches);
-  const pickStat = (key: string) => setPickedStat((v) => (v === key ? null : key));
+  // Sahifalash FILTRDAN KEYIN: kesim tanlanganda sahifalar soni ham qayta
+  // hisoblanadi, aks holda «Bajarilgan» kesimida bo'sh sahifalar qolardi.
+  const taskPages = Math.max(1, Math.ceil(tasks.length / TASKS_PER_PAGE));
+  // Kesim almashganda ro'yxat qisqarib, joriy sahifa chegaradan chiqib
+  // ketishi mumkin - oxirgi haqiqiy sahifani ko'rsatamiz.
+  const page = Math.min(taskPage, taskPages);
+  const pageTasks = tasks.slice((page - 1) * TASKS_PER_PAGE, page * TASKS_PER_PAGE);
+  const pickStat = (key: string) => {
+    setTaskPage(1);
+    setPickedStat((v) => (v === key ? null : key));
+  };
 
   return (
     <>
@@ -283,13 +301,13 @@ export default function Profile() {
                   badge={<span className="badge">{tasks.length}</span>}
                   action={pickedStat && (
                     <button type="button" className="btn btn-sm"
-                            onClick={() => setPickedStat(null)}>
+                            onClick={() => { setTaskPage(1); setPickedStat(null); }}>
                       Filtrni tozalash
                     </button>
                   )}>
               <div className="table-wrap"><table className="table">
                 <tbody>
-                  {tasks.map((t) => (
+                  {pageTasks.map((t) => (
                     <tr key={t.id}>
                       <td className="mono muted nowrap">{t.code}</td>
                       <td>
@@ -307,6 +325,16 @@ export default function Profile() {
                   )}
                 </tbody>
               </table></div>
+              {/* Sahifa raqamlari - faqat bo'linadigan narsa bo'lsa. */}
+              {taskPages > 1 && (
+                <div className="card-body pager-bar">
+                  <span className="muted">
+                    {tasks.length} tadan {(page - 1) * TASKS_PER_PAGE + 1}—
+                    {Math.min(page * TASKS_PER_PAGE, tasks.length)} tasi
+                  </span>
+                  <Pager page={page} pages={taskPages} onPick={setTaskPage} />
+                </div>
+              )}
             </Card>
 
             {/* Tarix uzun bo'lishi mumkin (o'nlab yozuv) va u sahifaning

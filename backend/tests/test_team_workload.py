@@ -388,3 +388,65 @@ class WorkloadStatsTest(ApiTestCase):
         st = self.stats(project=other.pk)["stats"]
         self.assertEqual(st["total"], 1)
         self.assertEqual(st["done_percent"], 100)
+
+
+class WorkloadPaginationTest(ApiTestCase):
+    """Ijrochilar ro'yxati o'ntadan sahifalanadi.
+
+    O'ttiz kishilik jamoada ro'yxat bir necha ekran pastga cho'zilib
+    ketardi va oxiridagi odam hech qachon ko'rilmasdi.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        # `base` da bitta dasturchi bor - ustiga 24 ta qo'shamiz (jami 25).
+        for i in range(24):
+            person = make_user("dev{:02d}@sinov.uz".format(i), "Dasturchi {:02d}".format(i))
+            ProjectMember.objects.create(project=cls.project, user=person,
+                                         role=ProjectRole.DEVELOPER)
+
+    def page(self, **params):
+        r = self.client_for(self.manager).get("/api/team/workload/", params)
+        self.assertEqual(r.status_code, 200)
+        return r.data
+
+    def test_birinchi_sahifada_10_kishi(self):
+        d = self.page()
+        self.assertEqual(len(d["developers"]), 10)
+        self.assertEqual(d["page"], 1)
+        self.assertEqual(d["page_size"], 10)
+
+    def test_sanoq_jami_royxatniki(self):
+        """Sarlavhadagi «N kishi» jamoaning kattaligini aytadi."""
+        d = self.page()
+        self.assertEqual(d["count"], 25)
+        self.assertEqual(d["pages"], 3)
+
+    def test_oxirgi_sahifada_qoldiq(self):
+        d = self.page(page=3)
+        self.assertEqual(len(d["developers"]), 5)
+
+    def test_sahifalar_takrorlanmaydi(self):
+        first = {r["user"]["id"] for r in self.page(page=1)["developers"]}
+        second = {r["user"]["id"] for r in self.page(page=2)["developers"]}
+        self.assertEqual(len(first & second), 0)
+
+    def test_chegaradan_chiqqan_sahifa_oxirgisini_beradi(self):
+        self.assertEqual(self.page(page=99)["page"], 3)
+
+    def test_yaroqsiz_sahifa_400(self):
+        r = self.client_for(self.manager).get("/api/team/workload/", {"page": "abc"})
+        self.assertEqual(r.status_code, 400)
+
+    def test_qidiruv_sahifalar_sonini_qayta_hisoblaydi(self):
+        d = self.page(search="Dasturchi 03")
+        self.assertEqual(d["count"], 1)
+        self.assertEqual(d["pages"], 1)
+
+    def test_boshqaruvsiz_odamga_javob_shakli_bir_xil(self):
+        """Bo'sh qamrovda ham `pages` bo'lishi shart - interfeys uni o'qiydi."""
+        d = self.client_for(self.outsider).get("/api/team/workload/").data
+        self.assertEqual(d["developers"], [])
+        self.assertEqual(d["pages"], 1)
+        self.assertEqual(d["count"], 0)

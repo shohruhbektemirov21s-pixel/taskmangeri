@@ -330,8 +330,18 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 "workspace_name": p.workspace.name,
                 "role": roles.get(p.id, ""),
             } for p in projects],
+            # Kartada sahifalanadi (o'ntadan), shuning uchun yigirmata emas -
+            # yuztagacha. Sahifa BRAUZERDA almashadi: bu javob butun profil
+            # sahifasini olib keladi (statistika, loyihalar, tarix), ya'ni
+            # har sahifa bosilganda uni qaytadan so'rash bekorchilik bo'lardi.
+            #
+            # `prefetch_related` shart: seriyalizator har vazifa uchun
+            # ijrochilarni, teglarni va fayl sonini o'qiydi - usiz yuzta
+            # vazifa yuzlab qo'shimcha so'rovga aylanardi.
             "tasks": TaskSerializer(
-                tasks.exclude(status=TaskStatus.CANCELLED).order_by("-updated_at")[:20],
+                tasks.exclude(status=TaskStatus.CANCELLED)
+                     .prefetch_related("assignments__user", "labels")
+                     .order_by("-updated_at")[:100],
                 many=True, context=ctx).data,
             "activity": ActivitySerializer(activity[:25], many=True, context=ctx).data,
             "limited": not wide,

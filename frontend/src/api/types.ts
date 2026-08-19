@@ -436,6 +436,11 @@ export interface WorkloadRow {
 export interface TeamWorkloadData {
   /** Filtr ro'yxati uchun - boshqaruvdagi BARCHA loyihalar. */
   projects: { id: number; name: string; key: string; color: string }[];
+  /** Jami ijrochi (sahifadagi emas) - sarlavhadagi «32 kishi» shundan. */
+  count: number;
+  page: number;
+  pages: number;
+  page_size: number;
   developers: WorkloadRow[];
 }
 

@@ -290,6 +290,59 @@ export function Progress({ value }: { value: number }) {
   );
 }
 
+/**
+ * Sahifa raqamlari - «‹ 1 2 3 … 9 10 ›».
+ *
+ * NEGA KERAK. Uzun ro'yxat ilgari jimgina qirqilar va ostida «450 tadan
+ * 100 tasi ko'rsatildi» degan yozuv turardi. Qolganiga yetadigan yo'l
+ * yo'q edi - bu javob emas, maslahat edi.
+ *
+ * IKKI XIL ISHLATILADI. Panel ro'yxatida sahifa SERVERDAN so'raladi
+ * (`/dashboard/tasks/?page=`), profil kartasida esa allaqachon yuklangan
+ * ro'yxat brauzerda bo'linadi. Komponentga farqi yo'q: u faqat raqamlarni
+ * chizadi va bosilganini aytadi.
+ *
+ * NEGA HAMMA RAQAM EMAS. Ellik sahifa bo'lsa ellikta tugma qatorni
+ * buzardi. Shuning uchun ATROFDAGILAR ko'rsatiladi: birinchi, oxirgi va
+ * joriyning ikki yon qo'shnisi; uzilish joyiga «…» qo'yiladi. Bu Google
+ * ham, GitHub ham ishlatadigan naqsh - odam tanish narsani o'ylab
+ * o'tirmaydi.
+ */
+export function Pager({ page, pages, onPick }: {
+  page: number; pages: number; onPick: (n: number) => void;
+}) {
+  // Qaysi raqamlar chiziladi: chekkalar + joriyning atrofi.
+  const near = new Set<number>([1, pages, page, page - 1, page + 1]);
+  // Boshida yoki oxirida turganda qator qisqarib qolmasin - to'ldiramiz.
+  if (page <= 3) [2, 3, 4].forEach((n) => near.add(n));
+  if (page >= pages - 2) [pages - 1, pages - 2, pages - 3].forEach((n) => near.add(n));
+  const shown = [...near].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+
+  const items: (number | "gap")[] = [];
+  shown.forEach((n, i) => {
+    // Ketma-ketlik uzilgan joyda - uch nuqta.
+    if (i > 0 && n - shown[i - 1] > 1) items.push("gap");
+    items.push(n);
+  });
+
+  return (
+    <nav className="pager" aria-label="Sahifalar">
+      <button type="button" className="pager-step" disabled={page <= 1}
+              onClick={() => onPick(page - 1)} aria-label="Oldingi sahifa">‹</button>
+      {items.map((it, i) => (
+        it === "gap"
+          ? <span key={`gap${i}`} className="pager-gap">…</span>
+          : <button key={it} type="button"
+                    className={`pager-num ${it === page ? "on" : ""}`}
+                    aria-current={it === page ? "page" : undefined}
+                    onClick={() => onPick(it)}>{it}</button>
+      ))}
+      <button type="button" className="pager-step" disabled={page >= pages}
+              onClick={() => onPick(page + 1)} aria-label="Keyingi sahifa">›</button>
+    </nav>
+  );
+}
+
 /* ---------------------------------------------------------------- Vazifa kartasi */
 /**
  * Qator chekkasidagi «⋯» menyusi.

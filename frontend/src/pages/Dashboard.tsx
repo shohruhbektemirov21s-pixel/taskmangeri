@@ -24,7 +24,7 @@ import type {
 import { useAuth } from "@/auth/AuthContext";
 import { useLive } from "@/realtime/RealtimeContext";
 import {
-  Card, Empty, ErrorMsg, Loading, Priority, StatusBadge, fmtDate,
+  Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
 import { toTask } from "@/nav";
 
@@ -308,54 +308,6 @@ function Combo({ id, label, options, value, onChange, placeholder }: {
         </div>
       )}
     </div>
-  );
-}
-
-/**
- * Sahifa raqamlari - «‹ 1 2 3 … 9 10 ›».
- *
- * NEGA KERAK. Ro'yxat ilgari yuztada qirqilar va ostida «450 tadan 100
- * tasi ko'rsatildi» degan yozuv turardi. Yillik katakni bosgan odam uchun
- * bu javob emas edi: qolgan 350 tasiga yetadigan yo'l yo'q edi.
- *
- * NEGA HAMMA RAQAM EMAS. Ellik sahifa bo'lsa ellikta tugma qatorni
- * buzardi. Shuning uchun ATROFDAGILAR ko'rsatiladi: birinchi, oxirgi va
- * joriyning ikki yon qo'shnisi; uzilish joyiga «…» qo'yiladi. Bu Google
- * ham, GitHub ham ishlatadigan naqsh - odam tanish narsani o'ylab
- * o'tirmaydi.
- */
-function Pager({ page, pages, onPick }: {
-  page: number; pages: number; onPick: (n: number) => void;
-}) {
-  // Qaysi raqamlar chiziladi: chekkalar + joriyning atrofi.
-  const near = new Set<number>([1, pages, page, page - 1, page + 1]);
-  // Boshida yoki oxirida turganda qator qisqarib qolmasin - to'ldiramiz.
-  if (page <= 3) [2, 3, 4].forEach((n) => near.add(n));
-  if (page >= pages - 2) [pages - 1, pages - 2, pages - 3].forEach((n) => near.add(n));
-  const shown = [...near].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
-
-  const items: (number | "gap")[] = [];
-  shown.forEach((n, i) => {
-    // Ketma-ketlik uzilgan joyda - uch nuqta.
-    if (i > 0 && n - shown[i - 1] > 1) items.push("gap");
-    items.push(n);
-  });
-
-  return (
-    <nav className="pager" aria-label="Sahifalar">
-      <button type="button" className="pager-step" disabled={page <= 1}
-              onClick={() => onPick(page - 1)} aria-label="Oldingi sahifa">‹</button>
-      {items.map((it, i) => (
-        it === "gap"
-          ? <span key={`gap${i}`} className="pager-gap">…</span>
-          : <button key={it} type="button"
-                    className={`pager-num ${it === page ? "on" : ""}`}
-                    aria-current={it === page ? "page" : undefined}
-                    onClick={() => onPick(it)}>{it}</button>
-      ))}
-      <button type="button" className="pager-step" disabled={page >= pages}
-              onClick={() => onPick(page + 1)} aria-label="Keyingi sahifa">›</button>
-    </nav>
   );
 }
 

@@ -2348,6 +2348,11 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    bir ekran bo'lib qolardi. Tayanch kenglik 120px - guruh telefonda ~270px
    ga siqiladi, ya'ni 140px da ikkitasi ham sig'masdi. */
 @media (max-width: 720px) {
+  /* Telefonda setka ishlamaydi - joy yo'q: sanoqlar va foiz ustma-ust
+     tushadi, ikkovi ham chapdan boshlanadi va sanoqlar o'ralishi mumkin. */
+  .wl-stats { display: flex; flex-wrap: wrap; }
+  .wl-counts { flex-wrap: wrap; white-space: normal; }
+  .wl-percent { width: 100%; }
   .wl .filters .wl-search { flex: 1 1 100%; }
   .wl .filters .wl-filters { flex: 1 1 100%; }
   .wl .filters .wl-filters .f { flex: 1 1 120px; }
@@ -2360,19 +2365,31 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    ikkovi ham qatorning ikkinchi darajali ma'lumoti. Tor ekranda o'ralib
    ketadi - raqamlar siqilib o'qilmay qolgandan ko'ra pastga tushgani
    yaxshi. */
+/* Uch ustun: sanoqlar | foiz | bo'sh. Chekka ustunlar teng (`1fr`),
+   shuning uchun o'rtadagi foiz QATORNING o'rtasida turadi - sanoqlar
+   qanchalik uzun bo'lishidan qat'i nazar. Ilgari bu flex edi va foiz
+   `margin-left: auto` bilan o'ng chekkaga yopishardi: orada ekran
+   kengligicha bo'sh joy qolardi. */
 .wl-stats {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
-  margin-top: 6px; font-size: 11.5px; color: var(--muted);
+  display: grid; grid-template-columns: minmax(auto, 1fr) auto 1fr;
+  align-items: center; gap: 6px 14px; margin-top: 6px;
+  font-size: 11.5px; color: var(--muted);
+}
+/* Birinchi ustun `minmax(auto, 1fr)`: keng ekranda uchdan biriga teng
+   (foiz aynan o'rtada), tor ekranda esa sanoqlar kengligicha o'sadi -
+   ya'ni foiz o'ngga suriladi, lekin sanoqlar IKKI QATORGA sinmaydi.
+   `nowrap` shuning kafolati: usiz «Bajarilgan 0» pastga tushib, qator
+   ikki barobar balandlashardi. */
+.wl-counts {
+  display: flex; align-items: center; gap: 6px 14px;
+  flex-wrap: nowrap; white-space: nowrap;
 }
 .wl-stat b { color: var(--text); font-weight: 650; margin-left: 2px; }
 /* Muddati o'tgani NOL bo'lsa ham yoziladi (u ham javob), lekin diqqatni
    faqat haqiqatan o'tgani tortsin. */
 .wl-stat.bad, .wl-stat.bad b { color: var(--danger); }
-/* Foiz - qatorning o'ng chekkasida, chiziqcha bilan. `margin-left: auto`
-   tor ekranda ham xavfsiz: guruh o'z qatoriga tushsa ham o'ngda qoladi. */
 .wl-percent {
-  display: flex; align-items: center; gap: 8px; margin-left: auto;
-  min-width: 150px;
+  display: flex; align-items: center; gap: 8px; min-width: 150px;
 }
 .wl-percent .progress { flex: 1 1 60px; min-width: 50px; }
 .wl-percent b { color: var(--text); font-weight: 650; }

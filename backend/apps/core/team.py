@@ -20,6 +20,8 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from math import ceil
+
 from apps.core.queries import int_param, object_or_404, task_search_q
 from apps.accounts.serializers import UserBriefSerializer
 from apps.activity.services import log
@@ -172,6 +174,12 @@ def add_member(request):
                     status=201)
 
 
+# Ro'yxatning bitta sahifasi. Qator baland (ism, loyihalar, sanoqlar va
+# foiz chiziqchasi), shuning uchun paneldagidan kamroq: o'ntasi bitta
+# ekranga sig'adi va sahifa raqamlari ko'rinib turadi.
+WORKLOAD_PAGE_SIZE = 10
+
+
 def _empty_stats():
     """Bitta ijrochining sanoq kataklari - hammasi noldan boshlanadi.
 
@@ -220,7 +228,7 @@ def workload(request):
     """Boshqaruvdagi loyihalarda KIM NIMA QILYAPTI - ijrochilar va ish yuki.
 
     `?project=<id>` `?search=` `?status=` `?due=<YYYY-MM-DD>` `?period=today|week|month|year`
-    `?specialty=`
+    `?specialty=` `?page=` (bitta sahifada 10 kishi)
 
     HAR BIR QATORDA XULOSA (`stats`): nechtasi nazoratda, nechtasining
     muddati o'tgan, nechtasi bajarilgan va bajarilish foizi. U ro'yxatdan
@@ -285,7 +293,10 @@ def workload(request):
     span = due_span(request.query_params.get("due"), request.query_params.get("period"))
 
     if not scope_ids:
-        return Response({"projects": options, "developers": []})
+        # Javob shakli har doim bir xil bo'lsin - interfeys `pages` ni
+        # tekshiradi va uning yo'qligi «undefined» xatosiga aylanardi.
+        return Response({"projects": options, "count": 0, "page": 1, "pages": 1,
+                         "page_size": WORKLOAD_PAGE_SIZE, "developers": []})
 
     # ---- Ijrochilar. Menejer va kuzatuvchi bu ro'yxatda emas: bo'lim
     # "kim ishni bajaryapti" haqida (`ProjectAccess.is_developer` bilan
@@ -411,4 +422,27 @@ def workload(request):
 
     # Bandi tepada: menejer avval kimga ish qo'shib bo'lmasligini ko'radi.
     rows.sort(key=lambda r: (-r["task_count"], r["user"]["full_name"]))
-    return Response({"projects": options, "developers": rows})
+
+    # ------------------------------------------------------------ sahifalash
+    #
+    # O'ttiz kishilik jamoada ro'yxat bir necha ekran pastga cho'zilib
+    # ketardi va oxiridagi odam hech qachon ko'rilmasdi. Endi o'ntadan.
+    #
+    # Kesish SARALASHDAN KEYIN: birinchi sahifada eng bandlar tursin.
+    # Sanoq ham to'liq ro'yxatniki - sarlavhadagi «32 kishi» o'zgarmaydi,
+    # u jamoaning kattaligini aytadi, sahifaning emas.
+    total = len(rows)
+    pages = max(1, ceil(total / WORKLOAD_PAGE_SIZE))
+    # Filtr ro'yxatni qisqartirsa joriy sahifa chegaradan chiqib ketishi
+    # mumkin - odam bo'sh ekranga urilmasin.
+    page = min(max(1, int_param(request.query_params.get("page") or 1, "page")), pages)
+    start = (page - 1) * WORKLOAD_PAGE_SIZE
+
+    return Response({
+        "projects": options,
+        "count": total,
+        "page": page,
+        "pages": pages,
+        "page_size": WORKLOAD_PAGE_SIZE,
+        "developers": rows[start:start + WORKLOAD_PAGE_SIZE],
+    })

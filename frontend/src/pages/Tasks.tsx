@@ -5,7 +5,10 @@ import type { TeamWorkloadData, WorkloadRow, WorkloadStats } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { IconCalendar } from "@/components/icons";
-import { Avatar, DUE_PERIODS, DateField, Empty, ErrorMsg, Loading, Progress, SpecialtyTag, fmtDate } from "@/components/ui";
+import {
+  Avatar, DUE_PERIODS, DateField, Empty, ErrorMsg, Loading, Pager, Progress,
+  SpecialtyTag, fmtDate,
+} from "@/components/ui";
 import { toTask, toUser } from "@/nav";
 
 /**
@@ -38,15 +41,20 @@ export default function Tasks() {
   // Bir vaqtda BITTA odam ochiq turadi: ikkitasi ochilsa ro'yxat yana
   // cho'zilib ketardi va yig'ishdan maqsad yo'qolardi.
   const [open, setOpen] = useState<number | null>(null);
+  // Sahifa filtrdan alohida: filtr o'zgarganda birinchisiga qaytadi
+  // (`set` da), aks holda beshinchi sahifada turgan odam qidiruv yozib
+  // bo'sh ekranga urilardi.
+  const [page, setPage] = useState(1);
 
   // Qidiruv har harfda emas, yozish to'xtagach ketadi.
   const { data, error, loading } = useFetch<TeamWorkloadData>(
-    "/team/workload/", { ...f }, { debounceMs: 300 });
+    "/team/workload/", { ...f, page }, { debounceMs: 300 });
 
   const set = (k: keyof typeof f, v: string) => {
     // Filtr almashganda ochiq qator yopiladi: ro'yxat butunlay boshqa
     // odamlardan iborat bo'lishi mumkin.
     setOpen(null);
+    setPage(1);
     // Davr va aniq sana bir-birini almashtiradi: ikkovi birga tanlangan
     // ekranda "qaysi biri ishlayapti?" degan savol tug'ilardi.
     setF((prev) => ({
@@ -58,6 +66,7 @@ export default function Tasks() {
   };
   const clear = () => {
     setOpen(null);
+    setPage(1);
     setF({ search: "", project: "", period: "", due: "", status: "" });
   };
   const dirty = Boolean(f.search || f.project || f.period || f.due || f.status);
@@ -68,7 +77,9 @@ export default function Tasks() {
       <PageHead
         title={<strong>Vazifalar</strong>}
         subtitle="Dasturchilar va ular ustida ishlayotgan vazifalar"
-        actions={!!rows && <span className="badge">{rows.length} kishi</span>}
+        /* Sanoq JAMI ijrochilarniki, sahifadagilarniki emas: u jamoaning
+           kattaligini aytadi. */
+        actions={!!data && <span className="badge">{data.count} kishi</span>}
       />
       <div className="content wl">
         <ErrorMsg error={error} />
@@ -152,6 +163,18 @@ export default function Tasks() {
                               onToggle={() => setOpen(open === row.user.id ? null : row.user.id)} />
               ))}
             </div>
+            {/* Sahifa raqamlari - faqat bo'linadigan narsa bo'lsa. Qator
+                ochiq bo'lsa yopiladi: yangi sahifada u boshqa odamniki. */}
+            {data && data.pages > 1 && (
+              <div className="card-body pager-bar">
+                <span className="muted">
+                  {data.count} tadan {(data.page - 1) * data.page_size + 1}—
+                  {Math.min(data.page * data.page_size, data.count)} tasi
+                </span>
+                <Pager page={data.page} pages={data.pages}
+                       onPick={(n) => { setOpen(null); setPage(n); }} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -185,15 +208,21 @@ function RowStats({ stats }: { stats: WorkloadStats }) {
     ["Toxtab qolgan", stats.blocked],
   ];
   return (
+    // Uch ustunli setka: sanoqlar chapda (ismi bilan bir chiziqda), foiz
+    // o'rtada, o'ng ustun esa bo'sh - u faqat muvozanat uchun. Ilgari
+    // foiz `margin-left: auto` bilan o'ng chekkada osilib turardi va
+    // orada butun ekran kengligicha bo'sh joy qolardi.
     <div className="wl-stats">
-      <span className="wl-stat">Nazoratda <b>{stats.todo}</b></span>
-      {extra.filter(([, n]) => n > 0).map(([label, n]) => (
-        <span key={label} className="wl-stat">{label} <b>{n}</b></span>
-      ))}
-      <span className={`wl-stat ${stats.overdue ? "bad" : ""}`}>
-        Muddati otgan <b>{stats.overdue}</b>
-      </span>
-      <span className="wl-stat">Bajarilgan <b>{stats.done}</b></span>
+      <div className="wl-counts">
+        <span className="wl-stat">Nazoratda <b>{stats.todo}</b></span>
+        {extra.filter(([, n]) => n > 0).map(([label, n]) => (
+          <span key={label} className="wl-stat">{label} <b>{n}</b></span>
+        ))}
+        <span className={`wl-stat ${stats.overdue ? "bad" : ""}`}>
+          Muddati otgan <b>{stats.overdue}</b>
+        </span>
+        <span className="wl-stat">Bajarilgan <b>{stats.done}</b></span>
+      </div>
       {/* Foiz - shu kesimdagi ishning qanchasi yopilgani. Maxrajda bekor
           qilinganlar yo'q: ular na bajarilgan, na kutilyapti. */}
       <span className="wl-percent">

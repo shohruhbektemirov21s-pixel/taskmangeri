@@ -21,6 +21,10 @@ import { toFeed, toMessages, toNewProject, toSelfProfile, toUser, type NavTarget
  * tashqarida - ayniqsa to'liq ekran rejimida ko'rinmaydi. Shuning uchun
  * ilovaning o'zida ham bo'lsin.
  *
+ * QAYERDA TURADI. Yuqori panelning o'ng chekkasida, boshqa nishonlar
+ * bilan bir guruhda. Chapda qidiruv turadi va u sahifa sarlavhasi bilan
+ * bir chiziqda: tepadagi qator pastdagi mazmundan surilib qolmasin.
+ *
  * QACHON O'CHIQ. React Router har bir tarix yozuviga o'z tartib raqamini
  * qo'yadi (`history.state.idx`). Nol bo'lsa - bu ilovadagi birinchi
  * sahifa va qaytadigan joy yo'q: tugma bosilmaydigan holatda turadi,
@@ -232,11 +236,13 @@ export default function Layout() {
           )}
         </div>
 
-        <BackButton />
-
         {/* Qidiruv chapda, amallar o'ngda - orasi bo'sh qoladi */}
         <span className="spacer" />
 
+        {/* «Orqaga» - amallar guruhining boshida. Ilgari u qidiruvdan keyin,
+            bo'sh joyning o'rtasida yolg'iz turardi: qaysi guruhga tegishli
+            ekani ko'rinmasdi. Endi u ham nishon, o'z tengdoshlari yonida. */}
+        <BackButton />
         <ThemeToggle />
         <NotificationBell />
         <Link className="top-icon hide-sm" {...toMessages()} title="Xabarlar">
