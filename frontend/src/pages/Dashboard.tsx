@@ -218,6 +218,10 @@ type FilterKey = keyof Filters;
 /** `/dashboard/tasks/` javobi. */
 interface PanelTasksData {
   count: number;
+  /** Joriy sahifa (1 dan boshlanadi) va jami sahifalar soni. */
+  page: number;
+  pages: number;
+  page_size: number;
   results: Task[];
   /**
    * Tanlagichlar uchun ro'yxatlar - SHU katakdagi ishlardan yig'ilgan.
@@ -307,28 +311,84 @@ function Combo({ id, label, options, value, onChange, placeholder }: {
   );
 }
 
+/**
+ * Sahifa raqamlari - «‹ 1 2 3 … 9 10 ›».
+ *
+ * NEGA KERAK. Ro'yxat ilgari yuztada qirqilar va ostida «450 tadan 100
+ * tasi ko'rsatildi» degan yozuv turardi. Yillik katakni bosgan odam uchun
+ * bu javob emas edi: qolgan 350 tasiga yetadigan yo'l yo'q edi.
+ *
+ * NEGA HAMMA RAQAM EMAS. Ellik sahifa bo'lsa ellikta tugma qatorni
+ * buzardi. Shuning uchun ATROFDAGILAR ko'rsatiladi: birinchi, oxirgi va
+ * joriyning ikki yon qo'shnisi; uzilish joyiga «…» qo'yiladi. Bu Google
+ * ham, GitHub ham ishlatadigan naqsh - odam tanish narsani o'ylab
+ * o'tirmaydi.
+ */
+function Pager({ page, pages, onPick }: {
+  page: number; pages: number; onPick: (n: number) => void;
+}) {
+  // Qaysi raqamlar chiziladi: chekkalar + joriyning atrofi.
+  const near = new Set<number>([1, pages, page, page - 1, page + 1]);
+  // Boshida yoki oxirida turganda qator qisqarib qolmasin - to'ldiramiz.
+  if (page <= 3) [2, 3, 4].forEach((n) => near.add(n));
+  if (page >= pages - 2) [pages - 1, pages - 2, pages - 3].forEach((n) => near.add(n));
+  const shown = [...near].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+
+  const items: (number | "gap")[] = [];
+  shown.forEach((n, i) => {
+    // Ketma-ketlik uzilgan joyda - uch nuqta.
+    if (i > 0 && n - shown[i - 1] > 1) items.push("gap");
+    items.push(n);
+  });
+
+  return (
+    <nav className="pager" aria-label="Sahifalar">
+      <button type="button" className="pager-step" disabled={page <= 1}
+              onClick={() => onPick(page - 1)} aria-label="Oldingi sahifa">‹</button>
+      {items.map((it, i) => (
+        it === "gap"
+          ? <span key={`gap${i}`} className="pager-gap">…</span>
+          : <button key={it} type="button"
+                    className={`pager-num ${it === page ? "on" : ""}`}
+                    aria-current={it === page ? "page" : undefined}
+                    onClick={() => onPick(it)}>{it}</button>
+      ))}
+      <button type="button" className="pager-step" disabled={page >= pages}
+              onClick={() => onPick(page + 1)} aria-label="Keyingi sahifa">›</button>
+    </nav>
+  );
+}
+
 /** Bosilgan katakdagi ishlar - panelning ostida. */
 function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void }) {
   const fid = useId();
   const { meta } = useAuth();
   const [f, setF] = useState<Filters>(EMPTY_FILTERS);
+  // Sahifa filtrdan ALOHIDA holatda: filtr o'zgarganda u birinchi sahifaga
+  // qaytadi (`set` da), aks holda odam beshinchi sahifada turib qidiruv
+  // yozsa bo'sh ekranga urilardi - natija ikki sahifaga sig'ib qolgan.
+  const [page, setPage] = useState(1);
   const filtered = Object.values(f).some(Boolean);
 
-  // Saralash SERVERDA bo'ladi, ekrandagi yozuvlar ustida emas: ro'yxat
-  // yuztada cheklangan, ya'ni qidiruv faqat ko'ringan yuztasini elasa,
-  // undan ortiq katakda «topilmadi» degan yolg'on javob chiqardi.
+  // Qidiruv va sahifalash SERVERDA: ekrandagi qatorlar ustida emas.
+  // Ro'yxat sahifalarga bo'lingan, ya'ni brauzerdagi filtr faqat joriy
+  // o'n beshtasini elasa, qolgan sahifalarda turgan natija «topilmadi»
+  // bo'lib ko'rinardi.
   //
   // `debounceMs` - har bosilgan harf uchun so'rov ketmasin: "arxitektura"
   // so'zi 12 ta so'rov tug'dirardi.
   const { data, loading } = useFetch<PanelTasksData>("/dashboard/tasks/",
-    { period: picked.period || "", metric: picked.metric, ...f },
+    { period: picked.period || "", metric: picked.metric, page, ...f },
     { debounceMs: 300 });
   const tasks = data ? listOf<Task>(data) : null;
 
   const projectOptions: ComboOption[] = (data?.facets.projects || [])
     .map((p) => ({ value: String(p.id), name: p.name }));
-  const set = (k: FilterKey, v: string) => setF((prev) => ({ ...prev, [k]: v }));
-  const clear = () => setF(EMPTY_FILTERS);
+  const set = (k: FilterKey, v: string) => {
+    setPage(1);
+    setF((prev) => ({ ...prev, [k]: v }));
+  };
+  const clear = () => { setPage(1); setF(EMPTY_FILTERS); };
 
   return (
     <Card title={picked.title} padded={false}
@@ -406,11 +466,14 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
           </tbody>
         </table></div>
       )}
-      {/* Ro'yxat yuztada cheklangan - jimgina qirqilmasin. */}
-      {data && data.count > tasks!.length && (
-        <div className="card-body muted" style={{ fontSize: 12.5 }}>
-          {data.count} tadan {tasks!.length} tasi ko'rsatildi — qidiruv yoki
-          filtr bilan toraytiring.
+      {/* Ro'yxat sahifalarga bo'lingan - qolgani jimgina qirqilmaydi. */}
+      {data && data.pages > 1 && (
+        <div className="card-body pager-bar">
+          <span className="muted">
+            {data.count} tadan {(data.page - 1) * data.page_size + 1}—
+            {Math.min(data.page * data.page_size, data.count)} tasi
+          </span>
+          <Pager page={data.page} pages={data.pages} onPick={setPage} />
         </div>
       )}
     </Card>

@@ -2377,6 +2377,33 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .wl-percent .progress { flex: 1 1 60px; min-width: 50px; }
 .wl-percent b { color: var(--text); font-weight: 650; }
 
+/* ---- Sahifa raqamlari (`pages/Dashboard.tsx`, `Pager`).
+
+   Chapda "450 tadan 16—30 tasi", o'ngda raqamlar. Tor ekranda ikkovi
+   ustma-ust tushadi - raqamlar siqilib bosib bo'lmaydigan bo'lgandan
+   ko'ra pastga o'tgani yaxshi. */
+.pager-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  font-size: 12.5px;
+}
+.pager { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.pager-num, .pager-step {
+  min-width: 30px; height: 30px; padding: 0 7px;
+  border: 1px solid var(--border); background: var(--surface);
+  border-radius: 8px; color: var(--text); font-size: 12.5px; cursor: pointer;
+  transition: background .16s, border-color .16s, color .16s;
+}
+.pager-num:hover:not(.on), .pager-step:hover:not(:disabled) {
+  border-color: var(--accent); color: var(--accent);
+}
+/* Joriy sahifa - bosiladigan emas, holat. Shuning uchun to'ldirilgan. */
+.pager-num.on {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  font-weight: 650; cursor: default;
+}
+.pager-step:disabled { opacity: .4; cursor: default; }
+.pager-gap { color: var(--muted); padding: 0 2px; }
+
 .wl-name { font-weight: 650; font-size: 14px; color: var(--text); }
 .wl-name:hover { color: var(--accent); text-decoration: none; }
 /* Ochilgan qatorning ichi - vazifalar. */

@@ -170,15 +170,17 @@ export default function Layout() {
         {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
       </button>
 
-      {/* Orqaga - qidiruvdan chapda, menyu tugmasi yonida. */}
-      <BackButton />
-
       {/* Yuqori panelda navigatsiya havolalari yo'q: «Loyihalar» va
           «Mening ishim» yon panelda turadi va u har doim ko'rinadi
           (mobilda menyu tugmasi bilan). Bir xil havola ikki joyda
           turgani foyda bermaydi - odam qaysi biri "asosiy" ekanini
           o'ylab qoladi. */}
 
+        {/* QIDIRUV ENG CHAPDA - pastdagi ustun bilan bir tekislikda.
+            Ilgari uning oldida «orqaga» tugmasi turardi va qidiruv sahifa
+            mazmunidan bir tugma kengligiga o'ngga surilib qolardi: tepadagi
+            qator bilan pastdagi sarlavha bir chiziqda emas edi. Endi
+            «orqaga» qidiruvdan keyin turadi - u ikkinchi darajali amal. */}
         <div className="top-search">
           <form
             className="gh-search"
@@ -229,6 +231,8 @@ export default function Layout() {
             </div>
           )}
         </div>
+
+        <BackButton />
 
         {/* Qidiruv chapda, amallar o'ngda - orasi bo'sh qoladi */}
         <span className="spacer" />

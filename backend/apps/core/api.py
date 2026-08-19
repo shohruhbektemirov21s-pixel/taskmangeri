@@ -1,6 +1,7 @@
 import logging
 
 from datetime import datetime, time as dtime
+from math import ceil
 
 from django.db.models import Count, Exists, F, OuterRef, Q
 from django.utils import timezone
@@ -78,6 +79,11 @@ def _period_start(period):
 # Ro'yxat ustidagi «Muddat» tanlagichi. Ro'yxat ochilganda hamma ish
 # ko'rinadi, bu esa uni bir kunga yoki bir kalendar davriga qisqartiradi.
 DUE_RANGES = ("today", "yesterday", "tomorrow", "week", "month", "year")
+
+# Panel ro'yxatining bitta sahifasi. O'n beshta qator ekranga sig'adi va
+# ostidagi sahifa raqamlari ko'rinib turadi - odam ro'yxat davom etishini
+# skrollamasdan biladi.
+PANEL_PAGE_SIZE = 15
 
 
 def _due_range_dates(key):
@@ -543,6 +549,7 @@ def panel_tasks(request):
         `?due=`       today|yesterday|tomorrow|week|month|year - MUDDAT
         `?status=`    vazifa holati (vergul bilan bir nechtasi)
         `?project=`   loyiha id
+        `?page=`      sahifa raqami (bittasida 15 ta qator)
 
     SANOQ BILAN BIR XIL SHART. Ro'yxat ham, katakdagi son ham
     `panel_metric_q` dan oladi - aks holda katakda «5» turib, bosilganda
@@ -620,16 +627,34 @@ def panel_tasks(request):
              .prefetch_related("assignments__user")
              .order_by("-priority", "due_date", "-id"))
 
-    # Sanoq KESISHDAN OLDIN: ro'yxat cheklangan bo'lsa ham son to'g'ri
-    # qolsin va frontend "yana N ta" deb ayta olsin.
+    # ------------------------------------------------------------ sahifalash
+    #
+    # MUAMMO. Ro'yxat yuztada qirqilardi va oxirida «450 tadan 100 tasi
+    # ko'rsatildi» degan yozuv turardi. Yillik katakni bosgan odam uchun bu
+    # javob emas edi: qolgan 350 tasiga yetadigan yo'l yo'q, bor-yo'g'i
+    # "filtr bilan toraytiring" degan maslahat bor edi.
+    #
+    # Sanoq KESISHDAN OLDIN olinadi - aks holda Django limitni hisobga olib
+    # doim sahifa hajmidan oshmagan son qaytarardi va sahifalar soni ham
+    # noto'g'ri chiqardi.
     total = tasks.count()
+    pages = max(1, ceil(total / PANEL_PAGE_SIZE))
+    # Yaroqsiz yoki chegaradan chiqqan raqam xato emas: eng yaqin haqiqiy
+    # sahifa ochiladi. Filtr o'zgarganda sahifalar soni kamayib ketishi
+    # mumkin va o'sha paytda odam bo'sh ekranga urilardi.
+    page = min(max(1, int_param(p.get("page") or 1, "page")), pages)
+    start = (page - 1) * PANEL_PAGE_SIZE
+
     return Response({
         "metric": metric,
         "period": period or None,
         "scope": scope,
         "count": total,
+        "page": page,
+        "pages": pages,
+        "page_size": PANEL_PAGE_SIZE,
         "facets": facets,
-        "results": TaskSerializer(tasks[:100], many=True,
+        "results": TaskSerializer(tasks[start:start + PANEL_PAGE_SIZE], many=True,
                                   context={"request": request}).data,
     })
 
