@@ -14,13 +14,14 @@
  * Hamma raqam `/api/dashboard/` dan keladi va u Db2 ni ORM orqali o'qiydi:
  * bu yerda hech qanday hisob-kitob ham, namuna qiymat ham yo'q.
  */
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { listOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
 import type {
   DashboardData, DashboardPeriod, DashboardPeriodRow, DashboardScope, Task,
 } from "@/api/types";
+import { useAuth } from "@/auth/AuthContext";
 import { useLive } from "@/realtime/RealtimeContext";
 import {
   Card, Empty, ErrorMsg, Loading, Priority, StatusBadge, fmtDate,
@@ -191,18 +192,202 @@ function Deadlines({ d, onPick, picked }: {
   );
 }
 
+/**
+ * Ro'yxat ustidagi «Muddat» tanlagichi.
+ *
+ * Kalitlar serverdagi `DUE_RANGES` bilan bir xil, oraliqni ham server
+ * hisoblaydi: «shu hafta» dushanbadan yakshanbagacha, «shu oy» oyning
+ * birinchi kunidan oxirigacha - ya'ni KALENDAR davri, «oxirgi 7 kun»
+ * emas. Chegara Toshkent kunidan yasalgani uchun tunda ham siljimaydi.
+ */
+const DUE_OPTIONS = [
+  { value: "today", label: "Bugun" },
+  { value: "yesterday", label: "Kecha" },
+  { value: "tomorrow", label: "Ertaga" },
+  { value: "week", label: "Shu hafta" },
+  { value: "month", label: "Shu oy" },
+  { value: "year", label: "Shu yil" },
+] as const;
+
+const EMPTY_FILTERS = {
+  search: "", due: "", status: "", project: "",
+};
+type Filters = typeof EMPTY_FILTERS;
+type FilterKey = keyof Filters;
+
+/** `/dashboard/tasks/` javobi. */
+interface PanelTasksData {
+  count: number;
+  results: Task[];
+  /**
+   * Tanlagichlar uchun ro'yxatlar - SHU katakdagi ishlardan yig'ilgan.
+   *
+   * Server ularni filtrdan OLDINGI to'plamdan oladi: aks holda loyihani
+   * tanlagan odam qolgan loyihalarni tanlagichdan yo'qotib qo'yardi va
+   * tanlovini ortga qaytara olmasdi.
+   */
+  facets: {
+    projects: { id: number; name: string }[];
+  };
+}
+
+interface ComboOption {
+  value: string;
+  name: string;
+}
+
+/**
+ * YOZIB qidiriladigan tanlagich.
+ *
+ * Oddiy `<select>` yigirmata odam bo'lganda ish bermay qoldi: ochilgan
+ * ro'yxat butun ekranni to'ldirar, kerakli ismni topish uchun uni ko'z
+ * bilan aylantirib chiqish kerak edi. Bu yerda maydonga YOZILADI -
+ * ro'yxat harflar bo'yicha qisqaradi, sichqoncha bilan tanlash esa
+ * joyida qoladi.
+ *
+ * Ro'yxat serverdan emas, TAYYOR massivdan elanadi: u allaqachon shu
+ * katakdagi odamlar (yoki loyihalar) bilan cheklangan va o'nlab
+ * yozuvdan oshmaydi - har harfga so'rov yuborishning hojati yo'q.
+ */
+function Combo({ id, label, options, value, onChange, placeholder }: {
+  id: string;
+  label: string;
+  options: ComboOption[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const chosen = options.find((o) => o.value === value) || null;
+  // Yopiq turganda maydonda TANLANGANI ko'rinadi, ochilganda - yozilgani.
+  const text = open ? q : (chosen?.name || "");
+
+  const needle = q.trim().toLowerCase();
+  const hits = needle
+    ? options.filter((o) => o.name.toLowerCase().includes(needle))
+    : options;
+
+  const pick = (v: string) => {
+    onChange(v);
+    setQ("");
+    setOpen(false);
+  };
+
+  return (
+    <div className="f combo">
+      <label htmlFor={id}>{label}</label>
+      <input id={id} value={text} placeholder={placeholder} autoComplete="off"
+             role="combobox" aria-expanded={open} aria-controls={id + "-list"}
+             onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+             // Fokus tushganda maydon bo'shaydi: tanlangan ismning ustiga
+             // yozib o'tirmasdan darrov yangisini izlash mumkin bo'lsin.
+             onFocus={() => { setQ(""); setOpen(true); }}
+             onBlur={() => setOpen(false)}
+             onKeyDown={(e) => {
+               if (e.key === "Escape") { setQ(""); setOpen(false); }
+             }} />
+      {open && (
+        // `mousedown` to'xtatiladi: aks holda bosish paytida maydon fokusni
+        // yo'qotib, ro'yxat `click` yetib kelgunicha yopilib ketardi.
+        <div className="combo-list" id={id + "-list"} role="listbox"
+             onMouseDown={(e) => e.preventDefault()}>
+          <button type="button" className={"combo-item " + (value ? "" : "on")}
+                  onClick={() => pick("")}>Hammasi</button>
+          {hits.map((o) => (
+            <button key={o.value} type="button"
+                    className={"combo-item " + (o.value === value ? "on" : "")}
+                    onClick={() => pick(o.value)}>{o.name}</button>
+          ))}
+          {hits.length === 0 && <div className="combo-empty muted">Topilmadi</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Bosilgan katakdagi ishlar - panelning ostida. */
 function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void }) {
-  const { data, loading } = useFetch<any>("/dashboard/tasks/",
-    { period: picked.period || "", metric: picked.metric });
+  const fid = useId();
+  const { meta } = useAuth();
+  const [f, setF] = useState<Filters>(EMPTY_FILTERS);
+  const filtered = Object.values(f).some(Boolean);
+
+  // Saralash SERVERDA bo'ladi, ekrandagi yozuvlar ustida emas: ro'yxat
+  // yuztada cheklangan, ya'ni qidiruv faqat ko'ringan yuztasini elasa,
+  // undan ortiq katakda «topilmadi» degan yolg'on javob chiqardi.
+  //
+  // `debounceMs` - har bosilgan harf uchun so'rov ketmasin: "arxitektura"
+  // so'zi 12 ta so'rov tug'dirardi.
+  const { data, loading } = useFetch<PanelTasksData>("/dashboard/tasks/",
+    { period: picked.period || "", metric: picked.metric, ...f },
+    { debounceMs: 300 });
   const tasks = data ? listOf<Task>(data) : null;
+
+  const projectOptions: ComboOption[] = (data?.facets.projects || [])
+    .map((p) => ({ value: String(p.id), name: p.name }));
+  const set = (k: FilterKey, v: string) => setF((prev) => ({ ...prev, [k]: v }));
+  const clear = () => setF(EMPTY_FILTERS);
 
   return (
     <Card title={picked.title} padded={false}
           badge={data ? <span className="badge">{data.count}</span> : undefined}
           action={<button type="button" className="btn btn-sm" onClick={onClose}>Yopish</button>}>
+      {/* Filtr qatori kartaning ICHIDA: u shu ro'yxatga tegishli, sahifaga
+          emas - katak yopilsa filtr ham u bilan ketadi. */}
+      <div className="filters filters-inline">
+        <div className="f grow">
+          <label htmlFor={fid + "-q"}>Qidiruv</label>
+          <input id={fid + "-q"} value={f.search} placeholder="Kod yoki sarlavha"
+                 onChange={(e) => set("search", e.target.value)} />
+        </div>
+        <div className="f">
+          <label htmlFor={fid + "-due"}>Muddat</label>
+          <select id={fid + "-due"} value={f.due}
+                  onChange={(e) => set("due", e.target.value)}>
+            <option value="">Hammasi</option>
+            {DUE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="f">
+          <label htmlFor={fid + "-st"}>Holat</label>
+          <select id={fid + "-st"} value={f.status}
+                  onChange={(e) => set("status", e.target.value)}>
+            <option value="">Hammasi</option>
+            {(meta?.task_status || []).map((s) => (
+              <option key={s.value} value={String(s.value)}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+        {/* Loyiha tanlagichi faqat tanlanadigan narsa bo'lganda ko'rinadi:
+            bitta loyihali ro'yxatda u hech nimani o'zgartirmasdi, joyni
+            esa egallardi. */}
+        {projectOptions.length > 1 && (
+          <Combo id={fid + "-pr"} label="Loyiha" options={projectOptions}
+                 value={f.project} onChange={(v) => set("project", v)}
+                 placeholder="Loyiha nomini yozing" />
+        )}
+        {/* IJROCHI tanlagichi yo'q. Ro'yxat odamning O'Z kesimida ochiladi:
+            ijrochida u doim bitta ismdan - o'zinikidan - iborat bo'lardi.
+            Menejerga «kim nima qilyapti» uchun alohida sahifa bor
+            («Vazifalar»), u shu ish uchun ancha qulay. */}
+        {filtered && (
+          <button type="button" className="btn" onClick={clear}>Tozalash</button>
+        )}
+      </div>
+
       {loading ? <Loading /> : !tasks?.length ? (
-        <Empty title="Ish yo'q" text="Bu katakka kirgan vazifa topilmadi." />
+        <Empty title="Ish yo'q"
+               text={filtered
+                 ? "Tanlangan filtrga mos vazifa topilmadi - filtrni tozalab ko'ring."
+                 : "Bu katakka kirgan vazifa topilmadi."}>
+          {filtered && (
+            <button type="button" className="btn" onClick={clear}>Filtrni tozalash</button>
+          )}
+        </Empty>
       ) : (
         <div className="table-wrap"><table className="table">
           <tbody>
@@ -224,8 +409,8 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
       {/* Ro'yxat yuztada cheklangan - jimgina qirqilmasin. */}
       {data && data.count > tasks!.length && (
         <div className="card-body muted" style={{ fontSize: 12.5 }}>
-          {data.count} tadan {tasks!.length} tasi ko'rsatildi — qolganini
-          «Mening ishim» yoki loyiha ro'yxatidan ko'ring.
+          {data.count} tadan {tasks!.length} tasi ko'rsatildi — qidiruv yoki
+          filtr bilan toraytiring.
         </div>
       )}
     </Card>
@@ -260,7 +445,11 @@ export default function Dashboard() {
 
       {picked && (
         <div className="mt">
-          <PickedTasks picked={picked} onClose={() => setPicked(null)} />
+          {/* `key` - boshqa katak bosilganda ro'yxat YANGIDAN
+              yig'ilsin: aks holda oldingi katakda qo'yilgan filtr
+              yangisiga o'tib, odam bo'sh ro'yxat ko'rardi. */}
+          <PickedTasks key={`${picked.period || ""}:${picked.metric}`}
+                       picked={picked} onClose={() => setPicked(null)} />
         </div>
       )}
     </div>

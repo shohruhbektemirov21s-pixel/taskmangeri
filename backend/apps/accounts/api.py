@@ -20,9 +20,9 @@ from apps.tasks.models import TaskStatus
 
 from .specialties import Seniority, Specialty, specialty_catalog
 from .serializers import (AdminCreateUserSerializer, ChangePasswordSerializer,
-                          RefreshSerializer, RegisterSerializer, TokenSerializer,
-                          UserAdminSerializer, UserBriefSerializer, UserListSerializer,
-                          UserSerializer)
+                          MeSerializer, RefreshSerializer, RegisterSerializer,
+                          TokenSerializer, UserAdminSerializer, UserBriefSerializer,
+                          UserListSerializer)
 
 User = get_user_model()
 
@@ -80,14 +80,14 @@ class RegisterView(generics.CreateAPIView):
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-            "user": UserSerializer(user, context=self.get_serializer_context()).data,
+            "user": MeSerializer(user, context=self.get_serializer_context()).data,
         }, status=status.HTTP_201_CREATED)
 
 
 class MeView(generics.RetrieveUpdateAPIView):
     """GET/PATCH /api/auth/me/"""
 
-    serializer_class = UserSerializer
+    serializer_class = MeSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -106,7 +106,7 @@ class AvatarView(generics.GenericAPIView):
     media papkasida yig'ilib qolmasin.
     """
 
-    serializer_class = UserSerializer
+    serializer_class = MeSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -128,7 +128,7 @@ class AvatarView(generics.GenericAPIView):
             user.avatar.delete(save=False)
         user.avatar = image
         user.save(update_fields=["avatar"])
-        return Response(UserSerializer(user, context={"request": request}).data)
+        return Response(MeSerializer(user, context={"request": request}).data)
 
     def delete(self, request):
         user = request.user
@@ -136,7 +136,7 @@ class AvatarView(generics.GenericAPIView):
             user.avatar.delete(save=False)
             user.avatar = None
             user.save(update_fields=["avatar"])
-        return Response(UserSerializer(user, context={"request": request}).data)
+        return Response(MeSerializer(user, context={"request": request}).data)
 
 
 def revoke_refresh_tokens(user):

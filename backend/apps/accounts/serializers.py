@@ -78,6 +78,38 @@ class UserSerializer(serializers.ModelSerializer):
         return media_url(obj.avatar)
 
 
+class MeSerializer(UserSerializer):
+    """O'z hisobi - `/api/auth/me/`, kirish va ro'yxatdan o'tish javobi.
+
+    `manages_projects` FAQAT shu yerda: interfeys shunga qarab ikkiga
+    bo'linadi - loyihalarni boshqaradigan odam loyihalar ro'yxatini va
+    jamoaning ish yukini ko'radi, ijrochi esa o'z vazifalarini.
+
+    NEGA `UserSerializer` DA EMAS. Bu maydon bazaga so'rov qiladi, o'sha
+    seriyalizator esa foydalanuvchilar RO'YXATIDA ham ishlatiladi
+    (`UserAdminSerializer`) - u yerda har odam uchun bitta qo'shimcha
+    so'rov bo'lardi (N+1). O'z hisobi esa bitta.
+
+    `can_create_project` bilan aralashtirmang: u ROLdan kelib chiqadi
+    (menejer/admin yangi loyiha ocha oladi), bu esa AMALDAGI holat -
+    global roli dasturchi bo'lgan odam ham biror loyihaga menejer qilib
+    qo'yilgan bo'lishi mumkin.
+    """
+
+    manages_projects = serializers.SerializerMethodField()
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["manages_projects"]
+
+    def get_manages_projects(self, obj):
+        from apps.core.permissions import managed_projects_q
+        from apps.projects.models import Project
+
+        if obj.is_platform_admin:
+            return True
+        return Project.objects.filter(managed_projects_q(obj)).exists()
+
+
 class UserAdminSerializer(UserSerializer):
     """Admin foydalanuvchi rolini va mutaxassisligini boshqara oladi."""
 
@@ -241,7 +273,7 @@ class TokenSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        data["user"] = UserSerializer(self.user, context=self.context).data
+        data["user"] = MeSerializer(self.user, context=self.context).data
         return data
 
 

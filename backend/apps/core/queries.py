@@ -58,6 +58,44 @@ def related_sum(model, field, outer_ref="pk", *, group_by, **filters):
                     Value(0, output_field=DecimalField(max_digits=10, decimal_places=1)))
 
 
+def task_search_q(search, path=""):
+    """Vazifa qidiruvi sharti: matn, KOD va LOYIHA nomi bo'yicha.
+
+        Task.objects.filter(task_search_q("HIR-75"))
+        TaskAssignment.objects.filter(task_search_q("login", path="task__"))
+
+    Kod bazada ustun emas (`project.key` + `number` dan yasaladi), shuning
+    uchun «HIR-75» yoki shunchaki «75» ko'rinishidagi matn bo'laklarga
+    ajratilib, ikkita ustunga solishtiriladi.
+
+    LOYIHA NOMI ham qidiriladi (kaliti ham: «HIR»). Odam ko'pincha
+    "«Haftalik ishlar rejasi» da kimda nima bor?" deb qidiradi - vazifa
+    nomini esa har doim ham eslamaydi va bo'sh ro'yxatga urilardi.
+    Yonidagi «Loyiha» tanlovi o'z joyida qoladi: u ANIQ tanlaydi, qidiruv
+    esa yozib ketaveradi va vazifa nomi bilan aralashtirib ham bo'ladi.
+
+    NEGA BITTA JOYDA. Ilgari bu shart faqat panel ro'yxatida bor edi.
+    «Vazifalar» sahifasi ham ayni shunday qidiradi - qoida ikki joyda ikki
+    xil bo'lib ketmasin: odam bir ro'yxatda «75» deb topgan ishini
+    ikkinchisida topa olmasligi eng chalkash xato bo'lardi.
+    """
+    import re
+
+    from django.db.models import Q
+
+    cond = (Q(**{path + "title__icontains": search})
+            | Q(**{path + "description__icontains": search})
+            | Q(**{path + "project__name__icontains": search})
+            | Q(**{path + "project__key__icontains": search}))
+    m = re.match(r"^([A-Za-z]{1,10})?\s*-?\s*(\d{1,9})$", search)
+    if m:
+        code_q = Q(**{path + "number": int(m.group(2))})
+        if m.group(1):
+            code_q &= Q(**{path + "project__key__iexact": m.group(1)})
+        cond |= code_q
+    return cond
+
+
 def object_or_404(source, **filters):
     """`get_object_or_404`, lekin yaroqsiz identifikator 500 emas, 404 beradi.
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { AppNotification } from "@/api/types";
+import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { IconBell } from "./icons";
 import { Avatar, safePath, timeAgo } from "./ui";
@@ -18,6 +19,10 @@ const TONE: Record<string, string> = {
 
 export default function NotificationBell() {
   const { notifications, unread, connected, markRead, markAllRead } = useRealtime();
+  const { user } = useAuth();
+  // Tekshiruv navbatiga havola faqat ishni qabul qiladigan odamga -
+  // yon paneldagi yozuv bilan bir xil qoida.
+  const manages = Boolean(user?.can_create_project || user?.manages_projects);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
@@ -104,7 +109,9 @@ export default function NotificationBell() {
           <div className="popover-foot">
             <Link to="/bildirishnomalar" onClick={() => setOpen(false)}>Hammasini ko'rish</Link>
             <span className="spacer" />
-            <Link to="/tekshiruv" onClick={() => setOpen(false)}>Tekshiruv navbati</Link>
+            {manages && (
+              <Link to="/tekshiruv" onClick={() => setOpen(false)}>Tekshiruv navbati</Link>
+            )}
           </div>
         </div>
       )}

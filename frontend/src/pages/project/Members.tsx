@@ -43,7 +43,8 @@ export default function Members({ project, onChange }: { project: Project; onCha
     }
   }
 
-  /** Menejer himoyalangan: uni na loyiha admini, na tizim admini chiqara oladi. */
+  /** Menejer himoyalangan: unga hech kim tegmaydi - u loyihadan faqat o'zi
+      chiqadi (o'ngdagi «Loyihadan chiqish» kartasi). */
   const isManager = (m: ProjectMember) =>
     m.role === "MANAGER" || m.user.id === project.manager?.id;
   /** O'ziga o'zi tegmaydi: adminlikni ham, chiqishni ham boshqa odam bajaradi.
@@ -212,7 +213,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
                             bu sizsiz
                           </span>
                         ) : isManager(m) ? (
-                          <span className="badge" title="Menejerni faqat boshqa menejer almashtira oladi">
+                          <span className="badge" title="Menejerga tegib bo'lmaydi - u loyihadan faqat o'zi chiqadi">
                             himoyalangan
                           </span>
                         ) : (
@@ -295,13 +296,35 @@ export default function Members({ project, onChange }: { project: Project; onCha
               </Link>
             </Card>
           )}
-          {acc.is_member && !acc.is_manager && (
+          {/* Chiqish - a'zoning O'Z qarori, shuning uchun MENEJERGA ham
+              ko'rinadi. Bu muhim: menejerni hech kim chiqara olmaydi
+              (`can_change_member`), ya'ni bu yagona yo'l. Ilgari karta
+              menejerdan yashirilardi va loyiha menejeri interfeys orqali
+              hech qachon o'zgarmas bo'lib qolardi. */}
+          {acc.is_member && (
             <Card title="Loyihadan chiqish">
-              <button className="btn btn-danger btn-block" onClick={() => {
+              {acc.is_manager && (
+                <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>
+                  Siz loyiha menejerisiz - chiqsangiz loyiha menejersiz qoladi va
+                  yangisini tizim admini tayinlaydi.
+                </p>
+              )}
+              <button className="btn btn-danger btn-block" onClick={() => void (async () => {
+                if (acc.is_manager) {
+                  const ok = await confirmDialog({
+                    title: "Loyiha menejerligidan chiqasizmi?",
+                    body: "Loyiha menejersiz qoladi. O'zingizni qaytara olmaysiz - "
+                      + "yangi menejerni tizim admini tayinlaydi.",
+                    confirmText: "Chiqish",
+                    danger: true,
+                  });
+                  if (!ok) return;
+                }
                 const note = window.prompt("Keyingi dasturchi uchun eslatma qoldiring:", "");
                 if (note === null) return;
-                void act(() => api.post(`/projects/${project.id}/leave/`, { handover_note: note }));
-              }}>Chiqish</button>
+                await act(() => api.post(`/projects/${project.id}/leave/`,
+                                         { handover_note: note }));
+              })()}>Chiqish</button>
             </Card>
           )}
         </div>

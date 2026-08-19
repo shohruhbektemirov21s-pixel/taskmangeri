@@ -150,9 +150,10 @@ export default function CalendarPage() {
     return [...fromProjects, ...fromTasks];
   }, [data, showTasks]);
 
-  const counts = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const d of data?.days || []) map[d.date] = d.count;
+  /** Kun -> o'sha kungi sanoqlar (loyihalar va vazifalar holat bo'yicha). */
+  const byDay = useMemo(() => {
+    const map: Record<string, CalendarMonth["days"][number]> = {};
+    for (const d of data?.days || []) map[d.date] = d;
     return map;
   }, [data]);
 
@@ -278,18 +279,36 @@ export default function CalendarPage() {
                       {week.map((d, i) => {
                         const iso = isoOf(d);
                         const outside = iso < data.first_day || iso > data.last_day;
-                        const n = counts[iso] || 0;
+                        const day = byDay[iso];
+                        const tasksToday = day
+                          ? day.todo + day.in_progress + day.done : 0;
                         return (
                           <div className={`cal-daynum ${outside ? "out" : ""}`
                                           + (iso === data.today ? " today" : "")} key={`n${d}`}
                                style={{ gridColumn: i + 1, gridRow: 1 }}>
-                            {/* Kun raqami chapda - dizaynda shunday. O'ng chetda esa
-                                o'sha kuni nechta loyiha muddati tugashi. */}
+                            {/* Kun raqami chapda, o'ng chetda esa o'sha kungi UCHTA
+                                raqam: nazoratda / jarayonda / bajarilgan. Tasmalarni
+                                sanab chiqmasdan turib "shu kun qanday ketyapti"
+                                ko'rinib tursin - ayniqsa kun uchta tasmadan keyin
+                                yig'ilganda.
+
+                                Loyihalar sanog'i (ko'k doiradagi raqam) bu yerdan
+                                olib tashlandi: kun katagida ikkita boshqa-boshqa
+                                narsani sanaydigan raqamlar yonma-yon turardi va
+                                qaysi biri nima ekani tushunarsiz edi. Loyiha
+                                muddati o'z tasmasi bo'lib ko'rinib turibdi. */}
                             <span className="cal-d">{dayOfMonth(d)}</span>
                             <span className="spacer" />
-                            {!outside && !!n && (
-                              <span className="cal-count"
-                                    title={`${n} ta loyiha muddati shu kuni tugaydi`}>{n}</span>
+                            {!outside && showTasks && !!tasksToday && (
+                              <span className="cal-mini"
+                                    title={`Nazoratda ${day.todo} · Jarayonda ${day.in_progress}`
+                                           + ` · Bajarildi ${day.done}`}>
+                                <b className="st-todo">{day.todo}</b>
+                                <i>/</i>
+                                <b className="st-prog">{day.in_progress}</b>
+                                <i>/</i>
+                                <b className="st-done">{day.done}</b>
+                              </span>
                             )}
                           </div>
                         );

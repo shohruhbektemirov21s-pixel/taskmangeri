@@ -25,6 +25,7 @@ import Dashboard from "@/pages/Dashboard";
  */
 const MyWork = lazy(() => import("@/pages/MyWork"));
 const Projects = lazy(() => import("@/pages/Projects"));
+const Tasks = lazy(() => import("@/pages/Tasks"));
 const Discover = lazy(() => import("@/pages/Discover"));
 const ProjectForm = lazy(() => import("@/pages/ProjectForm"));
 const ProjectDetail = lazy(() => import("@/pages/ProjectDetail"));
@@ -64,6 +65,24 @@ function ManagerOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Jamoaning ishi va tekshiruv navbati - faqat loyiha BOSHQARADIGAN odamga.
+ *
+ * `ManagerOnly` dan farqi: u ROLga qaraydi (menejer/admin yangi loyiha
+ * ocha oladi), bu esa AMALDAGI holatga - global roli «Dasturchi» bo'lgan
+ * odam ham biror loyihaga menejer qilib qo'yilgan bo'lishi mumkin.
+ * Serverdagi chegara alohida (`managed_projects_q`) - bu shunchaki
+ * ko'rinish.
+ */
+function ManagesOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Loading />;
+  if (!user?.can_create_project && !user?.manages_projects) {
+    return <Navigate to="/loyihalar" replace />;
+  }
+  return <>{children}</>;
+}
+
 function GuestOnly({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
@@ -99,6 +118,7 @@ export default function App() {
         <Route path="/panel" element={<Dashboard />} />
         <Route path="/mening-ishim" element={<MyWork />} />
         <Route path="/loyihalar" element={<Projects />} />
+        <Route path="/vazifalar" element={<ManagesOnly><Tasks /></ManagesOnly>} />
         <Route path="/qoshilish" element={<Discover />} />
         {/* Aniq nomli marshrutlar `:tab` dan OLDIN turishi shart emas -
             React Router qat'iy bo'lakni har doim o'zgaruvchidan ustun
@@ -112,7 +132,7 @@ export default function App() {
         <Route path="/loyiha/:tab?" element={<ProjectDetail />} />
         <Route path="/vazifa/tahrir" element={<TaskForm />} />
         <Route path="/vazifa" element={<TaskDetail />} />
-        <Route path="/tekshiruv" element={<ReviewQueue />} />
+        <Route path="/tekshiruv" element={<ManagesOnly><ReviewQueue /></ManagesOnly>} />
         <Route path="/tarix" element={<Feed />} />
         <Route path="/taqvim" element={<CalendarPage />} />
         <Route path="/jamoa" element={<People />} />

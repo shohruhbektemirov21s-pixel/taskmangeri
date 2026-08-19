@@ -21,6 +21,8 @@ urlpatterns = [
     # Jamoaga a'zo qo'shish - to'g'ridan-to'g'ri (ilgari taklif orqali edi)
     path("team/candidates/", team.candidates, name="team_candidates"),
     path("team/add/", team.add_member, name="team_add"),
+    # Boshqaruvdagi loyihalar bo'yicha: kim qaysi ishni qilyapti
+    path("team/workload/", team.workload, name="team_workload"),
     # Ochiq (autentifikatsiyasiz) - bosh sahifadagi qidiruv uchun
     path("public/projects/", public.public_projects, name="public_projects"),
     path("public/projects/<int:pk>/", public.public_project, name="public_project"),

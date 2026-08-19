@@ -459,6 +459,21 @@ export function TaskScopeNote({ access }: { access?: Access | null }) {
   );
 }
 
+/**
+ * «Davr» tanlagichining variantlari - «Vazifalar» va «Vazifalarim»
+ * sahifalarida bir xil.
+ *
+ * Kalitlar serverdagi `DUE_RANGES` bilan bir xil va oraliqni ham server
+ * hisoblaydi (`due_span`): «shu hafta» dushanbadan yakshanbagacha, «shu
+ * oy» oy boshidan oxirigacha - ya'ni KALENDAR davri, «oxirgi 7 kun» emas.
+ */
+export const DUE_PERIODS = [
+  { value: "today", label: "Bugun" },
+  { value: "week", label: "Shu hafta" },
+  { value: "month", label: "Shu oy" },
+  { value: "year", label: "Shu yil" },
+] as const;
+
 export const STATUS_DOT: Record<string, string> = {
   TODO: "var(--accent)",
   IN_PROGRESS: "var(--attention)",

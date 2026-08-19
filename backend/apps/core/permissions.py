@@ -7,9 +7,10 @@ Rollar ierarxiyasi:
   DEVELOPER / QA  -> oziga biriktirilgan tasklarni bajaradi
   VIEWER          -> faqat oqiydi
 
-MENEJER himoyalangan: uni na loyiha admini, na tizim admini chiqara oladi.
-Menejer faqat ozi chiqadi yoki boshqa menejer almashtiradi. Loyiha menejersiz
-qolib ketgan holat istisno - unda tizim admini yangi menejer tayinlay oladi.
+MENEJER himoyalangan: unga HECH KIM tegmaydi - na loyiha admini, na tizim
+admini, na boshqa menejer. Menejer loyihadan faqat OZI chiqadi (`/leave/`),
+shundan keyin loyiha menejersiz qoladi va tizim admini yangisini tayinlay
+oladi.
 """
 from django.db.models import Exists, OuterRef, Q
 from rest_framework import permissions
@@ -167,6 +168,31 @@ def task_scope_q(user):
     return ~Q(executor) | Q(mine)
 
 
+def managed_projects_q(user):
+    """Odam BOSHQARADIGAN loyihalar sharti - `ProjectAccess.can_manage` ning
+    queryset ko'rinishi.
+
+    `visible_projects_q` "qaysi loyihaga kira oladi" ga javob beradi, bu esa
+    "qaysi loyiha uchun javobgar" ga. Ikkovi aralashmasin: jamoaning ish
+    yuki menejerga ko'rinadi, a'zoga emas.
+
+    Shart PROJECT queryset iga qo'yiladi - ichkaridagi `OuterRef("pk")`
+    aynan shunga tayanadi.
+    """
+    from apps.projects.models import ProjectMember, ProjectRole
+
+    if not user or not user.is_authenticated:
+        return Q(pk__in=[])
+    if user.is_platform_admin:
+        return Q()
+    # Loyiha admini ham boshqaradi (`ProjectAccess.can_manage` bilan bir xil),
+    # menejer esa a'zolik yozuvisiz ham menejer bo'lishi mumkin.
+    manages = Exists(ProjectMember.objects.filter(
+        project=OuterRef("pk"), user=user, is_active=True,
+        role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN]))
+    return Q(manager=user) | manages
+
+
 def tasks_limited_for(user):
     """Odamning ro'yxatlari birortasida qirqilyaptimi (`True`/`False`).
 
@@ -267,14 +293,22 @@ class ProjectAccess:
     def can_change_member(self, member):
         """Shu azoga tegish mumkinmi: chiqarish yoki rolini ozgartirish.
 
-        MENEJERGA faqat boshqa menejer tega oladi. Tizim admini ham,
-        loyiha admini ham menejerni chiqara olmaydi.
+        MENEJERGA HECH KIM TEGMAYDI - na loyiha admini, na tizim admini, na
+        BOSHQA MENEJER.
+
+        Ilgari boshqa menejer tega olardi va bu himoyani amalda bekor
+        qilardi: ikkinchi menejer tayinlangan zahoti u birinchisini
+        chiqarib yubora olardi, ya'ni "menejerni faqat menejer chiqaradi"
+        degan qoida "menejerni har qanday menejer chiqaradi" ga aylanardi.
+
+        Menejerlik faqat odamning O'Z qaroridan tugaydi (`/leave/`).
+        Keyin loyiha menejersiz qoladi va tizim admini yangisini tayinlaydi
+        (`can_grant_role` dagi istisno) - loyiha boshqaruvsiz muzlab
+        qolmasin.
         """
         if not self.can_manage:
             return False
-        if self.is_manager_member(member):
-            return self.is_manager
-        return True
+        return not self.is_manager_member(member)
 
     def can_grant_role(self, role):
         """MENEJER rolini faqat menejer bera oladi.

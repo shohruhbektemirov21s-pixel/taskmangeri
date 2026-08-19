@@ -1448,12 +1448,17 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 /* Bugun - asosiy rangda: dizaynda katak ko'k ramka bilan ajratilgan */
 .cal-daynum.today .cal-d { color: var(--accent); font-size: 15px; font-weight: 700; }
 .cal-col.today { box-shadow: inset 0 0 0 1.5px var(--accent); }
-/* Loyiha shu kuni boshlangan bo'lsa - chap chetdagi kichik nishon */
-.cal-count {
-  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
-  background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
-  display: inline-flex; align-items: center; justify-content: center;
+/* Kun katagining o'ng burchagidagi uchta raqam: nazoratda / jarayonda /
+   bajarilgan. Raqamlar rangi tasmalar va izoh bilan bir xil - odam
+   qaysi raqam nima ekanini yodda tutmasin. */
+.cal-mini {
+  display: inline-flex; align-items: baseline; gap: 1px;
+  font-size: 11px; font-weight: 700; line-height: 1;
 }
+.cal-mini i { color: var(--subtle); font-style: normal; font-weight: 500; }
+.cal-mini .st-todo { color: var(--accent); }
+.cal-mini .st-prog { color: var(--attention); }
+.cal-mini .st-done { color: var(--success); }
 
 .cal-bar {
   margin: 0 3px 2px; padding: 1px 7px; border-radius: 4px; font-size: 11px;
@@ -2231,4 +2236,174 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
   .auth-box, .lp-card, .flow, .demo, .stat-band, .deadline-card {
     background: var(--surface); border-color: var(--border);
   }
+}
+
+/* Karta ICHIDAGI filtr qatori — bosh paneldagi katak ro'yxati uchun.
+   `.filters` o'z foni, hoshiyasi va soyasi bilan keladi; karta ustida
+   turganda bu «karta ichida karta» bo'lib ko'rinardi. Joylashuv (flex,
+   yorliqlar, mobil siqilish) qoladi, bezak esa olib tashlanadi va o'rniga
+   jadvaldan ajratib turadigan bitta chiziq qo'yiladi. */
+.filters.filters-inline {
+  background: none; border: none; border-radius: 0; box-shadow: none;
+  margin-bottom: 0; padding: 14px 18px;
+  border-bottom: 1px solid var(--border-muted);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+/* Mobil qoidalar yuqorida `.filters` (bitta sinf) bo'yicha yozilgan, bu
+   yerdagi ikki sinfli tanlagich esa ulardan kuchliroq - shuning uchun
+   kichik ekrandagi ichki bo'shliq shu yerda qaytariladi. */
+@media (max-width: 760px) {
+  .filters.filters-inline { padding: 12px 14px; }
+}
+
+/* ============ YOZILADIGAN TANLAGICH ============
+   Filtr qatoridagi «Loyiha» va «Ijrochi» uchun. Oddiy `<select>` yigirmata
+   odam bo'lganda ish bermay qoldi — ro'yxatni ko'z bilan aylantirib chiqish
+   kerak edi; bu yerda maydonga yozib, ro'yxatni harflar bo'yicha
+   qisqartirish mumkin.
+
+   Ro'yxat maydon USTIDA suzadi: ochilganda filtr qatori cho'zilib, ostidagi
+   jadval pastga sakramasin. */
+.combo { position: relative; }
+.combo-list {
+  position: absolute; z-index: 40; top: 100%; left: 0; right: 0;
+  margin-top: 5px; max-height: 264px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: var(--shadow);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+}
+.combo-item {
+  display: block; width: 100%; text-align: left; padding: 8px 12px;
+  background: transparent; border: none; color: var(--text);
+  font: inherit; font-size: 13.5px; line-height: 1.35; cursor: pointer;
+  white-space: normal;
+}
+.combo-item:hover { background: var(--surface-2); }
+.combo-item.on { background: var(--accent-soft); }
+.combo-empty { padding: 10px 12px; font-size: 13px; }
+
+/* ============ SAHIFADAN SAHIFAGA O'TISH ============
+   Bo'lim almashganda yangi sahifa shartta paydo bo'lardi va ekran
+   "sakragandek" ko'rinardi - ayniqsa mazmuni uzun sahifalarda. Endi u
+   qisqa (.16s) xiralikdan chiqib, bir necha piksel yuqoriga suriladi:
+   ko'z harakatni ilg'aydi, kutish esa sezilmaydi.
+
+   Animatsiya `key` o'zgarganda tugun yangidan chizilgani uchun o'zi
+   qaytadan boshlanadi - JS bilan qo'zg'atish shart emas. Harakatni
+   kamaytirish so'ralgan bo'lsa (`prefers-reduced-motion`) yuqoridagi
+   umumiy qoida uni o'chiradi. */
+.page-swap { animation: page-in .16s ease-out; }
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ============ JAMOANING ISH YUKI ============
+   «Vazifalar» sahifasi (`pages/Tasks.tsx`) va ijrochining loyiha bo'yicha
+   vazifa ro'yxati (`pages/Projects.tsx`) uchun.
+
+   Ro'yxatning o'zi «Umumiy tarix» dagi qatorlarni (`.repo-item`) qayta
+   ishlatadi: o'ttiz kishilik jamoada hamma vazifa ochiq turganda sahifa
+   bir necha ekran pastga cho'zilib ketardi. Bu yerda faqat ochilgan
+   qatorning ichi qoladi. */
+/* Ijrochilar ro'yxati zich: o'ttiz kishi bo'lganda har qatorning
+   ortiqcha 30 piksili sahifani yana bir ekran pastga cho'zadi. */
+.wl .repo-item { padding: 11px 16px; }
+.wl .repo-item h3 { margin: 0; font-size: 14.5px; }
+.wl .repo-meta { margin-top: 4px; gap: 12px; font-size: 11.5px; }
+.wl .repo-meta .lang-dot { width: 8px; height: 8px; box-shadow: none; }
+.wl .card-body { padding: 4px 16px 14px; }
+/* ---- Filtr paneli: BITTA QATOR.
+
+   MUAMMO. Maydonlar qat'iy kenglikda edi (qidiruv 300px, sana 175px,
+   qolgani 155px dan) va guruh o'ng chekkaga surilardi. Noutbuk ekranida
+   (~1280px) yig'indi sig'masdi: panel uch qatorga bo'linib, ro'yxatdan
+   oldin butun boshli ekran egallardi - "kimda nima bor" degan javob esa
+   pastga tushib ketardi.
+
+   YECHIM. Qat'iy kenglik o'rniga ULUSH: hamma maydonning tayanch
+   kengligi kichik, bo'sh joy esa 2:4 nisbatda qidiruv va tanlovlar
+   orasida bo'linadi. Panel keng ekranda ham, tor ekranda ham bitta
+   qatorda qoladi va faqat haqiqatan sig'masa bo'linadi. */
+.wl .filters { padding: 12px 14px; gap: 10px; }
+.wl .filters label { font-size: 11px; margin-bottom: 4px; }
+.wl .filters .f { min-width: 0; flex: 1 1 130px; }
+.wl .filters select, .wl .filters input { width: 100%; }
+.wl .filters .wl-search { flex: 2 1 180px; }
+/* Sana maydoni matn maydoni kengligida cho'zilib ketmasin. */
+.wl .filters .wl-date { flex: 1 1 140px; }
+/* Tanlovlar guruhi - o'ng tomonda, o'zi ham cho'ziladigan qatoriq.
+   `margin-left: auto` endi kerak emas: guruh bo'sh joyning kattaroq
+   ulushini olgani uchun o'zi o'ng chekkaga tayanadi. */
+.wl .filters .wl-filters {
+  display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+  flex: 4 1 520px;
+}
+.wl .filters .wl-filters .f { flex: 1 1 120px; }
+/* «Tozalash» yorliqsiz - qolgan maydonlar bilan bir sathda tursin. */
+.wl .filters .wl-filters .btn-ghost { flex: 0 0 auto; }
+
+/* Telefonda ulush ishlamaydi - joy yo'q. Qidiruv o'z qatorini oladi,
+   tanlovlar esa IKKITADAN tushadi: to'rttasi ustma-ust bo'lsa panel yana
+   bir ekran bo'lib qolardi. Tayanch kenglik 120px - guruh telefonda ~270px
+   ga siqiladi, ya'ni 140px da ikkitasi ham sig'masdi. */
+@media (max-width: 720px) {
+  .wl .filters .wl-search { flex: 1 1 100%; }
+  .wl .filters .wl-filters { flex: 1 1 100%; }
+  .wl .filters .wl-filters .f { flex: 1 1 120px; }
+  .wl .filters .wl-date { flex: 1 1 120px; }
+}
+
+/* ---- Ijrochi qatoridagi xulosa: nechtasi bajarildi, nechtasi yo'q.
+
+   Loyihalar qatorining (`.repo-meta`) ostida, u bilan bir sathda turadi:
+   ikkovi ham qatorning ikkinchi darajali ma'lumoti. Tor ekranda o'ralib
+   ketadi - raqamlar siqilib o'qilmay qolgandan ko'ra pastga tushgani
+   yaxshi. */
+.wl-stats {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  margin-top: 6px; font-size: 11.5px; color: var(--muted);
+}
+.wl-stat b { color: var(--text); font-weight: 650; margin-left: 2px; }
+/* Muddati o'tgani NOL bo'lsa ham yoziladi (u ham javob), lekin diqqatni
+   faqat haqiqatan o'tgani tortsin. */
+.wl-stat.bad, .wl-stat.bad b { color: var(--danger); }
+/* Foiz - qatorning o'ng chekkasida, chiziqcha bilan. `margin-left: auto`
+   tor ekranda ham xavfsiz: guruh o'z qatoriga tushsa ham o'ngda qoladi. */
+.wl-percent {
+  display: flex; align-items: center; gap: 8px; margin-left: auto;
+  min-width: 150px;
+}
+.wl-percent .progress { flex: 1 1 60px; min-width: 50px; }
+.wl-percent b { color: var(--text); font-weight: 650; }
+
+.wl-name { font-weight: 650; font-size: 14px; color: var(--text); }
+.wl-name:hover { color: var(--accent); text-decoration: none; }
+/* Ochilgan qatorning ichi - vazifalar. */
+.wl-tasks { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.wl-due {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; color: var(--muted); white-space: nowrap;
+}
+/* Vazifa QATORI - kartadan farqli o'laroq bir satr: bitta odamda o'nlab
+   vazifa bo'lishi mumkin, karta bo'lsa ro'yxat ekranga sig'masdi. */
+.tline {
+  display: flex; align-items: center; gap: 9px; min-width: 0;
+  padding: 8px 11px; font-size: 13px; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  transition: border-color .16s, background .16s;
+}
+.tline:hover { background: var(--surface-3); border-color: var(--accent); text-decoration: none; }
+.tline.overdue { border-left: 3px solid var(--danger); }
+/* Kalit qisqa va BUTUN qoladi ("HIR-" / "20" bo'lib sinmasin), sarlavha
+   esa qolgan joyni oladi va sig'masa uch nuqta bilan tugaydi. */
+.tline-code { flex: 0 0 auto; white-space: nowrap; }
+.tline-title {
+  flex: 1 1 auto; font-weight: 500; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+/* Telefonda muddat va holat nishonlari sarlavhani siqib qo'ymasin. */
+@media (max-width: 560px) {
+  .tline { flex-wrap: wrap; gap: 6px; }
+  .tline-title { flex: 1 1 100%; order: 1; white-space: normal; }
 }

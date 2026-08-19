@@ -266,6 +266,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 | Exists(ProjectFile.objects.filter(
                     project=OuterRef("pk"), original_name__icontains=needle))
             )
+
+        # MUDDAT KESIMI - «bugun / shu hafta / shu oy / shu yil».
+        #
+        # Hisob `core.api.due_date_span` da: vazifalar ro'yxati va panel
+        # ham o'sha davrni ishlatadi, ya'ni «shu hafta» hamma joyda BITTA
+        # hafta bo'ladi (dushanbadan yakshanbagacha, «oxirgi 7 kun» emas).
+        # `Project.due_date` - `DateField`, shuning uchun lahza emas, sana
+        # ko'rinishidagi o'ram.
+        #
+        # Muddati QO'YILMAGAN loyiha kesimga tushmaydi: `due_date` bo'sh
+        # bo'lsa solishtiruv NULL beradi. Interfeys buni yozib qo'yadi -
+        # aks holda ro'yxatdan yo'qolgan loyiha xatodek tuyulardi.
+        from apps.core.api import due_date_span
+
+        span = due_date_span(self.request.query_params.get("due"),
+                             self.request.query_params.get("period"))
+        if span:
+            qs = qs.filter(due_date__gte=span[0], due_date__lt=span[1])
         return qs
 
     def get_serializer_class(self):
@@ -320,7 +338,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_update(self, serializer):
+        """Loyiha sozlamalari. MENEJERNI almashtirish - alohida ruxsat bilan.
+
+        Bu yo'l ham a'zolar ro'yxatidagi qoidaga bo'ysunadi: loyiha admini
+        a'zo sifatida menejerga tega olmasa (`can_change_member`), loyiha
+        formasidan `manager_id` yuborib ham almashtira olmasin. Aks holda
+        himoya bitta so'rov bilan chetlab o'tilardi - forma bu maydonni
+        ko'rsatmasa ham, API ochiq.
+        """
         manager_id = serializer.validated_data.pop("manager_id", None)
+        if manager_id and manager_id != serializer.instance.manager_id:
+            access = ProjectAccess(self.request.user, serializer.instance)
+            if not access.can_grant_role(ProjectRole.MANAGER):
+                raise PermissionDenied(
+                    "Loyiha menejerini almashtirish huquqi faqat amaldagi menejerda.")
         project = serializer.save(**({"manager_id": manager_id} if manager_id else {}))
         if manager_id:
             ProjectMember.objects.update_or_create(
@@ -462,12 +493,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
         access = ProjectAccess(request.user, project)
         act = request.data.get("action")
 
-        # MENEJER himoyalangan: unga faqat boshqa menejer tega oladi.
+        # MENEJER himoyalangan: unga hech kim tegmaydi - o'zi chiqadi, xolos.
         if act in ("remove", "role") or act is None:
             if not access.can_change_member(member):
                 raise PermissionDenied(
-                    "Loyiha menejeriga tegib bo'lmaydi — uni faqat boshqa menejer "
-                    "almashtira oladi yoki o'zi chiqadi.")
+                    "Loyiha menejeriga tegib bo'lmaydi — u loyihadan faqat o'zi "
+                    "chiqa oladi.")
 
         if act == "appoint_admin":
             if not access.can_appoint_admin:
@@ -685,6 +716,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # odam «doskada bor edi, taqvimda yo'q» degan savolda qolardi.
         tasks_limited = tasks_limited_for(user)
 
+        # Kun katagining o'ng burchagidagi uchta raqam: NAZORATDA /
+        # JARAYONDA / BAJARILDI. Uchtaga bo'linish ataylab qo'pol: oraliq
+        # holatlar («Tekshiruvda», «Tuzatish kerak», «To'xtab qolgan») ham
+        # jarayonga qo'shiladi, aks holda raqamlar yig'indisi o'sha kungi
+        # vazifalar soniga teng bo'lmasdi va odam "qolgani qayerda?" deb
+        # qolardi.
+        by_day = {}
+
         task_rows = []
         tasks = (Task.objects
                  .filter(task_scope_q(user), project_id__in=visible_ids,
@@ -694,6 +733,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
                  .prefetch_related("assignments__user"))
         for task in tasks:
             finish = as_date(task.due_date)
+
+            slot = by_day.setdefault(finish, {"todo": 0, "in_progress": 0, "done": 0})
+            if task.status == TaskStatus.DONE:
+                slot["done"] += 1
+            elif task.status == TaskStatus.TODO:
+                slot["todo"] += 1
+            else:
+                slot["in_progress"] += 1
 
             people = [a.user for a in task.assignments.all() if a.is_active and a.user]
             task_rows.append({
@@ -718,9 +765,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
             })
         task_rows.sort(key=lambda r: (r["from"], r["code"]))
 
-        # `count` - o'sha kuni nechta loyiha MUDDATI tugashi.
-        days = [{"date": first + timedelta(days=i),
-                 "count": counts.get(first + timedelta(days=i), 0)}
+        # `count` - o'sha kuni nechta loyiha MUDDATI tugashi; qolgan uchtasi
+        # - o'sha kungi vazifalar holat bo'yicha.
+        def day_row(d):
+            slot = by_day.get(d) or {"todo": 0, "in_progress": 0, "done": 0}
+            return {"date": d, "count": counts.get(d, 0), **slot}
+
+        days = [day_row(first + timedelta(days=i))
                 for i in range((last - first).days + 1)]
 
         return Response({

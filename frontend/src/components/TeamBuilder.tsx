@@ -174,7 +174,7 @@ export default function TeamBuilder({
                 <span className="badge badge-info">{m.load?.open ?? 0} ochiq</span>
                 {acc?.can_manage && (
                   isManager(m)
-                    ? <span className="badge" title="Menejerni faqat boshqa menejer almashtira oladi">
+                    ? <span className="badge" title="Menejerga tegib bo'lmaydi - u loyihadan faqat o'zi chiqadi">
                         himoyalangan
                       </span>
                     : <button className="btn btn-sm btn-danger" onClick={() => {

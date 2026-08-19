@@ -4,6 +4,7 @@ from datetime import datetime, time as dtime
 
 from django.db.models import Count, Exists, F, OuterRef, Q
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -13,7 +14,8 @@ from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
-from apps.core.queries import int_param
+from apps.core.permissions import managed_projects_q
+from apps.core.queries import int_param, task_search_q
 from apps.projects.api import project_counters
 from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
@@ -71,6 +73,127 @@ def _period_start(period):
     else:
         start = today.replace(month=1, day=1)
     return timezone.make_aware(datetime.combine(start, dtime.min))
+
+
+# Ro'yxat ustidagi «Muddat» tanlagichi. Ro'yxat ochilganda hamma ish
+# ko'rinadi, bu esa uni bir kunga yoki bir kalendar davriga qisqartiradi.
+DUE_RANGES = ("today", "yesterday", "tomorrow", "week", "month", "year")
+
+
+def _due_range_dates(key):
+    """«Muddat» davri - KALENDAR SANALARI `[boshi, oxiri)` yoki `None`.
+
+    Hafta, oy va yil - kalendar davri (dushanbadan yakshanbagacha, oy
+    boshidan oxirigacha), «oxirgi 7 kun» emas: paneldagi taxtalar ham shu
+    mantiqda sanaydi va ikkovi bir xil gapirsin.
+
+    NEGA SANA. Ikki xil ustun bor: `Task.due_date` - lahza (`DateTimeField`),
+    `Project.due_date` esa - sana (`DateField`). Kun chegarasini ikki joyda
+    ikki xil hisoblamaslik uchun MATEMATIKA shu yerda bir marta bajariladi,
+    ustun turiga moslash esa quyidagi ikki o'ramning ishi.
+    """
+    day = timezone.timedelta(days=1)
+    today = timezone.localdate()
+
+    if key == "today":
+        start, end = today, today + day
+    elif key == "yesterday":
+        start, end = today - day, today
+    elif key == "tomorrow":
+        start = today + day
+        end = start + day
+    elif key == "week":
+        start = today - timezone.timedelta(days=today.weekday())   # dushanba
+        end = start + timezone.timedelta(days=7)
+    elif key == "month":
+        start = today.replace(day=1)
+        # Oyning uzunligi turlicha: 32 kun qo'shib, keyingi oyning
+        # birinchi kuniga tushamiz - qaysi oy bo'lishidan qat'i nazar.
+        end = (start + timezone.timedelta(days=32)).replace(day=1)
+    elif key == "year":
+        start = today.replace(month=1, day=1)
+        end = start.replace(year=start.year + 1)
+    else:
+        return None
+
+    return start, end
+
+
+def _due_range(key):
+    """`_due_range_dates` ning LAHZA ko'rinishi - `Task.due_date` uchun.
+
+    Chegara `_period_start` dagidek Toshkent kunidan yasaladi va aniq lahza
+    bo'lib qaytadi, `__date` emas: Db2 da sanani ustundan ajratib olish
+    mintaqani hisobga olmaydi va tunda kun chegarasi bir kunga siljib
+    ketardi.
+    """
+    span = _due_range_dates(key)
+    if span is None:
+        return None
+
+    def midnight(d):
+        return timezone.make_aware(datetime.combine(d, dtime.min))
+
+    return midnight(span[0]), midnight(span[1])
+
+
+def due_span(due_raw="", period=""):
+    """«Muddat» kesimi: aniq SANA yoki tayyor DAVR -> `[boshi, oxiri)`.
+
+    Ikkovi ham bir xil natijaga keladi, shuning uchun bitta joyda. Birga
+    berilsa aniq sana ustun turadi - u aniqroq so'rov. Hech biri berilmasa
+    `None` qaytadi, ya'ni kesim yo'q.
+
+    Muddati QO'YILMAGAN ish bu kesimga hech qachon tushmaydi: `due_date`
+    bo'sh bo'lsa ikkala solishtiruv ham NULL beradi.
+    """
+    due_raw = (due_raw or "").strip()
+    period = (period or "").strip()
+
+    if due_raw:
+        day = parse_date(due_raw)
+        if day is None:
+            raise DrfValidationError({"due": "Sana YYYY-MM-DD korinishida bolsin."})
+        # Kun chegarasi TOSHKENT vaqtidan yasaladi va aniq lahza bo'lib
+        # qaytadi: Db2 da `__date` mintaqani hisobga olmaydi va tungi
+        # ishlar qo'shni kunga tushib qolardi.
+        start = timezone.make_aware(datetime.combine(day, dtime.min))
+        return start, start + timezone.timedelta(days=1)
+
+    if period:
+        span = _due_range(period)
+        if span is None:
+            raise DrfValidationError(
+                {"period": "Faqat {}.".format(", ".join(DUE_RANGES))})
+        return span
+
+    return None
+
+
+def due_date_span(due_raw="", period=""):
+    """`due_span` ning SANA ko'rinishi - `Project.due_date` (`DateField`) uchun.
+
+    Qoida `due_span` bilan bir xil: aniq sana ustun turadi, hech biri
+    berilmasa `None`. Muddati QO'YILMAGAN loyiha bu kesimga hech qachon
+    tushmaydi - `due_date` bo'sh bo'lsa solishtiruv NULL beradi.
+    """
+    due_raw = (due_raw or "").strip()
+    period = (period or "").strip()
+
+    if due_raw:
+        day = parse_date(due_raw)
+        if day is None:
+            raise DrfValidationError({"due": "Sana YYYY-MM-DD korinishida bolsin."})
+        return day, day + timezone.timedelta(days=1)
+
+    if period:
+        span = _due_range_dates(period)
+        if span is None:
+            raise DrfValidationError(
+                {"period": "Faqat {}.".format(", ".join(DUE_RANGES))})
+        return span
+
+    return None
 
 
 # «Yopilmagan» - DONE dan boshqa hamma holat, TEKSHIRUVDAGISI HAM.
@@ -409,20 +532,29 @@ def dashboard(request):
 def panel_tasks(request):
     """Panel katagi bosilganda ochiladigan ro'yxat.
 
-    `?period=year|month|week&metric=todo|overdue|done`
-    `?period=year|month|week&metric=period`  (uchala katak birgalikda -
-        davr nomi bosilganda)
-    `?metric=late_done|overdue_now|waiting`  (davr kerak emas)
+    Katakni tanlash:
+        `?period=year|month|week&metric=todo|overdue|done`
+        `?period=year|month|week&metric=period`  (uchala katak birgalikda -
+            davr nomi bosilganda)
+        `?metric=late_done|overdue_now|waiting`  (davr kerak emas)
+
+    Ro'yxat ichida qidirish va saralash (hammasi ixtiyoriy):
+        `?search=`    kod, sarlavha yoki tavsif bo'yicha
+        `?due=`       today|yesterday|tomorrow|week|month|year - MUDDAT
+        `?status=`    vazifa holati (vergul bilan bir nechtasi)
+        `?project=`   loyiha id
 
     SANOQ BILAN BIR XIL SHART. Ro'yxat ham, katakdagi son ham
     `panel_metric_q` dan oladi - aks holda katakda «5» turib, bosilganda
     to'rtta ish chiqishi mumkin edi va qaysi biri to'g'riligi noma'lum
-    bo'lib qolardi.
+    bo'lib qolardi. Qidiruv esa shu shartning USTIGA qo'yiladi: katak
+    qamrovidan tashqariga chiqmaydi.
     """
     from apps.tasks.serializers import TaskSerializer
 
-    metric = request.query_params.get("metric") or ""
-    period = request.query_params.get("period") or ""
+    p = request.query_params
+    metric = p.get("metric") or ""
+    period = p.get("period") or ""
 
     needs_period = metric in ("todo", "overdue", "done", "period")
     if needs_period and period not in PERIODS:
@@ -434,8 +566,57 @@ def panel_tasks(request):
         raise DrfValidationError({"metric": "Bunday ko'rsatkich yo'q."})
 
     qs, scope = panel_queryset(request.user)
-    tasks = (qs.filter(condition)
-             .select_related("project", "created_by")
+    base = qs.filter(condition)
+
+    # ------------------------------------------------------------ tanlagichlar
+    #
+    # Loyiha ro'yxati SHU katakdagi ishlardan yig'iladi - `base` dan,
+    # qidiruvdan OLDIN. Aks holda loyihani tanlagan odam qolgan loyihalarni
+    # tanlagichdan yo'qotib qo'yardi va tanlovini ortga qaytara olmasdi.
+    # Holat va muddat tanlovlari esa qat'iy ro'yxat, ular frontendda.
+    #
+    # IJROCHI TANLAGICHI OLIB TASHLANDI. Panel ro'yxati odamning O'Z
+    # kesimida ochiladi va ijrochida u doim bitta ismdan iborat bo'lardi -
+    # o'zinikidan. Menejerga esa "kim nima qilyapti" uchun alohida sahifa
+    # bor («Vazifalar», `/team/workload/`) va u shu ish uchun ancha qulay:
+    # odamlar ro'yxati, ish yuki va kechikkanlari bilan. Facet bilan birga
+    # bitta qo'shimcha so'rov ham ketdi.
+    #
+    # Faqat ikki ustun olinadi: Db2 DISTINCT matn (CLOB) ustunini
+    # ko'tarmaydi, `values_list` esa uni so'rovga qo'shmaydi.
+    facets = {
+        "projects": [
+            {"id": pk, "name": name}
+            for pk, name in base.values_list("project_id", "project__name")
+                                .order_by("project__name").distinct()
+        ],
+    }
+
+    # ------------------------------------------------------------ saralash
+    tasks = base
+
+    search = (p.get("search") or "").strip()
+    if search:
+        # Matn ham, kod ham («HIR-75», «75») - shart `queries.task_search_q`
+        # da, «Vazifalar» sahifasi ham o'shani ishlatadi.
+        tasks = tasks.filter(task_search_q(search))
+
+    due = p.get("due") or ""
+    if due:
+        span = _due_range(due)
+        if span is None:
+            raise DrfValidationError(
+                {"due": "Faqat {}.".format(", ".join(DUE_RANGES))})
+        # Muddati QO'YILMAGAN ish oraliqqa tushmaydi - `due_date` bo'sh
+        # bo'lsa ikkala solishtiruv ham NULL beradi va yozuv chetda qoladi.
+        tasks = tasks.filter(due_date__gte=span[0], due_date__lt=span[1])
+
+    if p.get("status"):
+        tasks = tasks.filter(status__in=p["status"].split(","))
+    if p.get("project"):
+        tasks = tasks.filter(project_id=int_param(p["project"], "project"))
+
+    tasks = (tasks.select_related("project", "created_by")
              .prefetch_related("assignments__user")
              .order_by("-priority", "due_date", "-id"))
 
@@ -447,6 +628,7 @@ def panel_tasks(request):
         "period": period or None,
         "scope": scope,
         "count": total,
+        "facets": facets,
         "results": TaskSerializer(tasks[:100], many=True,
                                   context={"request": request}).data,
     })
@@ -462,9 +644,15 @@ def sidebar_counts(request):
     Yon panelga esa faqat uchta son kerak edi va u har sahifa almashganda
     so'ralardi - ya'ni har navigatsiyada butun panel bekorga yig'ilardi.
 
-    Bu yerda faqat `COUNT` bor. Ruxsat qoidasi `dashboard` dagi bilan bir xil:
-    tekshiruv va qo'shilish navbati odam boshqaradigan loyihalar bo'yicha,
-    admin uchun esa hammasi.
+    Bu yerda faqat `COUNT` bor. Ruxsat qoidasi navbatning O'ZI bilan bir
+    xil bo'lishi shart: tekshiruv va qo'shilish odam BOSHQARADIGAN
+    loyihalar bo'yicha, ya'ni loyiha menejeri, loyiha admini va platforma
+    admini uchun (`managed_projects_q`).
+
+    ILGARI qanday edi. Bu yerda faqat `ProjectRole.MANAGER` sanalardi,
+    ro'yxatning o'zi esa (`/tasks/review-queue/`) loyiha adminini ham
+    qo'shardi. Natijada loyiha admini yon panelda «0» ko'rardi, ro'yxatni
+    ochsa esa ishlar turardi - raqam bilan ro'yxat bir-biriga zid edi.
     """
     user = request.user
 
@@ -474,19 +662,12 @@ def sidebar_counts(request):
         mine, project__deleted_at__isnull=True,
         status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS]).count()
 
-    if user.is_platform_admin:
-        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
-                                        project__deleted_at__isnull=True)
-        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
-                                             project__deleted_at__isnull=True)
-    else:
-        managed = Project.objects.filter(
-            Q(manager=user) | Exists(ProjectMember.objects.filter(
-                project=OuterRef("pk"), user=user, is_active=True,
-                role=ProjectRole.MANAGER)))
-        review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
-        join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
-                                             project__in=managed)
+    # `Project.objects` o'chirilgan loyihalarni allaqachon yashiradi -
+    # `project__in=managed` bilan ular sanoqqa ham tushmaydi.
+    managed = Project.objects.filter(managed_projects_q(user))
+    review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
+    join_qs = JoinRequest.objects.filter(status=RequestStatus.PENDING,
+                                         project__in=managed)
 
     return Response({
         "open": open_count,
@@ -509,6 +690,17 @@ def my_work(request):
     if project_id:
         # Yaroqsiz qiymat 500 emas, 400 (sababi `int_param` da).
         qs = qs.filter(project_id=int_param(project_id, "project"))
+
+    # Qidiruv va muddat kesimi - «Vazifalar» sahifasidagi bilan BIR XIL
+    # qoidadan: odam bir ro'yxatda «75» deb topgan ishini ikkinchisida ham
+    # topsin, «shu hafta» ikkovida bir xil hafta bo'lsin.
+    search = (request.query_params.get("search") or "").strip()
+    if search:
+        qs = qs.filter(task_search_q(search))
+
+    span = due_span(request.query_params.get("due"), request.query_params.get("period"))
+    if span:
+        qs = qs.filter(due_date__gte=span[0], due_date__lt=span[1])
 
     groups = []
     for status in [TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED, TaskStatus.IN_PROGRESS,

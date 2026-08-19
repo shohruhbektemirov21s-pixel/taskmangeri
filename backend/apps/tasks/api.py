@@ -10,8 +10,8 @@ from rest_framework.response import Response
 from apps.core.queries import int_param, object_or_404
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
-from apps.core.permissions import (ProjectAccess, check_access, task_scope_q,
-                                   visible_projects_q)
+from apps.core.permissions import (ProjectAccess, check_access, managed_projects_q,
+                                   task_scope_q, visible_projects_q)
 from apps.core.uploads import check_uploads
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
@@ -852,16 +852,24 @@ class TaskViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ tekshiruv
     @action(detail=False, methods=["get"], url_path="review-queue")
     def review_queue(self, request):
+        """Tasdiqlanishi kutilayotgan ishlar - ishni QABUL QILADIGAN odamga.
+
+        KIMGA. Loyiha menejeri, loyiha admini va platforma admini -
+        `managed_projects_q` aynan shu uchovini beradi. Ijrochiga bu navbat
+        tegishli emas: uning ishi tekshiruvga o'tgach qarorni boshqa odam
+        beradi va ro'yxat unda har doim bo'sh edi.
+
+        HALI LOYIHASI YO'Q MENEJER ham kira oladi (`can_create_project`):
+        u loyiha ochishi bilan navbat to'ladi, darhol «ruxsat yo'q»
+        degan javob esa xato tuyulardi - navbat bo'sh, xolos.
+        """
         user = request.user
-        qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
-                                 project__deleted_at__isnull=True)
-        if not user.is_platform_admin:
-            from apps.projects.models import ProjectMember
-            managed = Project.objects.filter(
-                Q(manager=user) | Exists(ProjectMember.objects.filter(
-                    project=OuterRef("pk"), user=user, is_active=True,
-                    role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN])))
-            qs = qs.filter(project__in=managed)
+        # `Project.objects` o'chirilgan loyihalarni yashiradi, ya'ni
+        # `project__in=managed` ularni ro'yxatdan ham chiqarib tashlaydi.
+        managed = Project.objects.filter(managed_projects_q(user))
+        if not (user.can_create_project or managed.exists()):
+            raise PermissionDenied("Tekshiruv navbati loyiha menejeriga tegishli.")
+        qs = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
         qs = (qs.select_related("project", "created_by")
               .prefetch_related("assignments__user", "labels").order_by("submitted_at"))
         return Response(TaskSerializer(qs, many=True,

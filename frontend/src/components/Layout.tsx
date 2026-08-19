@@ -6,7 +6,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import ErrorBoundary from "./ErrorBoundary";
 import { Logo } from "./Logo";
-import { IconBack, IconBell, IconBoard, IconCalendar, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout, IconMenu, IconPlus, IconReview, IconSearch, IconSettings, IconTasks } from "./icons";
+import { IconBack, IconBell, IconBoard, IconCalendar, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLayers, IconLogout, IconMenu, IconPlus, IconReview, IconSearch, IconSettings, IconTasks } from "./icons";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 import { Avatar, SpecialtyTag } from "./ui";
@@ -48,6 +48,10 @@ function BackButton() {
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  // Loyiha boshqaradimi - yon panel shunga qarab boshqacha yoziladi.
+  // ROLdan emas, AMALDAGI holatdan: global roli «Dasturchi» bo'lgan odam
+  // ham biror loyihaga menejer qilib qo'yilgan bo'lishi mumkin.
+  const manages = Boolean(user?.can_create_project || user?.manages_projects);
   const { subscribe } = useRealtime();
   const go = useGo();
   const loc = useLocation();
@@ -117,6 +121,27 @@ export default function Layout() {
     };
   }, [menu]);
 
+  /**
+   * Bo'lim O'Z manzilidan tashqarida ham belgilanadi.
+   *
+   * `NavLink` faqat o'z manzilini biladi, loyiha sahifasi esa butunlay
+   * boshqa marshrutda turadi: ro'yxat `/loyihalar`, bittasi `/loyiha/...`.
+   * Ya'ni loyiha ichida (yoki uning vazifasida) turgan odam yon panelda
+   * hech nima yonmaganini ko'rardi va "men qayerdaman" degan savol
+   * javobsiz qolardi. Nom bo'yicha ham bog'lab bo'lmaydi - `/loyiha`
+   * `/loyihalar` ning boshlanishi emas, aksincha.
+   *
+   * Sahifaning o'zi buni allaqachon aytadi: loyiha va vazifa sarlavhasi
+   * «loyihalar / ...» dan boshlanadi. Yon panel shu bilan mos bo'lsin.
+   */
+  const NAV_FAMILY: Record<string, string[]> = {
+    "/loyihalar": ["/loyiha", "/vazifa"],
+  };
+
+  const inFamily = (to: string) =>
+    (NAV_FAMILY[to] || []).some(
+      (base) => loc.pathname === base || loc.pathname.startsWith(base + "/"));
+
   const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) =>
     itemTo({ to, state: {} }, icon, label, count, hot);
 
@@ -126,7 +151,8 @@ export default function Layout() {
   const itemTo = (target: NavTarget, icon: React.ReactNode, label: string,
                   count?: number, hot = false) => (
     <NavLink to={target.to} state={target.state}
-             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`} end>
+             className={({ isActive }) =>
+               `nav-item ${isActive || inFamily(target.to) ? "active" : ""}`} end>
       <span className="ico">{icon}</span>
       <span className="label">{label}</span>
       {!!count && <span className={`count ${hot ? "hot" : ""}`}>{count}</span>}
@@ -212,10 +238,16 @@ export default function Layout() {
         <Link className="top-icon hide-sm" {...toMessages()} title="Xabarlar">
           <IconChat size={17} />
         </Link>
-        <Link className="top-icon hide-sm" to="/tekshiruv" title="Tekshiruv navbati">
-          <IconInbox size={17} />
-          {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
-        </Link>
+        {/* Tekshiruv navbati - faqat ish qabul qiladigan odamga: loyiha
+            menejeri va admin. Ijrochida bu navbat har doim bo'sh edi
+            (server uni boshqariladigan loyihalar bo'yicha qirqadi), ya'ni
+            menyuda doim bo'sh sahifaga olib boradigan yozuv turardi. */}
+        {manages && (
+          <Link className="top-icon hide-sm" to="/tekshiruv" title="Tekshiruv navbati">
+            <IconInbox size={17} />
+            {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
+          </Link>
+        )}
         {/* Loyiha ochish - faqat menejer va admin */}
         {user?.can_create_project && (
           <Link className="top-icon hide-sm" {...toNewProject()} title="Yangi loyiha">
@@ -244,9 +276,24 @@ export default function Layout() {
             {/* Loyihalar birma-bir sanalmaydi - hammasi shu sahifada, qidiruv
                 bilan. Jamoa kattalashganda yon panel uzayib ketmasin. Ochiq
                 loyihalar ham o'sha yerdagi «Ochiq» tugmasida. */}
-            {item("/loyihalar", <IconBoard />, "Loyihalar")}
+            {/* BIR MANZIL, IKKI NOM. `/loyihalar` menejerga loyiha
+                kartalarini, ijrochiga esa o'z vazifalarini ochadi
+                (`pages/Projects.tsx`) - yorliq ham shunga qarab yoziladi.
+                Ijrochida «Loyihalar» degan yozuv turib, ichidan vazifalar
+                chiqishi chalkash edi. */}
+            {manages
+              ? item("/loyihalar", <IconBoard />, "Loyihalar")
+              : item("/loyihalar", <IconLayers />, "Vazifalar")}
+            {/* Jamoaning ishi - kim nima qilayapti. Faqat loyiha
+                boshqaradigan odamga: ijrochiga o'z ishi yetadi. Marshrut ham
+                himoyalangan (`ManagesOnly`), server ham
+                (`managed_projects_q`). */}
+            {manages && item("/vazifalar", <IconLayers />, "Vazifalar")}
             {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}
-            {item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
+            {/* Tekshiruv navbati - ishni QABUL QILADIGAN odamga (menejer va
+                admin). Marshrut ham himoyalangan (`ManagesOnly`), server
+                ham (`review-queue` boshqariladigan loyihalar bo'yicha). */}
+            {manages && item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
             {/* Ro'yxat ochilsin: sessiyada qolgan suhbatdosh emas. */}
             {itemTo(toMessages(), <IconChat />, "Xabarlar")}
             {item("/bildirishnomalar", <IconBell />, "Bildirishnomalar")}
@@ -284,10 +331,19 @@ export default function Layout() {
           {/* Sahifa to'sig'i: bitta bo'lim yiqilsa yon panel, qidiruv va
               bildirishnomalar joyida qoladi - odam boshqa bo'limga o'tib
               ketaveradi. `key` manzil: yangi sahifada to'siq o'zi tiklanadi,
-              aks holda xato holati saqlanib qolardi. */}
-          <ErrorBoundary key={loc.pathname}>
-            <Outlet />
-          </ErrorBoundary>
+              aks holda xato holati saqlanib qolardi.
+
+              O'sha `key` endi tashqi qatlamda turadi va qisqa o'tishni ham
+              boshqaradi: bo'lim almashganda tugun yangidan chiziladi, ya'ni
+              animatsiya o'z-o'zidan qaytadan boshlanadi. Manzilning FAQAT
+              yo'l qismi olinadi - qidiruv parametri emas: aks holda filtr
+              yozayotgan odam har harfda sahifaning yonib-o'chishini
+              ko'rardi. */}
+          <div className="page-swap" key={loc.pathname}>
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+          </div>
         </div>
       </div>
     </>

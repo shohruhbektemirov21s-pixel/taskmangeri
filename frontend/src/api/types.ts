@@ -41,6 +41,14 @@ export interface User extends UserBrief {
   default_project_role: string;
   /** Loyiha va ish maydoni ocha oladimi - faqat menejer va admin */
   can_create_project: boolean;
+  /**
+   * Amalda biror loyihani boshqaradimi (menejeri yoki loyiha admini).
+   *
+   * `can_create_project` ROLdan kelib chiqadi, bu esa haqiqiy holat:
+   * global roli «Dasturchi» bo'lgan odam ham biror loyihaga menejer
+   * qilib qo'yilgan bo'lishi mumkin. Faqat `/auth/me/` javobida keladi.
+   */
+  manages_projects?: boolean;
   project_count?: number;
   open_tasks?: number;
 }
@@ -378,6 +386,59 @@ export interface MyWorkData {
   projects: { id: number; name: string; key: string; color: string }[];
 }
 
+/* ---- Jamoaning ish yuki (`/team/workload/`) ---- */
+
+export interface WorkloadTask {
+  id: number;
+  code: string;
+  title: string;
+  status: TaskStatusValue;
+  status_display: string;
+  priority: 1 | 2 | 3 | 4;
+  priority_label: string;
+  due_date: string | null;
+  is_overdue: boolean;
+  project: { id: number; name: string; key: string; color: string };
+}
+
+/**
+ * Ijrochining kesim bo'yicha XULOSASI - «nechtasi bajarildi, nechtasi yo'q».
+ *
+ * `task_count` bilan aralashtirmang: u KO'RSATILAYOTGAN vazifalar soni va
+ * holat filtriga bo'ysunadi (standart holatda bajarilgani ro'yxatda yo'q).
+ * Bu esa holat filtridan tashqari hamma kesim bilan sanaladi - aks holda
+ * `done` doim nol bo'lib, xulosaning ma'nosi qolmasdi.
+ */
+export interface WorkloadStats {
+  /** Foiz maxraji - bekor qilinganidan tashqari hamma ish. */
+  total: number;
+  done: number;
+  todo: number;
+  in_progress: number;
+  review: number;
+  changes_requested: number;
+  blocked: number;
+  cancelled: number;
+  overdue: number;
+  done_percent: number;
+}
+
+export interface WorkloadRow {
+  user: UserBrief;
+  /** Ijrochi qaysi loyihalarda - boshqaruvdagilari ichida. */
+  projects: { id: number; name: string; key: string; color: string; role: string }[];
+  task_count: number;
+  overdue_count: number;
+  stats: WorkloadStats;
+  tasks: WorkloadTask[];
+}
+
+export interface TeamWorkloadData {
+  /** Filtr ro'yxati uchun - boshqaruvdagi BARCHA loyihalar. */
+  projects: { id: number; name: string; key: string; color: string }[];
+  developers: WorkloadRow[];
+}
+
 export interface OnboardingData {
   project: {
     id: number; name: string; key: string; description: string; color: string;
@@ -516,7 +577,14 @@ export interface CalendarMonth {
   today: string;
   projects: CalendarProject[];
   tasks: CalendarTask[];
-  days: { date: string; count: number }[];
+  /**
+   * Kun katagi uchun sanoqlar: `count` - o'sha kuni muddati tugaydigan
+   * LOYIHALAR, qolgan uchtasi - VAZIFALAR holat bo'yicha. Oraliq holatlar
+   * («Tekshiruvda», «Tuzatish kerak», «To'xtab qolgan») `in_progress` ga
+   * qo'shiladi: uchta raqamning yig'indisi o'sha kungi vazifalar soniga
+   * teng bo'lsin.
+   */
+  days: { date: string; count: number; todo: number; in_progress: number; done: number }[];
   total: number;
   task_total: number;
   /**

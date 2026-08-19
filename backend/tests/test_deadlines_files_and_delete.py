@@ -236,6 +236,29 @@ class CalendarDueDatesTest(ApiTestCase):
         self.assertEqual(str(tasks[0]["from"]), str(self.day))
         self.assertEqual(str(tasks[0]["to"]), str(self.day))
 
+    def test_kun_katagidagi_uchta_sanoq(self):
+        """Kun katagi: nazoratda / jarayonda / bajarilgan.
+
+        Oraliq holatlar («Tekshiruvda» va boshqalar) JARAYONGA qo'shiladi -
+        uchta raqamning yig'indisi o'sha kungi vazifalar soniga teng
+        bo'lsin, aks holda odam "qolgani qayerda?" deb qolardi.
+        """
+        due = timezone.make_aware(
+            timezone.datetime(self.day.year, self.day.month, self.day.day, 18, 0))
+        for status in ["TODO", "TODO", "IN_PROGRESS", "IN_REVIEW", "DONE",
+                       "CANCELLED"]:
+            Task.objects.create(project=self.project, title="Ish " + status,
+                                due_date=due, status=status, created_by=self.manager)
+
+        row = next(d for d in self.calendar()["days"] if str(d["date"]) == str(self.day))
+        self.assertEqual(row["todo"], 2)
+        self.assertEqual(row["in_progress"], 2)      # IN_PROGRESS + IN_REVIEW
+        self.assertEqual(row["done"], 1)             # bekor qilingani sanalmaydi
+
+    def test_vazifasiz_kunda_sanoqlar_nol(self):
+        row = next(d for d in self.calendar()["days"] if str(d["date"]) == str(self.day))
+        self.assertEqual((row["todo"], row["in_progress"], row["done"]), (0, 0, 0))
+
 
 class CalendarTaskScopeTest(ApiTestCase):
     """Taqvimda kim kimning ishini ko'radi.
