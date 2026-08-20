@@ -8,7 +8,9 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    replaces = [('notifications', '0001_initial'), ('notifications', '0002_alter_notification_kind'), ('notifications', '0003_alter_notification_meta')]
+    # `replaces` olib tashlandi: almashtirilgan migratsiyalar hamma muhitda
+    # qo'llanib bo'lgan va fayllari o'chirilgan (Django hujjatidagi tartib).
+    # Endi bu oddiy boshlang'ich migratsiya - papkada bitta chiziq qoladi.
 
     initial = True
 

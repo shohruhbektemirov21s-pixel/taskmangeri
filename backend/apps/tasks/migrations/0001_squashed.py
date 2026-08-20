@@ -9,12 +9,14 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    replaces = [('tasks', '0001_initial'), ('tasks', '0002_attachment'), ('tasks', '0003_submission_attachment_submission_submissionedit_and_more'), ('tasks', '0004_alter_task_due_date')]
+    # `replaces` olib tashlandi: almashtirilgan migratsiyalar hamma muhitda
+    # qo'llanib bo'lgan va fayllari o'chirilgan (Django hujjatidagi tartib).
+    # Endi bu oddiy boshlang'ich migratsiya - papkada bitta chiziq qoladi.
 
     initial = True
 
     dependencies = [
-        ('projects', '0001_initial'),
+        ('projects', '0001_squashed'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

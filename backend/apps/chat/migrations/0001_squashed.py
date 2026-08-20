@@ -7,13 +7,15 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    replaces = [('chat', '0001_initial'), ('chat', '0002_chatmessage_recipient_and_more')]
+    # `replaces` olib tashlandi: almashtirilgan migratsiyalar hamma muhitda
+    # qo'llanib bo'lgan va fayllari o'chirilgan (Django hujjatidagi tartib).
+    # Endi bu oddiy boshlang'ich migratsiya - papkada bitta chiziq qoladi.
 
     initial = True
 
     dependencies = [
-        ('projects', '0003_alter_project_color'),
-        ('workspaces', '0002_alter_workspace_color'),
+        ('projects', '0001_squashed'),
+        ('workspaces', '0001_squashed'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

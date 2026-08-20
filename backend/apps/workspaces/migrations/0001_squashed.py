@@ -8,7 +8,9 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    replaces = [('workspaces', '0001_initial'), ('workspaces', '0002_alter_workspace_color')]
+    # `replaces` olib tashlandi: almashtirilgan migratsiyalar hamma muhitda
+    # qo'llanib bo'lgan va fayllari o'chirilgan (Django hujjatidagi tartib).
+    # Endi bu oddiy boshlang'ich migratsiya - papkada bitta chiziq qoladi.
 
     initial = True
 
