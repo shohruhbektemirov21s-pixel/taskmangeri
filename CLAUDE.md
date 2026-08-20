@@ -19,7 +19,7 @@ Vazifa boshqaruv tizimi. Repo: `shohruhbektemirov21s-pixel/taskmangeri`. Ildiz: 
 ## Docker — hamma narsa konteynerda ishlaydi
 
 | Servis | Konteyner | Port (host → ichki) |
-|---|---|---|
+| --- | --- | --- |
 | db2 | `teamflow_db2` | 50000 → 50000 |
 | redis | `teamflow_redis` | — |
 | backend | `teamflow_backend` | **8010** → 8000 |
@@ -106,7 +106,7 @@ import { tx } from "@/i18n";
 ```
 
 | Qism | Joyi |
-|---|---|
+| --- | --- |
 | Model va admin | `backend/apps/uitexts/` |
 | Endpoint | `GET /api/ui-texts/` — **tokensiz**, ETag bilan (o'zgarmasa 304) |
 | Repodagi nusxa | `backend/apps/uitexts/defaults.json` (`{kalit: {value, note}}`) |
@@ -169,5 +169,7 @@ olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
 ## Git
 
 Joriy branch: 'main'  mainga push qil, o'z branchingga commit qil va foydalanuvchidan tasdiq so'ra.
+
 ## esingdan chiqmasin
+
 malumotlarni beckenddan ol db2dan ol
