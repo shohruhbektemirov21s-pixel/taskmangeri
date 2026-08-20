@@ -50,7 +50,6 @@ export default function MyWork() {
     <>
       <PageHead
         title={<strong>{tx("my_work.mening_ishim")}</strong>}
-        subtitle={tx("my_work.menga_biriktirilgan_barcha_shaxsiy_vazifalar")}
       />
       <div className="content">
         {error ? (

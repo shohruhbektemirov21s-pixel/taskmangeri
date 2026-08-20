@@ -137,7 +137,6 @@ export default function Admin() {
     <>
       <PageHead
         title={<strong>{tx("common.admin_panel")}</strong>}
-        subtitle={tx("admin.hisoblar_rollar_va_loyihalar_bir")}
         tabs={[
           ["users", `Foydalanuvchilar${counts.users ? ` (${counts.users})` : ""}`],
           ["projects", `Loyihalar${counts.projects ? ` (${counts.projects})` : ""}`],

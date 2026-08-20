@@ -23,6 +23,7 @@ import type {
 } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useLive } from "@/realtime/RealtimeContext";
+import { PageHead } from "@/components/Layout";
 import {
   Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
@@ -445,29 +446,56 @@ export default function Dashboard() {
     if (e.event === "task.update" || e.event === "project.update") reload();
   });
 
-  if (loading) return <div className="content"><Loading text={tx("dashboard.panel_yuklanmoqda")} /></div>;
-  if (!d) return <div className="content"><ErrorMsg error={error || tx("dashboard.panelni_yuklab_bolmadi")} /></div>;
+  // Nom yuklanayotganda ham turadi: aks holda paneldagi joyi bo'sh qolib,
+  // ma'lumot kelgach sakrab paydo bo'lardi.
+  const name = <strong>{tx("layout.bosh_panel")}</strong>;
+
+  if (loading) {
+    return (
+      <>
+        <PageHead title={name} />
+        <div className="content"><Loading text={tx("dashboard.panel_yuklanmoqda")} /></div>
+      </>
+    );
+  }
+  if (!d) {
+    return (
+      <>
+        <PageHead title={name} />
+        <div className="content">
+          <ErrorMsg error={error || tx("dashboard.panelni_yuklab_bolmadi")} />
+        </div>
+      </>
+    );
+  }
 
   return (
-    <div className="content">
-      <p className="scope-note">{SCOPE_LABELS[d.scope]}</p>
+    <>
+      <PageHead title={name} />
 
-      <div className="period-grid">
-        {d.periods.map((p) => (
-          <Band p={p} key={p.key} picked={picked} onPick={setPicked} />
-        ))}
-      </div>
-      <Deadlines d={d.deadlines} picked={picked} onPick={setPicked} />
+      <div className="content">
+        {/* Raqamlar KIMNIKI ekani - `d.scope` rolga qarab kengayadi va
+            buni aytmasak, «bu mening ishimmi yoki jamoanikimi» degan
+            savol javobsiz qolardi. */}
+        <p className="scope-note">{SCOPE_LABELS[d.scope]}</p>
 
-      {picked && (
-        <div className="mt">
-          {/* `key` - boshqa katak bosilganda ro'yxat YANGIDAN
-              yig'ilsin: aks holda oldingi katakda qo'yilgan filtr
-              yangisiga o'tib, odam bo'sh ro'yxat ko'rardi. */}
-          <PickedTasks key={`${picked.period || ""}:${picked.metric}`}
-                       picked={picked} onClose={() => setPicked(null)} />
+        <div className="period-grid">
+          {d.periods.map((p) => (
+            <Band p={p} key={p.key} picked={picked} onPick={setPicked} />
+          ))}
         </div>
-      )}
-    </div>
+        <Deadlines d={d.deadlines} picked={picked} onPick={setPicked} />
+
+        {picked && (
+          <div className="mt">
+            {/* `key` - boshqa katak bosilganda ro'yxat YANGIDAN
+                yig'ilsin: aks holda oldingi katakda qo'yilgan filtr
+                yangisiga o'tib, odam bo'sh ro'yxat ko'rardi. */}
+            <PickedTasks key={`${picked.period || ""}:${picked.metric}`}
+                         picked={picked} onClose={() => setPicked(null)} />
+          </div>
+        )}
+      </div>
+    </>
   );
 }

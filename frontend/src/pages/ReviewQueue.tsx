@@ -73,7 +73,6 @@ export default function ReviewQueue() {
     <>
       <PageHead
         title={<strong>{tx("common.tekshiruv_navbati")}</strong>}
-        subtitle={tx("review_queue.tasdiqlanishi_kutilayotgan_loyiha_topshiriql")}
         actions={!!tasks?.length && (
           <span className="badge badge-danger">{tasks.length} {tx("review_queue.ta_kutmoqda")}</span>
         )}

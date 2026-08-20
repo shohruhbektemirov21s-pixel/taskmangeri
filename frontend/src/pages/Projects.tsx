@@ -89,7 +89,6 @@ function ManagerProjects() {
     <>
       <PageHead
         title={<strong>{tx("common.loyihalar")}</strong>}
-        subtitle={tx("projects.faol_loyihalar_va_jarayonlar_monitoringi")}
         actions={
           user?.can_create_project && (
             <Link className="btn btn-primary" {...toNewProject()}>
@@ -295,7 +294,6 @@ function MyProjectTasks() {
     <>
       <PageHead
         title={<strong>{tx("projects.vazifalarim")}</strong>}
-        subtitle={tx("projects.loyihalar_boyicha_vazifani_bosib_osha")}
         actions={!!total && <span className="badge">{total} {tx("projects.ta_vazifa")}</span>}
       />
       {/* Filtr qatori «Vazifalar» sahifasidagi bilan bir xil: qidiruv

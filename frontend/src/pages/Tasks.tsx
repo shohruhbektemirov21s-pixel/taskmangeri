@@ -77,7 +77,6 @@ export default function Tasks() {
     <>
       <PageHead
         title={<strong>{tx("common.vazifalar")}</strong>}
-        subtitle={tx("tasks.dasturchilar_va_ular_ustida_ishlayotgan")}
         /* Sanoq JAMI ijrochilarniki, sahifadagilarniki emas: u jamoaning
            kattaligini aytadi. */
         actions={!!data && <span className="badge">{data.count} {tx("common.kishi")}</span>}

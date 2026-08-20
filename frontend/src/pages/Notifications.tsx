@@ -68,7 +68,6 @@ export default function Notifications() {
     <>
       <PageHead
         title={<strong>{tx("common.bildirishnomalar")}</strong>}
-        subtitle={tx("notifications.barcha_loyihalar_boyicha_eng_songgi")}
         actions={
           <>
             <span className={`live-tag ${connected ? "on" : ""}`}>
