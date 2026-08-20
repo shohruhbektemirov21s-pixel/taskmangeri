@@ -59,6 +59,24 @@ def serialize(notification):
     return NotificationSerializer(notification).data
 
 
+def clip(text, limit):
+    """Matnni ustunga sig'diradi - BELGI emas, BAYT bo'yicha.
+
+    Db2 da `CharField(max_length=200)` VARCHAR(200) bo'lib, uning o'lchovi
+    baytda. O'zbekcha matnda esa bitta belgi ko'pincha ikki-uch bayt:
+    «—», «…», ismlardagi «ʻ». Shu sabab 200 belgilik matn bemalol 400
+    baytdan oshib ketardi va yozuv `SQL0302N` (SQLSTATE 22001) bilan
+    yiqilardi - bildirishnoma umuman yozilmasdi.
+
+    Kesilgan joyda yarim belgi qolmasin uchun `errors="ignore"` bilan
+    qaytariladi: buzuq bayt tashlab yuboriladi.
+    """
+    data = (text or "").encode("utf-8")
+    if len(data) <= limit:
+        return text or ""
+    return data[:limit].decode("utf-8", "ignore")
+
+
 def notify(recipient, kind, title, body="", url="", actor=None, meta=None, collapse=False):
     """Bitta odamga bildirishnoma yozadi va darrov yuboradi.
 
@@ -81,8 +99,8 @@ def notify(recipient, kind, title, body="", url="", actor=None, meta=None, colla
                 recipient=recipient, kind=kind, url=url, is_read=False).first()
 
         if obj is not None:
-            obj.title = title[:200]
-            obj.body = body[:400]
+            obj.title = clip(title, 200)
+            obj.body = clip(body, 400)
             obj.actor = actor if (actor and getattr(actor, "pk", None)) else None
             obj.meta = meta or {}
             obj.save(update_fields=["title", "body", "actor", "meta"])
@@ -90,7 +108,8 @@ def notify(recipient, kind, title, body="", url="", actor=None, meta=None, colla
             obj = Notification.objects.create(
                 recipient=recipient,
                 actor=actor if (actor and getattr(actor, "pk", None)) else None,
-                kind=kind, title=title[:200], body=body[:400], url=url[:300],
+                kind=kind, title=clip(title, 200), body=clip(body, 400),
+                url=clip(url, 300),
                 meta=meta or {},
             )
     except Exception:

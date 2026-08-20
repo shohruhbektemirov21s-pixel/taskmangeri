@@ -1920,6 +1920,14 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 }
 .notif-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13.5px; }
 .notif-text .muted { font-size: 12.5px; overflow-wrap: anywhere; }
+/* Qo'ng'iroq ostidagi QISQA ro'yxatda matn ikki satrdan oshmasin. Muddat
+   eslatmasi endi kim nima qilishi kerakligini sanab beradi va u yerda
+   besh satrni egallab, qolgan bildirishnomalarni ko'rinishdan surib
+   yuborardi. To'liq matn «Bildirishnomalar» sahifasida turadi. */
+.popover-body .notif-text .muted {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* ---- To'liq sahifa ko'rinishi (`pages/Notifications.tsx`) ----
    Dizaynda qatorlar bir xil oq sathda turadi: o'qilmagani rang bilan emas,
