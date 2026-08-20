@@ -291,9 +291,11 @@ export default function ProjectForm() {
             </div>
 
             <div>
-              {/* O'chirish - faqat loyiha menejeri va admin uchun (serverda ham
-                  shunday tekshiriladi). */}
-              {editing && (acc?.is_manager || acc?.is_admin) && (
+              {/* O'chirish huquqini SERVER aytadi (`can_delete_project`):
+                  menejer, tizim admini va boshliq. Ilgari shart bu yerda
+                  qo'lda takrorlangan edi va serverdagi qoidadan uzilib
+                  qolgandi. */}
+              {editing && acc?.can_delete_project && (
                 <Card title={tx("project_form.loyihani_ochirish")}>
                   <button type="button" className="btn btn-danger btn-block" disabled={busy}
                           onClick={() => void removeProject()}>

@@ -7,7 +7,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.serializers import UserBriefSerializer
-from apps.projects.permissions import check_access, visible_projects_q
+from apps.projects.permissions import (check_access, sees_all_projects,
+                                       visible_projects_q)
 from apps.core.queries import int_param, object_or_404
 from apps.projects.models import Project, ProjectMember
 from apps.projects.serializers import ProjectBriefSerializer, ProjectMemberSerializer
@@ -38,7 +39,12 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
             project = object_or_404(Project, pk=project_id)
             check_access(user, project, "view")
             qs = qs.filter(project=project)
-        elif not user.is_platform_admin:
+        elif not sees_all_projects(user):
+            # Boshliq ham chegarasiz: u har bir loyihani ko'ra oladi, ya'ni
+            # umumiy lenta unga to'liq ochiq bo'lishi kerak. Aks holda
+            # loyihaning O'Z tarixi ko'rinardi-yu (yuqoridagi `project`
+            # shoxi `check_access` dan o'tadi), umumiy lenta faqat o'zi
+            # qatnashgan yozuvlar bilan cheklanardi.
             qs = qs.filter(
                 Q(actor=user) | Exists(ProjectMember.objects.filter(
                     project=OuterRef("project_id"), user=user, is_active=True))
@@ -78,10 +84,13 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
         from apps.core.queries import related_count
 
         qs = Project.objects.filter(deleted_at__isnull=True)
-        # Ko'rish doirasi lentaning o'zi bilan bir xil: admin hammasini,
-        # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi.
-        if not request.user.is_platform_admin:
-            qs = qs.filter(visible_projects_q(request.user))
+        # Ko'rish doirasi lentaning o'zi bilan bir xil (`visible_projects_q`):
+        # hamma loyihani ko'radiganlarga chegara qo'yilmaydi, qolganlarga -
+        # a'zo bo'lgan va o'z maydonidagi ochiq loyihalar. Shart alohida
+        # `if` bilan takrorlanmaydi: aynan shunday takror tufayli boshliq
+        # loyiha tarixini ochib, kesim ro'yxatida o'sha loyihani
+        # ko'rmasdi.
+        qs = qs.filter(visible_projects_q(request.user))
 
         q = (request.query_params.get("q") or "").strip()
         if q:

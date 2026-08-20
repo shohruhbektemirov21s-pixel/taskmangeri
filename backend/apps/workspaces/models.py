@@ -88,7 +88,13 @@ class Workspace(SoftDeleteModel):
     def can_manage(self, user):
         if not user.is_authenticated:
             return False
-        return user.is_platform_admin or self.owner_id == user.id or \
+        # Boshliq ham loyihalar tomonida admin bilan teng (`runs_everything`) -
+        # maydon sozlamalari o'sha huquqning davomi. Import funksiya ichida:
+        # `workspaces` `projects` dan pastda turadi va modul darajasida
+        # bog'lansa halqa paydo bo'ladi.
+        from apps.projects.permissions import runs_everything
+
+        return runs_everything(user) or self.owner_id == user.id or \
             self.role_of(user) in (WorkspaceRole.OWNER, WorkspaceRole.ADMIN)
 
 

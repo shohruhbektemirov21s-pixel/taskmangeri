@@ -3219,6 +3219,34 @@
   "value": "«Yangi taklif» tugmasi bilan boshlang.",
   "note": "pages/Suggestions.tsx"
  },
+ "suggestions.barcha_takliflar": {
+  "value": "Barcha takliflar",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tasdiqlangan_takliflar": {
+  "value": "Tasdiqlangan takliflar",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rad_etilgan_takliflar": {
+  "value": "Rad etilgan takliflar",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tasdiqlangan_bosh": {
+  "value": "Tasdiqlangan taklif yo'q",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tasdiqlangan_bosh_matn": {
+  "value": "Siz tasdiqlagan takliflar shu yerda to'planadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rad_etilgan_bosh": {
+  "value": "Rad etilgan taklif yo'q",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rad_etilgan_bosh_matn": {
+  "value": "Siz rad etgan takliflar shu yerda to'planadi.",
+  "note": "pages/Suggestions.tsx"
+ },
  "suggestions.ochiq": {
   "value": "Ochiq",
   "note": "pages/Suggestions.tsx"
@@ -3297,14 +3325,6 @@
  },
  "suggestions.yopiq": {
   "value": "Yopiq",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.yopiq_bosh": {
-  "value": "Yopiq taklif yo'q",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.yopiq_bosh_matn": {
-  "value": "Yopiq taklifni faqat siz va boshliq ko'radi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.yopiq_izoh": {

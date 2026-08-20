@@ -28,6 +28,24 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*") or ["*"]
 
+# `ALLOWED_HOSTS = ["*"]` bilan produksiyaga chiqib ketish - `SECRET_KEY`
+# bilan bir xil jimgina xato, faqat oqibati boshqa joyda ko'rinadi.
+#
+# Gap Host sarlavhasida emas: WebSocket qatlami aynan shu ro'yxatga
+# tayanadi (`config/asgi.py` dagi `AllowedHostsOriginValidator`). Ro'yxat
+# `*` bo'lsa u HAR QANDAY `Origin` ni qabul qiladi, ya'ni begona saytdan
+# ochilgan ulanishga qarshi himoya butunlay o'chadi. Bundan tashqari
+# Django ning `Host` bo'yicha tekshiruvi ham yo'qoladi - parol tiklash
+# kabi absolyut havolalar begona domen bilan yasalishi mumkin bo'ladi.
+#
+# Ishlab chiqishda hech narsa o'zgarmaydi: `DEBUG=1` da bu shart
+# umuman qaralmaydi.
+if not DEBUG and ALLOWED_HOSTS == ["*"]:
+    raise ImproperlyConfigured(
+        "ALLOWED_HOSTS ko'rsatilmagan. Produksiya uchun domenlarni sanang: "
+        "ALLOWED_HOSTS=teamflow.uz,www.teamflow.uz"
+    )
+
 # Ishlab chiqish uchun standart kalit qulay, lekin u bilan serverga chiqib
 # ketish - eng jimgina va eng qimmat xato: kalit ochiq bo'lsa har kim o'zi
 # uchun haqiqiy sessiya va parol tiklash havolasini yasay oladi. Shuning
@@ -275,8 +293,16 @@ CACHES = {
 # testlardagi so'rov sanog'i o'zgarib turardi (test_panel ba'zan yiqilardi),
 # dev server esa o'sha kungi eslatmalarini yubormay qolardi. Throttle
 # hisoblagichlari ham shu keshda - ular ham izolyatsiyada bo'lgani ma'qul.
-if len(sys.argv) > 1 and sys.argv[1] == "test":
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+if TESTING:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+# ---------------------------------------------------------------- Fon oqimi
+# Tashqi tarmoqqa boradigan ishlar (hozircha - Telegram) foydalanuvchi
+# so'rovining ichida emas, kichik oqimlar to'plamida bajariladi:
+# `apps/core/background.py`. Testlarda o'chiriladi - u yerda chaqiruv
+# joyida bajarilishi va natijasi darrov ko'rinishi kerak.
+BACKGROUND_TASKS = env_bool("BACKGROUND_TASKS", True) and not TESTING
 
 LOGGING = {
     "version": 1,

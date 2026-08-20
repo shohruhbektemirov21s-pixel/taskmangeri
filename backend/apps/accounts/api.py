@@ -15,7 +15,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
-from apps.projects.permissions import IsPlatformAdmin, visible_projects_q
+from apps.projects.permissions import (IsPlatformAdmin, sees_all_projects,
+                                       visible_projects_q)
 from apps.tasks.models import TaskStatus
 
 from .specialties import Seniority, Specialty, specialty_catalog
@@ -281,7 +282,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         target = self.get_object()
         me = request.user
         ctx = {"request": request}
-        wide = bool(me.is_platform_admin or me.pk == target.pk)
+        # Chegarasiz ko'rinish: o'z sahifasi va hamma loyihani
+        # ko'radiganlar (admin, boshliq, global menejer). Ilgari bu yerda
+        # faqat `is_platform_admin` turardi va natijada boshliq begona
+        # odamning sahifasida to'g'ri ma'lumotni ko'rardi-yu, javobda
+        # «ro'yxat qirqilgan» degan bayroq (`limited`) yonib turardi -
+        # interfeys esa shunga qarab ogohlantirish yozardi.
+        wide = bool(sees_all_projects(me) or me.pk == target.pk)
 
         # So'rovchi ko'ra oladigan loyihalar doirasi. Qoida `ProjectAccess.can_view`
         # dan keladi (`visible_projects_q`) - ya'ni boshqa odamning sahifasida

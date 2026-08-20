@@ -376,7 +376,17 @@ export default function Layout() {
               <span style={{ minWidth: 0 }}>
                 <span className="name">{user?.full_name}</span>
                 <br />
-                <span className="role">{user?.specialty_display}</span>
+                {/* Ism ostidagi satr - odam KIM ekani.
+                    BOSHLIQ va TIZIM ADMINI uchun bu mutaxassislik emas.
+                    `specialty` hamma hisobda bor va standarti «Backend
+                    dasturchi» - ikkovi ham uni hech qachon tanlamagan,
+                    kartada esa u lavozimdek ko'rinardi. Ularga tizimdagi
+                    roli yoziladi, qolganlarga oldingidek yo'nalishi. */}
+                <span className="role">
+                  {user && (user.is_boss || user.is_platform_admin)
+                    ? user.global_role_display
+                    : user?.specialty_display}
+                </span>
               </span>
             </Link>
             <button

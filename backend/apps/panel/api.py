@@ -15,10 +15,10 @@ from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
-from apps.projects.permissions import managed_projects_q
+from apps.projects.permissions import managed_projects_q, runs_everything
 from apps.core.periods import DUE_RANGES, PERIODS, _period_start, due_span
 from apps.core.queries import int_param, task_search_q
-from apps.projects.api import project_counters
+from apps.projects.services import project_counters
 from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.accounts.serializers import UserBriefSerializer
@@ -111,6 +111,7 @@ def panel_queryset(user):
     """Panel qaysi ishlarni sanashi - rolga qarab. `(queryset, qamrov)`.
 
     admin    - tirik loyihalardagi hamma ish;
+    boshliq  - shuningdek hamma ish: u butun tashkilotni boshqaradi;
     menejer  - boshqaradigan loyihalari + o'ziga biriktirilgani;
     dasturchi- faqat o'ziga biriktirilgani.
     """
@@ -120,7 +121,7 @@ def panel_queryset(user):
     mine = Exists(TaskAssignment.objects.filter(
         task=OuterRef("pk"), user=user, is_active=True))
 
-    if user.is_platform_admin:
+    if runs_everything(user):
         return live, "all"
 
     managed = Project.objects.filter(
@@ -191,13 +192,29 @@ def dashboard(request):
 
     # `specialties` va `memberships` seriyalizatorda har loyiha uchun
     # o'qiladi - oldindan yuklanmasa har biri alohida so'rov bo'lardi.
+    # RO'YXATLAR CHEKLANADI. Panel javobi bitta so'rovda o'nlab ro'yxatni
+    # olib keladi va ularning har biri to'liq seriyalizatordan o'tadi
+    # (`ProjectSerializer` da jamoa tarkibi, yetishmayotgan yo'nalishlar va
+    # ruxsatlar ham bor). Chegara qo'yilmagan joyda javobning hajmi
+    # foydalanuvchining loyihalari soniga qarab o'sib ketardi: ellik
+    # loyihali menejerda panel eng og'ir sahifaga aylanardi.
+    #
+    # Sanoqlar bundan zarar ko'rmaydi - ular ALOHIDA `count()` bilan
+    # olinadi (`stats`, `team`), ya'ni raqamlar to'liq qoladi va faqat
+    # ko'rsatiladigan ro'yxat qisqaradi.
+    PANEL_LIST = 20
+
     my_projects = (Project.objects.filter(member_of)
                    .select_related("workspace", "manager", "created_by")
                    .prefetch_related("specialties", "memberships__user")
                    .annotate(**project_counters(user))
-                   .order_by("-updated_at"))
+                   .order_by("-updated_at")[:PANEL_LIST])
 
-    if user.is_platform_admin:
+    # Boshliq ham admin bilan bir shoxda: uning tekshiruv navbati, qo'shilish
+    # so'rovlari va tarix lentasi butun tizim bo'yicha bo'ladi - u hamma
+    # loyihada amal qila oladi (`managed_projects_q`), demak navbati ham
+    # o'shancha bo'lishi kerak.
+    if runs_everything(user):
         managed = Project.objects.select_related("manager").order_by("-updated_at")
         review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
                                         project__deleted_at__isnull=True)
@@ -349,6 +366,10 @@ def dashboard(request):
             "open": focus_queue.count(),
             "review": waiting_review.count(),
             "returned": returned.count(),
+            # Ro'yxat kesilgani uchun son alohida kerak: «to'xtab qolgan»
+            # qolgan uchtasi bilan bir qatorda turadi, sanog'i esa yo'q
+            # edi - ro'yxat uzunligidan olinardi.
+            "blocked": blocked.count(),
             "overdue": overdue.count(),
             "done_week": my_tasks.filter(
                 status=TaskStatus.DONE,
@@ -372,9 +393,11 @@ def dashboard(request):
         },
         "next_task": TaskSerializer(next_task, context=ctx).data if next_task else None,
         "focus_queue": TaskSerializer(focus_queue[:8], many=True, context=ctx).data,
-        "returned": TaskSerializer(returned, many=True, context=ctx).data,
-        "blocked": TaskSerializer(blocked, many=True, context=ctx).data,
-        "waiting_review": TaskSerializer(waiting_review, many=True, context=ctx).data,
+        # Uchovi ham kesiladi - sonlari yuqorida `stats` da to'liq turadi.
+        "returned": TaskSerializer(returned[:PANEL_LIST], many=True, context=ctx).data,
+        "blocked": TaskSerializer(blocked[:PANEL_LIST], many=True, context=ctx).data,
+        "waiting_review": TaskSerializer(waiting_review[:PANEL_LIST], many=True,
+                                         context=ctx).data,
         "my_projects": ProjectSerializer(my_projects, many=True, context=ctx).data,
         "managed_projects": ProjectSerializer(managed_page, many=True, context=ctx).data,
         "review_queue": TaskSerializer(review_qs, many=True, context=ctx).data,

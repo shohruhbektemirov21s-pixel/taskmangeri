@@ -109,13 +109,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def can_create_project(self):
-        """Loyiha ochish huquqi - faqat loyiha menejeri va tizim admini.
+        """Loyiha ochish huquqi - menejer, tizim admini va boshliq.
 
         Dasturchi, QA va boshqalar loyiha yarata olmaydi: ular mavjud
         loyihada ishlaydi. Bu huquq ish maydoni ochishga ham tegishli -
         loyihasiz maydonning ma'nosi yo'q.
         """
-        return self.is_platform_admin or self.global_role == GlobalRole.MANAGER
+        return (self.is_platform_admin or self.is_boss
+                or self.global_role == GlobalRole.MANAGER)
 
     @property
     def initials(self):

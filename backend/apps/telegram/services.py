@@ -10,6 +10,8 @@ import logging
 
 from django.conf import settings
 
+from apps.core.background import run_later
+
 from . import client
 from .models import TelegramLink
 
@@ -58,13 +60,24 @@ def link_for(user):
 
 
 def send(user, text, buttons=None):
-    """Bitta odamga xabar. `True` - ketdi."""
+    """Bitta odamga xabar.
+
+    BOG'LANISH BAZADAN shu yerda, TARMOQ esa fonda o'qiladi. Sabab -
+    `apps/core/background.py` da: `client.send_message` tashqi so'rov va u
+    ilgari foydalanuvchi javobini ushlab turardi. Bazaga murojaat esa
+    arzon va indeks ustidan ketadi, uni fonga chiqarish oqimda ortiqcha
+    ulanish ochardi.
+
+    Testlarda fon o'chirilgan (`BACKGROUND_TASKS`), ya'ni chaqiruv joyida
+    bajariladi va `True`/`False` oldingidek qaytadi. Ish rejimida esa
+    javob kutilmaydi - `None` qaytadi va chaqiruvchilar buni tekshirmaydi.
+    """
     if not client.is_configured():
         return False
     link = link_for(user)
     if link is None:
         return False
-    return client.send_message(link.chat_id, text, buttons=buttons)
+    return run_later(client.send_message, link.chat_id, text, buttons=buttons)
 
 
 def send_notification(notification):

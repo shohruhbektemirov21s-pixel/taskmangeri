@@ -71,9 +71,17 @@ function ManagerProjects() {
   const projects = useMemo(() => (data ? listOf<Project>(data) : null), [data]);
   const error = actionError || loadError;
 
-  /** Loyihani boshqara oladimi - menejeri yoki tizim admini. */
-  const canManage = (p: Project) =>
-    p.manager?.id === user?.id || Boolean(user?.is_platform_admin);
+  /** Loyihani boshqara oladimi - javobni SERVER beradi.
+   *
+   * Ilgari bu yerda qoida qayta yozilgan edi («menejeri yoki tizim
+   * admini») va serverdagi `ProjectAccess.can_manage` dan uzilib qoldi:
+   * boshliqqa hamma loyihada boshqaruv berilganda API amalni bajarardi,
+   * ro'yxatdagi «...» menyusi esa chizilmasdi - ya'ni imkoniyat bor edi,
+   * lekin unga yetib bo'lmasdi.
+   *
+   * Endi bayroq javob bilan keladi (`access.can_manage`). Rol qoidasi
+   * o'zgarsa bu sahifani tuzatish kerak emas. */
+  const canManage = (p: Project) => Boolean(p.access?.can_manage);
 
   /** Loyihani o'chirish - jarayondagi ish bo'lsa qo'shimcha tasdiq so'raladi. */
   async function removeProject(id: number, name: string) {
@@ -230,10 +238,17 @@ function ManagerProjects() {
                           takrorlanardi. Bu yerda o'sha yerda yo'q
                           amallar qoladi. */}
                       <Link {...toProjectEdit(p.id)}>{tx("common.tahrirlash")}</Link>
-                      <button type="button" className="danger"
-                              onClick={() => void removeProject(p.id, p.name)}>
-                        {tx("common.ochirish_2")}
-                      </button>
+                      {/* O'chirish TAHRIRLASHDAN tor: loyiha admini
+                          sozlamalarni o'zgartiradi, lekin butun loyihani
+                          yo'q qila olmaydi. Ilgari ikkovi bitta shartda
+                          edi va menyu unga 403 beradigan tugmani
+                          ko'rsatib turardi. */}
+                      {p.access?.can_delete_project && (
+                        <button type="button" className="danger"
+                                onClick={() => void removeProject(p.id, p.name)}>
+                          {tx("common.ochirish_2")}
+                        </button>
+                      )}
                     </RowMenu>
                   </span>
                 )}

@@ -91,6 +91,38 @@ panel  →  projects · tasks · activity · accounts · workspaces  →  core
 - Loyiha ruxsatlari `apps/projects/permissions.py` da — `ProjectAccess`,
   `visible_projects_q`, `task_scope_q`, `managed_projects_q`.
 
+### Global rollar: ko'rish va boshqarish — ikki xil savol
+
+`permissions.py` da ikkita yordamchi bor va ularni **aralashtirma**:
+
+| Yordamchi | Kim | Nima uchun ishlatiladi |
+| --- | --- | --- |
+| `sees_all_projects` | admin, boshliq, **global menejer** | faqat KO'RINISH shartlari |
+| `runs_everything` | admin, boshliq | BOSHQARISH tekshiruvlari |
+
+- **Boshliq (`BOSS`)** — loyihalarda admin bilan teng: hamma loyihani
+  ko'radi va hamma amalni bajaradi. Lekin `django-admin/` va foydalanuvchi
+  rollari unga ochilmaydi — u yer `is_platform_admin` da qoladi.
+- **Global menejer (`MANAGER`)** — hamma loyihani **ko'radi**, faqat o'zi
+  menejer/loyiha admini bo'lgan joyda **boshqaradi**.
+- **Menejerga hech kim tegmaydi** (`can_change_member`) — boshliq ham.
+  Qoida rolga emas, menejerlikning o'ziga bog'langan.
+
+Ko'rish shartiga rol qo'shsang, `visible_projects_q` bilan
+`ProjectAccess.can_view` ni **birga** yangila: ajralib qolsa loyiha
+ro'yxatda ko'rinib, ochilganda 403 beradi.
+
+Shartni `if not user.is_platform_admin:` bilan **takrorlama** —
+`visible_projects_q` hamma loyihani ko'radiganlar uchun bo'sh `Q()`
+qaytaradi, ya'ni uni shartsiz qo'llash yetadi. Takror qoldirilgan joyda
+ro'yxatlar bir-biridan uzoqlashadi: bittasiga yangi rol qo'shiladi,
+ikkinchisida esdan chiqadi.
+
+> `Q() | Q(...)` ga ehtiyot bo'l: Django bo'sh tomonni tashlab, shartni
+> o'ng tomonga **qisqartiradi**. Shuning uchun «hammasini ko'radi»
+> tekshiruvi OR dan oldin, alohida `if` bilan qilinadi
+> (`ProjectViewSet.get_queryset`, `scope="visible"`).
+
 - **API view'lar `api.py` da yoziladi, `views.py` da emas.** Bu loyihaning konvensiyasi — buzma.
 - Biznes-mantiq `services.py` ga chiqariladi (`activity`, `chat`, `notifications` da shunday).
 - `AUTH_USER_MODEL = "accounts.User"`, autentifikatsiya email orqali (`apps/accounts/backends.py`).
@@ -165,8 +197,15 @@ qoida kodda ham, testda ham qulflangan — buzma:
   da, frontendda emas.
 
 Tahrirlash va o'chirish — muallifga; tasdiqlash, rad etish va izoh — faqat
-boshliqqa (tizim admini ham qila olmaydi). Boshliq hisobi `backend/.env`
-dagi `BOSS_*` dan `manage.py bootstrap_boss` orqali yaratiladi.
+boshliqqa. **Tizim admini ham, loyiha menejeri ham qila olmaydi** —
+menejerga hamma loyiha ochilgani bu huquqni bermaydi. Boshliq hisobi
+`backend/.env` dagi `BOSS_*` dan `manage.py bootstrap_boss` orqali
+yaratiladi.
+
+Sahifadagi bo'limlar: «Barcha takliflar» (hammaga), «Tasdiqlangan» va
+«Rad etilgan» (faqat boshliqqa), «Mening takliflarim» — oxirgi. Ular
+serverdagi mavjud filtrlarga tayanadi (`?status=`, `?mine=1`); bo'limni
+yashirish qulaylik uchun, chegara esa `get_queryset` da.
 
 Ovoz sonlari `Count()` bilan emas, `related_count` (ichki so'rov) bilan
 olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
@@ -188,6 +227,21 @@ olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
   bosh sahifadagi **tokensiz** qidiruvga chiqaradi (`apps/panel/public.py`)
   va standarti `False`. Ikkovini aralashtirsang loyiha nomi va tavsifi
   hech kim tanlamagan holda internetga chiqib ketadi.
+- **`join_code` — parol bilan bir og'irlikda.** Kod bilan kelgan so'rov
+  menejerning qarorisiz, DARROV tasdiqlanadi (`ProjectViewSet.join`,
+  `WorkspaceViewSet.join`). Shuning uchun u javobga faqat `can_manage`
+  bo'lganda qo'shiladi (`ProjectSerializer.get_join_code`) — model maydoni
+  sifatida ochib qo'yma. Qo'shilish so'rovida **boshqaruv roli
+  so'ralmaydi** (`JoinRequestSerializer.MANAGING_ROLES`): `MANAGER` ham,
+  `ADMIN` ham. Boshqaruv faqat beriladi (`member_action`).
+- **Tizim rolini loyiha ichidan berma.** `can_appoint_admin` nomi loyiha
+  roliday tuyuladi, aslida odamning `global_role` ini `ADMIN` ga
+  o'tkazadi — ya'ni butun platformani ochadi. U `is_platform_admin` da
+  qoladi va `runs_everything` ga qo'shilmaydi; aks holda
+  `/api/users/:id/role/` dagi `IsPlatformAdmin` qulfi ma'nosiz bo'ladi.
+- **Tashqi tarmoqni so'rov ichida kutma.** Telegram va shunga o'xshash
+  chaqiruvlar `apps/core/background.py` dagi `run_later` orqali ketadi.
+  Testlarda u joyida bajariladi (`settings.BACKGROUND_TASKS`).
 - `django-admin/` marshrutini o'zgartirma — foydalanuvchi undan foydalanadi.
 - N+1 so'rov yaratma; `select_related` / `prefetch_related` ishlat.
 - Migratsiya fayllarini qo'lda tahrirlama, `makemigrations` orqali yarat.

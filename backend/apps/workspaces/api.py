@@ -1,12 +1,13 @@
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Q, Subquery
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.activity.services import log
-from apps.projects.permissions import CanCreateProject
+from apps.projects.permissions import (CanCreateProject, runs_everything,
+                                       sees_all_projects)
 from apps.core.queries import related_count
 from apps.projects.models import Project
 
@@ -32,6 +33,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         qs = Workspace.objects.select_related("owner").annotate(
             member_count=related_count(WorkspaceMember, group_by="workspace"),
             project_count=related_count(Project, group_by="workspace"),
+            # So'rovchining roli - ro'yxat bilan BIRGA. Seriyalizatorda
+            # `my_role` ham, `can_manage` ham shu javobni so'raydi va
+            # oldindan olinmasa har bir maydon uchun ikkitadan qo'shimcha
+            # so'rov ketardi (`WorkspaceSerializer._role`).
+            my_role_value=Subquery(
+                WorkspaceMember.objects
+                .filter(workspace=OuterRef("pk"), user=user)
+                .values("role")[:1]),
         )
         # `Exists()` - `.distinct()` o'rniga: takror qator paydo bo'lmaydi.
         # Db2 `DISTINCT` da CLOB (bu yerda `description`) ni qo'llamaydi.
@@ -42,7 +51,13 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             qs = qs.filter(mine)
         elif scope == "open":
             qs = qs.filter(is_open=True).exclude(mine)
-        elif not user.is_platform_admin:
+        elif not sees_all_projects(user):
+            # Hamma loyihani ko'radiganlar bu yerdan ham o'tadi. Sababi
+            # loyihalardan keladi: loyiha o'z ish maydoniga havola
+            # qiladi va maydon ro'yxatdan tushib qolsa, o'sha havola
+            # yopiq maydonda 404 berardi - ya'ni huquq havolaning
+            # yarmida uzilardi. BOSHQARISH kengaymaydi: `can_manage`
+            # va o'chirish `runs_everything` da qoladi.
             qs = qs.filter(Q(is_open=True) | mine)
         return qs.order_by("name")
 
@@ -64,7 +79,8 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def perform_destroy(self, instance):
-        if not (self.request.user.is_platform_admin or instance.owner_id == self.request.user.id):
+        if not (runs_everything(self.request.user)
+                or instance.owner_id == self.request.user.id):
             raise PermissionDenied("Faqat egasi ochira oladi.")
         # Yumshoq o'chirish. Ilgari `delete()` edi va ish maydoni bilan
         # BIRGA ichidagi hamma loyiha, vazifa va tarix CASCADE bilan yo'q

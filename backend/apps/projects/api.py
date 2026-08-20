@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Count, DecimalField, Exists, OuterRef, Q, Value
-from django.db.models.functions import Cast, Coalesce, NullIf
+from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
@@ -12,10 +11,11 @@ from rest_framework.response import Response
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
 from apps.projects.permissions import (CanCreateProject, ProjectAccess, check_access,
-                                    task_scope_q, tasks_limited_for, visible_projects_q)
+                                    sees_all_projects, task_scope_q, tasks_limited_for,
+                                    visible_projects_q)
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
-from apps.core.queries import object_or_404, related_count
+from apps.core.queries import object_or_404
 from apps.core.uploads import check_uploads
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
@@ -23,6 +23,9 @@ from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
 from .models import (JoinRequest, Project, ProjectBrief, ProjectFile,
                      ProjectFileVersion, ProjectMember,
                      ProjectRole, ProjectSpecialty, RequestStatus)
+# Sanoq va foiz ifodalari `services.py` da: ularni PANEL ham ishlatadi va
+# u yerdan `api.py` ni import qilish view modulini kutubxonaga aylantirardi.
+from .services import progress_expr, project_counters
 from .serializers import (JoinRequestSerializer, ProjectBriefSerializer,
                           ProjectDetailSerializer, ProjectFileSerializer,
                           ProjectMemberSerializer, ProjectSerializer)
@@ -59,63 +62,6 @@ def live_project(project, action, actor=None, **extra):
 
 def _active_people(project):
     return [m.user for m in project.memberships.filter(is_active=True).select_related("user")]
-
-
-OPEN_STATUSES = [s for s in TaskStatus.values
-                 if s not in (TaskStatus.DONE, TaskStatus.CANCELLED)]
-
-
-def project_counters(user):
-    """Loyiha kartochkasidagi raqamlar.
-
-    `annotate(Count(...))` o'rniga ichki so'rov: tashqi so'rovga GROUP BY
-    qo'shilmaydi, ya'ni Db2 dagi CLOB cheklovi (SQL0134N) chetlab o'tiladi.
-    """
-    return {
-        "member_count": related_count(ProjectMember, group_by="project", is_active=True),
-        "open_tasks": related_count(Task, group_by="project", status__in=OPEN_STATUSES),
-        "done_tasks": related_count(Task, group_by="project", status=TaskStatus.DONE),
-        # Bekor qilinganlardan tashqari hammasi - `progress()` shuni ishlatadi
-        # va shu tufayli har loyiha uchun ikkita COUNT yubormaydi.
-        "total_tasks": related_count(Task, group_by="project",
-                                     status__in=[s for s in TaskStatus.values
-                                                 if s != TaskStatus.CANCELLED]),
-        "my_tasks": related_count(Task, group_by="project",
-                                  assignments__user=user, assignments__is_active=True),
-    }
-
-
-def progress_expr():
-    """Bajarilish foizi — SO'ROV ichida hisoblanadi, tartiblash uchun.
-
-    `Project.progress()` shu sonni Python tomonda yasaydi va ekranga u
-    chiqadi. Lekin ro'yxatni foiz bo'yicha TARTIBLASH uchun son bazada
-    kerak: tartib butun ro'yxat bo'yicha bo'lishi shart, sahifaga tushgan
-    yuztasi bo'yicha emas. Aks holda ikkinchi sahifada birinchisidan
-    kattaroq foiz chiqib qolardi.
-
-    Hisob `progress()` bilan bir xil manbadan: bekor qilinganlardan tashqari
-    hamma vazifa maxrajda, bajarilgani suratda. Ikkovi ham `related_count`
-    (ichki so'rov) - `annotate(Count(...))` tashqi so'rovga `GROUP BY`
-    qo'shardi, Db2 esa unda CLOB ustunini (`description`) qo'llamaydi.
-
-    VAZIFASI YO'Q LOYIHA. Maxraj nol bo'ladi va Db2 nolga bo'lishda
-    `SQL0801N` bilan yiqiladi. `NullIf` nolni NULL ga aylantiradi (NULL ga
-    bo'lish NULL beradi, xato emas), `Coalesce` esa uni nolga qaytaradi -
-    ya'ni bunday loyiha 0% bo'lib ro'yxatning oxirida turadi.
-
-    O'nlik son: butun sonda bo'linish Db2 da qoldiqni tashlaydi va 7/9 bilan
-    7/10 bir xil «77%» bo'lib, tartib tasodifiy bo'lib qolardi.
-    """
-    pct = DecimalField(max_digits=12, decimal_places=4)
-    done = related_count(Task, group_by="project", status=TaskStatus.DONE)
-    total = related_count(Task, group_by="project",
-                          status__in=[s for s in TaskStatus.values
-                                      if s != TaskStatus.CANCELLED])
-    return Coalesce(
-        Cast(done, pct) * Value(100) / NullIf(total, Value(0)),
-        Value(0), output_field=pct,
-    )
 
 
 def resolve_workspace(user):
@@ -279,9 +225,22 @@ class ProjectViewSet(viewsets.ModelViewSet):
             # ning queryset ko'rinishi, ya'ni bu yerda ham o'sha qoida.
             # `manager` alohida qo'shiladi: menejerda a'zolik yozuvi
             # bo'lmasligi mumkin.
-            if not user.is_platform_admin:
+            #
+            # HAMMASINI KO'RADIGANLAR (admin, boshliq) shartdan UMUMAN
+            # o'tmaydi va bu shart emas, MAJBURIY. `visible_projects_q`
+            # ular uchun bo'sh `Q()` qaytaradi, Django esa `Q() | Q(...)`
+            # ni bo'sh tomonini tashlab, o'ng tomonga QISQARTIRADI. Ya'ni
+            # "hammasi YOKI boshqaruvidagi" deb yozilgan shart amalda
+            # "faqat boshqaruvidagi" bo'lib qolardi: boshliq butun ro'yxat
+            # o'rniga bo'sh sahifa ko'rardi.
+            if not sees_all_projects(user):
                 qs = qs.filter(visible_projects_q(user) | Q(manager=user))
-        elif scope == "all" and user.is_platform_admin:
+        elif scope == "all" and sees_all_projects(user):
+            # «Hammasi» - admin sahifasi uchun. Boshliq va global menejer
+            # ham shu yerdan o'tadi: ular baribir hamma loyihani ko'radi
+            # (`visible_projects_q`), lekin bu shoxda `is_platform_admin`
+            # qolib ketgani uchun ularning `scope=all` so'rovi jimgina
+            # «faqat a'zo bo'lganlari» ga tushib qolardi.
             pass
         else:  # mine
             qs = qs.filter(member_of())
@@ -430,9 +389,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 # Ruxsatni ham shu yerda tekshiramiz: begona odamga loyihada
                 # nechta ish borligini aytib qo'ymaylik.
                 access = ProjectAccess(request.user, project)
-                if not (access.is_admin or access.is_manager):
+                if not access.can_delete_project:
                     raise PermissionDenied(
-                        "Loyihani faqat loyiha menejeri yoki admin ochira oladi.")
+                        "Loyihani faqat loyiha menejeri, admin yoki boshliq ochira oladi.")
                 return Response({
                     "detail": ("Loyihada {} ta tugallanmagan ish bor. Ochirish uchun "
                                "tasdiqlash kerak.".format(total)),
@@ -447,10 +406,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
-        """Loyihani o'chirish - loyiha menejeri yoki tizim admini.
+        """Loyihani o'chirish - menejer, tizim admini yoki boshliq.
 
         Loyiha admini o'chira olmaydi: u kundalik boshqaruv uchun, butun
-        loyihani yo'q qilish esa egasining qarori.
+        loyihani yo'q qilish esa boshqa og'irlikdagi qaror. Qoida bitta
+        joyda - `ProjectAccess.can_delete_project`.
 
         O'chirish YUMSHOQ: yozuv bazada `deleted_at` bilan qoladi, ro'yxatlarda
         va qidiruvda ko'rinmaydi. Vazifa, fayl, izoh va tarix o'chmaydi -
@@ -460,8 +420,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         tasdiq so'raladi (`?confirm=1`).
         """
         access = ProjectAccess(self.request.user, instance)
-        if not (access.is_admin or access.is_manager):
-            raise PermissionDenied("Loyihani faqat loyiha menejeri yoki admin ochira oladi.")
+        if not access.can_delete_project:
+            raise PermissionDenied(
+                "Loyihani faqat loyiha menejeri, admin yoki boshliq ochira oladi.")
 
         log(actor=self.request.user, verb="project.deleted", workspace=instance.workspace,
             summary="Loyiha ochirildi: " + instance.name,
@@ -547,8 +508,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     "chiqa oladi.")
 
         if act == "appoint_admin":
+            # TIZIM admini tayinlash - loyiha roli emas (`can_appoint_admin`
+            # izohiga qarang). Faqat tizim adminida: aks holda bitta
+            # loyihaning menejeri `/api/users/:id/role/` dagi
+            # `IsPlatformAdmin` qulfini shu yerdan aylanib o'tardi.
             if not access.can_appoint_admin:
-                raise PermissionDenied("Admin tayinlash huquqi faqat loyiha menejerida.")
+                raise PermissionDenied(
+                    "Tizim admini huquqini faqat tizim admini bera oladi.")
             if not member.is_active:
                 raise ValidationError({"detail": "Faol bo'lmagan a'zoni tayinlab bo'lmaydi."})
             target = member.user
@@ -570,7 +536,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
               - superuser (bosh hisob) hech qachon tushirilmaydi.
             """
             if not access.can_appoint_admin:
-                raise PermissionDenied("Adminlikni bekor qilish huquqi faqat loyiha menejerida.")
+                raise PermissionDenied(
+                    "Adminlikni bekor qilish huquqi faqat tizim adminida.")
             target = member.user
             # O'ziga o'zi tegmasin: adminlikdan tushib qolib, keyin uni qaytara
             # olmay qolish oson. Huquqni boshqa admin yoki menejer olib qo'yadi.
@@ -693,9 +660,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi. Bu ro'yxat
         # VAZIFALAR uchun ham kerak: loyihaning o'zi shu oyda tugamasa ham,
         # ichidagi ishning muddati shu oyga tushishi mumkin.
-        seen = Project.objects.filter(deleted_at__isnull=True)
-        if not user.is_platform_admin:
-            seen = seen.filter(visible_projects_q(user))
+        # Shart BIR MANBADAN (`visible_projects_q`): hamma loyihani
+        # ko'radiganlar uchun u bo'sh `Q()` qaytaradi, ya'ni rolni bu yerda
+        # ikkinchi marta sanash shart emas.
+        seen = Project.objects.filter(deleted_at__isnull=True).filter(
+            visible_projects_q(user))
         visible_ids = list(seen.values_list("pk", flat=True))
 
         # `progress()` uchun sanoqlar oldindan olinadi - aks holda taqvimdagi
@@ -1118,7 +1087,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         payload = dict(request.data)
         if not payload.get("desired_role"):
-            payload["desired_role"] = request.user.default_project_role
+            # Mutaxassislikdan keladigan standart rol BOSHQARUV roli bo'lishi
+            # mumkin (PM uchun - `MANAGER`). Uni so'rovga qo'yib bo'lmaydi
+            # (`JoinRequestSerializer`), ya'ni loyiha menejeri qo'shilmoqchi
+            # bo'lsa forma jimgina 400 berardi. Bunday holda ijrochi roli
+            # so'raladi - boshqaruvni baribir amaldagi menejer beradi.
+            wanted = request.user.default_project_role
+            if wanted in JoinRequestSerializer.MANAGING_ROLES:
+                wanted = ProjectRole.DEVELOPER
+            payload["desired_role"] = wanted
         s = JoinRequestSerializer(data=payload, context={"request": request})
         s.is_valid(raise_exception=True)
         req = s.save(project=project, user=request.user)
