@@ -181,11 +181,19 @@ export default function Layout() {
           turgani foyda bermaydi - odam qaysi biri "asosiy" ekanini
           o'ylab qoladi. */}
 
-        {/* QIDIRUV ENG CHAPDA - pastdagi ustun bilan bir tekislikda.
-            Ilgari uning oldida «orqaga» tugmasi turardi va qidiruv sahifa
-            mazmunidan bir tugma kengligiga o'ngga surilib qolardi: tepadagi
-            qator bilan pastdagi sarlavha bir chiziqda emas edi. Endi
-            «orqaga» qidiruvdan keyin turadi - u ikkinchi darajali amal. */}
+        {/* «ORQAGA» ENG CHAPDA - pastdagi ustunning boshi bilan bir
+            tekislikda. Bu paneldagi eng ko'p bosiladigan tugma: odam
+            ro'yxatdan yozuvga kiradi va yana ro'yxatga qaytadi. Ilgari u
+            qidiruvdan keyin, boshqa nishonlar orasida turardi va har safar
+            ko'z bilan qidirishga to'g'ri kelardi. */}
+        <BackButton />
+
+        {/* Orqaga chapda, qolgani o'ngda - orasi bo'sh qoladi */}
+        <span className="spacer" />
+
+        {/* Qidiruv - amallar guruhining boshida, o'ng chetda. Topilgan
+            odamlar ro'yxati ham o'ngga tekislanadi (`.top-hits`), aks holda
+            u ekranning o'ng chetidan chiqib ketardi. */}
         <div className="top-search">
           <form
             className="gh-search"
@@ -237,13 +245,6 @@ export default function Layout() {
           )}
         </div>
 
-        {/* Qidiruv chapda, amallar o'ngda - orasi bo'sh qoladi */}
-        <span className="spacer" />
-
-        {/* «Orqaga» - amallar guruhining boshida. Ilgari u qidiruvdan keyin,
-            bo'sh joyning o'rtasida yolg'iz turardi: qaysi guruhga tegishli
-            ekani ko'rinmasdi. Endi u ham nishon, o'z tengdoshlari yonida. */}
-        <BackButton />
         <ThemeToggle />
         <NotificationBell />
         <Link className="top-icon hide-sm" {...toMessages()} title={tx("layout.xabarlar")}>
