@@ -541,18 +541,38 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 /* Dizaynda kontent ustuni ~1170px va kartalar uchtadan turadi - shuning
    uchun eng kichik kenglik shunga qarab tanlangan. */
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
-/* Loyihalar setkasi: bir qatorda ATAYLAB uchta.
-   `auto-fit` bilan bo'lmaydi - kontent ustuni ~890px, ya'ni u o'zi
-   ikkitaga bo'lib qo'yardi. Tor ekranda ikkitaga, telefonda bittaga
-   tushadi: uchta karta 300px dan tor bo'lsa raqamlar siqilib ketadi. */
-.grid-projects { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-/* Uchtalik noutbukda ham saqlanadi - ikkitaga faqat yon panel yig'ilgan
-   kenglikda tushadi, telefonda esa bittaga. */
-@media (max-width: 900px) { .grid-projects { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 620px) { .grid-projects { grid-template-columns: minmax(0, 1fr); } }
-/* Uchtadan turganda karta tor - ichki bo'shliqlar ham qisqaradi. */
-.grid-projects .pcard { padding: 16px; }
-.grid-projects .pcard-foot { gap: 14px; }
+/* Loyihalar ro'yxati: bir qatorda BITTA karta, butun kenglikka cho'zilgan.
+
+   Ilgari uchtadan turardi. Kontent ustuni ~890px, ya'ni har karta 300px
+   atrofida qolar va shu torlikda nom qirqilar, uchta raqam esa pastda
+   bir-biriga tiqilib qolardi - kartaning yarmi bo'sh, mazmuni esa siqiq.
+
+   Keng qatorda hammasi bir chiziqqa yoyiladi: chapda nom va ish maydoni,
+   o'rtada jarayon chizig'i, o'ngda raqamlar. Setka (grid) ishlatildi -
+   ustunlar kartadan kartaga BIR XIL kenglikda tursin, aks holda uzun
+   nomli loyihada chiziq va raqamlar surilib ketardi. */
+.grid-projects { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.grid-projects .pcard {
+  display: grid; align-items: center; column-gap: 26px; padding: 16px 20px;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(190px, 1fr) auto;
+  grid-template-areas:
+    "name prog foot"
+    "sub  bar  foot";
+}
+.grid-projects .pcard-top { grid-area: name; align-self: end; }
+.grid-projects .pcard-sub { grid-area: sub; align-self: start; }
+.grid-projects .pcard-prog { grid-area: prog; align-self: end; margin: 0 0 5px; }
+.grid-projects .pcard .progress { grid-area: bar; align-self: start; }
+.grid-projects .pcard-foot {
+  grid-area: foot; align-items: center; gap: 26px; margin: 0;
+}
+/* Tor ekranda ustunlar yonma-yon sig'maydi - karta yana ustma-ust
+   yoziladi (nom, jarayon, raqamlar). */
+@media (max-width: 820px) {
+  .grid-projects .pcard { display: block; padding: 16px; }
+  .grid-projects .pcard-prog { margin: 16px 0 7px; }
+  .grid-projects .pcard-foot { margin-top: 16px; gap: 18px; align-items: flex-end; }
+}
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .grid-4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .split { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
