@@ -24,12 +24,14 @@ import {
   IconCheck, IconClose, IconFile, IconIdea, IconNeutral, IconThumbDown, IconThumbUp,
 } from "@/components/icons";
 import {
-  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, timeAgo,
+  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, Pager, timeAgo,
 } from "@/components/ui";
-import { useAuth } from "@/auth/AuthContext";
 import { tx } from "@/i18n";
 
 type Tab = "OPEN" | "CLOSED" | "MINE";
+
+/** Bir sahifada nechta taklif. Serverda ham shu son so'raladi. */
+const PER_PAGE = 10;
 
 /** Bo'sh forma - yangi taklif uchun boshlang'ich holat. */
 const EMPTY = { title: "", body: "", scope: "OPEN" as SuggestionScopeValue, is_anonymous: false };
@@ -399,21 +401,40 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
 /* -------------------------------------------------------------- sahifa */
 
 export default function Suggestions() {
-  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("OPEN");
+  const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Suggestion[]>([]);
+  /* Serverdagi UMUMIY son - sahifa raqamlari shundan hisoblanadi. */
+  const [total, setTotal] = useState(0);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Suggestion | null>(null);
   const [ok, setOk] = useState("");
   /* Taklif saqlandi-yu, fayl yuklanmadi - shu yerda aytiladi. */
   const [warn, setWarn] = useState("");
 
-  const params = tab === "MINE" ? { mine: 1 } : { scope: tab };
+  /* Saralash SERVERDA: eng ko'p qo'llab-quvvatlangani birinchi sahifada
+     turadi. Shuning uchun kesish ham serverda - mijozda kesilsa, "1-o'rin"
+     faqat kelgan o'ttiztaning ichida bo'lardi. */
+  const params = tab === "MINE"
+    ? { mine: 1, page, page_size: PER_PAGE }
+    : { scope: tab, page, page_size: PER_PAGE };
   const { data, error, loading, reload } = useFetch<unknown>("/suggestions/", params);
 
   useEffect(() => {
-    if (data !== null) setRows(listOf<Suggestion>(data));
+    if (data === null) return;
+    setRows(listOf<Suggestion>(data));
+    setTotal((data as { count?: number }).count ?? 0);
   }, [data]);
+
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+
+  /** Bo'limni almashtirish - har doim birinchi sahifadan. */
+  function pick(next: Tab) {
+    setTab(next);
+    setPage(1);
+    setCreating(false);
+    setEditing(null);
+  }
 
   function patch(saved: Suggestion) {
     setRows((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
@@ -428,8 +449,11 @@ export default function Suggestions() {
     });
     if (!yes) return;
     await api.delete(`/suggestions/${item.id}/`);
-    setRows((prev) => prev.filter((r) => r.id !== item.id));
     setOk(tx("suggestions.ochirildi"));
+    // Oxirgi sahifadagi yagona yozuv o'chsa, o'sha sahifa endi yo'q:
+    // server "Invalid page" deb 404 berardi. Bir qadam orqaga qaytamiz.
+    if (rows.length === 1 && page > 1) setPage(page - 1);
+    else reload();
   }
 
   function afterSave(saved: Suggestion, warn?: string) {
@@ -459,7 +483,6 @@ export default function Suggestions() {
     <>
       <PageHead
         title={<strong>{tx("suggestions.sarlavha_sahifa")}</strong>}
-        subtitle={user?.is_boss ? tx("suggestions.tavsif_boshliq") : tx("suggestions.tavsif")}
         actions={
           !creating && !editing && (
             <button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}>
@@ -469,7 +492,7 @@ export default function Suggestions() {
         }
         tabs={TABS.map(([v, l]) => (
           <button key={v} type="button" className={`tab ${tab === v ? "active" : ""}`}
-                  onClick={() => { setTab(v); setCreating(false); setEditing(null); }}>
+                  onClick={() => pick(v)}>
             {l}
           </button>
         ))}
@@ -504,13 +527,29 @@ export default function Suggestions() {
                 key={item.id}
                 item={item}
                 /* O'rin faqat ochiq kesimda: yopiq takliflar jamoa ovoziga
-                   qo'yilmaydi, ya'ni ular orasida "birinchi o'rin" yo'q. */
-                rank={tab === "OPEN" ? i + 1 : null}
+                   qo'yilmaydi, ya'ni ular orasida "birinchi o'rin" yo'q.
+                   Raqam sahifadan sahifaga DAVOM etadi: ikkinchi sahifa
+                   11 dan boshlanadi, yana 1 dan emas. */
+                rank={tab === "OPEN" ? (page - 1) * PER_PAGE + i + 1 : null}
                 onChange={patch}
                 onEdit={() => { setEditing(item); setCreating(false); }}
                 onDelete={() => void remove(item)}
               />
             ))}
+
+            {/* Sahifa raqamlari - bo'linadigan narsa bo'lsagina. Yangi
+                sahifaga o'tilganda tahrir formasi yopiladi: u boshqa
+                sahifada qolgan taklifniki edi. */}
+            {pages > 1 && (
+              <div className="pager-bar">
+                <span className="muted">
+                  {total} {tx("common.tadan")} {(page - 1) * PER_PAGE + 1}—
+                  {Math.min(page * PER_PAGE, total)} {tx("common.tasi")}
+                </span>
+                <Pager page={page} pages={pages}
+                       onPick={(n) => { setPage(n); setEditing(null); }} />
+              </div>
+            )}
           </div>
         )}
       </div>

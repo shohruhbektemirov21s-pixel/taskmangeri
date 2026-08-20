@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { SidebarCounts, UserBrief } from "@/api/types";
@@ -14,6 +15,40 @@ import { toFeed, toMessages, toNewProject, toSelfProfile, toUser, type NavTarget
 import { tx } from "@/i18n";
 
 /**
+ * Sahifa nomi turadigan UYA - yuqori paneldagi bo'sh tugun.
+ *
+ * NEGA PORTAL. Nom sahifaning o'zida yasaladi (`PageHead`): u ko'pincha
+ * yuklab olingan ma'lumotdan keladi - loyihaning nomi, odamning ismi,
+ * vazifaning kodi. Panel esa `Layout` da, sahifadan TASHQARIDA chiziladi.
+ * Nomni tepaga chiqarishning uchta yo'li bor edi:
+ *
+ *   1. har bir sahifa nomni holatga yozsin - `useEffect` bilan. Nom JSX
+ *      tuguni, ya'ni har chizishda YANGI obyekt: bog'liqlik ro'yxatida u
+ *      doim "o'zgargan" bo'lib ko'rinadi va cheksiz qayta chizish boshlanadi;
+ *   2. `Layout` nomni manzildan taxmin qilsin - unda `/loyiha` da loyihaning
+ *      nomi emas, "Loyiha" degan umumiy so'z turardi;
+ *   3. PORTAL - nom o'z sahifasida qoladi, faqat DOM da boshqa joyga
+ *      chiziladi. Holat ham, takrorlash ham kerak emas.
+ *
+ * Uya `null` bo'lishi mumkin: birinchi chizishda panel hali DOM ga
+ * tushmagan. Shunda nom bir kadr ko'rinmaydi va keyin o'z joyiga tushadi.
+ */
+const TitleSlot = createContext<HTMLElement | null>(null);
+
+/**
+ * Sahifani boshiga qaytaradi.
+ *
+ * Uzun ro'yxatlarda (jamoa yuklamasi, tarix, vazifalar) pastga tushgan
+ * odam tepaga qaytish uchun aylantirib chiqishi kerak edi. Panel yopishib
+ * turadi, ya'ni sahifa nomi doim ko'z oldida - uni bosish shu ishni bir
+ * harakatda qiladi. Aylantiriladigan tugun - oynaning o'zi: ilovada
+ * ichki aylanuvchi ustun yo'q (yon panel bundan mustasno).
+ */
+function toPageTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/**
  * Orqaga qaytish tugmasi.
  *
  * NEGA KERAK. Manzilda endi identifikator yo'q (`/loyiha`, `/vazifa`) va
@@ -22,9 +57,9 @@ import { tx } from "@/i18n";
  * tashqarida - ayniqsa to'liq ekran rejimida ko'rinmaydi. Shuning uchun
  * ilovaning o'zida ham bo'lsin.
  *
- * QAYERDA TURADI. Yuqori panelning o'ng chekkasida, boshqa nishonlar
- * bilan bir guruhda. Chapda qidiruv turadi va u sahifa sarlavhasi bilan
- * bir chiziqda: tepadagi qator pastdagi mazmundan surilib qolmasin.
+ * QAYERDA TURADI. Yuqori panelning eng chapida, sahifa nomidan oldin -
+ * kun bo'yi bosiladigan tugma ko'z bilan qidirilmasin. Qidiruv esa
+ * panelning o'ng chetiga, boshqa nishonlar yoniga o'tgan.
  *
  * QACHON O'CHIQ. React Router har bir tarix yozuviga o'z tartib raqamini
  * qo'yadi (`history.state.idx`). Nol bo'lsa - bu ilovadagi birinchi
@@ -62,6 +97,10 @@ export default function Layout() {
   const loc = useLocation();
   const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0 });
   const [q, setQ] = useState("");
+  // Sahifa nomi shu tugunga chiziladi - `PageHead` uni portal orqali
+  // to'ldiradi. `useRef` emas, HOLAT: tugun paydo bo'lganda sahifa
+  // qayta chizilishi kerak, aks holda portal hech qachon ochilmasdi.
+  const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
   const [tick, setTick] = useState(0);
   // Tepadagi qidiruv odamni ham topadi: ism, familiya yoki email bo'yicha.
   const [people, setPeople] = useState<UserBrief[]>([]);
@@ -188,7 +227,11 @@ export default function Layout() {
             ko'z bilan qidirishga to'g'ri kelardi. */}
         <BackButton />
 
-        {/* Orqaga chapda, qolgani o'ngda - orasi bo'sh qoladi */}
+        {/* Sahifa nomi - o'q bilan yonma-yon. Bo'sh tugun: ichini o'sha
+            paytda ochilgan sahifa `PageHead` orqali to'ldiradi. */}
+        <div className="top-title" ref={setTitleSlot} />
+
+        {/* Nom chapda, qolgani o'ngda - orasi bo'sh qoladi */}
         <span className="spacer" />
 
         {/* Qidiruv - amallar guruhining boshida, o'ng chetda. Topilgan
@@ -356,7 +399,9 @@ export default function Layout() {
               ko'rardi. */}
           <div className="page-swap" key={loc.pathname}>
             <ErrorBoundary>
-              <Outlet />
+              <TitleSlot.Provider value={titleSlot}>
+                <Outlet />
+              </TitleSlot.Provider>
             </ErrorBoundary>
           </div>
         </div>
@@ -365,17 +410,27 @@ export default function Layout() {
   );
 }
 
-/** Sahifa sarlavhasi */
+/**
+ * Sahifa sarlavhasi.
+ *
+ * NOM TEPADA. `title` sahifaning ustida emas, YUQORI PANELDA - «orqaga»
+ * tugmasidan keyin - chiziladi (`TitleSlot`). Shu sabab har bir sahifada
+ * nom bir xil joyda turadi va mazmun uchun bir qator baland joy bo'shaydi.
+ * Bu yerda qoladigani: amallar va bo'limlar.
+ *
+ * TAVSIF QATORI YO'Q. Ilgari nom ostida bir qator tushuntirish turardi
+ * («Menga biriktirilgan barcha shaxsiy vazifalar»). U hech qachon o'qilmasdi:
+ * sahifa nima qilishini nomi ham, mazmuni ham aytib turibdi. Endi sahifa
+ * to'g'ridan-to'g'ri ishdan boshlanadi.
+ */
 export function PageHead({
   title,
-  subtitle,
   actions,
   tabs,
   sticky = false,
 }: {
+  /** Yuqori panelga chiqadigan nom - matn ham, tugunlar ham bo'ladi */
   title: React.ReactNode;
-  /** Sarlavha ostidagi qator - masalan loyiha tavsifi */
-  subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   tabs?: React.ReactNode;
   /**
@@ -389,15 +444,30 @@ export function PageHead({
    */
   sticky?: boolean;
 }) {
+  const slot = useContext(TitleSlot);
+
   return (
-    <div className={`page-head ${sticky ? "sticky" : ""}`}>
-      <div className="title-row">
-        <h1>{title}</h1>
-        <span className="spacer" />
-        {actions}
-      </div>
-      {subtitle && <div className="page-sub">{subtitle}</div>}
-      {tabs && <div className="tabs">{tabs}</div>}
-    </div>
+    <>
+      {/* Sahifaning YAGONA `h1` i - u endi panelda turadi. Uya hali
+          yo'q bo'lsa (birinchi chizish) hech narsa chizilmaydi.
+
+          Bosilganda sahifa boshiga qaytadi. Tugmaga aylantirilmadi:
+          ba'zi nomlar ichida havola bor («Loyihalar / Nomi») va havola
+          tugma ichida yaroqsiz bo'lardi. */}
+      {slot && createPortal(
+        <h1 onClick={toPageTop} title={tx("layout.sahifa_boshiga")}>{title}</h1>, slot)}
+
+      {(actions || tabs) && (
+        <div className={`page-head ${sticky ? "sticky" : ""}`}>
+          {actions && (
+            <div className="title-row">
+              <span className="spacer" />
+              {actions}
+            </div>
+          )}
+          {tabs && <div className="tabs">{tabs}</div>}
+        </div>
+      )}
+    </>
   );
 }

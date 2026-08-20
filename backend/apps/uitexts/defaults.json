@@ -67,10 +67,6 @@
   "value": "Hisoblar",
   "note": "pages/Admin.tsx"
  },
- "admin.hisoblar_rollar_va_loyihalar_bir": {
-  "value": "Hisoblar, rollar va loyihalar — bir joyda",
-  "note": "pages/Admin.tsx"
- },
  "admin.ish_maydoni": {
   "value": "Ish maydoni",
   "note": "pages/Admin.tsx"
@@ -289,10 +285,6 @@
  },
  "calendar.dekabr": {
   "value": "Dekabr",
-  "note": "pages/Calendar.tsx"
- },
- "calendar.faqat_tugash_sanalari_qaysi_kuni": {
-  "value": "Faqat tugash sanalari — qaysi kuni nima topshirilishi kerak",
   "note": "pages/Calendar.tsx"
  },
  "calendar.fevral": {
@@ -979,10 +971,6 @@
   "value": "Loyiha qidirish",
   "note": "pages/Feed.tsx"
  },
- "feed.loyihani_bosing_osha_loyihaning_tarixi": {
-  "value": "Loyihani bosing — o'sha loyihaning tarixi ochiladi",
-  "note": "pages/Feed.tsx"
- },
  "feed.matn_boyicha": {
   "value": "Matn boyicha",
   "note": "pages/Feed.tsx"
@@ -1531,6 +1519,10 @@
   "value": "Orqaga qaytish",
   "note": "components/Layout.tsx"
  },
+ "layout.sahifa_boshiga": {
+  "value": "Sahifa boshiga",
+  "note": "components/Layout.tsx"
+ },
  "layout.takliflar": {
   "value": "Takliflar",
   "note": "components/Layout.tsx"
@@ -1591,10 +1583,6 @@
   "value": "Kimga yozamiz",
   "note": "pages/Messages.tsx"
  },
- "messages.loyiha_jamoasi_va_azolari_bilan": {
-  "value": "Loyiha jamoasi va a'zolari bilan real vaqtda muloqot",
-  "note": "pages/Messages.tsx"
- },
  "messages.profil": {
   "value": "Profil",
   "note": "pages/Messages.tsx"
@@ -1635,10 +1623,6 @@
   "value": "Loyihaga qoshiling - menejer mutaxassisligingizga mos vazifa beradi.",
   "note": "pages/MyWork.tsx"
  },
- "my_work.menga_biriktirilgan_barcha_shaxsiy_vazifalar": {
-  "value": "Menga biriktirilgan barcha shaxsiy vazifalar",
-  "note": "pages/MyWork.tsx"
- },
  "my_work.mening_ishim": {
   "value": "Mening ishim",
   "note": "pages/MyWork.tsx"
@@ -1670,10 +1654,6 @@
  "notification_bell.jonli_ulanish_yoq": {
   "value": "Jonli ulanish yo'q",
   "note": "components/NotificationBell.tsx"
- },
- "notifications.barcha_loyihalar_boyicha_eng_songgi": {
-  "value": "Barcha loyihalar bo'yicha eng so'nggi yangiliklar va eslatmalar",
-  "note": "pages/Notifications.tsx"
  },
  "notifications.barchasi": {
   "value": "Barchasi",
@@ -2807,10 +2787,6 @@
   "value": "Bu kesimda vazifa yoq",
   "note": "pages/Projects.tsx"
  },
- "projects.faol_loyihalar_va_jarayonlar_monitoringi": {
-  "value": "Faol loyihalar va jarayonlar monitoringi",
-  "note": "pages/Projects.tsx"
- },
  "projects.jarayon": {
   "value": "Jarayon",
   "note": "pages/Projects.tsx"
@@ -2821,10 +2797,6 @@
  },
  "projects.loyihaga_kirish": {
   "value": "Loyihaga kirish",
-  "note": "pages/Projects.tsx"
- },
- "projects.loyihalar_boyicha_vazifani_bosib_osha": {
-  "value": "Loyihalar boyicha - vazifani bosib osha loyihaga kiring",
   "note": "pages/Projects.tsx"
  },
  "projects.loyihani_ochirib_bolmadi": {
@@ -3067,10 +3039,6 @@
   "value": "ta kutmoqda",
   "note": "pages/ReviewQueue.tsx"
  },
- "review_queue.tasdiqlanishi_kutilayotgan_loyiha_topshiriql": {
-  "value": "Tasdiqlanishi kutilayotgan loyiha topshiriqlari",
-  "note": "pages/ReviewQueue.tsx"
- },
  "review_queue.tekshiruvni_saqlab_bolmadi": {
   "value": "Tekshiruvni saqlab bolmadi",
   "note": "pages/ReviewQueue.tsx"
@@ -3297,14 +3265,6 @@
  },
  "suggestions.tasdiqlash": {
   "value": "Tasdiqlash",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.tavsif": {
-  "value": "Nima o'zgarishini taklif qiling — jamoa ovoz beradi, boshliq qaror qiladi",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.tavsif_boshliq": {
-  "value": "Jamoaning takliflari. Eng ko'p qo'llab-quvvatlangani yuqorida turadi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.yangi_taklif": {
@@ -3877,10 +3837,6 @@
  },
  "tasks.dasturchi_topilmadi": {
   "value": "Dasturchi topilmadi",
-  "note": "pages/Tasks.tsx"
- },
- "tasks.dasturchilar_va_ular_ustida_ishlayotgan": {
-  "value": "Dasturchilar va ular ustida ishlayotgan vazifalar",
   "note": "pages/Tasks.tsx"
  },
  "tasks.ism_vazifa_kod_hir_75": {

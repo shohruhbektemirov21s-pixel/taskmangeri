@@ -103,9 +103,6 @@ export default function ProjectDetail() {
             )}
           </>
         }
-        /* Tavsif har bir bo'limda ko'rinib tursin - loyiha nimaligini
-           bilish uchun «Umumiy» ga qaytish shart emas. */
-        subtitle={project.description || undefined}
         actions={
           <>
             {acc.can_create_task && (
