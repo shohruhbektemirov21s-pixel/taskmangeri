@@ -78,8 +78,12 @@ export default function UserSearch({
         <IconSearch size={14} />
         <input
           type="search"
+          name="odam-qidiruv"
           value={q}
           autoFocus={autoFocus}
+          /* Yorliq placeholder da EMAS: u yozila boshlaganda yo'qoladi va
+             ekran o'quvchi uchun maydon nomsiz qoladi. */
+          aria-label={placeholder}
           placeholder={placeholder}
           onChange={(e) => setQ(e.target.value)}
         />

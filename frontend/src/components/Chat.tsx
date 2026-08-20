@@ -204,7 +204,10 @@ export default function Chat({
         <div className="row" style={{ alignItems: "flex-end" }}>
           <textarea
             rows={1}
+            name="xabar"
             value={text}
+            /* Yorliq placeholder da emas - u birinchi harfdayoq yo'qoladi. */
+            aria-label={tx("chat.xabar_yozing")}
             placeholder={tx("chat.xabar_yozing")}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}

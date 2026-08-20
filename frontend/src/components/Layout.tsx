@@ -247,8 +247,15 @@ export default function Layout() {
             }}
           >
             <IconSearch size={14} />
+            {/* `name` va `aria-label` SHART. Placeholder yorliq emas: odam
+                yoza boshlagan zahoti u yo'qoladi va ekran o'quvchi maydonni
+                nomsiz deb e'lon qiladi. Brauzer ham nomsiz maydonni eslab
+                qololmaydi - Chrome buni «A form field element should have an
+                id or name attribute» deb ogohlantiradi. */}
             <input
               type="search"
+              name="qidiruv"
+              aria-label={tx("layout.odam_tarix_va_loyihalardan_qidirish")}
               placeholder={tx("layout.odam_tarix_va_loyihalardan_qidirish")}
               value={q}
               onChange={(e) => { setQ(e.target.value); setOpenHits(true); }}

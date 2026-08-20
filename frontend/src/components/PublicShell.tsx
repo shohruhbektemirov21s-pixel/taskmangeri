@@ -64,7 +64,11 @@ export default function PublicShell({
               }}
             >
               <IconSearch size={14} />
-              <input ref={input} type="search" value={q} placeholder={tx("public_shell.loyiha_qidirish")}
+              {/* Yorliq `aria-label` da: placeholder yozila boshlaganda
+                  yo'qoladi va maydon nomsiz qolardi. */}
+              <input ref={input} type="search" name="qidiruv" value={q}
+                     aria-label={tx("public_shell.loyiha_qidirish")}
+                     placeholder={tx("public_shell.loyiha_qidirish")}
                      onChange={(e) => setQ(e.target.value)} />
               <kbd>/</kbd>
             </form>
