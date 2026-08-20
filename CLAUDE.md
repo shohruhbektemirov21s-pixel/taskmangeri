@@ -56,8 +56,13 @@ print(Task.objects.count())
 
 # Frontend
 docker compose exec -T frontend npx tsc --noEmit               # lint = type-check
+docker compose exec -T frontend npm test                       # vitest
 docker compose exec -T frontend npm run build                  # tsc -b && vite build
 ```
+
+> `manage.py test` `EOFError` bersa — kod aybdor emas: Db2 da eski sinov
+> bazasi qolib ketgan. Boshqa nom ber:
+> `docker compose exec -T -e DB2_TEST_DB=TFTEST7 backend python manage.py test --noinput`
 
 ## Muhit o'zgaruvchilari
 
@@ -67,7 +72,24 @@ Backend `./backend/.env` faylini `env_file` orqali oladi. U yerda `DB2_*`, `REDI
 
 ## Backend tuzilishi va konvensiyalar
 
-`backend/apps/` ichida: `accounts`, `activity`, `chat`, `core`, `notifications`, `projects`, `suggestions`, `tasks`, `telegram`, `uitexts`, `workspaces`.
+`backend/apps/` ichida: `accounts`, `activity`, `chat`, `core`, `notifications`, `panel`, `projects`, `suggestions`, `tasks`, `telegram`, `uitexts`, `workspaces`.
+
+### Qatlam tartibi — buzma
+
+```
+panel  →  projects · tasks · activity · accounts · workspaces  →  core
+```
+
+- **`apps/core` da domen importi BO'LMASIN.** U eng pastki qatlam: Db2
+  adapteri, `JSONTextField`, yumshoq o'chirish, `related_count`, fayl
+  uzatish, o'qish shlyuzi va sof kalendar hisobi (`periods.py`). Unga
+  `projects`, `tasks` va boshqalarni import qilsang halqa qaytadi va uni
+  sindirish uchun yana funksiya ichiga yashiringan importlar kerak bo'ladi.
+- **`apps/panel` ga hech kim bog'lanmasin.** U eng ustki qavat: bir necha
+  domen ustidan o'qiydigan ko'rinishlar (bosh panel, «Mening ishim», jamoa
+  yuklamasi, ochiq qidiruv). Modeli yo'q.
+- Loyiha ruxsatlari `apps/projects/permissions.py` da — `ProjectAccess`,
+  `visible_projects_q`, `task_scope_q`, `managed_projects_q`.
 
 - **API view'lar `api.py` da yoziladi, `views.py` da emas.** Bu loyihaning konvensiyasi — buzma.
 - Biznes-mantiq `services.py` ga chiqariladi (`activity`, `chat`, `notifications` da shunday).
@@ -153,7 +175,7 @@ olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
 
 1. O'zgartirishdan oldin tegishli fayllarni o'qi — taxmin qilma.
 2. Backend o'zgarsa: `makemigrations` → `migrate` → `manage.py test`.
-3. Frontend o'zgarsa: `npx tsc --noEmit` toza bo'lishi shart.
+3. Frontend o'zgarsa: `npx tsc --noEmit` va `npm test` toza bo'lishi shart.
 4. UI o'zgarsa: Playwright MCP bilan `http://localhost:5183` ni ochib **ko'z bilan tekshir** — skrinshotni foydalanuvchidan so'rama.
 5. Bo'sh holat (empty state) matnlarini unutma — ular o'zbekcha va foydalanuvchiga tushunarli bo'lsin.
 
@@ -161,6 +183,11 @@ olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
 
 - **Soxta/mock ma'lumot qo'shma.** Ro'yxatlar backend'dan, backend esa Db2 dan olishi shart. Vaqtinchalik "namuna" massivlar qoldirilmasin.
 - **Ko'rinadigan matnni JSX ga qattiq yozma** — `tx("kalit")` ishlat va kalitni `defaults.json` ga qo'sh. Yagona istisno: `main.tsx` dagi "aloqa yo'q" xabari (lug'atsiz chiqadi).
+- **Loyihani tashqariga chiqaradigan bayroq — `is_listed`, `is_public` EMAS.**
+  `is_public` «ish maydoni ichida ochiq» degani; `is_listed` esa loyihani
+  bosh sahifadagi **tokensiz** qidiruvga chiqaradi (`apps/panel/public.py`)
+  va standarti `False`. Ikkovini aralashtirsang loyiha nomi va tavsifi
+  hech kim tanlamagan holda internetga chiqib ketadi.
 - `django-admin/` marshrutini o'zgartirma — foydalanuvchi undan foydalanadi.
 - N+1 so'rov yaratma; `select_related` / `prefetch_related` ishlat.
 - Migratsiya fayllarini qo'lda tahrirlama, `makemigrations` orqali yarat.

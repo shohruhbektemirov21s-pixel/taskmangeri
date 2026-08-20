@@ -11,7 +11,7 @@ va GitHub uslubidagi ish maydonlari (workspaces) birlashtirilgan.
 | Frontend | Node 22 · React 19 · TypeScript · Vite 7 | http://localhost:5183 |
 | Ma'lumotlar bazasi | IBM Db2 12.1 | localhost:50000 |
 | Real-time | Django Channels · Redis 7 · WebSocket | ws://localhost:5183/ws/ |
-| Konteynerlar | Docker Compose (4 servis) | — |
+| Konteynerlar | Docker Compose (5 servis) | — |
 
 ---
 
@@ -52,7 +52,7 @@ loyiha boshqaruvsiz qolib ketmasin. Menejer faqat o'zi chiqadi yoki boshqa
 menejer almashtiradi. Istisno: loyiha menejersiz qolgan bo'lsa, tizim admini
 yangi menejer tayinlay oladi (aks holda loyiha muzlab qolardi).
 
-Ruxsatlar bitta joyda — `backend/apps/core/permissions.py` (`ProjectAccess`).
+Ruxsatlar bitta joyda — `backend/apps/projects/permissions.py` (`ProjectAccess`).
 
 ---
 
@@ -113,7 +113,7 @@ odamni **email yoki ism bo'yicha qidirib topadi** (uzun ochiluvchi ro'yxat emas 
 jamoa kattalashganda ishlamay qoladi), rol beradi va bosadi. A'zolik shu zahoti
 paydo bo'ladi.
 
-Qoida bitta joyda — `apps/core/team.py` → `add_to_project`. Ikkala endpoint ham
+Qoida bitta joyda — `apps/projects/services.py` → `add_to_project`. Ikkala endpoint ham
 (`POST /api/team/add/` va `POST /api/projects/:id/members/add/`) shunga tayanadi,
 shuning uchun ular hech qachon bir-biridan farq qilib ketmaydi.
 
@@ -173,11 +173,20 @@ borligini ko'rmasdan turib odam ro'yxatdan o'tmaydi.
   jamoa tarkibi, qanday mutaxassis kerakligi va **bo'sh o'rinlar**;
 - `/` bosilganda qidiruv maydoni fokuslanadi.
 
-**Chegara qat'iy.** Ochiq API (`/api/public/…`) faqat `is_public=True`
+**Chegara qat'iy.** Ochiq API (`/api/public/…`) faqat `is_listed=True`
 loyihalarni beradi va faqat xavfsiz maydonlarni: qo'shilish kodi, a'zolar
 ro'yxati, emaillar, vazifalar matni, fayllar va tarix **chiqmaydi**.
-Menejerning faqat ismi ko'rinadi. Yopiq loyiha so'ralsa — `404`.
+Menejerning faqat ismi ko'rinadi. Ro'yxatda yo'q loyiha so'ralsa — `404`.
 So'rovlar soni cheklangan (`search` scope) — ma'lumotni qirqib olishning oldini oladi.
+
+**`is_listed` va `is_public` — ikki xil savol.** `is_public` «ish maydoni
+ichida ochiq» degani: hamkasblar ko'radi va qo'shilish so'rovi yubora oladi,
+maydondan tashqariga chiqmaydi. `is_listed` esa loyihani shu ochiq qismga
+chiqaradi va uning standarti **`False`** — platformadan tashqariga chiqarish
+aytib bajariladigan amal bo'lishi kerak. Ilgari bitta bayroq ikkovini ham hal
+qilardi, standarti `True` edi va formada umuman ko'rsatilmasdi: ya'ni har bir
+yangi loyihaning nomi va tavsifi hech kim tanlamagan holda tokensiz ko'rinib
+turardi. Ikkala tanlov ham endi loyiha formasida.
 
 ---
 
@@ -198,16 +207,16 @@ loyihalar. Cheklov bo'lgani javobda `limited: true` bilan aytiladi.
 | WebSocket Origin tekshiruvi — begona saytdan ulanib bo'lmaydi | `config/asgi.py` |
 | WebSocket JWT autentifikatsiyasi, yaroqsiz token → `4401` | `config/ws_auth.py` |
 | Kirish va ro'yxatdan o'tishga cheklov (20/min) — parol topishga qarshi | `accounts/api.py` |
-| Chat (90/min) va a'zo qo'shish (40/soat) cheklovlari | `chat/api.py`, `core/team.py` |
+| Chat (90/min) va a'zo qo'shish (40/soat) cheklovlari | `chat/api.py`, `panel/team.py` |
 | Cheklov hisoblagichi Redis da — jarayonlar orasida umumiy | `settings.CACHES` |
 | Shaxsiy yozishmani faqat ikki tomon o'qiydi | `chat/api.py` → `get_queryset` |
 | Xabarni faqat muallifi (yoki admin) o'chiradi | `chat/api.py` |
 | Boshqa odamning ishi so'rovchi huquqi bilan cheklanadi | `accounts/api.py` → `work` |
 | Bildirishnoma havolasi faqat ilova ichiga olib boradi | `components/ui.tsx` → `safePath` |
-| Ochiq API faqat `is_public` loyiha va xavfsiz maydonlar | `core/public.py` |
-| Rollar va ro'yxatlar frontendda qattiq yozilmagan — `/api/meta/` dan | `core/api.py` |
-| Menejerni hech kim chiqara olmaydi (tizim admini ham) | `core/permissions.py` → `can_change_member` |
-| Menejer rolini faqat menejer beradi | `core/permissions.py` → `can_grant_role` |
+| Ochiq API faqat `is_listed` loyiha va xavfsiz maydonlar | `panel/public.py` |
+| Rollar va ro'yxatlar frontendda qattiq yozilmagan — `/api/meta/` dan | `panel/api.py` |
+| Menejerni hech kim chiqara olmaydi (tizim admini ham) | `projects/permissions.py` → `can_change_member` |
+| Menejer rolini faqat menejer beradi | `projects/permissions.py` → `can_grant_role` |
 | Loyiha hujjatlarini yuklash va o'chirish — faqat jamoa (o'qish ko'rish huquqi bilan) | `projects/api.py` → `files` |
 | Topshiriqni faqat muallif yoki menejer tahrirlaydi, tarix o'chmaydi | `tasks/api.py` |
 | Media fayllar imzolangan, 6 soatlik manzil bilan uzatiladi | `core/media.py` → `serve_media` |
@@ -518,9 +527,16 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 │       ├── chat/               # loyiha va ish maydoni suhbati
 │       ├── suggestions/        # takliflar: ovoz, anonimlik, boshliq qarori
 │       ├── uitexts/            # interfeys matnlari (sayt so'zlari bazada)
-│       └── core/               # ruxsatlar, dashboard, meta
+│       ├── telegram/           # bot: bildirishnomalarni Telegramga uzatadi
+│       ├── panel/              # bosh panel, «Mening ishim», jamoa yuklamasi,
+│       │                       #   ochiq qidiruv — bir necha domen ustidan o'qiydi
+│       └── core/               # ENG PASTKI QATLAM: Db2 adapteri, umumiy
+│                               #   maydonlar, yumshoq o'chirish, so'rov
+│                               #   yordamchilari, fayl uzatish, o'qish shlyuzi.
+│                               #   Domen ilovalarini BILMAYDI.
 └── frontend/
-    ├── Dockerfile
+    ├── Dockerfile              # dev / build / prod (nginx) bosqichlari
+    ├── nginx.conf              # produksiyada statik + API/WS proksisi
     └── src/
         ├── main.tsx            # avval matnlarni yuklaydi, keyin bootstrap
         ├── bootstrap.tsx       # React daraxti (provayderlar + App)
