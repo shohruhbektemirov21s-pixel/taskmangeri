@@ -15,14 +15,12 @@
  */
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ApiError, api, listOf } from "@/api/client";
+import { ApiError, api, listOf, pagesOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
 import type { Project, User } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import {
-  Avatar, Card, Empty, ErrorMsg, Loading, confirmDelete, fmtDate,
-} from "@/components/ui";
+import { Avatar, Card, confirmDelete, Empty, ErrorMsg, fmtDate, Loading, Pager } from "@/components/ui";
 import { toProject, toUser } from "@/nav";
 import { tx } from "@/i18n";
 
@@ -33,6 +31,9 @@ const ROLE_TONE: Record<string, string> = {
 };
 
 /** Yangi hisob formasi — bo'sh holati bir joyda tursin. */
+/** Bir sahifada nechta yozuv (foydalanuvchi ham, loyiha ham). */
+const PER_PAGE = 30;
+
 const EMPTY_FORM = {
   email: "", full_name: "", password: "",
   global_role: "DEVELOPER", specialty: "", seniority: "JUNIOR", job_title: "",
@@ -46,6 +47,8 @@ export default function Admin() {
   const [q, setQ] = useState("");
   const [role, setRole] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [projectPage, setProjectPage] = useState(1);
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
@@ -53,17 +56,26 @@ export default function Admin() {
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
 
+  // SAHIFALASH. Ikkala ro'yxat ham `page_size: 200` bilan so'ralardi -
+  // bu serverdagi eng katta ruxsat etilgan qiymat, ya'ni SHIFT
+  // (`config/pagination.py`). 201-yozuv hech qanday belgisiz yo'qolardi
+  // va aynan admin panelida bu eng xavfli: bu yerda odam «hammasini
+  // ko'ryapman» deb ishonadi.
   const { data: userData, loading, reload } = useFetch<any>(
     tab === "users" ? "/users/" : null,
-    { search: q, role, inactive: showInactive ? "1" : "", page_size: 200 },
+    { search: q, role, inactive: showInactive ? "1" : "",
+      page: userPage, page_size: PER_PAGE },
     { debounceMs: 300 },
   );
   const users = useMemo(() => (userData ? listOf<User>(userData) : null), [userData]);
+  const userPages = pagesOf(userData, PER_PAGE);
 
   const { data: projectData, reload: reloadProjects } = useFetch<any>(
-    tab === "projects" ? "/projects/" : null, { scope: "all", page_size: 200 });
+    tab === "projects" ? "/projects/" : null,
+    { scope: "all", page: projectPage, page_size: PER_PAGE });
   const projects = useMemo(
     () => (projectData ? listOf<Project>(projectData) : null), [projectData]);
+  const projectPages = pagesOf(projectData, PER_PAGE);
 
   function done(message: string) {
     setError(null);
@@ -138,8 +150,12 @@ export default function Admin() {
       <PageHead
         title={<strong>{tx("common.admin_panel")}</strong>}
         tabs={[
-          ["users", `Foydalanuvchilar${counts.users ? ` (${counts.users})` : ""}`],
-          ["projects", `Loyihalar${counts.projects ? ` (${counts.projects})` : ""}`],
+          ["users", counts.users
+            ? `${tx("people.foydalanuvchilar")} (${counts.users})`
+            : tx("people.foydalanuvchilar")],
+          ["projects", counts.projects
+            ? `${tx("common.loyihalar")} (${counts.projects})`
+            : tx("common.loyihalar")],
         ].map(([value, label]) => (
           <button key={value} type="button"
                   className={`tab ${tab === value ? "active" : ""}`}
@@ -156,12 +172,12 @@ export default function Admin() {
             <div className="filters">
               <div className="f grow">
                 <label htmlFor="adm-q">{tx("common.qidiruv")}</label>
-                <input id="adm-q" value={q} onChange={(e) => setQ(e.target.value)}
+                <input id="adm-q" value={q} onChange={(e) => { setQ(e.target.value); setUserPage(1); }}
                        placeholder={tx("admin.ism_login_yoki_lavozim_boyicha")} />
               </div>
               <div className="f">
                 <label htmlFor="adm-role">{tx("common.rol")}</label>
-                <select id="adm-role" value={role} onChange={(e) => setRole(e.target.value)}>
+                <select id="adm-role" value={role} onChange={(e) => { setRole(e.target.value); setUserPage(1); }}>
                   <option value="">{tx("common.hammasi")}</option>
                   {(meta?.global_role || []).map((r) => (
                     <option key={String(r.value)} value={String(r.value)}>{r.label}</option>
@@ -313,6 +329,11 @@ export default function Admin() {
                     ))}
                   </tbody>
                 </table></div>
+                {userPages > 1 && (
+                  <div className="card-body">
+                    <Pager page={userPage} pages={userPages} onPick={setUserPage} />
+                  </div>
+                )}
               </Card>
             )}
           </>
@@ -349,6 +370,11 @@ export default function Admin() {
                   ))}
                 </tbody>
               </table></div>
+            )}
+            {projectPages > 1 && (
+              <div className="card-body">
+                <Pager page={projectPage} pages={projectPages} onPick={setProjectPage} />
+              </div>
             )}
           </Card>
         )}

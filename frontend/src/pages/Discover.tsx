@@ -1,31 +1,43 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, listOf } from "@/api/client";
+import { listOf, pagesOf } from "@/api/client";
+import { useFetch } from "@/api/useFetch";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Card, Empty, Loading, SpecialtyTag } from "@/components/ui";
+import { Card, Empty, ErrorMsg, Loading, Pager, SpecialtyTag } from "@/components/ui";
 import { toProject, toProjectJoin, useGo } from "@/nav";
 import { tx } from "@/i18n";
 
+/** Bir sahifada nechta ochiq loyiha. */
+const PER_PAGE = 30;
+
+/**
+ * «Loyihaga qo'shilish» - ochiq loyihalar ro'yxati.
+ *
+ * Ilgari bu yerda `api.get(...)` `catch` siz chaqirilardi va sahifa
+ * serverdagi har qanday xatoda abadiy «Yuklanmoqda» da muzlab qolardi -
+ * odam sababini bilmasdi. Endi `useFetch`: xato matn bo'lib ekranga
+ * chiqadi, eski so'rov bekor qilinadi va komponent yo'q bo'lgach holat
+ * yozilmaydi (`api/useFetch.ts` dagi izohga qarang).
+ */
 export default function Discover() {
   const fid = useId();
   const go = useGo();
   const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[] | null>(null);
+  // `q` - maydonda yozilayotgan matn, `applied` - serverga yuborilgani.
+  // «Qidirish» bosilgunicha so'rov ketmaydi - `Projects.tsx` dagi bilan
+  // bir xil tartib.
   const [q, setQ] = useState("");
+  const [applied, setApplied] = useState("");
+  const [page, setPage] = useState(1);
 
-  async function load() {
-    setProjects(null);
-    const d = await api.get<any>("/projects/", {
-      scope: "discover",
-      search: q,
-      page_size: 100,
-    });
-    setProjects(listOf<Project>(d));
-  }
-
-  useEffect(() => { void load(); }, []);
+  // `page_size: 100` ilgari shift edi - yuzinchidan keyingi ochiq loyiha
+  // hech qanday belgisiz yo'qolardi.
+  const { data, error, loading } = useFetch<any>(
+    "/projects/", { scope: "discover", search: applied, page, page_size: PER_PAGE });
+  const projects = useMemo(() => (data ? listOf<Project>(data) : null), [data]);
+  const pages = pagesOf(data, PER_PAGE);
 
   return (
     <>
@@ -33,22 +45,33 @@ export default function Discover() {
       <div className="content">
         <div className="split">
           <div>
-            <form className="filters" onSubmit={(e) => { e.preventDefault(); void load(); }}>
+            <ErrorMsg error={error} />
+
+            <form className="filters"
+                  onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); setPage(1); }}>
               <div className="f grow">
                 <label htmlFor={`${fid}-0`}>{tx("common.qidiruv")}</label>
                 <input id={`${fid}-0`} value={q} onChange={(e) => setQ(e.target.value)}
                        placeholder={tx("discover.loyiha_nomi_yoki_kaliti")} />
               </div>
               <button className="btn">{tx("discover.qidirish")}</button>
+              {!!applied && (
+                <button type="button" className="btn btn-ghost"
+                        onClick={() => { setQ(""); setApplied(""); setPage(1); }}>
+                  {tx("common.tozalash")}
+                </button>
+              )}
             </form>
 
-            {!projects ? <Loading /> : (
+            {loading ? <Loading /> : projects && (
               <div className="card">
                 <div className="card-list">
                   {projects.map((p) => (
                     /* Butun karta bosiladi - loyihaga kirish uchun tugmani
-                       qidirib o'tirish shart emas. Ichidagi tugmalar o'z
-                       ishini qiladi (`stopPropagation`). */
+                       qidirib o'tirish shart emas. Bu SICHQONCHA uchun
+                       qulaylik; klaviatura yo'li ichidagi havolalar orqali
+                       allaqachon ochiq, shuning uchun kartaning o'zi
+                       qo'shimcha tab to'xtashiga aylantirilmaydi. */
                     <div className="repo-item clickable" key={p.id}
                          onClick={() => go(toProject(p.id))}>
                       <div className="row wrap">
@@ -84,6 +107,7 @@ export default function Discover() {
                 </div>
               </div>
             )}
+            {pages > 1 && <Pager page={page} pages={pages} onPick={setPage} />}
           </div>
 
           <div>

@@ -55,7 +55,8 @@ print(Task.objects.count())
 "
 
 # Frontend
-docker compose exec -T frontend npx tsc --noEmit               # lint = type-check
+docker compose exec -T frontend npm run typecheck              # tsc --noEmit
+docker compose exec -T frontend npm run lint                   # eslint (react-hooks!)
 docker compose exec -T frontend npm test                       # vitest
 docker compose exec -T frontend npm run build                  # tsc -b && vite build
 ```
@@ -82,12 +83,24 @@ panel  →  projects · tasks · activity · accounts · workspaces  →  core
 
 - **`apps/core` da domen importi BO'LMASIN.** U eng pastki qatlam: Db2
   adapteri, `JSONTextField`, yumshoq o'chirish, `related_count`, fayl
-  uzatish, o'qish shlyuzi va sof kalendar hisobi (`periods.py`). Unga
-  `projects`, `tasks` va boshqalarni import qilsang halqa qaytadi va uni
-  sindirish uchun yana funksiya ichiga yashiringan importlar kerak bo'ladi.
+  uzatish, o'qish shlyuzi, tezlik cheklovlari (`throttles.py`) va sof
+  kalendar hisobi (`periods.py`). Unga `projects`, `tasks` va boshqalarni
+  import qilsang halqa qaytadi va uni sindirish uchun yana funksiya
+  ichiga yashiringan importlar kerak bo'ladi.
+- **Bir amalning ikkita eshigi bo'lsa, cheklov ham ikkovida bo'lsin.**
+  A'zo qo'shish `/api/team/add/` da ham, `/api/projects/<id>/members/add/`
+  da ham bor va ikkovi bitta servisni chaqiradi (`add_to_project`).
+  `AddMemberThrottle` shu sabab `apps/core/throttles.py` da: u panelda
+  turganida `projects` uni import qila olmasdi (panel ustki qatlam) va
+  40/soat qoidasi ikkinchi manzil orqali chetlab o'tilardi.
 - **`apps/panel` ga hech kim bog'lanmasin.** U eng ustki qavat: bir necha
   domen ustidan o'qiydigan ko'rinishlar (bosh panel, «Mening ishim», jamoa
   yuklamasi, ochiq qidiruv). Modeli yo'q.
+- **Katta o'qish hisobotlari view'dan tashqarida.** `ProjectViewSet` da
+  faqat marshrut qoladi, hisob esa alohida modulda: taqvim —
+  `apps/projects/calendar_view.py`, muddat bashorati —
+  `apps/projects/forecast.py`. Ikkovi ham sof o'qish va klassni yuzlab
+  qatorga uzaytirardi.
 - Loyiha ruxsatlari `apps/projects/permissions.py` da — `ProjectAccess`,
   `visible_projects_q`, `task_scope_q`, `managed_projects_q`.
 
@@ -142,6 +155,17 @@ Bu qatlamni olib tashlasang migratsiyalar birinchi yozuvdayoq buziladi.
 `frontend/src/` ichida: `api/`, `auth/`, `components/`, `i18n/`, `nav/`, `pages/` (+ `pages/project/`), `realtime/`, `styles/`.
 
 - Marshrutlash — `react-router-dom` v7.
+- **Umumiy komponentlar uch faylga bo'lingan.** `components/ui.tsx` —
+  ko'rinish (avatar, karta, nishon, `Pager`, `ErrorMsg`); `components/dates.tsx` —
+  sana hisobi va maydonlari (`TZ`, `fmtDate`, `DateField`); `components/diff.tsx` —
+  yonma-yon solishtirish. Eski import yo'li ishlayveradi (`ui.tsx` qayta
+  eksport qiladi), lekin YANGI kod to'g'ridan-to'g'ri `@/components/dates`
+  va `@/components/diff` dan olsin — aks holda hammasi yana umumiy
+  bog'lamga qaytadi.
+- **Ro'yxat so'raganda `page_size` ga shift qo'yma.** Server chegarasi 200
+  (`config/pagination.py`); unga tiralgan ro'yxat JIMGINA qirqiladi. `Pager`
+  komponenti va `pagesOf` / `totalOf` yordamchilari (`api/client.ts`) shu
+  uchun bor. Jami sonni `count` dan ol, ekrandagi qatorlar sonidan emas.
 - Real-time ulanishlar `realtime/` da.
 - API chaqiruvlari `api/` orqali; komponent ichida `fetch` yozma.
 - Vite proxy: `VITE_API_URL=/api`, `VITE_PROXY_TARGET=http://backend:8000`.
@@ -214,7 +238,10 @@ olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
 
 1. O'zgartirishdan oldin tegishli fayllarni o'qi — taxmin qilma.
 2. Backend o'zgarsa: `makemigrations` → `migrate` → `manage.py test`.
-3. Frontend o'zgarsa: `npx tsc --noEmit` va `npm test` toza bo'lishi shart.
+3. Frontend o'zgarsa: `npm run typecheck`, `npm run lint` va `npm test` toza
+   bo'lishi shart. Lint da OGOHLANTIRISH bor (bugun 43 ta — eski `any` lar),
+   lekin CI `--max-warnings 43` bilan yuguradi: YANGISI qo'shilsa qizaradi.
+   Sonni oshirma — qarzni kamaytir va chegarani tushir.
 4. UI o'zgarsa: Playwright MCP bilan `http://localhost:5183` ni ochib **ko'z bilan tekshir** — skrinshotni foydalanuvchidan so'rama.
 5. Bo'sh holat (empty state) matnlarini unutma — ular o'zbekcha va foydalanuvchiga tushunarli bo'lsin.
 

@@ -1,11 +1,11 @@
 import { useEffect, useId, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { listOf } from "@/api/client";
+import { listOf, pagesOf, totalOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
 import type { Project, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
-import { Empty, ErrorMsg, Loading, TaskRow, TaskScopeNote } from "@/components/ui";
+import { Empty, ErrorMsg, Loading, Pager, TaskRow, TaskScopeNote } from "@/components/ui";
 import { toNewTask, useNavParams } from "@/nav";
 import { tx } from "@/i18n";
 
@@ -22,6 +22,9 @@ import { tx } from "@/i18n";
 const FILTER_KEYS = ["status", "assignee", "task_type", "search", "open", "overdue"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
+/** Bir sahifada nechta vazifa. */
+const PER_PAGE = 50;
+
 export default function TaskList({ project }: { project: Project }) {
   const fid = useId();
   const { meta } = useAuth();
@@ -37,14 +40,25 @@ export default function TaskList({ project }: { project: Project }) {
     ) as Record<FilterKey, string>;
   }, [qs]);
   const filtered = FILTER_KEYS.some((k) => f[k]);
+  // Sahifa raqami ham FILTR bilan bir joyda turadi (`useNavParams`) -
+  // ya'ni «orqaga» tugmasi uchinchi sahifadan ikkinchisiga qaytaradi va
+  // havola ulashilganda ham o'sha sahifa ochiladi.
+  const page = Math.max(1, Number(params.get("page")) || 1);
 
   // Ilgari qidiruv maydoniga yozilgan HAR HARF uchun 200 tagacha vazifa
   // so'ralardi, ustiga `setTasks(null)` ro'yxatni har harfda "Yuklanmoqda" ga
   // almashtirardi - ekran pirillardi. Endi so'rov yozish to'xtagach ketadi,
   // eskisi bekor qilinadi va ro'yxat joyida turadi.
+  //
+  // 200 - serverdagi eng katta ruxsat etilgan sahifa
+  // (`config/pagination.py`), ya'ni u SHIFT edi: 201-vazifa loyiha
+  // ro'yxatida hech qanday belgisiz ko'rinmay qolardi. Endi sahifalanadi.
   const { data, error, loading, reload } = useFetch<any>(
-    "/tasks/", { project: project.id, ...f, page_size: 200 }, { debounceMs: 300 });
+    "/tasks/", { project: project.id, ...f, page, page_size: PER_PAGE },
+    { debounceMs: 300 });
   const tasks = useMemo(() => (data ? listOf<Task>(data) : null), [data]);
+  const total = totalOf(data);
+  const pages = pagesOf(data, PER_PAGE);
 
   useEffect(() => subscribe((d) => {
     if (d.event === "task.update" && Number(d.project) === project.id) reload();
@@ -56,7 +70,18 @@ export default function TaskList({ project }: { project: Project }) {
     const next = new URLSearchParams(qs);
     if (v) next.set(k, v);
     else next.delete(k);
+    // Filtr o'zgardi - birinchi sahifadan boshlanadi. Aks holda uchinchi
+    // sahifada turib qidiruv yozgan odam bo'sh ekran ko'rardi.
+    next.delete("page");
     setParams(next, { replace: true });
+  };
+
+  /** Sahifa almashtirish - filtrlar o'z joyida qoladi. */
+  const goPage = (n: number) => {
+    const next = new URLSearchParams(qs);
+    if (n > 1) next.set("page", String(n));
+    else next.delete("page");
+    setParams(next);
   };
 
   return (
@@ -143,6 +168,17 @@ export default function TaskList({ project }: { project: Project }) {
               </Link>
             )}
           </Empty>
+        )}
+        {pages > 1 && (
+          <div className="card-body">
+            {/* Jami son SERVERDAN (`count`), ekrandagi qatorlar sonidan
+                emas - sahifalangan ro'yxatda ular boshqa-boshqa. */}
+            <p className="muted" style={{ margin: "0 0 8px", fontSize: 12.5 }}>
+              {total} {tx("common.tadan")} {(page - 1) * PER_PAGE + 1}—
+              {Math.min(page * PER_PAGE, total)} {tx("common.tasi")}
+            </p>
+            <Pager page={page} pages={pages} onPick={goPage} />
+          </div>
         )}
       </div>
     </>

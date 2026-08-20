@@ -18,22 +18,16 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
 
 from math import ceil
 
 from apps.core.queries import int_param, object_or_404, task_search_q
+from apps.core.throttles import AddMemberThrottle
 from apps.accounts.serializers import UserBriefSerializer
 from apps.activity.services import log
 from apps.projects.services import add_to_project
 
 User = get_user_model()
-
-
-class AddMemberThrottle(ScopedRateThrottle):
-    """Eski `invite` cheklovi (40/soat) shu yerda saqlanadi."""
-
-    scope = "invite"
 
 
 def _resolve_scope(request):

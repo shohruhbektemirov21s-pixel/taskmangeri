@@ -95,7 +95,7 @@ export default function Profile() {
   async function removePhoto() {
     const ok = await confirmDialog({
       title: tx("profile.profil_rasmi_ochirilsinmi"),
-      body: "O'rniga ism harflaridan tuzilgan belgi ko'rinadi. Keyin yangisini yuklashingiz mumkin.",
+      body: tx("profile.rasm_ornida_harflar"),
       confirmText: tx("common.ochirish"),
       danger: true,
     });

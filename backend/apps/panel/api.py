@@ -150,9 +150,20 @@ def dashboard(request):
         task=OuterRef("pk"), user=user, is_active=True))
 
     # O'chirilgan loyihaning vazifalari panelga ham chiqmaydi.
-    my_tasks = (Task.objects.filter(mine, project__deleted_at__isnull=True)
-                .select_related("project", "created_by")
-                .prefetch_related("assignments__user"))
+    # `for_display()` - RO'YXAT uchun tayyor queryset (`tasks/models.py`).
+    #
+    # Ilgari bu yerda select/prefetch qo'lda yozilgan edi va uchta narsa
+    # tushib qolgandi: `labels` prefetch, `logged_hours_sum` va
+    # `attachments_total` annotatsiyalari. Ular yo'q bo'lsa `TaskSerializer`
+    # har vazifa uchun bazaga ALOHIDA boradi - yorliqlar uchun bittadan,
+    # sarflangan soat uchun `SUM`, fayllar uchun `COUNT`. Ya'ni panelda
+    # ko'rsatiladigan har bir ish uchun uchta qo'shimcha so'rov.
+    #
+    # Panel bir necha ro'yxatni birga chizadi (fokus navbati, qaytarilgan,
+    # to'xtagan, tekshiruvdagi - jami 60 tagacha yozuv), demak bu 180 ta
+    # so'rovgacha yetishi mumkin edi. Kichik bazada bilinmasdi.
+    my_tasks = Task.objects.for_display().filter(
+        mine, project__deleted_at__isnull=True)
 
     focus_queue = my_tasks.filter(
         status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS]
@@ -172,19 +183,47 @@ def dashboard(request):
     day_start = timezone.make_aware(datetime.combine(today, dtime.min))
     day_end = day_start + timezone.timedelta(days=1)
 
-    # "Bugun bajarish kerak": muddati bugun yoki allaqachon o'tgan, hali
-    # yopilmagan ishlar - kechikkani ham bugungi ish hisoblanadi.
-    today_todo = my_tasks.filter(
-        status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS,
-                    TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED],
-        due_date__lt=day_end).count()
-    today_done = my_tasks.filter(status=TaskStatus.DONE,
-                                 completed_at__gte=day_start,
-                                 completed_at__lt=day_end).count()
-    # Bugun topshirilgan va hamon javob kutayotgan ishlar.
-    today_review = my_tasks.filter(status=TaskStatus.IN_REVIEW,
-                                   submitted_at__gte=day_start,
-                                   submitted_at__lt=day_end).count()
+    # ----------------------------------------- SHAXSIY RAQAMLAR: BITTA SO'ROV
+    #
+    # Bu yerda to'qqizta alohida `.count()` turardi - oltitasi `stats` uchun
+    # (ochiq, tekshiruvda, tuzatishda, to'xtagan, kechikkan, haftada
+    # bajarilgan), uchtasi «bugun» katagi uchun. Hammasi AYNI BIR jadvalni,
+    # ayni bir shart bilan (`mine` + tirik loyiha) o'qir, faqat holat
+    # filtri boshqacha edi - ya'ni Db2 ga to'qqizta borib-kelish, har
+    # safar o'sha ichki `EXISTS` qayta hisoblanib.
+    #
+    # Endi bittasi: shartli `Count(filter=...)`. Bu texnika shu faylda
+    # allaqachon ishlatiladi (pastdagi `periods` va `deadlines`) - o'sha
+    # yerdagi izoh sababini ham aytadi: `GROUP BY` yo'q, ya'ni Db2 ning
+    # CLOB cheklovi qo'zg'almaydi.
+    #
+    # Ro'yxatlarning o'zi (`focus_queue`, `returned`, ...) o'z joyida
+    # qoladi - ular seriyalizatsiya uchun kerak va kesib olinadi.
+    open_today = [TaskStatus.TODO, TaskStatus.IN_PROGRESS,
+                  TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED]
+    active = [TaskStatus.TODO, TaskStatus.IN_PROGRESS]
+    week_ago = now - timezone.timedelta(days=7)
+
+    n = my_tasks.aggregate(
+        open=Count("id", filter=Q(status__in=active)),
+        review=Count("id", filter=Q(status=TaskStatus.IN_REVIEW)),
+        returned=Count("id", filter=Q(status=TaskStatus.CHANGES_REQUESTED)),
+        # Ro'yxat kesilgani uchun son alohida kerak.
+        blocked=Count("id", filter=Q(status=TaskStatus.BLOCKED)),
+        overdue=Count("id", filter=Q(status__in=active, due_date__lt=now)),
+        done_week=Count("id", filter=Q(status=TaskStatus.DONE,
+                                       completed_at__gte=week_ago)),
+        # "Bugun bajarish kerak": muddati bugun yoki allaqachon o'tgan, hali
+        # yopilmagan ishlar - kechikkani ham bugungi ish hisoblanadi.
+        today_todo=Count("id", filter=Q(status__in=open_today, due_date__lt=day_end)),
+        today_done=Count("id", filter=Q(status=TaskStatus.DONE,
+                                        completed_at__gte=day_start,
+                                        completed_at__lt=day_end)),
+        # Bugun topshirilgan va hamon javob kutayotgan ishlar.
+        today_review=Count("id", filter=Q(status=TaskStatus.IN_REVIEW,
+                                          submitted_at__gte=day_start,
+                                          submitted_at__lt=day_end)),
+    )
 
 
     member_of = Exists(ProjectMember.objects.filter(
@@ -299,8 +338,9 @@ def dashboard(request):
         "overdue": nums["overdue_now"],
         "waiting": nums["waiting"],
     }
-    review_qs = (review_qs.select_related("project")
-                 .prefetch_related("assignments__user").order_by("submitted_at")[:10])
+    # Tekshiruv navbati ham `TaskSerializer` dan o'tadi - unga ham o'sha
+    # annotatsiyalar kerak (yuqoridagi izohga qarang).
+    review_qs = (review_qs.for_display().order_by("submitted_at")[:10])
     join_qs = join_qs.select_related("user", "project").order_by("created_at")[:10]
 
     # `managed` yuqorida ichki so'rov sifatida ham ishlatiladi (`project__in`),
@@ -362,18 +402,14 @@ def dashboard(request):
                                   r["user"]["full_name"]))
 
     return Response({
+        # Oltovi ham yuqoridagi BITTA `aggregate` dan keladi.
         "stats": {
-            "open": focus_queue.count(),
-            "review": waiting_review.count(),
-            "returned": returned.count(),
-            # Ro'yxat kesilgani uchun son alohida kerak: «to'xtab qolgan»
-            # qolgan uchtasi bilan bir qatorda turadi, sanog'i esa yo'q
-            # edi - ro'yxat uzunligidan olinardi.
-            "blocked": blocked.count(),
-            "overdue": overdue.count(),
-            "done_week": my_tasks.filter(
-                status=TaskStatus.DONE,
-                completed_at__gte=now - timezone.timedelta(days=7)).count(),
+            "open": n["open"],
+            "review": n["review"],
+            "returned": n["returned"],
+            "blocked": n["blocked"],
+            "overdue": n["overdue"],
+            "done_week": n["done_week"],
             "pending_reviews": review_total,
             "pending_joins": join_total,
         },
@@ -387,9 +423,9 @@ def dashboard(request):
         # Bugungi kesim - panelning yuqorisidagi uchta katak.
         "today": {
             "date": today,
-            "todo": today_todo,
-            "done": today_done,
-            "review": today_review,
+            "todo": n["today_todo"],
+            "done": n["today_done"],
+            "review": n["today_review"],
         },
         "next_task": TaskSerializer(next_task, context=ctx).data if next_task else None,
         "focus_queue": TaskSerializer(focus_queue[:8], many=True, context=ctx).data,
@@ -502,8 +538,7 @@ def panel_tasks(request):
     if p.get("project"):
         tasks = tasks.filter(project_id=int_param(p["project"], "project"))
 
-    tasks = (tasks.select_related("project", "created_by")
-             .prefetch_related("assignments__user")
+    tasks = (tasks.for_display()
              .order_by("-priority", "due_date", "-id"))
 
     # ------------------------------------------------------------ sahifalash

@@ -16,6 +16,7 @@ from apps.projects.permissions import (CanCreateProject, ProjectAccess, check_ac
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
 from apps.core.queries import object_or_404
+from apps.core.throttles import AddMemberThrottle
 from apps.core.uploads import check_uploads
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.workspaces.models import Workspace, WorkspaceMember, WorkspaceRole
@@ -474,13 +475,19 @@ class ProjectViewSet(viewsets.ModelViewSet):
             item["load"] = load.get(item["user"]["id"], {"open": 0, "done": 0})
         return Response(data)
 
-    @action(detail=True, methods=["post"], url_path="members/add")
+    @action(detail=True, methods=["post"], url_path="members/add",
+            throttle_classes=[AddMemberThrottle])
     def add_member(self, request, pk=None):
         """Jamoaga qoshish - TOGRIDAN-TOGRI, tasdiqsiz.
 
         Menejer odamni tanlaydi va u ayni shu paytda azo boladi. Qoida
         `apps.projects.services` da - `/api/team/add/` ham oshanga tayanadi, shunda
         ikki endpoint ikki xil ishlab ketmaydi.
+
+        TEZLIK CHEKLOVI IKKALA ESHIKDA HAM. Servis birlashtirilgan edi-yu,
+        `invite` cheklovi (40/soat) faqat `/api/team/add/` da turardi - ya'ni
+        uni shu manzilga o'tib chetlab o'tish mumkin edi. Klass endi
+        `apps/core/throttles.py` da: ikkovi bir manbadan oladi.
         """
         from .services import add_to_project
 
@@ -628,181 +635,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ taqvim
     @action(detail=False, methods=["get"], url_path="calendar")
     def calendar(self, request):
-        """Oylik taqvim: shu oyning qaysi kunida NIMANING MUDDATI tugaydi.
+        """Oylik taqvim - hisob `apps/projects/calendar_view.py` da.
 
-        `?month=YYYY-MM` (bo'sh bo'lsa - joriy oy).
-
-        Taqvimda faqat TUGASH sanalari turadi - loyiha ham, vazifa ham o'z
-        muddati kuniga qo'yiladi. Ilgari har biri boshlanishdan muddatgacha
-        tasma bo'lib cho'zilardi: oy tasmalar bilan to'lib ketar, "shu kuni
-        nima topshirilishi kerak" degan savolga esa javob topib bo'lmasdi.
-
-        Muddati qo'yilmagan loyiha va vazifa taqvimda umuman turmaydi -
-        uni qo'yadigan kun yo'q.
+        Bu yerda faqat marshrut qoldi: hisobning o'zi 180 qator edi va
+        `ProjectViewSet` ni loyiha CRUD idan uzoqlashtirib yuborardi.
         """
-        from calendar import monthrange
-        from datetime import date, datetime, time as dtime, timedelta
+        from .calendar_view import month_calendar
 
-        from apps.accounts.serializers import UserBriefSerializer
-
-        raw = (request.query_params.get("month") or "").strip()
-        today = timezone.localdate()
-        try:
-            year, month = (int(x) for x in raw.split("-")[:2]) if raw else (today.year, today.month)
-            first = date(year, month, 1)
-        except (ValueError, TypeError):
-            raise ValidationError({"month": "Format: YYYY-MM"})
-
-        last = date(first.year, first.month, monthrange(first.year, first.month)[1])
-
-        user = request.user
-        # Ko'rish doirasi tarix sahifasidagi bilan bir xil: admin hammasini,
-        # qolganlar a'zo bo'lgan va ochiq loyihalarni ko'radi. Bu ro'yxat
-        # VAZIFALAR uchun ham kerak: loyihaning o'zi shu oyda tugamasa ham,
-        # ichidagi ishning muddati shu oyga tushishi mumkin.
-        # Shart BIR MANBADAN (`visible_projects_q`): hamma loyihani
-        # ko'radiganlar uchun u bo'sh `Q()` qaytaradi, ya'ni rolni bu yerda
-        # ikkinchi marta sanash shart emas.
-        seen = Project.objects.filter(deleted_at__isnull=True).filter(
-            visible_projects_q(user))
-        visible_ids = list(seen.values_list("pk", flat=True))
-
-        # `progress()` uchun sanoqlar oldindan olinadi - aks holda taqvimdagi
-        # har loyiha ikkita qo'shimcha so'rov yuborardi. Faqat MUDDATI shu
-        # oyga tushadiganlar olinadi: taqvim - tugash sanalari taqvimi.
-        qs = (Project.objects.filter(pk__in=visible_ids,
-                                     due_date__gte=first, due_date__lte=last)
-              .select_related("manager")
-              .annotate(**project_counters(user)))
-
-        rows, counts = [], {}
-        for project in qs:
-            begin = project.start_date or timezone.localtime(project.created_at).date()
-            finish = project.due_date
-
-            # Sanoq - o'sha kuni nechta loyiha muddati tugashi.
-            counts[finish] = counts.get(finish, 0) + 1
-
-            rows.append({
-                "id": project.pk,
-                "name": project.name,
-                "key": project.key,
-                "color": project.color,
-                "status": project.status,
-                "status_display": project.get_status_display(),
-                "is_public": project.is_public,
-                "manager_name": project.manager.full_name if project.manager else "",
-                "progress": project.progress(),
-                # Loyiha taqvimda BITTA kunda turadi - o'z muddati kunida.
-                # `start_date` faqat ma'lumot uchun qoladi (kun kartasida
-                # "qachondan beri" ko'rinib tursin).
-                "start_date": begin,
-                "due_date": finish,
-                "from": finish,
-                "to": finish,
-                "starts_here": True,
-                "ends_here": True,
-                "open_ended": False,
-                "overdue": bool(finish < today
-                                and project.status not in ("DONE", "ARCHIVED")),
-                # Boshlanish sanasi kiritilmagan bo'lsa buni yashirmaymiz.
-                "start_assumed": project.start_date is None,
-            })
-
-        rows.sort(key=lambda r: (r["from"], r["name"]))
-
-        # ---- Vazifalar: kimga qanday ish berilgani ham shu taqvimda ko'rinsin.
-        # Bu yerda ham faqat MUDDAT: vazifa o'z tugash sanasi kunida turadi.
-        # Muddati yo'q vazifa ham, bekor qilingani ham chiqmaydi.
-        def as_date(value):
-            if value is None:
-                return None
-            return timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
-
-        # Muddat - sana+soat. Oy chegarasi mahalliy vaqtdagi aniq lahzalarga
-        # aylantiriladi: `__date` bilan solishtirilsa Db2 mintaqani hisobga
-        # olmaydi va tungi ishlar qo'shni kunga tushib qolardi.
-        span_start = timezone.make_aware(datetime.combine(first, dtime.min))
-        span_end = timezone.make_aware(datetime.combine(last, dtime.min)) + timedelta(days=1)
-
-        # Kimga qaysi vazifa ko'rinishi - doska va vazifalar ro'yxati bilan
-        # BIR XIL qoidadan (`task_scope_q`): menejerga boshqaruvidagi
-        # loyihaning hammasi, qolganga o'ziniki. Taqvim boshqacha hisoblasa
-        # odam «doskada bor edi, taqvimda yo'q» degan savolda qolardi.
-        tasks_limited = tasks_limited_for(user)
-
-        # Kun katagining o'ng burchagidagi uchta raqam: NAZORATDA /
-        # JARAYONDA / BAJARILDI. Uchtaga bo'linish ataylab qo'pol: oraliq
-        # holatlar («Tekshiruvda», «Tuzatish kerak», «To'xtab qolgan») ham
-        # jarayonga qo'shiladi, aks holda raqamlar yig'indisi o'sha kungi
-        # vazifalar soniga teng bo'lmasdi va odam "qolgani qayerda?" deb
-        # qolardi.
-        by_day = {}
-
-        task_rows = []
-        tasks = (Task.objects
-                 .filter(task_scope_q(user), project_id__in=visible_ids,
-                         due_date__gte=span_start, due_date__lt=span_end)
-                 .exclude(status=TaskStatus.CANCELLED)
-                 .select_related("project")
-                 .prefetch_related("assignments__user"))
-        for task in tasks:
-            finish = as_date(task.due_date)
-
-            slot = by_day.setdefault(finish, {"todo": 0, "in_progress": 0, "done": 0})
-            if task.status == TaskStatus.DONE:
-                slot["done"] += 1
-            elif task.status == TaskStatus.TODO:
-                slot["todo"] += 1
-            else:
-                slot["in_progress"] += 1
-
-            people = [a.user for a in task.assignments.all() if a.is_active and a.user]
-            task_rows.append({
-                "id": task.pk,
-                "code": task.code,
-                "title": task.title,
-                "status": task.status,
-                "status_display": task.get_status_display(),
-                "priority": task.priority,
-                "project": {"id": task.project_id, "name": task.project.name,
-                            "key": task.project.key, "color": task.project.color},
-                "assignees": UserBriefSerializer(people, many=True,
-                                                 context={"request": request}).data,
-                "start_date": as_date(task.start_date),
-                "due_date": finish,
-                "from": finish,
-                "to": finish,
-                "starts_here": True,
-                "ends_here": True,
-                "done": task.status == TaskStatus.DONE,
-                "overdue": bool(finish < today and task.status != TaskStatus.DONE),
-            })
-        task_rows.sort(key=lambda r: (r["from"], r["code"]))
-
-        # `count` - o'sha kuni nechta loyiha MUDDATI tugashi; qolgan uchtasi
-        # - o'sha kungi vazifalar holat bo'yicha.
-        def day_row(d):
-            slot = by_day.get(d) or {"todo": 0, "in_progress": 0, "done": 0}
-            return {"date": d, "count": counts.get(d, 0), **slot}
-
-        days = [day_row(first + timedelta(days=i))
-                for i in range((last - first).days + 1)]
-
-        return Response({
-            "month": first.strftime("%Y-%m"),
-            "first_day": first,
-            "last_day": last,
-            "today": today,
-            "projects": rows,
-            "tasks": task_rows,
-            "days": days,
-            "total": len(rows),
-            "task_total": len(task_rows),
-            # Ro'yxat qirqilganmi - taqvim buni yozib qo'ysin, aks holda
-            # dasturchi "nega jamoaning ishi ko'rinmayapti" deb o'ylaydi.
-            "tasks_limited": tasks_limited,
-        })
+        return month_calendar(request)
 
     # ------------------------------------------------------------ loyiha fayllari
     @action(detail=True, methods=["get", "post"], url_path="files",
@@ -943,131 +783,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ muddat bashorati
     @action(detail=True, methods=["get"])
     def forecast(self, request, pk=None):
-        """Muddatlar: kimda nima bor va qachonga belgilangan.
+        """Muddat bashorati - hisob `apps/projects/forecast.py` da."""
+        from .forecast import project_forecast
 
-        Bu yerda TAXMIN yo'q. Avval "rejalashtirilgan soat" bo'lmagan vazifaga
-        4 soat deb qo'yilardi va shu soatdan "taxminan tugaydi" sanasi
-        chiqarilardi - ya'ni sahifada odam kiritmagan sanalar turardi. Endi
-        faqat bazadagi haqiqiy ma'lumot ko'rsatiladi: kiritilgan boshlanish va
-        tugash sanalari, ochiq/bajarilgan vazifalar soni va kechikkanlar.
-        """
-        from apps.accounts.serializers import UserBriefSerializer
-        from datetime import datetime
-
-        project = object_or_404(Project, pk=pk)
-        check_access(request.user, project, "view")
-
-        today = timezone.localdate()
-
-        def to_date(value):
-            """Sana ham, sana+soat ham kelishi mumkin - mahalliy sanaga keltiramiz."""
-            if value is None:
-                return None
-            if isinstance(value, datetime):
-                return timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
-            return value
-
-        def wider(current, value, newest=True):
-            """Oraliqni kengaytiradi: eng kech (yoki eng erta) sanani qaytaradi."""
-            if value is None:
-                return current
-            if current is None:
-                return value
-            return max(current, value) if newest else min(current, value)
-
-        closed = [TaskStatus.DONE, TaskStatus.CANCELLED]
-
-        rows = (TaskAssignment.objects
-                .filter(task__project=project, is_active=True)
-                .select_related("task", "task__project", "user"))
-
-        people = {}
-        for row in rows:
-            task, user = row.task, row.user
-            item = people.setdefault(user.pk, {
-                "user": user, "open": 0, "done": 0, "in_review": 0, "overdue": 0,
-                "first_start": None, "last_due": None, "tasks": [],
-            })
-            if task.status == TaskStatus.DONE:
-                item["done"] += 1
-                continue
-            if task.status == TaskStatus.CANCELLED:
-                continue
-            item["open"] += 1
-            if task.status == TaskStatus.IN_REVIEW:
-                item["in_review"] += 1
-            task_due = to_date(task.due_date)
-            if task_due and task_due < today:
-                item["overdue"] += 1
-            item["first_start"] = wider(item["first_start"], to_date(task.start_date),
-                                        newest=False)
-            item["last_due"] = wider(item["last_due"], task_due)
-            # Odam qaysi ishni qachon tugatishi - yigindi sana emas, har bir
-            # vazifa ozining sanasi bilan korinsin.
-            item["tasks"].append({
-                "id": task.pk,
-                "code": task.code,
-                "title": task.title,
-                "status": task.status,
-                "status_display": task.get_status_display(),
-                "start_date": to_date(task.start_date),
-                "due_date": task_due,
-                "overdue": bool(task_due and task_due < today),
-            })
-
-        members = {m.user_id: m for m in project.memberships.filter(is_active=True)}
-
-        member_rows = []
-        for uid, item in people.items():
-            user = item["user"]
-            member_rows.append({
-                "user": UserBriefSerializer(user, context={"request": request}).data,
-                "role": members[uid].get_role_display() if uid in members else "",
-                "open": item["open"], "done": item["done"],
-                "in_review": item["in_review"], "overdue": item["overdue"],
-                "first_start": item["first_start"],
-                "last_due": item["last_due"],
-                "late": item["overdue"] > 0,
-                # Sanasi borlar oldinda, eng yaqin muddat tepada; sanasi
-                # qoyilmaganlar oxirida turadi (ular reja emas, ochiq savol).
-                "tasks": sorted(item["tasks"],
-                                key=lambda t: (t["due_date"] is None, t["due_date"]
-                                               or today, t["code"])),
-            })
-        member_rows.sort(key=lambda r: (-r["overdue"], -r["open"], r["user"]["full_name"]))
-
-        # Vazifalarning haqiqiy oynasi: eng erta boshlanish - eng kech muddat.
-        task_start = task_due = None
-        overdue_total = 0
-        # `t.code` loyiha kalitini so'raydi - `select_related` bo'lmasa har
-        # vazifa uchun alohida so'rov ketardi.
-        for t in project.tasks.select_related("project"):
-            d_due = to_date(t.due_date)
-            if t.status not in closed:
-                if d_due and d_due < today:
-                    overdue_total += 1
-                task_start = wider(task_start, to_date(t.start_date), newest=False)
-                task_due = wider(task_due, d_due)
-
-        project_due = to_date(project.due_date)
-        return Response({
-            "today": today,
-            "members": member_rows,
-            "project": {
-                "open": project.tasks.exclude(status__in=closed).count(),
-                "done": project.tasks.filter(status=TaskStatus.DONE).count(),
-                "unassigned": project.tasks.exclude(status__in=closed)
-                                     .exclude(assignments__is_active=True).count(),
-                "overdue": overdue_total,
-                # Kiritilgan sanalar - o'zgartirilmasdan, borig'icha.
-                "start_date": project.start_date,
-                "due_date": project.due_date,
-                "task_start": task_start,
-                "task_due": task_due,
-                # Vazifalar loyiha muddatidan oshib ketganmi - haqiqiy taqqoslash.
-                "at_risk": bool(task_due and project_due and task_due > project_due),
-            },
-        })
+        return project_forecast(request, pk)
 
     # ------------------------------------------------------------ qoshilish sorovlari
     @action(detail=True, methods=["post"], url_path="join")

@@ -84,6 +84,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       close();
       setConnected(false);
     };
+    // Bog'liqlik `user` obyekti emas, uning IDsi. Obyektning o'zi
+    // `refreshUser()` dan keyin YANGI nusxa bo'lib qaytadi (ism yoki avatar
+    // o'zgarmagan bo'lsa ham) - uni ro'yxatga qo'ysak har profil
+    // yangilanishida WebSocket uzilib, qaytadan ulanardi. Kimligi o'zgargani
+    // esa IDdan bilinadi: kirish, chiqish va hisob almashish - hammasi ID ni
+    // o'zgartiradi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, reload]);
 
   const markRead = useCallback(async (id: number) => {

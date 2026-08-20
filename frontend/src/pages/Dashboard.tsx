@@ -33,8 +33,8 @@ import { tx } from "@/i18n";
 // Davr sarlavhalari. Kalitlar serverdagi `PERIODS` bilan bir xil, tartibni
 // esa server beradi - bu yerda faqat o'zbekcha nomi turadi.
 const LABELS: Record<DashboardPeriod, string> = {
-  year: "Yil boshidan",
-  month: "Oy boshidan",
+  year: tx("dashboard.yil_boshidan"),
+  month: tx("dashboard.oy_boshidan"),
   week: tx("dashboard.hafta_boshidan"),
 };
 
@@ -106,7 +106,7 @@ function Band({ p, onPick, picked }: {
   const pickBand = () => {
     if (!hasAny) return;
     onPick({ period: p.key, metric: "period",
-             title: `${LABELS[p.key]} — hammasi` });
+             title: tx("dashboard.davr_hammasi", { davr: LABELS[p.key] }) });
   };
 
   return (
@@ -148,7 +148,7 @@ function Band({ p, onPick, picked }: {
                     disabled={!p[col.key]}
                     onClick={() => onPick({
                       period: p.key, metric: col.key,
-                      title: `${LABELS[p.key]} — ${col.label}`,
+                      title: tx("dashboard.davr_ustun", { davr: LABELS[p.key], ustun: col.label }),
                     })}>
               {/* Nol - so'ngan rangda: bo'sh katak ko'zni tortmasin,
                   haqiqiy son esa darrov ajralib tursin. */}

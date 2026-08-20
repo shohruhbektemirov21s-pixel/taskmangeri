@@ -93,8 +93,8 @@ export default function Chat({
     }
     if (nearBottom()) scrollDown();
     // `nearBottom` - o'lchov, bog'liqlik emas: uni ro'yxatga qo'shsak
-    // effekt har renderda qayta ishga tushardi.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // effekt har renderda qayta ishga tushardi. (U `useCallback` ichida
+    // barqaror, shuning uchun ESLint ham talab qilmaydi.)
   }, [messages, scrollDown]);
 
   useEffect(() => {

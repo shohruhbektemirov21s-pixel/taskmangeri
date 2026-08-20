@@ -69,7 +69,6 @@ export default function UserSearch({
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(timer.current);
     // `search` identifikatori o'zgarsa (masalan a'zo qo'shilgach) ro'yxat yangilanadi.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needle, active, search]);
 
   return (

@@ -71,6 +71,13 @@ function BackButton() {
   const location = useLocation();
 
   // `location` o'zgarganda qayta hisoblanadi - shuning uchun u bog'liqlikda.
+  //
+  // ESLint buni "keraksiz bog'liqlik" deb hisoblaydi va HAQ: hisob ichida
+  // `location` ishlatilmaydi. Lekin `window.history.state` REAKTIV EMAS -
+  // React uning o'zgarganini bilmaydi. `location.key` esa har navigatsiyada
+  // yangilanadi, ya'ni u qiymat emas, TURTKI: "endi qayta o'qi". Usiz tugma
+  // birinchi sahifadagi holatida qotib qolardi.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const canGoBack = useMemo(() => {
     const idx = (window.history.state as { idx?: number } | null)?.idx;
     return typeof idx === "number" ? idx > 0 : window.history.length > 1;
