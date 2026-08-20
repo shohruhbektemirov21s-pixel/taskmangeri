@@ -1,0 +1,121 @@
+# Har push va pull request da avtomatik tekshiruv.
+#
+# NEGA KERAK. Loyihada 406 ta backend testi bor va hammasi o'tadi — lekin
+# ularni hech nima o'zi yugurtirmasdi. Test faqat kimdir qo'lda chaqirganda
+# ishlaydigan bo'lsa, u ertami-kechmi unutiladi va buzilgan kod branchda
+# jimgina yotib qoladi.
+#
+# NIMA YUGURADI VA NIMA YO'Q. Bu yerda Db2 ga TEGMAYDIGAN hamma narsa
+# tekshiriladi: tiplar, produksiya yig'ilmasi, Django sozlamalari va
+# migratsiyalarning modelga mosligi. To'liq test to'plami esa Db2 talab
+# qiladi — u 3 GB, `privileged` rejim va bir necha daqiqalik ishga tushish
+# vaqtini so'raydi, GitHub ning oddiy runneri esa buni ko'tarmaydi.
+# Uni o'z serveringizda (self-hosted runner) yugurtirish uchun pastdagi
+# `db2-tests` ishiga qarang — u ataylab o'chirilgan holda turibdi.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  # ---------------------------------------------------------------- frontend
+  frontend:
+    name: Frontend — tiplar va yig'ilma
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci` — aynan `package-lock.json` dagi versiyalar. `npm install`
+      # har safar yangi mos versiyani izlaydi va CI mahalliy yig'ilmadan
+      # boshqa natija berishi mumkin edi.
+      - run: npm ci
+
+      # Loyihada ESLint yo'q, "lint" degani — tip tekshiruvi.
+      - name: Tiplar (tsc --noEmit)
+        run: npx tsc --noEmit
+
+      # Eng nozik mantiq shu yerda: identifikatorsiz navigatsiya, 401 da
+      # tokenni bir marta yangilash, Toshkent mintaqasidagi sana hisobi.
+      # Ular buzilsa `tsc` hech narsa demaydi.
+      - name: Testlar (vitest)
+        run: npm test
+
+      # Produksiya yig'ilmasi haqiqatan qurilishini tekshiramiz: `tsc -b`
+      # dan keyin `vite build`. Bu yerda yiqilsa serverga chiqarishda ham
+      # yiqilardi.
+      - name: Yig'ilma (vite build)
+        run: npm run build
+
+  # ---------------------------------------------------------------- backend
+  backend:
+    name: Backend — sozlama va migratsiyalar
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      # `DEBUG=0` — produksiya yo'lini tekshiramiz. Shu sababdan haqiqiy
+      # uzunlikdagi kalit kerak: `config/settings.py` zaif kalit bilan
+      # `DEBUG` o'chirilgan holda ishga tushishni ataylab taqiqlaydi.
+      DEBUG: "0"
+      SECRET_KEY: "ci-only-not-a-real-secret-key-0123456789abcdef"
+      ALLOWED_HOSTS: "localhost"
+      # Db2 ga ulanilmaydi, lekin sozlamalar o'qilishi kerak.
+      DB2_HOST: "127.0.0.1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      # Sozlamalar, ilovalar, marshrutlar va modellar bir-biriga mos keladimi.
+      - name: Django tekshiruvi
+        run: python manage.py check
+
+      # Modelda o'zgarish bor-u, migratsiya yozilmaganmi. Bu eng ko'p
+      # unutiladigan qadam va u faqat serverda, `migrate` paytida bilinadi.
+      # Bazaga ulanmaydi: Django baza yo'q bo'lsa tarix tekshiruvini
+      # jimgina o'tkazib yuboradi.
+      - name: Yozilmagan migratsiya bormi
+        run: python manage.py makemigrations --check --dry-run
+
+  # ------------------------------------------------------------ to'liq testlar
+  # ATAYLAB O'CHIRILGAN. Yoqish uchun `if: false` ni olib tashlang va o'zingizda
+  # `self-hosted` runner ko'taring — Db2 privileged rejim talab qiladi.
+  #
+  #   docker compose up -d db2 redis
+  #   docker compose exec -T -e DB2_TEST_DB=TFTEST backend python manage.py test --noinput
+  #
+  # `DB2_TEST_DB` ni berish shart: `ibm_db_django` bazani qayta yaratishdan
+  # oldin interaktiv savol beradi va `--noinput` uni chetlab o'tmaydi.
+  db2-tests:
+    name: Backend — to'liq testlar (Db2 kerak)
+    if: false
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testlar
+        run: |
+          docker compose up -d db2 redis
+          docker compose exec -T -e DB2_TEST_DB=TFTEST backend \
+            python manage.py test --noinput
