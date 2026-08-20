@@ -2295,6 +2295,26 @@
   "value": "Loyiha nomi",
   "note": "pages/ProjectForm.tsx"
  },
+ "project_form.korinish": {
+  "value": "Ko'rinish",
+  "note": "pages/ProjectForm.tsx — kim loyihani ko'ra oladi degan bo'lim sarlavhasi"
+ },
+ "project_form.ish_maydoni_ichida_ochiq": {
+  "value": "Ish maydoni ichida ochiq",
+  "note": "pages/ProjectForm.tsx — maydondagi hamkasblar ko'radi va qo'shilish so'rovi yubora oladi"
+ },
+ "project_form.ochiq_qidiruvda_korinsin": {
+  "value": "Bosh sahifadagi ochiq qidiruvda ko'rinsin",
+  "note": "pages/ProjectForm.tsx — ro'yxatdan o'tmagan odamlarga ham ko'rinadi"
+ },
+ "project_form.korinish_izoh": {
+  "value": "Loyiha ish maydonidan tashqariga chiqmaydi. Uni ochiq qidiruvda ko'rsatish uchun ikkinchi katakni belgilang.",
+  "note": "pages/ProjectForm.tsx — ochiq qidiruv o'chirilgan holatdagi izoh"
+ },
+ "project_form.ochiq_qidiruv_yoqilgan_izoh": {
+  "value": "Loyihaning nomi, tavsifi va menejerning ismi ro'yxatdan o'tmagan odamlarga ham ko'rinadi. A'zolar, vazifalar va fayllar hech qachon chiqmaydi.",
+  "note": "pages/ProjectForm.tsx — ochiq qidiruv yoqilgan holatdagi ogohlantirish"
+ },
  "project_form.loyiha_sozlamalari": {
   "value": "Loyiha sozlamalari",
   "note": "pages/ProjectForm.tsx"
@@ -3142,6 +3162,10 @@
  "suggestions.fayl_hint": {
   "value": "Hujjat, chizma yoki rasmni shu yerga tashlang — 25 MB gacha",
   "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rasmni_kattalashtirish": {
+  "value": "Rasmni kattalashtirish",
+  "note": "pages/Suggestions.tsx — biriktirilgan rasm ustidagi izoh"
  },
  "suggestions.fayl_izoh": {
   "value": "Taklifga hujjat yoki rasm qo'shsangiz — u kartada ko'rinadi.",

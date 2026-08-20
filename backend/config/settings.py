@@ -19,7 +19,13 @@ def env_list(key, default=""):
 
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
-DEBUG = env_bool("DEBUG", True)
+# STANDARTI `False`. Ilgari `True` edi va bu xavfli standart: `.env` unutilsa
+# yoki o'zgaruvchi nomida xato bo'lsa, server produksiyada jimgina debug
+# rejimida ko'tarilardi - har bir xato to'liq traceback bilan, ichidagi
+# sozlamalar va so'rov matnlari bilan birga ko'rinardi. `SECRET_KEY` uchun
+# bunday himoya allaqachon bor (pastda), `DEBUG` esa himoyasiz qolgan edi.
+# Ishlab chiqishda `backend/.env` da `DEBUG=1` turadi - hech narsa o'zgarmaydi.
+DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*") or ["*"]
 
 # Ishlab chiqish uchun standart kalit qulay, lekin u bilan serverga chiqib

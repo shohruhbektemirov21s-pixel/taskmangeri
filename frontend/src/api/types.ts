@@ -123,6 +123,8 @@ export interface Project {
   start_date: string | null;
   due_date: string | null;
   is_public: boolean;
+  /** Bosh sahifadagi TOKENSIZ qidiruvda ko'rinsinmi - `is_public` dan alohida. */
+  is_listed: boolean;
   join_code: string;
   auto_accept: boolean;
   created_at: string;

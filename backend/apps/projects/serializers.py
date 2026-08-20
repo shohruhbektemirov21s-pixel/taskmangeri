@@ -80,7 +80,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ["id", "workspace", "workspace_name", "workspace_slug", "name", "key",
                   "description", "status", "status_display", "color", "manager", "manager_id",
                   "created_by", "repo_url", "docs_url", "start_date", "due_date",
-                  "is_public", "join_code", "auto_accept", "created_at", "updated_at",
+                  "is_public", "is_listed", "join_code", "auto_accept",
+                  "created_at", "updated_at",
                   "member_count", "open_tasks", "done_tasks", "my_tasks", "progress", "access",
                   "needed_specialties", "needed_specialty_labels", "team_composition",
                   "specialty_gaps", "matches_my_specialty"]

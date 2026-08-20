@@ -47,6 +47,9 @@ export default function ProjectForm() {
   const [f, setF] = useState({
     name: "", description: "",
     status: "ACTIVE", start_date: "", due_date: "",
+    // Ish maydoni ichida ochiq - standart holat, jamoa bir-birining ishini
+    // ko'rib tursin. Tashqariga chiqarish esa ATAYLAB belgilanadi.
+    is_public: true, is_listed: false,
   });
 
   useEffect(() => {
@@ -60,6 +63,7 @@ export default function ProjectForm() {
           name: p.name, description: p.description,
           status: p.status,
           start_date: p.start_date || "", due_date: p.due_date || "",
+          is_public: p.is_public, is_listed: p.is_listed,
         });
         setLoaded(true);
       }
@@ -230,6 +234,34 @@ export default function ProjectForm() {
                              min={f.start_date || undefined}
                              onChange={(v) => set("due_date", v)} />
                   {errors.due_date && <div className="err">{errors.due_date}</div>}
+                </div>
+              </div>
+
+              {/* KO'RINISH - ikkita alohida savol.
+                  Ilgari formada bu tanlovlar umuman yo'q edi va loyiha
+                  «ish maydoni ichida ochiq» holatida yaratilardi. Yomoni:
+                  o'sha bitta bayroq loyihani BOSH SAHIFADAGI TOKENSIZ
+                  qidiruvga ham chiqarardi, ya'ni menejer bilmagan holda
+                  loyihaning nomi va tavsifi tashqariga chiqib turardi.
+                  Endi ikkovi ajratilgan va ikkovi ham ko'rinib turadi. */}
+              <div className="field">
+                <label>{tx("project_form.korinish")}</label>
+                <div className="check-list">
+                  <label className={f.is_public ? "on" : ""}>
+                    <input type="checkbox" checked={f.is_public}
+                           onChange={(e) => set("is_public", e.target.checked)} />
+                    {tx("project_form.ish_maydoni_ichida_ochiq")}
+                  </label>
+                  <label className={f.is_listed ? "on" : ""}>
+                    <input type="checkbox" checked={f.is_listed}
+                           onChange={(e) => set("is_listed", e.target.checked)} />
+                    {tx("project_form.ochiq_qidiruvda_korinsin")}
+                  </label>
+                </div>
+                <div className="help">
+                  {f.is_listed
+                    ? tx("project_form.ochiq_qidiruv_yoqilgan_izoh")
+                    : tx("project_form.korinish_izoh")}
                 </div>
               </div>
             </Card>

@@ -83,8 +83,29 @@ class Project(models.Model):
     due_date = models.DateField("Muddat", null=True, blank=True)
 
 
-    is_public = models.BooleanField("Ish maydoni ichida ochiq", default=True,
-                                    help_text="Ochiq bolsa hamma korib, qoshilish sorovi yubora oladi")
+    # IKKI XIL «OCHIQ» - ATAYLAB IKKITA MAYDON.
+    #
+    # Ilgari bittasi edi va u ikkita butunlay boshqa savolga javob berardi:
+    # «ish maydonidagi hamkasb buni ko'ra oladimi?» va «internetdagi
+    # notanish odam buni ko'ra oladimi?». Maydonning nomi ham, yorlig'i ham
+    # birinchisini aytardi, formada esa u umuman ko'rsatilmasdi va standarti
+    # `True` edi - ya'ni har bir yangi loyihaning nomi, tavsifi va menejeri
+    # `GET /api/public/projects/` orqali TOKENSIZ ko'rinib turardi va buni
+    # hech kim tanlamagan edi.
+    #
+    # Endi savol ikkita, javob ham ikkita.
+    is_public = models.BooleanField(
+        "Ish maydoni ichida ochiq", default=True,
+        help_text="Ochiq bolsa ish maydonidagi hamma korib, qoshilish sorovi "
+                  "yubora oladi. Maydondan tashqariga chiqmaydi.")
+    # Standarti `False`: platformadan tashqariga chiqarish - AYTIB
+    # bajariladigan amal, unutilib qoladigan standart emas.
+    is_listed = models.BooleanField(
+        "Ochiq qidiruvda korinsin", default=False,
+        help_text="Belgilansa loyiha bosh sahifadagi ochiq qidiruvda, "
+                  "royxatdan otmagan odamlarga ham korinadi. Faqat nomi, "
+                  "tavsifi va menejerning ismi chiqadi - azolar, vazifalar "
+                  "va fayllar hech qachon chiqmaydi.")
     join_code = models.CharField("Qoshilish kodi", max_length=12, default=make_join_code, unique=True)
     auto_accept = models.BooleanField("Sorovlarni avtomatik qabul qilish", default=False)
 
