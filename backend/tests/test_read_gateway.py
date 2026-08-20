@@ -7,6 +7,7 @@ GET orqali ko'rinmagan narsa POST orqali ham ko'rinmasin.
 """
 
 from apps.tasks.models import Task
+from apps.uitexts.models import UiText
 
 from .base import ApiTestCase
 
@@ -112,3 +113,27 @@ class ReadGatewayTest(ApiTestCase):
         r = self.api.post(self.URL, {"path": "/tasks/", "params": {"project": "abc"}},
                           format="json")
         self.assertEqual(r.status_code, 400)
+
+
+class GatewayHeaderTest(ApiTestCase):
+    """Ichkaridagi view qo'ygan sarlavhalar tashqariga chiqadimi.
+
+    Ilgari javobdan faqat tana va status ko'chirilardi: ichkarida hamma
+    narsa to'g'ri ishlab, natijasi yo'lda yo'qolardi. Eng sezilarlisi
+    `Retry-After` - usiz mijoz cheklovdan keyin qachon qayta urinishni
+    bilmaydi.
+    """
+
+    def test_etag_shlyuzdan_otadi(self):
+        """`/api/ui-texts/` ETag qo'yadi - u darvozadan ham chiqsin."""
+        UiText.objects.get_or_create(key="test.kalit", defaults={"value": "qiymat"})
+        c = self.client_for(self.dev)
+        r = c.post("/api/read/", {"path": "/ui-texts/"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("ETag", r.headers)
+
+    def test_ichki_sarlavha_royxatdan_tashqarida_chiqmaydi(self):
+        """`Content-Type` ichkaridan ko'chirilmaydi - u tashqi javobniki."""
+        c = self.client_for(self.dev)
+        r = c.post("/api/read/", {"path": "/ui-texts/"}, format="json")
+        self.assertTrue(r.headers["Content-Type"].startswith("application/json"))

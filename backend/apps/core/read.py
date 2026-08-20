@@ -57,7 +57,39 @@ COPIED_META = (
     "SERVER_NAME",
     "SERVER_PORT",
     "REMOTE_ADDR",          # tezlik cheklovi (throttling) shunga qarab ishlaydi
+    # Teskari proksi ortida haqiqiy IP shu yerda bo'ladi. Usiz butun
+    # platformadagi so'rovlar bitta - proksining - IP siga sanalar va
+    # tezlik cheklovi amalda umumiy bo'lib qolardi.
+    "HTTP_X_FORWARDED_FOR",
+    "HTTP_X_REAL_IP",
+    "HTTP_X_FORWARDED_PROTO",
     "wsgi.url_scheme",
+)
+
+# Ichkaridagi view qo'ygan va TASHQARIGA CHIQISHI SHART bo'lgan sarlavhalar.
+#
+# Ilgari javobdan faqat tana va status ko'chirilardi. Ya'ni ichkarida
+# hamma narsa to'g'ri ishlab, natijasi yo'lda yo'qolardi:
+#
+#   * `Retry-After` - DRF uni 429 (juda ko'p so'rov) bilan birga qo'yadi.
+#     U yetib bormasa mijoz qachon qayta urinishni bilmaydi va darrov
+#     yana urinib, cheklovni yana ko'taradi.
+#   * `WWW-Authenticate` - 401 da qaysi usul kutilayotganini aytadi.
+#   * `ETag` / `Last-Modified` - mijoz o'zi solishtirmoqchi bo'lsa kerak
+#     bo'ladi (masalan interfeys matnlari).
+#   * `Content-Range` / `Link` - sahifalashning standart ko'rsatkichlari.
+#
+# Ro'yxat OQ: nomma-nom sanalgani ko'chiriladi. Butun `headers` ni
+# ko'chirsak `Content-Type` va `Content-Length` ham o'tar va ular tashqi
+# javobning haqiqiy tanasiga to'g'ri kelmasdi.
+FORWARDED_HEADERS = (
+    "Retry-After",
+    "WWW-Authenticate",
+    "ETag",
+    "Last-Modified",
+    "Content-Range",
+    "Link",
+    "Warning",
 )
 
 
@@ -164,4 +196,9 @@ def read(request):
             {"detail": "Bu manzil POST orqali o'qilmaydi."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    return Response(response.data, status=response.status_code)
+
+    out = Response(response.data, status=response.status_code)
+    for name in FORWARDED_HEADERS:
+        if name in response.headers:
+            out[name] = response.headers[name]
+    return out
