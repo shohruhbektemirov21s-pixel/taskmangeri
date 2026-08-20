@@ -6,16 +6,18 @@
  * loyihalarning xavfsiz maydonlari keladi.
  */
 import { useCallback, useEffect, useId, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PublicProject } from "@/api/types";
 import PublicShell from "@/components/PublicShell";
 import { Empty, Loading, Progress } from "@/components/ui";
 import { useAuth } from "@/auth/AuthContext";
+import { toPublicProject, useNavParams } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function Search() {
   const fid = useId();
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useNavParams();
   const { user } = useAuth();
   const q = params.get("q") || "";
   const specialty = params.get("specialty") || "";
@@ -59,20 +61,20 @@ export default function Search() {
     <PublicShell query={q}>
       <div className="lp-wrap" style={{ padding: "36px 24px 64px" }}>
         <div className="sec-head" style={{ marginBottom: 26 }}>
-          <div className="eyebrow">Ochiq loyihalar</div>
+          <div className="eyebrow">{tx("search.ochiq_loyihalar")}</div>
           <h2 style={{ marginBottom: 8 }}>
-            {q ? `«${q}» bo'yicha qidiruv` : "Jamoaga qo'shiladigan loyihalar"}
+            {q ? tx("search.soz_boyicha_qidiruv", { soz: q }) : tx("search.jamoaga_qoshiladigan_loyihalar")}
           </h2>
           <p>
-            Ro'yxatdan o'tmasdan ham ko'rishingiz mumkin. Qo'shilish uchun hisob kerak.
+            {tx("search.royxatdan_otmasdan_ham_korishingiz_mumkin")}
           </p>
         </div>
 
         <div className="filters">
           <div className="f" style={{ minWidth: 220 }}>
-            <label htmlFor={`${fid}-0`}>Mutaxassislik bo'yicha</label>
+            <label htmlFor={`${fid}-0`}>{tx("search.mutaxassislik_boyicha")}</label>
             <select id={`${fid}-0`} value={specialty} onChange={(e) => setFilter(e.target.value)}>
-              <option value="">Hammasi</option>
+              <option value="">{tx("common.hammasi")}</option>
               {specialties.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
@@ -80,7 +82,7 @@ export default function Search() {
           </div>
           <span className="spacer" />
           {items !== null && (
-            <span className="muted" style={{ fontSize: 13 }}>{items.length} ta loyiha</span>
+            <span className="muted" style={{ fontSize: 13 }}>{items.length} {tx("search.ta_loyiha")}</span>
           )}
         </div>
 
@@ -89,20 +91,20 @@ export default function Search() {
         {items !== null && !items.length && (
           <Empty
             icon="🔍"
-            title="Loyiha topilmadi"
+            title={tx("common.loyiha_topilmadi")}
             text={q
-              ? "Boshqa so'z bilan qidirib ko'ring yoki mutaxassislik filtrini olib tashlang."
-              : "Hozircha ochiq loyiha yo'q. O'zingiz birinchi bo'lib oching."}
+              ? tx("search.boshqa_soz_bilan_qidirib_koring")
+              : tx("search.hozircha_ochiq_loyiha_yoq_ozingiz")}
           >
             {!user && (
-              <Link className="btn btn-primary" to="/royxatdan-otish">Ro'yxatdan o'tish</Link>
+              <Link className="btn btn-primary" to="/royxatdan-otish">{tx("common.royxatdan_otish")}</Link>
             )}
           </Empty>
         )}
 
         <div className="lp-cards">
           {(items || []).map((p) => (
-            <Link key={p.id} className="lp-card" to={`/ochiq-loyiha/${p.id}`}
+            <Link key={p.id} className="lp-card" {...toPublicProject(p.id)}
                   style={{ display: "block", color: "inherit", textDecoration: "none" }}>
               <div className="row wrap" style={{ gap: 8 }}>
                 <span className="lang-dot" style={{ background: p.color }} />
@@ -113,20 +115,20 @@ export default function Search() {
               </div>
 
               <p className="muted" style={{ marginTop: 10, minHeight: 40 }}>
-                {p.description || "Tavsif kiritilmagan."}
+                {p.description || tx("common.tavsif_kiritilmagan")}
               </p>
 
               <Progress value={p.progress} />
 
               <div className="repo-meta">
-                <span>{p.member_count} a'zo</span>
-                <span>{p.open_tasks} ochiq vazifa</span>
+                <span>{p.member_count} {tx("search.azo")}</span>
+                <span>{p.open_tasks} {tx("common.ochiq_vazifa")}</span>
                 <span>{p.workspace_name}</span>
               </div>
 
               {!!p.needed_specialties.length && (
                 <div className="row wrap" style={{ gap: 6, marginTop: 10 }}>
-                  <span className="muted" style={{ fontSize: 12 }}>Kerak:</span>
+                  <span className="muted" style={{ fontSize: 12 }}>{tx("search.kerak")}</span>
                   {p.needed_specialties.map((s) => (
                     <span className="badge badge-info" key={s.value}>{s.label}</span>
                   ))}

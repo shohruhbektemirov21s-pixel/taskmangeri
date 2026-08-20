@@ -45,6 +45,7 @@ admin@teamflow.uz / admin12345
 | **Loyiha admini** | Menejer bilan deyarli teng: vazifa berish/o'chirish, tekshirish, hujjat, a'zo qo'shish va chiqarish. **Menejerga tegmaydi** — uni chiqara ham, rolini o'zgartira ham olmaydi |
 | **Dasturchi / QA** | O'ziga biriktirilgan vazifalarni bajaradi, ishni topshiradi, fayl yuklaydi, izoh va ish jurnali qoldiradi |
 | **Kuzatuvchi** | Faqat o'qiydi |
+| **Boshliq** | Takliflar bo'yicha qaror qabul qiladi: tasdiqlaydi, rad etadi, izoh yozadi. Yopiq takliflarni ham ko'radi. Loyiha ishlariga aralashmaydi |
 
 **Menejer himoyalangan.** Uni na loyiha admini, na tizim admini chiqara oladi —
 loyiha boshqaruvsiz qolib ketmasin. Menejer faqat o'zi chiqadi yoki boshqa
@@ -388,6 +389,44 @@ chalkashlikdan boshqa narsa emas. Muddati o'tgan qator qizil bilan belgilanadi.
 
 ---
 
+## Takliflar
+
+`/takliflar` — jamoa nima o'zgarishini so'raydi, **boshliq** qaror qiladi.
+
+**Ikki xil taklif.** *Ochiq* — hamma ko'radi va ovoz beradi. *Yopiq* — faqat
+muallif va boshliq ko'radi: jamoa oldida aytilmaydigan gap uchun (shikoyat,
+maosh, shaxsiy holat). Sahifada ular alohida bo'limlarda turadi.
+
+**Anonim taklif.** Ochiq taklifni nomi bilan ham, anonim ham yuborsa bo'ladi.
+Anonim tanlansa muallif **hech kimga** — boshliqqa ham — ko'rsatilmaydi,
+`django-admin/` da ham. Yopiq taklif anonim bo'lmaydi: uni baribir faqat
+boshliq o'qiydi va kimga javob berishni bilishi kerak.
+
+**Uchta tugma:** «Qo'shilaman», «Qo'shilmayman», «Betarafman». Qayta bosilsa
+ovoz almashadi, o'sha tugma qayta bosilsa olib tashlanadi. **Kim ovoz
+bergani hech qayerda ko'rinmaydi** — na API javobida, na admin panelida:
+tashqariga faqat sonlar va so'ragan odamning o'z tanlovi chiqadi.
+
+**Tartib.** Ro'yxat `qo'shilaman − qo'shilmayman` bo'yicha saralanadi, ya'ni
+jamoa eng ko'p kutayotgan o'zgarish birinchi o'rinda turadi.
+
+**Fayl.** Taklifga hujjat yoki rasm biriktiriladi (25 MB gacha, `.html`/`.svg`
+kabi turlar qabul qilinmaydi). Kartada fayl nomi yonida **kim yuklagani**
+yoziladi; anonim taklifda u ham yashiriladi.
+
+**Kim nima qila oladi.** Tahrirlash va o'chirish — faqat taklif bergan
+odamga. Tasdiqlash, rad etish va izoh — faqat boshliqqa (tizim admini ham
+qila olmaydi). Rad etish sababsiz qolmaydi: izoh majburiy. Matn tahrirlansa
+qaror bekor bo'ladi va taklif yana navbatga tushadi — boshliq boshqa narsani
+tasdiqlagan bo'lardi.
+
+**Boshliq hisobi** `backend/.env` dan yaratiladi (`BOSS_EMAIL`,
+`BOSS_PASSWORD`, `BOSS_NAME`) — entrypoint har ishga tushishda
+`manage.py bootstrap_boss` ni chaqiradi. Mavjud hisobga tegilmaydi, faqat
+roli tekshiriladi.
+
+---
+
 ## API
 
 Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun).
@@ -429,6 +468,12 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 | `GET /api/public/projects/?q=&specialty=` | **Hisobsiz** — ochiq loyihalar qidiruvi |
 | `GET /api/public/projects/:id/` | **Hisobsiz** — ochiq loyihaning ko'rinishi |
 | `GET /api/public/stats/` | **Hisobsiz** — umumiy raqamlar |
+| `GET/POST /api/suggestions/` | Takliflar (filtr: `scope=OPEN\|CLOSED`, `status`, `mine=1`) |
+| `PATCH/DELETE /api/suggestions/:id/` | Tahrirlash va o'chirish — faqat muallifga |
+| `POST /api/suggestions/:id/vote/` | «Qo'shilaman / qo'shilmayman / betarafman» |
+| `POST /api/suggestions/:id/decide/` | Tasdiqlash, rad etish, izoh — **faqat boshliq** |
+| `GET/POST /api/suggestions/:id/files/` · `DELETE …/:fid/` | Taklif fayllari |
+| `GET /api/suggestions/counts/` | Ochiq, yopiq va navbatdagilar soni |
 | `GET /api/activity/` | Tarix (filtr: project, actor, category, days, search) |
 | `GET /api/activity/by-project/?q=` | Umumiy tarix loyihalar kesimida (yozuv soni bilan) |
 | `GET /api/activity/developer-report/` | Dasturchi hisoboti |
@@ -454,18 +499,58 @@ Autentifikatsiya: `Authorization: Bearer <access>` (JWT, 12 soat; refresh 14 kun
 │       ├── activity/           # tarix, dasturchi hisoboti, onboarding
 │       ├── notifications/      # bildirishnomalar + WebSocket kanali
 │       ├── chat/               # loyiha va ish maydoni suhbati
+│       ├── suggestions/        # takliflar: ovoz, anonimlik, boshliq qarori
+│       ├── uitexts/            # interfeys matnlari (sayt so'zlari bazada)
 │       └── core/               # ruxsatlar, dashboard, meta
 └── frontend/
     ├── Dockerfile
     └── src/
+        ├── main.tsx            # avval matnlarni yuklaydi, keyin bootstrap
+        ├── bootstrap.tsx       # React daraxti (provayderlar + App)
         ├── api/                # HTTP mijoz va TypeScript turlari
         ├── auth/               # AuthContext (JWT)
+        ├── i18n/               # tx() — matnlarni backenddan oladi
         ├── realtime/           # WebSocket mijozi va bildirishnoma konteksti
         ├── components/         # Layout, ui, Timeline
         ├── pages/              # sahifalar
         │   └── project/        # loyiha bo'limlari (doska, jamoa, tarix, brif...)
         └── styles/app.css      # "Liquid glass" dark dizayn tizimi
 ```
+
+---
+
+## Interfeys matnlari
+
+Saytdagi hamma yozuv — tugma nomidan bo'sh holat xabarigacha — **bazada**
+(`apps.uitexts.UiText`) turadi. Bir so'zni tuzatish uchun kodni o'zgartirib,
+qayta yig'ish shart emas: `django-admin/` → «Interfeys matnlari» → tahrirlash
+→ sahifani yangilash.
+
+Kodda faqat kalit qoladi:
+
+```tsx
+import { tx } from "@/i18n";
+
+<h2>{tx("login.hisobingizga_kiring")}</h2>
+<p>{tx("ui.kun_oldin", { n: 3 })}</p>      // bazadagi matn: "{n} kun oldin"
+```
+
+Kalit `guruh.nom` ko'rinishida; guruh — sahifa yoki komponent nomi
+(`login`, `dashboard`, `project_members`). Bir necha sahifada takrorlanadigan
+so'zlar `common.*` guruhida.
+
+| | |
+|---|---|
+| Endpoint | `GET /api/ui-texts/` — **tokensiz** (kirish sahifasi ham shundan oladi), ETag bilan: matn o'zgarmasa brauzer 304 oladi |
+| Repodagi nusxa | `backend/apps/uitexts/defaults.json` |
+| Urug'lantirish | `manage.py seed_ui_texts` — entrypoint har ishga tushishda chaqiradi |
+
+`seed_ui_texts` faqat **yetishmayotgan** kalitni qo'shadi: admin tahrirlagan
+matn konteyner qayta ko'tarilganda yo'qolmaydi. Repodagi holatga qaytarish
+kerak bo'lsa — `--force`, ortiqcha kalitlarni tozalash uchun — `--prune`.
+
+Frontend lug'atni ishga tushishda bir marta oladi va `localStorage` ga
+saqlaydi: keyingi ochilishlarda sahifa darrov to'liq matn bilan chiziladi.
 
 ---
 

@@ -252,3 +252,138 @@ class SubtaskProjectTest(ApiTestCase):
         r = self.api.post("/api/tasks/", {"project": self.project.pk, "title": "Bola",
                                           "parent": alien.pk}, format="json")
         self.assertEqual(r.status_code, 400)
+
+
+class ProjectVisibleScopeTest(ApiTestCase):
+    """`scope=visible` — «Loyihalar» sahifasidagi yagona ro'yxat.
+
+    Kesim tugmalari («Meniki», «Boshqaruvim», «Ochiq») olib tashlangandan
+    keyin ro'yxat bitta bo'ldi. Savol shu: u odam OCHA OLADIGAN hamma
+    loyihani ko'rsatadimi va bundan ortig'ini ko'rsatib qo'ymaydimi?
+    """
+
+    URL = "/api/projects/"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        # Menejer boshqaradi, lekin a'zolik yozuvi YO'Q - ilgari u bunday
+        # loyihasini «Meniki» ro'yxatida topolmasdi.
+        cls.unlisted = Project.objects.create(
+            workspace=cls.workspace, name="A'zoliksiz loyiha",
+            manager=cls.manager, created_by=cls.manager, is_public=False)
+
+    def ids(self, user):
+        r = self.client_for(user).get(self.URL, {"scope": "visible"})
+        self.assertEqual(r.status_code, 200)
+        return [p["id"] for p in r.data["results"]]
+
+    def test_menejer_azoliksiz_loyihasini_ham_koradi(self):
+        self.assertIn(self.unlisted.pk, self.ids(self.manager))
+
+    def test_azo_oz_loyihasini_koradi(self):
+        self.assertIn(self.project.pk, self.ids(self.dev))
+
+    def test_chetdagi_odam_yopiq_loyihani_kormaydi(self):
+        """Chegara kengaymasin: bitta ro'yxat - hamma narsa degani emas."""
+        seen = self.ids(self.outsider)
+        self.assertNotIn(self.project.pk, seen)
+        self.assertNotIn(self.unlisted.pk, seen)
+
+    def test_admin_hammasini_koradi(self):
+        seen = self.ids(self.admin)
+        self.assertIn(self.project.pk, seen)
+        self.assertIn(self.unlisted.pk, seen)
+
+    def test_maydondagi_ochiq_loyiha_azo_bolmasa_ham_korinadi(self):
+        """«Ochiq» tugmasi yo'q - ochiq loyiha shu ro'yxatga qo'shiladi."""
+        from apps.workspaces.models import WorkspaceMember, WorkspaceRole
+
+        opened = Project.objects.create(
+            workspace=self.workspace, name="Ochiq loyiha", manager=self.manager,
+            created_by=self.manager, is_public=True)
+        WorkspaceMember.objects.create(workspace=self.workspace, user=self.outsider,
+                                       role=WorkspaceRole.MEMBER)
+        self.assertIn(opened.pk, self.ids(self.outsider))
+
+
+class ManagerUntouchableTest(ApiTestCase):
+    """MENEJERGA hech kim tegmaydi - u loyihadan faqat o'zi chiqadi.
+
+    Ilgari qoida yumshoqroq edi: menejerga BOSHQA MENEJER tega olardi.
+    Amalda bu himoyani bekor qilardi - ikkinchi menejer tayinlangan zahoti
+    u birinchisini chiqarib yubora olardi. Quyidagi testlar yangi chegarani
+    hamma yo'ldan qulflab qo'yadi: a'zolar ro'yxati ham, loyiha formasidagi
+    `manager_id` ham.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.project_admin = make_user("padmin2@sinov.uz", "Loyiha Admini")
+        ProjectMember.objects.create(project=cls.project, user=cls.project_admin,
+                                     role=ProjectRole.ADMIN)
+        # Ikkinchi menejer - aynan shu holat ilgari himoyani teshib o'tardi.
+        cls.other_manager = make_user("menejer2@sinov.uz", "Ikkinchi Menejer", role="MANAGER")
+        ProjectMember.objects.create(project=cls.project, user=cls.other_manager,
+                                     role=ProjectRole.MANAGER)
+
+    def member_of(self, user):
+        return ProjectMember.objects.get(project=self.project, user=user)
+
+    def act(self, actor, member, **body):
+        return self.client_for(actor).post(
+            "/api/projects/{}/members/{}/".format(self.project.pk, member.pk),
+            body, format="json")
+
+    def test_menejer_boshqa_menejerni_chiqara_olmaydi(self):
+        r = self.act(self.other_manager, self.member_of(self.manager), action="remove")
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(self.member_of(self.manager).is_active)
+
+    def test_menejer_boshqa_menejerning_rolini_ozgartira_olmaydi(self):
+        r = self.act(self.other_manager, self.member_of(self.manager),
+                     action="role", role=ProjectRole.DEVELOPER)
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(self.member_of(self.manager).role, ProjectRole.MANAGER)
+
+    def test_loyiha_admini_ham_tegmaydi(self):
+        r = self.act(self.project_admin, self.member_of(self.manager), action="remove")
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(self.member_of(self.manager).is_active)
+
+    def test_tizim_admini_ham_tegmaydi(self):
+        r = self.act(self.admin, self.member_of(self.manager), action="remove")
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(self.member_of(self.manager).is_active)
+
+    def test_menejer_ijrochini_oldingidek_chiqaradi(self):
+        """Chegara faqat MENEJERGA - qolgan jamoa boshqaruvi joyida qoladi."""
+        r = self.act(self.manager, self.member_of(self.dev), action="remove")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(self.member_of(self.dev).is_active)
+
+    def test_menejer_ozi_chiqa_oladi(self):
+        """Yagona yo'l: o'z qarori bilan."""
+        r = self.client_for(self.manager).post(
+            "/api/projects/{}/leave/".format(self.project.pk), {}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(self.member_of(self.manager).is_active)
+
+    def test_loyiha_formasidan_menejerni_almashtirib_bolmaydi(self):
+        """`manager_id` orqali chetlab o'tish yo'li ham yopiq."""
+        r = self.client_for(self.project_admin).patch(
+            "/api/projects/{}/".format(self.project.pk),
+            {"manager_id": self.project_admin.pk}, format="json")
+        self.assertEqual(r.status_code, 403)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.manager_id, self.manager.pk)
+
+    def test_amaldagi_menejer_boshqaruvni_topshira_oladi(self):
+        """Menejerlik o'z qarori bilan o'tadi - loyiha muzlab qolmasin."""
+        r = self.client_for(self.manager).patch(
+            "/api/projects/{}/".format(self.project.pk),
+            {"manager_id": self.dev.pk}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.manager_id, self.dev.pk)

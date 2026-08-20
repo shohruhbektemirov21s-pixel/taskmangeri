@@ -1,11 +1,11 @@
 // Backend (Django REST) javoblariga mos turlar
 
 export type TaskStatusValue =
-  | "BACKLOG" | "TODO" | "IN_PROGRESS" | "IN_REVIEW"
+  | "TODO" | "IN_PROGRESS" | "IN_REVIEW"
   | "CHANGES_REQUESTED" | "BLOCKED" | "DONE" | "CANCELLED";
 
 export type ProjectRoleValue = "MANAGER" | "ADMIN" | "DEVELOPER" | "QA" | "VIEWER";
-export type GlobalRoleValue = "ADMIN" | "MANAGER" | "DEVELOPER";
+export type GlobalRoleValue = "ADMIN" | "BOSS" | "MANAGER" | "DEVELOPER";
 export type VerdictValue = "APPROVED" | "CHANGES_REQUESTED" | "REJECTED";
 
 export interface UserBrief {
@@ -31,7 +31,6 @@ export interface User extends UserBrief {
   bio: string;
   skills: string;
   skill_list: string[];
-  github_username: string;
   telegram: string;
   is_active: boolean;
   date_joined: string;
@@ -42,6 +41,22 @@ export interface User extends UserBrief {
   default_project_role: string;
   /** Loyiha va ish maydoni ocha oladimi - faqat menejer va admin */
   can_create_project: boolean;
+  /**
+   * Takliflar bo'yicha qaror qabul qiladimi.
+   *
+   * Tizim admini bu yerga kirmaydi: tasdiqlash faqat «Boshliq» rolida.
+   * Frontend faqat tugmani yashiradi - haqiqiy tekshiruv serverda
+   * (`SuggestionViewSet.decide`).
+   */
+  is_boss: boolean;
+  /**
+   * Amalda biror loyihani boshqaradimi (menejeri yoki loyiha admini).
+   *
+   * `can_create_project` ROLdan kelib chiqadi, bu esa haqiqiy holat:
+   * global roli «Dasturchi» bo'lgan odam ham biror loyihaga menejer
+   * qilib qo'yilgan bo'lishi mumkin. Faqat `/auth/me/` javobida keladi.
+   */
+  manages_projects?: boolean;
   project_count?: number;
   open_tasks?: number;
 }
@@ -51,6 +66,8 @@ export interface Access {
   role_label: string;
   is_admin: boolean;
   is_project_admin: boolean;
+  /** Ijrochimi (dasturchi yoki QA) - ro'yxatlar shunga qarab qirqiladi. */
+  is_developer: boolean;
   can_delete_task: boolean;
   can_appoint_admin: boolean;
   can_grant_manager: boolean;
@@ -159,9 +176,6 @@ export interface Brief {
   goal: string;
   tech_stack: string;
   architecture: string;
-  setup_steps: string;
-  conventions: string;
-  definition_of_done: string;
   pitfalls: string;
   contacts: string;
   updated_by: UserBrief | null;
@@ -297,11 +311,71 @@ export interface Paginated<T> {
   results: T[];
 }
 
+/** Yon paneldagi uchta raqam (`/counts/`) - panelning yengil versiyasi. */
+export interface SidebarCounts {
+  open: number;
+  reviews: number;
+  joins: number;
+}
+
+/** Menejer jamoasidagi bitta odam: qaysi loyihalarda va qancha ish bilan. */
+export interface TeamPerson {
+  user: UserBrief;
+  role_label: string;
+  projects: { id: number; name: string; key: string; color: string }[];
+  open_tasks: number;
+  review_tasks: number;
+  done_tasks: number;
+}
+
+/** Panel taxtasining davri - serverdagi `PERIODS` bilan bir xil kalitlar. */
+export type DashboardPeriod = "year" | "month" | "week";
+
+/** Bitta taxta: davr va undagi uchta raqam. */
+export interface DashboardPeriodRow {
+  key: DashboardPeriod;
+  /** Davr boshlangan lahza (ISO) */
+  since: string;
+  todo: number;
+  overdue: number;
+  done: number;
+}
+
+/**
+ * Panel raqamlari kimniki:
+ *   `all`     - butun tizim (platforma admini);
+ *   `managed` - boshqaruvdagi loyihalar + o'zi (menejer);
+ *   `mine`    - faqat o'ziga biriktirilgani.
+ */
+export type DashboardScope = "all" | "managed" | "mine";
+
 export interface DashboardData {
+  /** Panelning uchta taxtasi - yil, oy va hafta boshidan (shu tartibda) */
+  periods: DashboardPeriodRow[];
+  /** Raqamlar qaysi ishlar bo'yicha sanalgan */
+  scope: DashboardScope;
+  /** Muddat holati (butun tarix bo'yicha) - panelning pastki qatori */
+  deadlines: {
+    /** Yopilgan, lekin muddatdan keyin */
+    late_done: number;
+    /** Yopilmagan va muddati o'tib ketgan */
+    overdue: number;
+    /** Yopilmagan, muddati hali kelmagan yoki qo'yilmagan */
+    waiting: number;
+  };
   stats: {
     open: number; review: number; returned: number;
     overdue: number; done_week: number;
     pending_reviews: number; pending_joins: number;
+  };
+  /** Bugungi kesim: bajarish kerak, bajarildi, tekshiruvga topshirildi */
+  today: { date: string; todo: number; done: number; review: number };
+  /** Menejer kesimi - boshqaruvdagi loyihalar va ulardagi odamlar */
+  team: {
+    projects: number;
+    developers: number;
+    pending_reviews: number;
+    people: TeamPerson[];
   };
   next_task: Task | null;
   focus_queue: Task[];
@@ -318,6 +392,64 @@ export interface DashboardData {
 export interface MyWorkData {
   groups: { status: TaskStatusValue; label: string; count: number; tasks: Task[] }[];
   projects: { id: number; name: string; key: string; color: string }[];
+}
+
+/* ---- Jamoaning ish yuki (`/team/workload/`) ---- */
+
+export interface WorkloadTask {
+  id: number;
+  code: string;
+  title: string;
+  status: TaskStatusValue;
+  status_display: string;
+  priority: 1 | 2 | 3 | 4;
+  priority_label: string;
+  due_date: string | null;
+  is_overdue: boolean;
+  project: { id: number; name: string; key: string; color: string };
+}
+
+/**
+ * Ijrochining kesim bo'yicha XULOSASI - «nechtasi bajarildi, nechtasi yo'q».
+ *
+ * `task_count` bilan aralashtirmang: u KO'RSATILAYOTGAN vazifalar soni va
+ * holat filtriga bo'ysunadi (standart holatda bajarilgani ro'yxatda yo'q).
+ * Bu esa holat filtridan tashqari hamma kesim bilan sanaladi - aks holda
+ * `done` doim nol bo'lib, xulosaning ma'nosi qolmasdi.
+ */
+export interface WorkloadStats {
+  /** Foiz maxraji - bekor qilinganidan tashqari hamma ish. */
+  total: number;
+  done: number;
+  todo: number;
+  in_progress: number;
+  review: number;
+  changes_requested: number;
+  blocked: number;
+  cancelled: number;
+  overdue: number;
+  done_percent: number;
+}
+
+export interface WorkloadRow {
+  user: UserBrief;
+  /** Ijrochi qaysi loyihalarda - boshqaruvdagilari ichida. */
+  projects: { id: number; name: string; key: string; color: string; role: string }[];
+  task_count: number;
+  overdue_count: number;
+  stats: WorkloadStats;
+  tasks: WorkloadTask[];
+}
+
+export interface TeamWorkloadData {
+  /** Filtr ro'yxati uchun - boshqaruvdagi BARCHA loyihalar. */
+  projects: { id: number; name: string; key: string; color: string }[];
+  /** Jami ijrochi (sahifadagi emas) - sarlavhadagi «32 kishi» shundan. */
+  count: number;
+  page: number;
+  pages: number;
+  page_size: number;
+  developers: WorkloadRow[];
 }
 
 export interface OnboardingData {
@@ -458,9 +590,21 @@ export interface CalendarMonth {
   today: string;
   projects: CalendarProject[];
   tasks: CalendarTask[];
-  days: { date: string; count: number }[];
+  /**
+   * Kun katagi uchun sanoqlar: `count` - o'sha kuni muddati tugaydigan
+   * LOYIHALAR, qolgan uchtasi - VAZIFALAR holat bo'yicha. Oraliq holatlar
+   * («Tekshiruvda», «Tuzatish kerak», «To'xtab qolgan») `in_progress` ga
+   * qo'shiladi: uchta raqamning yig'indisi o'sha kungi vazifalar soniga
+   * teng bo'lsin.
+   */
+  days: { date: string; count: number; todo: number; in_progress: number; done: number }[];
   total: number;
   task_total: number;
+  /**
+   * Vazifalar ro'yxati qirqilganmi: odam birorta loyihada IJROCHI bo'lsa,
+   * o'sha loyihalardan faqat o'ziga biriktirilgan ish taqvimga tushadi.
+   */
+  tasks_limited: boolean;
 }
 
 /** Ochiq (autentifikatsiyasiz) API dan keladigan loyiha - faqat xavfsiz maydonlar */
@@ -503,6 +647,8 @@ export interface ProjectFileVersion {
   size_display: string;
   content_type: string;
   description: string;
+  /** Hujjatning o'zidagi sana, "YYYY-MM-DD" — yuklangan vaqt emas */
+  doc_date: string | null;
   is_image: boolean;
   uploaded_by: UserBrief | null;
   created_at: string;
@@ -521,6 +667,8 @@ export interface ProjectFile {
   size_display: string;
   content_type: string;
   description: string;
+  /** Hujjatning o'zidagi sana, "YYYY-MM-DD" — yuklangan vaqt emas */
+  doc_date: string | null;
   extension: string;
   is_image: boolean;
   uploaded_by: UserBrief | null;
@@ -636,6 +784,16 @@ export interface Conversation {
   outgoing: boolean;
 }
 
+/** `GET /api/counts/` javobi - yon paneldagi uchta raqam. */
+export interface SidebarCounts {
+  /** menga biriktirilgan ochiq vazifalar (TODO + jarayonda) */
+  open: number;
+  /** men tekshirishim kerak bo'lgan vazifalar */
+  reviews: number;
+  /** javob kutayotgan qo'shilish so'rovlari */
+  joins: number;
+}
+
 /** `GET /api/users/:id/work/` javobi */
 export interface UserWork {
   user: UserBrief;
@@ -651,4 +809,71 @@ export interface UserWork {
   activity: Activity[];
   /** true bo'lsa - ro'yxat so'rovchining huquqi bilan cheklangan */
   limited: boolean;
+}
+
+/* ------------------------------------------------------------------ Takliflar */
+
+/** Ochiq — hamma ko'radi; Yopiq — faqat muallif va boshliq. */
+export type SuggestionScopeValue = "OPEN" | "CLOSED";
+export type SuggestionStatusValue = "PENDING" | "APPROVED" | "REJECTED";
+export type VoteChoiceValue = "FOR" | "AGAINST" | "NEUTRAL";
+
+/** Taklifga biriktirilgan fayl. */
+export interface SuggestionFile {
+  id: number;
+  url: string;
+  original_name: string;
+  size: number;
+  size_display: string;
+  content_type: string;
+  extension: string;
+  is_image: boolean;
+  /** Kim yuklagani — anonim taklifda `null`. */
+  uploaded_by: UserBrief | null;
+  created_at: string;
+}
+
+export interface Suggestion {
+  id: number;
+  title: string;
+  body: string;
+  scope: SuggestionScopeValue;
+  scope_display: string;
+  is_anonymous: boolean;
+  status: SuggestionStatusValue;
+  status_display: string;
+  /** Anonim taklifda `null` — muallif hech kimga ko'rsatilmaydi. */
+  author: UserBrief | null;
+
+  decided_by: UserBrief | null;
+  decided_at: string | null;
+  decision_note: string;
+
+  /** Ovoz sonlari. Kim bergani hech qachon kelmaydi. */
+  for_count: number;
+  against_count: number;
+  neutral_count: number;
+  /** `for_count - against_count` — ro'yxat shu bo'yicha saralanadi. */
+  score: number;
+  /** So'ragan odamning O'Z tanlovi (yoki `null`). */
+  my_vote: VoteChoiceValue | null;
+
+  /** Biriktirilgan fayllar — bo'lmasa bo'sh massiv. */
+  files: SuggestionFile[];
+
+  is_mine: boolean;
+  can_edit: boolean;
+  can_decide: boolean;
+  can_vote: boolean;
+
+  created_at: string;
+  updated_at: string;
+}
+
+/** `GET /api/suggestions/counts/` javobi */
+export interface SuggestionCounts {
+  open: number;
+  closed: number;
+  /** Boshliq uchun: qaror kutayotganlar soni (boshqalarda 0). */
+  pending: number;
 }

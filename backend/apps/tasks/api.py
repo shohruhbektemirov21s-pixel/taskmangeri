@@ -10,7 +10,8 @@ from rest_framework.response import Response
 from apps.core.queries import int_param, object_or_404
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
-from apps.core.permissions import ProjectAccess, check_access, visible_projects_q
+from apps.core.permissions import (ProjectAccess, check_access, managed_projects_q,
+                                   task_scope_q, visible_projects_q)
 from apps.core.uploads import check_uploads
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
@@ -258,6 +259,10 @@ class TaskViewSet(viewsets.ModelViewSet):
             # Ko'rish doirasi `ProjectAccess.can_view` bilan bir xil qoidadan
             # keladi: a'zo bo'lgan loyihalar + o'z ish maydonidagi ochiqlar.
             qs = qs.filter(visible_projects_q(user, "project__"))
+
+        # Loyiha ichida esa - kimning ishi ko'rinishi. Menejerga hammasi,
+        # qolganga o'ziniki (`task_scope_q`). Doska ham shu yerdan o'tadi.
+        qs = qs.filter(task_scope_q(user))
 
         # Raqamli filtrlar `int_param` dan o'tadi: yaroqsiz qiymat ("abc")
         # so'rov bajarilayotganda ValueError bilan 500 bermasin - 400 qaytsin.
@@ -540,6 +545,100 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Response(TaskDetailSerializer(task,
                                              context=self.get_serializer_context()).data)
 
+    # ------------------------------------------------------------ boshqa odamga otkazish
+    @action(detail=True, methods=["post"], url_path="reassign")
+    def reassign(self, request, pk=None):
+        """Vazifani BOSHQA odamga otkazish.
+
+        Ijrochini vazifa formasidan ham ozgartirsa boladi, lekin u yerda
+        butun topshiriq qaytadan ochiladi va royxatdan belgi olib tashlanadi -
+        odam ketib qolgan yoki ish boshqasiga oshgan paytda bu uzoq yol.
+        Bu yerda esa bitta amal: kimga va nega. Ish BITTA odamga otadi -
+        "otkazish" degani shu, shuning uchun qolgan ijrochilar olib
+        tashlanadi (yozuvlari ochmaydi, faqat nofaol boladi - kim qachon
+        ishlagani tarixda qolsin).
+
+        Ruxsat vazifani tahrirlash bilan bir xil: loyiha menejeri, loyiha
+        admini va tizim admini. Ijrochining ozi ishni boshqaga otkaza olmaydi.
+        """
+        from django.utils import timezone
+
+        task = self.get_object()
+        access = ProjectAccess(request.user, task.project)
+        if not access.can_create_task:
+            raise PermissionDenied(
+                "Vazifani boshqa odamga faqat loyiha menejeri yoki admin otkaza oladi.")
+        # Tugagan ishni otkazishning ma'nosi yoq: yangi odam uchun bu ish emas,
+        # eskisining tarixi esa buziladi.
+        if task.status in (TaskStatus.DONE, TaskStatus.CANCELLED):
+            raise ValidationError(
+                {"detail": "Yakunlangan yoki bekor qilingan vazifani otkazib bolmaydi."})
+
+        user_id = int_param(request.data.get("user_id"), "user_id")
+        note = (request.data.get("note") or "").strip()[:250]
+
+        # Faqat loyiha a'zosiga - `sync_assignees` dagi qoida bilan bir xil.
+        member = (task.project.memberships.filter(is_active=True, user_id=user_id)
+                  .select_related("user").first())
+        if member is None:
+            raise ValidationError({"user_id": "Vazifani faqat loyiha a'zosiga otkazish mumkin."})
+        target = member.user
+
+        active = list(task.assignments.filter(is_active=True).select_related("user"))
+        if [a.user_id for a in active] == [target.id]:
+            raise ValidationError({"user_id": "Vazifa allaqachon shu odamda."})
+
+        now = timezone.now()
+        for a in active:
+            if a.user_id == target.id:
+                continue
+            a.is_active = False
+            a.unassigned_at = now
+            a.save(update_fields=["is_active", "unassigned_at"])
+
+        # Odam ilgari shu vazifada bolgan bolsa yangi qator ochilmaydi -
+        # eskisi qayta faollashadi (bir odam bir vazifada ikki marta turmasin).
+        current = task.assignments.filter(user=target).first()
+        if current is None:
+            TaskAssignment.objects.create(task=task, user=target, assigned_by=request.user)
+        else:
+            current.is_active = True
+            current.unassigned_at = None
+            current.assigned_by = request.user
+            current.save(update_fields=["is_active", "unassigned_at", "assigned_by"])
+
+        gone = [a.user for a in active if a.user_id != target.id]
+        detail = []
+        if gone:
+            detail.append("Oldingi ijrochi: " + ", ".join(u.full_name for u in gone))
+        if note:
+            detail.append("Sabab: " + note)
+        log(actor=request.user, verb="task.reassigned", task=task,
+            summary="{}: {} ga otkazildi".format(task.code, target.full_name),
+            detail=" · ".join(detail),
+            meta={"task": task.pk, "to": target.pk, "from": [u.pk for u in gone]})
+
+        # Yangi ijrochi uchun bu - yangi ish, shuning uchun odatdagi
+        # "biriktirildi" turi: ish royxatlari va filtrlar ozgarmaydi.
+        notify_many([target], NotificationKind.TASK_ASSIGNED,
+                    title="{} sizga otkazildi".format(task.code),
+                    body=(note or task.title)[:150],
+                    url="/vazifa/{}".format(task.pk), actor=request.user,
+                    meta={"task": task.pk, "project": task.project_id})
+        # Ishdan chiqqan odam ham bilsin - aks holda u eski topshiriq ustida
+        # ishlab yuraveradi.
+        if gone:
+            notify_many(gone, NotificationKind.TASK_REASSIGNED,
+                        title="{} boshqa ijrochiga otkazildi".format(task.code),
+                        body="Endi ustida {} ishlaydi".format(target.full_name),
+                        url="/vazifa/{}".format(task.pk), actor=request.user,
+                        meta={"task": task.pk, "project": task.project_id})
+
+        live_task(task, "updated", request.user, title=task.title[:120])
+        task.refresh_from_db()
+        return Response(TaskDetailSerializer(
+            task, context=self.get_serializer_context()).data)
+
     # ------------------------------------------------------------ izoh / ish jurnali
     @action(detail=True, methods=["post"], url_path="comments")
     def add_comment(self, request, pk=None):
@@ -753,16 +852,24 @@ class TaskViewSet(viewsets.ModelViewSet):
     # ------------------------------------------------------------ tekshiruv
     @action(detail=False, methods=["get"], url_path="review-queue")
     def review_queue(self, request):
+        """Tasdiqlanishi kutilayotgan ishlar - ishni QABUL QILADIGAN odamga.
+
+        KIMGA. Loyiha menejeri, loyiha admini va platforma admini -
+        `managed_projects_q` aynan shu uchovini beradi. Ijrochiga bu navbat
+        tegishli emas: uning ishi tekshiruvga o'tgach qarorni boshqa odam
+        beradi va ro'yxat unda har doim bo'sh edi.
+
+        HALI LOYIHASI YO'Q MENEJER ham kira oladi (`can_create_project`):
+        u loyiha ochishi bilan navbat to'ladi, darhol «ruxsat yo'q»
+        degan javob esa xato tuyulardi - navbat bo'sh, xolos.
+        """
         user = request.user
-        qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
-                                 project__deleted_at__isnull=True)
-        if not user.is_platform_admin:
-            from apps.projects.models import ProjectMember
-            managed = Project.objects.filter(
-                Q(manager=user) | Exists(ProjectMember.objects.filter(
-                    project=OuterRef("pk"), user=user, is_active=True,
-                    role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN])))
-            qs = qs.filter(project__in=managed)
+        # `Project.objects` o'chirilgan loyihalarni yashiradi, ya'ni
+        # `project__in=managed` ularni ro'yxatdan ham chiqarib tashlaydi.
+        managed = Project.objects.filter(managed_projects_q(user))
+        if not (user.can_create_project or managed.exists()):
+            raise PermissionDenied("Tekshiruv navbati loyiha menejeriga tegishli.")
+        qs = Task.objects.filter(status=TaskStatus.IN_REVIEW, project__in=managed)
         qs = (qs.select_related("project", "created_by")
               .prefetch_related("assignments__user", "labels").order_by("submitted_at"))
         return Response(TaskSerializer(qs, many=True,

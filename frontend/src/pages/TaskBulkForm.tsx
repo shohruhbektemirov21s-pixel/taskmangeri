@@ -1,15 +1,17 @@
 import { useEffect, useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
-import { Avatar, Card, DateTimeField, ErrorMsg, fromDateTimeInput, Loading } from "@/components/ui";
+import { Avatar, Card, DateTimeField, Empty, ErrorMsg, fromDateTimeInput, Loading } from "@/components/ui";
+import { toProject, useEntityId, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function TaskBulkForm() {
   const fid = useId();
-  const { id } = useParams();
-  const nav = useNavigate();
+  const id = useEntityId("project");
+  const go = useGo();
   const { meta } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
@@ -25,11 +27,12 @@ export default function TaskBulkForm() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
     let alive = true;
     void api.get<Project>(`/projects/${id}/`)
       .then((p) => { if (alive) setProject(p); })
       .catch((e) => {
-        if (alive) setError(e instanceof ApiError ? e.message : "Loyihani ochib bo'lmadi.");
+        if (alive) setError(e instanceof ApiError ? e.message : tx("task_bulk_form.loyihani_ochib_bolmadi"));
       });
     return () => { alive = false; };
   }, [id]);
@@ -57,6 +60,7 @@ export default function TaskBulkForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!id) return;
     setBusy(true);
     setError(null);
     try {
@@ -73,12 +77,25 @@ export default function TaskBulkForm() {
         due_date: fromDateTimeInput(f.due_date),
         acceptance_criteria: f.acceptance_criteria,
       });
-      nav(`/loyiha/${id}/doska`);
+      go(toProject(id, "doska"));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Vazifalarni yaratib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("task_bulk_form.vazifalarni_yaratib_bolmadi"));
     } finally {
       setBusy(false);
     }
+  }
+
+  // Manzilda loyiha raqami saqlanmaydi - havolani qo'lda ochgan odam shu
+  // yerga tushadi. Oq ekran emas, chiqish yo'li ko'rsatiladi.
+  if (!id) {
+    return (
+      <div className="content">
+        <Empty title={tx("common.loyiha_tanlanmagan")}
+               text={tx("task_bulk_form.bu_sahifa_loyiha_ichidan_ochiladi")}>
+          <Link className="btn btn-primary" to="/loyihalar">{tx("common.loyihalarim")}</Link>
+        </Empty>
+      </div>
+    );
   }
 
   if (!project) return <div className="content"><Loading /></div>;
@@ -87,10 +104,9 @@ export default function TaskBulkForm() {
   if (!project.access?.can_create_task) {
     return (
       <div className="content">
-        <Card title="Ruxsat yoq">
+        <Card title={tx("task_bulk_form.ruxsat_yoq")}>
           <p className="muted" style={{ margin: 0 }}>
-            Vazifa yaratish va tahrirlash faqat loyiha menejeri va adminda.
-            Sizga biriktirilgan ishni «Mening ishim» bolimidan bajarasiz.
+            {tx("task_bulk_form.vazifa_yaratish_va_tahrirlash_faqat")}
           </p>
         </Card>
       </div>
@@ -101,27 +117,27 @@ export default function TaskBulkForm() {
   return (
     <>
       <PageHead
-        title={<><span className="muted">{project.name} / </span><strong>Koplab vazifa berish</strong></>}
+        title={<><span className="muted">{project.name} / </span><strong>{tx("task_bulk_form.koplab_vazifa_berish")}</strong></>}
       />
       <div className="content">
         <ErrorMsg error={error} />
         <form onSubmit={submit}>
           <div className="split">
             <div>
-              <Card title="Vazifalar royxati"
-                    badge={<span className="badge">{titles.length} ta</span>}>
+              <Card title={tx("task_bulk_form.vazifalar_royxati")}
+                    badge={<span className="badge">{titles.length} {tx("common.ta")}</span>}>
                 <textarea
                   rows={12}
                   value={lines}
                   onChange={(e) => setLines(e.target.value)}
-                  placeholder={"Login sahifasini yasash\nAPI: foydalanuvchi royxati\nDocker konfiguratsiyani sozlash"}
+                  placeholder={tx("task_bulk_form.login_sahifasini_yasash_api_foydalanuvchi")}
                 />
               </Card>
 
               {titles.length > 0 && (
-                <Card title="Taqsimot koinishi (oldindan)" padded={false}>
+                <Card title={tx("task_bulk_form.taqsimot_koinishi_oldindan")} padded={false}>
                   <div className="table-wrap"><table className="table">
-                    <thead><tr><th>#</th><th>Vazifa</th><th>Kimga</th></tr></thead>
+                    <thead><tr><th>#</th><th>{tx("common.vazifa")}</th><th>{tx("task_bulk_form.kimga")}</th></tr></thead>
                     <tbody>
                       {preview.map((p, i) => (
                         <tr key={i}>
@@ -141,12 +157,12 @@ export default function TaskBulkForm() {
             </div>
 
             <div>
-              <Card title="Kimga beriladi">
+              <Card title={tx("task_bulk_form.kimga_beriladi")}>
                 <div className="field">
-                  <label htmlFor={`${fid}-0`}>Kerakli mutaxassislik</label>
+                  <label htmlFor={`${fid}-0`}>{tx("task_bulk_form.kerakli_mutaxassislik")}</label>
                   <select id={`${fid}-0`} value={f.required_specialty}
                           onChange={(e) => setF({ ...f, required_specialty: e.target.value })}>
-                    <option value="">Talab qilinmaydi</option>
+                    <option value="">{tx("task_bulk_form.talab_qilinmaydi")}</option>
                     {(meta?.specialties || []).map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
@@ -155,12 +171,12 @@ export default function TaskBulkForm() {
                 <label className="row" style={{ fontWeight: 400 }}>
                   <input type="checkbox" checked={matchSpec} style={{ width: "auto", minHeight: 0 }}
                          onChange={(e) => setMatchSpec(e.target.checked)} />
-                  Faqat mos mutaxassislarga berilsin
+                  {tx("task_bulk_form.faqat_mos_mutaxassislarga_berilsin")}
                 </label>
                 <label className="row" style={{ fontWeight: 400, marginTop: 8 }}>
                   <input type="checkbox" checked={distribute} style={{ width: "auto", minHeight: 0 }}
                          onChange={(e) => setDistribute(e.target.checked)} />
-                  Navbat bilan taqsimlash (1-task 1-odamga)
+                  {tx("task_bulk_form.navbat_bilan_taqsimlash_1_task")}
                 </label>
 
                 <div className="divider" />
@@ -183,14 +199,14 @@ export default function TaskBulkForm() {
                     </label>
                   ))}
                   {!members.length && (
-                    <p className="muted">Bu yonalishda jamoada aʼzo yoq.</p>
+                    <p className="muted">{tx("task_bulk_form.bu_yonalishda_jamoada_azo_yoq")}</p>
                   )}
                 </div>
               </Card>
 
-              <Card title="Umumiy xususiyatlar">
+              <Card title={tx("task_bulk_form.umumiy_xususiyatlar")}>
                 <div className="field">
-                  <label htmlFor={`${fid}-1`}>Muhimlik</label>
+                  <label htmlFor={`${fid}-1`}>{tx("common.muhimlik")}</label>
                   <select id={`${fid}-1`} value={f.priority} onChange={(e) => setF({ ...f, priority: Number(e.target.value) })}>
                     {(meta?.task_priority || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -198,7 +214,7 @@ export default function TaskBulkForm() {
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-2`}>Turi</label>
+                  <label htmlFor={`${fid}-2`}>{tx("common.turi")}</label>
                   <select id={`${fid}-2`} value={f.task_type} onChange={(e) => setF({ ...f, task_type: e.target.value })}>
                     {(meta?.task_type || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -206,15 +222,15 @@ export default function TaskBulkForm() {
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-3`}>Umumiy muddat</label>
+                  <label htmlFor={`${fid}-3`}>{tx("task_bulk_form.umumiy_muddat")}</label>
                   <DateTimeField id={`${fid}-3`} value={f.due_date}
                                  onChange={(v) => setF({ ...f, due_date: v })} />
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-4`}>Umumiy tayyorlik mezoni</label>
+                  <label htmlFor={`${fid}-4`}>{tx("task_bulk_form.umumiy_tayyorlik_mezoni")}</label>
                   <textarea id={`${fid}-4`} rows={3} value={f.acceptance_criteria}
                             onChange={(e) => setF({ ...f, acceptance_criteria: e.target.value })}
-                            placeholder="Hamma vazifaga bir xil qollaniladi" />
+                            placeholder={tx("task_bulk_form.hamma_vazifaga_bir_xil_qollaniladi")} />
                 </div>
               </Card>
             </div>
@@ -222,9 +238,9 @@ export default function TaskBulkForm() {
 
           <div className="form-actions">
             <button className="btn btn-primary" disabled={busy || !titles.length}>
-              {busy ? "Yaratilmoqda..." : `${titles.length} ta vazifa yaratish`}
+              {busy ? tx("common.yaratilmoqda") : tx("task_bulk_form.nechta_vazifa_yaratish", { n: titles.length })}
             </button>
-            <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
+            <button type="button" className="btn" onClick={() => go(-1)}>{tx("common.bekor_qilish")}</button>
           </div>
         </form>
       </div>

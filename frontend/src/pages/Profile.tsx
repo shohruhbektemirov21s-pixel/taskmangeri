@@ -1,19 +1,29 @@
 import { useEffect, useId, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
-import type { User, UserWork } from "@/api/types";
+import type { Task, User, UserWork } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import SkillEditor from "@/components/SkillEditor";
 import { IconChat } from "@/components/icons";
 import Timeline from "@/components/Timeline";
 import {
-  AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Priority, Stat, StatusBadge, fmtDate,
+  AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Pager, Priority, Stat, StatusBadge,
+  fmtDate,
 } from "@/components/ui";
+import { confirmDialog } from "@/components/Confirm";
+import { toMessages, toMyWork, toProject, toTask, useEntityId } from "@/nav";
+import PasswordCard from "@/components/PasswordCard";
+import TelegramCard from "@/components/TelegramCard";
+import { tx } from "@/i18n";
+
+/** Profil kartasidagi vazifalar ro'yxati bir sahifada nechta. */
+const TASKS_PER_PAGE = 10;
 
 export default function Profile() {
   const fid = useId();
-  const { userId } = useParams();
+  // Kimning profili - sahifa holatidan. Bo'sh bo'lsa - o'ziniki.
+  const userId = useEntityId("user");
   const { user: me, meta, refreshUser } = useAuth();
   const isSelf = !userId || Number(userId) === me?.id;
 
@@ -25,6 +35,24 @@ export default function Profile() {
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  /**
+   * Katak bosilganda ro'yxat SHU SAHIFADA filtrlanadi.
+   *
+   * Ilgari kataklar «Mening ishim» ga olib ketardi va faqat O'Z
+   * profilida bosilardi - begona profilda ular umuman jonsiz edi.
+   * Endi ikkovida ham ishlaydi: raqamni ko'rgan odam "bu qaysi ishlar?"
+   * degan savolni sahifani tark etmasdan ochadi.
+   *
+   * Hook SHU YERDA - qolgan holatlar bilan birga. Pastroqda, `if (!target)`
+   * dan keyin turganda React "oldingi renderga qaraganda ko'proq hook"
+   * deb yiqilardi: birinchi renderda sahifa hali yuklanmagan va erta
+   * `return` bu qatorgacha yetib bormasdi.
+   */
+  const [pickedStat, setPickedStat] = useState<string | null>(null);
+  // Vazifalar kartasi o'ntadan sahifalanadi. Sahifa BRAUZERDA almashadi:
+  // ro'yxat profil javobi bilan birga allaqachon kelgan, ya'ni server bilan
+  // yana gaplashishning hojati yo'q va o'tish bir zumda bo'ladi.
+  const [taskPage, setTaskPage] = useState(1);
 
   useEffect(() => {
     // Bir profildan boshqasiga tez o'tilsa eski javob kelib qolmasin.
@@ -35,14 +63,14 @@ export default function Profile() {
       setTarget(u);
       setForm({
         full_name: u.full_name, job_title: u.job_title, skills: u.skills,
-        bio: u.bio, github_username: u.github_username, telegram: u.telegram,
+        bio: u.bio, telegram: u.telegram,
         seniority: u.seniority, years_experience: String(u.years_experience ?? 0),
       });
       // Loyihalar, vazifalar, statistika va tarix - hammasi bitta endpointdan.
       // Ko'rinish serverda so'rovchining huquqiga qarab cheklanadi.
       const w = await api.get<UserWork>(`/users/${u.id}/work/`);
       if (alive) setWork(w);
-    })().catch(() => { if (alive) setError("Profilni ochib bolmadi"); });
+    })().catch(() => { if (alive) setError(tx("profile.profilni_ochib_bolmadi")); });
     return () => { alive = false; };
   }, [userId, isSelf]);
 
@@ -55,26 +83,32 @@ export default function Profile() {
       const body = new FormData();
       body.append("avatar", file);
       setTarget(await api.post<User>("/auth/me/avatar/", body));
-      setSaved("Profil rasmi yangilandi.");
+      setSaved(tx("profile.profil_rasmi_yangilandi"));
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Rasmni yuklab bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("profile.rasmni_yuklab_bolmadi"));
     } finally {
       setPhotoBusy(false);
     }
   }
 
   async function removePhoto() {
-    if (!window.confirm("Profil rasmi ochirilsinmi?")) return;
+    const ok = await confirmDialog({
+      title: tx("profile.profil_rasmi_ochirilsinmi"),
+      body: "O'rniga ism harflaridan tuzilgan belgi ko'rinadi. Keyin yangisini yuklashingiz mumkin.",
+      confirmText: tx("common.ochirish"),
+      danger: true,
+    });
+    if (!ok) return;
     setPhotoBusy(true);
     setError(null);
     setSaved(null);
     try {
       setTarget(await api.delete<User>("/auth/me/avatar/"));
-      setSaved("Profil rasmi ochirildi.");
+      setSaved(tx("profile.profil_rasmi_ochirildi"));
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Rasmni ochirib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("profile.rasmni_ochirib_bolmadi"));
     } finally {
       setPhotoBusy(false);
     }
@@ -88,11 +122,11 @@ export default function Profile() {
     try {
       const u = await api.patch<User>("/auth/me/", form);
       setTarget(u);
-      setSaved("Profil yangilandi.");
+      setSaved(tx("profile.profil_yangilandi"));
       setEdit(false);
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Saqlashda xatolik");
+      setError(err instanceof ApiError ? err.message : tx("common.saqlashda_xatolik"));
     } finally {
       setBusy(false);
     }
@@ -101,23 +135,64 @@ export default function Profile() {
   if (!target) return <div className="content">{error ? <div className="msg msg-error">{error}</div> : <Loading />}</div>;
 
   const stats = work?.stats;
-  const tasks = work?.tasks || [];
+  const allTasks = work?.tasks || [];
+
+  const matches = (t: Task) => {
+    if (pickedStat === "done") return t.status === "DONE";
+    if (pickedStat === "in_review") return t.status === "IN_REVIEW";
+    if (pickedStat === "open") return t.status !== "DONE" && t.status !== "CANCELLED";
+    return true;
+  };
+  const tasks = allTasks.filter(matches);
+  // Sahifalash FILTRDAN KEYIN: kesim tanlanganda sahifalar soni ham qayta
+  // hisoblanadi, aks holda «Bajarilgan» kesimida bo'sh sahifalar qolardi.
+  const taskPages = Math.max(1, Math.ceil(tasks.length / TASKS_PER_PAGE));
+  // Kesim almashganda ro'yxat qisqarib, joriy sahifa chegaradan chiqib
+  // ketishi mumkin - oxirgi haqiqiy sahifani ko'rsatamiz.
+  const page = Math.min(taskPage, taskPages);
+  const pageTasks = tasks.slice((page - 1) * TASKS_PER_PAGE, page * TASKS_PER_PAGE);
+  const pickStat = (key: string) => {
+    setTaskPage(1);
+    setPickedStat((v) => (v === key ? null : key));
+  };
 
   return (
     <>
       <PageHead
-        title={<><span className="muted">profil / </span><strong>{target.full_name}</strong></>}
+        /* Tahrirlash paytida sarlavha yopishib turadi - forma uzun, saqlash
+           tugmasi esa sarlavhada. Aks holda pastki maydonni to'ldirgan odam
+           tugmani ko'rmay qolardi. */
+        sticky={isSelf && edit}
+        title={<><span className="muted">{tx("profile.profil")} </span><strong>{target.full_name}</strong></>}
         actions={
           <>
             {!isSelf && (
-              <Link className="btn btn-sm" to={`/xabarlar/${target.id}`}>
-                <IconChat size={14} /> Xabar yozish
+              <Link className="btn btn-sm" {...toMessages(target.id)}>
+                <IconChat size={14} /> {tx("profile.xabar_yozish")}
               </Link>
             )}
             {isSelf && !edit && (
               <button className="btn btn-sm btn-primary" onClick={() => setEdit(true)}>
-                Tahrirlash
+                {tx("common.tahrirlash")}
               </button>
+            )}
+            {/* Tahrirlash paytida saqlash tugmasi SHU YERDA - sarlavhaning
+                o'ng chetida. Ilgari u formaning ostida turardi: forma uzun
+                (F.I.Sh., lavozim, GitHub, Telegram, ko'nikmalar, daraja,
+                tajriba, ma'lumot) va yuqoridagi maydonni tuzatgan odam
+                saqlash uchun har safar pastga aylantirishi kerak edi.
+                `form` atributi tugmani formaga bog'laydi - u forma
+                ichida bo'lmasa ham `submit` qiladi. */}
+            {isSelf && edit && (
+              <>
+                <button className="btn btn-sm btn-primary" type="submit"
+                        form={`${fid}-form`} disabled={busy}>
+                  {busy ? tx("common.saqlanmoqda") : tx("common.saqlash")}
+                </button>
+                <button className="btn btn-sm" type="button" onClick={() => setEdit(false)}>
+                  {tx("common.bekor_qilish")}
+                </button>
+              </>
             )}
           </>
         }
@@ -136,7 +211,7 @@ export default function Profile() {
                   {isSelf && (
                     <div className="avatar-edit" style={{ marginTop: 10 }}>
                       <label className="btn btn-sm" style={{ marginBottom: 0 }}>
-                        {target.avatar ? "Almashtirish" : "Rasm qoyish"}
+                        {target.avatar ? tx("profile.almashtirish") : tx("profile.rasm_qoyish")}
                         <input type="file" accept="image/*" disabled={photoBusy}
                                onChange={(e) => {
                                  const file = e.target.files?.[0];
@@ -147,7 +222,7 @@ export default function Profile() {
                       {target.avatar && (
                         <button type="button" className="btn btn-sm btn-danger"
                                 disabled={photoBusy} onClick={() => void removePhoto()}>
-                          Ochirish
+                          {tx("common.ochirish_2")}
                         </button>
                       )}
                     </div>
@@ -158,7 +233,7 @@ export default function Profile() {
                   <p className="muted" style={{ margin: "4px 0" }}>{target.job_title}</p>
                   <div className="row wrap" style={{ gap: 6 }}>
                     <span className="badge">{target.seniority_display}</span>
-                    <span className="badge">{target.years_experience} yil tajriba</span>
+                    <span className="badge">{target.years_experience} {tx("profile.yil_tajriba")}</span>
                     <span className="badge badge-info">{target.global_role_display}</span>
                   </div>
                   {target.bio && <p className="pre-wrap" style={{ marginTop: 10 }}>{target.bio}</p>}
@@ -166,7 +241,7 @@ export default function Profile() {
                     {target.skill_list.map((s) => <span className="chip" key={s}>{s}</span>)}
                     {!target.skill_list.length && isSelf && !edit && (
                       <button type="button" className="btn btn-sm" onClick={() => setEdit(true)}>
-                        Konikma qoshish
+                        {tx("profile.konikma_qoshish")}
                       </button>
                     )}
                   </div>
@@ -175,13 +250,12 @@ export default function Profile() {
             </div>
 
             {edit && (
-              <Card title="Profilni tahrirlash">
-                <form onSubmit={save}>
+              <Card title={tx("profile.profilni_tahrirlash")}>
+                <form id={`${fid}-form`} onSubmit={save}>
                   {[
-                    ["full_name", "F.I.Sh.", "text"],
-                    ["job_title", "Lavozim", "text"],
-                    ["github_username", "GitHub username", "text"],
-                    ["telegram", "Telegram", "text"],
+                    ["full_name", tx("common.f_i_sh"), "text"],
+                    ["job_title", tx("profile.lavozim"), "text"],
+                    ["telegram", tx("profile.telegram_2"), "text"],
                   ].map(([k, label]) => (
                     <div className="field" key={k}>
                       <label htmlFor={`${fid}-0`}>{label}</label>
@@ -190,7 +264,7 @@ export default function Profile() {
                     </div>
                   ))}
                   <div className="field">
-                    <label htmlFor={`${fid}-4`}>Konikmalar</label>
+                    <label htmlFor={`${fid}-4`}>{tx("profile.konikmalar")}</label>
                     <SkillEditor
                       id={`${fid}-4`}
                       value={form.skills || ""}
@@ -201,7 +275,7 @@ export default function Profile() {
 
                   <div className="row">
                     <div className="field" style={{ flex: 1 }}>
-                      <label htmlFor={`${fid}-1`}>Daraja</label>
+                      <label htmlFor={`${fid}-1`}>{tx("common.daraja")}</label>
                       <select id={`${fid}-1`} value={form.seniority || ""}
                               onChange={(e) => setForm({ ...form, seniority: e.target.value })}>
                         {(meta?.seniority || []).map((s) => (
@@ -210,74 +284,98 @@ export default function Profile() {
                       </select>
                     </div>
                     <div className="field" style={{ width: 140 }}>
-                      <label htmlFor={`${fid}-2`}>Tajriba (yil)</label>
+                      <label htmlFor={`${fid}-2`}>{tx("profile.tajriba_yil")}</label>
                       <input id={`${fid}-2`} type="number" min={0} max={30} value={form.years_experience || "0"}
                              onChange={(e) => setForm({ ...form, years_experience: e.target.value })} />
                     </div>
                   </div>
                   <div className="field">
-                    <label htmlFor={`${fid}-3`}>Qisqacha maʼlumot</label>
+                    <label htmlFor={`${fid}-3`}>{tx("profile.qisqacha_malumot")}</label>
                     <textarea id={`${fid}-3`} rows={3} value={form.bio || ""}
                               onChange={(e) => setForm({ ...form, bio: e.target.value })} />
-                  </div>
-                  <div className="form-actions">
-                    <button className="btn btn-primary" disabled={busy}>
-                      {busy ? "Saqlanmoqda..." : "Saqlash"}
-                    </button>
-                    <button type="button" className="btn" onClick={() => setEdit(false)}>
-                      Bekor qilish
-                    </button>
                   </div>
                 </form>
               </Card>
             )}
 
-            <Card title={isSelf ? "Songgi vazifalarim" : "Songgi vazifalari"} padded={false}
-                  badge={<span className="badge">{tasks.length}</span>}>
+            <Card title={isSelf ? tx("profile.songgi_vazifalarim") : tx("profile.songgi_vazifalari")} padded={false}
+                  badge={<span className="badge">{tasks.length}</span>}
+                  action={pickedStat && (
+                    <button type="button" className="btn btn-sm"
+                            onClick={() => { setTaskPage(1); setPickedStat(null); }}>
+                      {tx("common.filtrni_tozalash")}
+                    </button>
+                  )}>
               <div className="table-wrap"><table className="table">
                 <tbody>
-                  {tasks.map((t) => (
+                  {pageTasks.map((t) => (
                     <tr key={t.id}>
                       <td className="mono muted nowrap">{t.code}</td>
                       <td>
-                        <Link to={`/vazifa/${t.id}`}>{t.title}</Link>
+                        <Link {...toTask(t.id)}>{t.title}</Link>
                         <br /><small className="muted">{t.project_name}</small>
                       </td>
                       <td><StatusBadge task={t} /></td>
                       <td><Priority task={t} /></td>
                     </tr>
                   ))}
-                  {!tasks.length && <tr><td className="muted center">Vazifa yoq</td></tr>}
+                  {!tasks.length && (
+                    <tr><td className="muted center">
+                      {pickedStat ? tx("profile.bu_kesimda_vazifa_yoq") : tx("profile.vazifa_yoq")}
+                    </td></tr>
+                  )}
                 </tbody>
               </table></div>
+              {/* Sahifa raqamlari - faqat bo'linadigan narsa bo'lsa. */}
+              {taskPages > 1 && (
+                <div className="card-body pager-bar">
+                  <span className="muted">
+                    {tasks.length} {tx("common.tadan")} {(page - 1) * TASKS_PER_PAGE + 1}—
+                    {Math.min(page * TASKS_PER_PAGE, tasks.length)} {tx("common.tasi")}
+                  </span>
+                  <Pager page={page} pages={taskPages} onPick={setTaskPage} />
+                </div>
+              )}
             </Card>
 
-            <Card title={isSelf ? "Nima qilganman" : "Nima qilgan"} padded={false}
+            {/* Tarix uzun bo'lishi mumkin (o'nlab yozuv) va u sahifaning
+                qolgan qismini pastga surib yuboradi. Shuning uchun yig'ilgan
+                holda ochiladi - sanoq nishonda ko'rinib turadi. */}
+            <Card title={isSelf ? tx("profile.nima_qilganman") : tx("profile.nima_qilgan")} padded={false}
+                  collapsible defaultOpen={false}
                   badge={<span className="badge">{(work?.activity || []).length}</span>}>
               {work?.activity?.length
                 ? <div className="card-body"><Timeline items={work.activity} /></div>
-                : <div className="empty">Hozircha yozuv yo'q</div>}
+                : <div className="empty">{tx("profile.hozircha_yozuv_yoq")}</div>}
             </Card>
 
           </div>
 
           <div>
             <div className="grid grid-2 mb">
-              <Stat value={stats?.open ?? 0} label="Ochiq vazifa" tone="accent" />
-              <Stat value={stats?.done ?? 0} label="Bajarilgan" tone="ok" />
-              <Stat value={stats?.in_review ?? 0} label="Tekshiruvda" tone="done" />
-              <Stat value={stats?.hours ?? 0} label="Sarflangan soat" tone="warn" />
+              {/* Uchtasi ro'yxatni filtrlaydi, soat esa yo'q - u yig'indi,
+                  ro'yxatga aylanmaydi. */}
+              <Stat value={stats?.open ?? 0} label={tx("common.ochiq_vazifa_2")} tone="accent"
+                    onClick={() => pickStat("open")}
+                    title={tx("profile.ochiq_ishlarni_royxatda_korish")} />
+              <Stat value={stats?.done ?? 0} label={tx("common.bajarilgan")} tone="ok"
+                    onClick={() => pickStat("done")}
+                    title={tx("profile.bajarilgan_ishlarni_royxatda_korish")} />
+              <Stat value={stats?.in_review ?? 0} label={tx("common.tekshiruvda")} tone="done"
+                    onClick={() => pickStat("in_review")}
+                    title={tx("profile.tekshiruvdagi_ishlarni_royxatda_korish")} />
+              <Stat value={stats?.hours ?? 0} label={tx("common.sarflangan_soat")} tone="warn" />
             </div>
 
             {!!work?.projects?.length && (
-              <Card title={isSelf ? "Loyihalarim" : "Loyihalari"} padded={false}
+              <Card title={isSelf ? tx("common.loyihalarim") : tx("profile.loyihalari")} padded={false}
                     badge={<span className="badge">{work.projects.length}</span>}>
                 <div className="card-list">
                   {work.projects.map((p) => (
                     <div className="card-body tight row" key={p.id}>
                       <span className="lang-dot" style={{ background: p.color }} />
                       <div style={{ minWidth: 0 }}>
-                        <Link to={`/loyiha/${p.id}`}>{p.name}</Link>
+                        <Link {...toProject(p.id)}>{p.name}</Link>
                         <br /><small className="muted">{p.workspace_name}</small>
                       </div>
                       <span className="spacer" />
@@ -288,18 +386,17 @@ export default function Profile() {
               </Card>
             )}
 
-            <Card title="Aloqa">
+            {/* Telegram bog'lanishi - faqat o'z profilida. Boshqa odamning
+                sahifasida bu bo'lim ma'nosiz (uni ulash mumkin emas). */}
+            {/* Hisob sozlamalari - ikkovi ham faqat o'z profilida. */}
+            {isSelf && <PasswordCard />}
+            {isSelf && <TelegramCard />}
+
+            <Card title={tx("profile.aloqa")}>
               <ul className="list-plain" style={{ fontSize: 13 }}>
-                <li><span className="muted">Email:</span> {target.email}</li>
-                {target.github_username && (
-                  <li>
-                    <span className="muted">GitHub:</span>{" "}
-                    <a href={`https://github.com/${target.github_username}`}
-                       target="_blank" rel="noreferrer">{target.github_username}</a>
-                  </li>
-                )}
-                {target.telegram && <li><span className="muted">Telegram:</span> {target.telegram}</li>}
-                <li><span className="muted">Royxatdan otgan:</span> {fmtDate(target.date_joined)}</li>
+                <li><span className="muted">{tx("profile.email")}</span> {target.email}</li>
+                {target.telegram && <li><span className="muted">{tx("profile.telegram")}</span> {target.telegram}</li>}
+                <li><span className="muted">{tx("profile.royxatdan_otgan")}</span> {fmtDate(target.date_joined)}</li>
               </ul>
             </Card>
           </div>

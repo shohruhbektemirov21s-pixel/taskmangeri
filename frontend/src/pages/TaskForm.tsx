@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import type { Project, Task, UserBrief } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -8,6 +7,8 @@ import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { IconSearch } from "@/components/icons";
 import { Avatar, Card, DateTimeField, ErrorMsg, Loading, fromDateTimeInput, toDateTimeInput }
   from "@/components/ui";
+import { toTask, useEntityId, useGo, useIsPath } from "@/nav";
+import { tx } from "@/i18n";
 
 interface Suggestion {
   user: UserBrief;
@@ -18,8 +19,15 @@ interface Suggestion {
 
 export default function TaskForm() {
   const fid = useId();
-  const { id, taskId } = useParams();
-  const nav = useNavigate();
+  // `taskId` bo'lsa - tahrirlash, bo'lmasa - `id` loyihasida yangi vazifa.
+  // Rejim MARSHRUTDAN aniqlanadi: `/loyiha/vazifa-yaratish` da sessiyada
+  // qolgan vazifa raqami bo'lsa, forma yangi vazifa o'rniga eskisini
+  // tahrirlashga o'tib ketardi.
+  const creating = useIsPath("/loyiha/vazifa-yaratish");
+  const id = useEntityId("project");
+  const storedTask = useEntityId("task");
+  const taskId = creating ? null : storedTask;
+  const go = useGo();
   const { meta } = useAuth();
   const editing = Boolean(taskId);
 
@@ -68,7 +76,7 @@ export default function TaskForm() {
       setReady(true);
     })().catch((e) => {
       // Xato ushlanmasa sahifa abadiy "Yuklanmoqda" da qolardi.
-      if (alive) setError(e instanceof ApiError ? e.message : "Vazifani ochib bo'lmadi.");
+      if (alive) setError(e instanceof ApiError ? e.message : tx("task_form.vazifani_ochib_bolmadi"));
     });
     return () => { alive = false; };
   }, [id, taskId, editing]);
@@ -116,18 +124,18 @@ export default function TaskForm() {
           await uploadFiles(`/tasks/${saved.id}/attachments/`, files);
         } catch {
           setBusy(false);
-          setError("Vazifa yaratildi, lekin fayllarni biriktirib bolmadi — "
-                   + "ularni vazifa sahifasidan qayta yuklang.");
-          nav(`/vazifa/${saved.id}`);
+          setError(tx("task_form.vazifa_yaratildi_lekin_fayllarni_biriktirib")
+                   + tx("task_form.ularni_vazifa_sahifasidan_qayta_yuklang"));
+          go(toTask(saved.id));
           return;
         }
       }
-      nav(`/vazifa/${saved.id}`);
+      go(toTask(saved.id));
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields);
         setError(err.message);
-      } else setError("Saqlashda xatolik");
+      } else setError(tx("common.saqlashda_xatolik"));
     } finally {
       setBusy(false);
     }
@@ -139,10 +147,9 @@ export default function TaskForm() {
   if (!project.access?.can_create_task) {
     return (
       <div className="content">
-        <Card title="Ruxsat yoq">
+        <Card title={tx("task_form.ruxsat_yoq")}>
           <p className="muted" style={{ margin: 0 }}>
-            Vazifa yaratish va tahrirlash faqat loyiha menejeri va adminda.
-            Sizga biriktirilgan ishni «Mening ishim» bolimidan bajarasiz.
+            {tx("task_form.vazifa_yaratish_va_tahrirlash_faqat")}
           </p>
         </Card>
       </div>
@@ -168,7 +175,7 @@ export default function TaskForm() {
         title={
           <>
             <span className="muted">{project.name} / </span>
-            <strong>{editing ? "Vazifani tahrirlash" : "Yangi vazifa"}</strong>
+            <strong>{editing ? tx("task_form.vazifani_tahrirlash") : tx("common.yangi_vazifa")}</strong>
           </>
         }
       />
@@ -177,33 +184,33 @@ export default function TaskForm() {
         <form onSubmit={submit}>
           <div className="split">
             <div>
-              <Card title="Vazifa mazmuni">
+              <Card title={tx("task_form.vazifa_mazmuni")}>
                 <div className="field">
-                  <label htmlFor={`${fid}-0`}>Sarlavha</label>
+                  <label htmlFor={`${fid}-0`}>{tx("task_form.sarlavha")}</label>
                   <input id={`${fid}-0`} value={f.title} required autoFocus
                          onChange={(e) => set("title", e.target.value)}
-                         placeholder="Qisqa va aniq sarlavha" />
+                         placeholder={tx("task_form.qisqa_va_aniq_sarlavha")} />
                   {errors.title && <div className="err">{errors.title}</div>}
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-1`}>Nima qilish kerak</label>
+                  <label htmlFor={`${fid}-1`}>{tx("task_form.nima_qilish_kerak")}</label>
                   <textarea id={`${fid}-1`} rows={6} value={f.description}
                             onChange={(e) => set("description", e.target.value)}
-                            placeholder="Qayerdan boshlash, qaysi fayllar, qanday yechim kutilmoqda" />
+                            placeholder={tx("task_form.qayerdan_boshlash_qaysi_fayllar_qanday")} />
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-2`}>Tayyorlik mezoni</label>
+                  <label htmlFor={`${fid}-2`}>{tx("common.tayyorlik_mezoni")}</label>
                   <textarea id={`${fid}-2`} rows={4} value={f.acceptance_criteria}
                             onChange={(e) => set("acceptance_criteria", e.target.value)}
-                            placeholder={"- Login ishlaydi\n- Testlar otadi\n- Hujjat yangilandi"} />
+                            placeholder={tx("task_form.login_ishlaydi_testlar_otadi_hujjat")} />
                 </div>
               </Card>
 
-              <Card title="Ijrochilar"
-                    badge={<span className="badge">{assignees.length} tanlangan</span>}>
+              <Card title={tx("common.ijrochilar")}
+                    badge={<span className="badge">{assignees.length} {tx("task_form.tanlangan")}</span>}>
                 <div className="gh-search mb" style={{ width: "100%" }}>
                   <IconSearch size={14} />
-                  <input type="search" value={who} placeholder="Ism, familiya yoki email bo'yicha qidiring"
+                  <input type="search" value={who} placeholder={tx("task_form.ism_familiya_yoki_email_boyicha")}
                          onChange={(e) => setWho(e.target.value)} />
                 </div>
                 <div className="stack">
@@ -226,21 +233,21 @@ export default function TaskForm() {
                         </small>
                       </div>
                       <span className="spacer" />
-                      <span className="badge">{s.open_tasks} ochiq ish</span>
-                      {!s.matches && <span className="badge badge-warn">mos emas</span>}
+                      <span className="badge">{s.open_tasks} {tx("task_form.ochiq_ish")}</span>
+                      {!s.matches && <span className="badge badge-warn">{tx("task_form.mos_emas")}</span>}
                     </label>
                   ))}
                   {!shown.length && !!suggestions.length && (
-                    <p className="muted">«{who}» boyicha hech kim topilmadi.</p>
+                    <p className="muted">«{who}{tx("task_form.boyicha_hech_kim_topilmadi")}</p>
                   )}
                   {!suggestions.length && (
                     <p className="muted">
-                      Bu yonalishda jamoada aʼzo yoq. Avval mos mutaxassisni qoshing.
+                      {tx("task_form.bu_yonalishda_jamoada_azo_yoq")}
                     </p>
                   )}
                   {!!hiddenPicked && (
                     <p className="muted" style={{ fontSize: 12 }}>
-                      Yana {hiddenPicked} ta tanlangan aʼzo qidiruvdan tashqarida — tanlovi saqlanadi.
+                      {tx("task_form.yana")} {hiddenPicked} {tx("task_form.ta_tanlangan_azo_qidiruvdan_tashqarida")}
                     </p>
                   )}
                 </div>
@@ -249,26 +256,26 @@ export default function TaskForm() {
               {/* Tahrirlashda fayllar vazifa sahifasida boshqariladi - bu yerda
                   faqat yangi vazifaga biriktiriladigan boshlangich fayllar. */}
               {!editing && (
-                <Card title="Fayllar">
+                <Card title={tx("task_form.fayllar")}>
                   <FilePicker files={files} onChange={setFiles} />
                 </Card>
               )}
             </div>
 
             <div>
-              <Card title="Xususiyatlar">
+              <Card title={tx("task_form.xususiyatlar")}>
                 <div className="field">
-                  <label htmlFor={`${fid}-3`}>Kerakli mutaxassislik</label>
+                  <label htmlFor={`${fid}-3`}>{tx("task_form.kerakli_mutaxassislik")}</label>
                   <select id={`${fid}-3`} value={f.required_specialty}
                           onChange={(e) => set("required_specialty", e.target.value)}>
-                    <option value="">Talab qilinmaydi</option>
+                    <option value="">{tx("task_form.talab_qilinmaydi")}</option>
                     {(meta?.specialties || []).map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-4`}>Turi</label>
+                  <label htmlFor={`${fid}-4`}>{tx("common.turi")}</label>
                   <select id={`${fid}-4`} value={f.task_type} onChange={(e) => set("task_type", e.target.value)}>
                     {(meta?.task_type || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -276,7 +283,7 @@ export default function TaskForm() {
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-5`}>Muhimlik</label>
+                  <label htmlFor={`${fid}-5`}>{tx("common.muhimlik")}</label>
                   <select id={`${fid}-5`} value={f.priority} onChange={(e) => set("priority", e.target.value)}>
                     {(meta?.task_priority || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -284,7 +291,7 @@ export default function TaskForm() {
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-6`}>Boshlangich holat</label>
+                  <label htmlFor={`${fid}-6`}>{tx("task_form.boshlangich_holat")}</label>
                   <select id={`${fid}-6`} value={f.status} onChange={(e) => set("status", e.target.value)}>
                     {(meta?.task_status || []).map((s) => (
                       <option key={s.value} value={String(s.value)}>{s.label}</option>
@@ -295,13 +302,13 @@ export default function TaskForm() {
                     o'qiladi. Tor ekranda pastma-past tushadi. */}
                 <div className="row wrap">
                   <div className="field" style={{ flex: 1, minWidth: 190 }}>
-                    <label htmlFor={`${fid}-7`}>Boshlanish</label>
+                    <label htmlFor={`${fid}-7`}>{tx("common.boshlanish")}</label>
                     <DateTimeField id={`${fid}-7`} value={f.start_date}
                                    max={f.due_date || undefined}
                                    onChange={(v) => set("start_date", v)} />
                   </div>
                   <div className="field" style={{ flex: 1, minWidth: 190 }}>
-                    <label htmlFor={`${fid}-9`}>Muddat</label>
+                    <label htmlFor={`${fid}-9`}>{tx("common.muddat")}</label>
                     {/* min: muddat boshlanishdan oldin bo'lib qolmasin */}
                     <DateTimeField id={`${fid}-9`} value={f.due_date}
                                    min={f.start_date || undefined}
@@ -310,9 +317,9 @@ export default function TaskForm() {
                   </div>
                 </div>
                 <div className="field">
-                  <label htmlFor={`${fid}-8`}>Tekshiruvchi</label>
+                  <label htmlFor={`${fid}-8`}>{tx("task_form.tekshiruvchi")}</label>
                   <select id={`${fid}-8`} value={f.reviewer_id} onChange={(e) => set("reviewer_id", e.target.value)}>
-                    <option value="">Menejer tekshiradi</option>
+                    <option value="">{tx("task_form.menejer_tekshiradi")}</option>
                     {(project.members || []).map((m) => (
                       <option key={m.user.id} value={m.user.id}>{m.user.full_name}</option>
                     ))}
@@ -321,7 +328,7 @@ export default function TaskForm() {
               </Card>
 
               {specialtyInfo && (
-                <Card title="Sifat royxati">
+                <Card title={tx("task_form.sifat_royxati")}>
                   <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
                     {specialtyInfo.checklist.map((c) => <li key={c}>{c}</li>)}
                   </ul>
@@ -332,9 +339,9 @@ export default function TaskForm() {
 
           <div className="form-actions">
             <button className="btn btn-primary" disabled={busy}>
-              {busy ? "Saqlanmoqda..." : editing ? "Saqlash" : "Vazifa yaratish"}
+              {busy ? tx("common.saqlanmoqda") : editing ? tx("common.saqlash") : tx("task_form.vazifa_yaratish")}
             </button>
-            <button type="button" className="btn" onClick={() => nav(-1)}>Bekor qilish</button>
+            <button type="button" className="btn" onClick={() => go(-1)}>{tx("common.bekor_qilish")}</button>
           </div>
         </form>
       </div>

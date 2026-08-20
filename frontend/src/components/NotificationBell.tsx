@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { AppNotification } from "@/api/types";
+import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { IconBell } from "./icons";
 import { Avatar, safePath, timeAgo } from "./ui";
+import { tx } from "@/i18n";
 
 const TONE: Record<string, string> = {
   "join.request": "badge-warn",
@@ -18,6 +20,10 @@ const TONE: Record<string, string> = {
 
 export default function NotificationBell() {
   const { notifications, unread, connected, markRead, markAllRead } = useRealtime();
+  const { user } = useAuth();
+  // Tekshiruv navbatiga havola faqat ishni qabul qiladigan odamga -
+  // yon paneldagi yozuv bilan bir xil qoida.
+  const manages = Boolean(user?.can_create_project || user?.manages_projects);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
@@ -49,22 +55,27 @@ export default function NotificationBell() {
       <button
         className="top-icon"
         onClick={() => setOpen((v) => !v)}
-        title={connected ? "Bildirishnomalar" : "Bildirishnomalar (ulanish yo'q)"}
+        title={connected ? tx("common.bildirishnomalar") : tx("notification_bell.bildirishnomalar_ulanish_yoq")}
         aria-expanded={open}
       >
         <IconBell size={17} />
         {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
-        <span className={`live ${connected ? "on" : ""}`} />
+        {/* Ulanish nishoni faqat ulanish YO'Q bo'lganda chiziladi. Ilgari u
+            doim turardi: hammasi joyida bo'lgan holatda ham qo'ng'iroq
+            ostida yashil nuqta osilib, dizaynni chalkashtirardi. Nuqta -
+            ogohlantirish, tasdiq emas; "jonli" ekani bildirishnomalar
+            sahifasidagi yorliqda yozilgan. */}
+        {!connected && <span className="live" title={tx("notification_bell.jonli_ulanish_yoq")} />}
       </button>
 
       {open && (
         <div className="popover">
           <div className="popover-head">
-            <strong>Bildirishnomalar</strong>
+            <strong>{tx("common.bildirishnomalar")}</strong>
             <span className="spacer" />
             {!!unread && (
               <button className="btn btn-sm btn-ghost" onClick={() => void markAllRead()}>
-                Hammasini o'qildi
+                {tx("notification_bell.hammasini_oqildi")}
               </button>
             )}
           </div>
@@ -73,7 +84,7 @@ export default function NotificationBell() {
             {notifications.length === 0 && (
               <div className="empty" style={{ padding: "28px 16px" }}>
                 <div className="ico">🔕</div>
-                Hozircha bildirishnoma yo'q
+                {tx("notification_bell.hozircha_bildirishnoma_yoq")}
               </div>
             )}
 
@@ -97,9 +108,11 @@ export default function NotificationBell() {
           </div>
 
           <div className="popover-foot">
-            <Link to="/bildirishnomalar" onClick={() => setOpen(false)}>Hammasini ko'rish</Link>
+            <Link to="/bildirishnomalar" onClick={() => setOpen(false)}>{tx("notification_bell.hammasini_korish")}</Link>
             <span className="spacer" />
-            <Link to="/tekshiruv" onClick={() => setOpen(false)}>Tekshiruv navbati</Link>
+            {manages && (
+              <Link to="/tekshiruv" onClick={() => setOpen(false)}>{tx("common.tekshiruv_navbati")}</Link>
+            )}
           </div>
         </div>
       )}

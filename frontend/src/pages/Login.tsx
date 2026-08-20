@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { Logo } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ErrorMsg, PasswordInput } from "@/components/ui";
+import { tx } from "@/i18n";
 
 export default function Login() {
   const fid = useId();
@@ -23,7 +24,7 @@ export default function Login() {
       await login(email, password);
       nav("/panel");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Kirishda xatolik");
+      setError(err instanceof ApiError ? err.message : tx("login.kirishda_xatolik"));
     } finally {
       setBusy(false);
     }
@@ -31,12 +32,17 @@ export default function Login() {
 
   return (
     <div className="auth-wrap">
-      {/* Kirish sahifasida sarlavha yo'q - rejim tugmasi burchakda turadi */}
+      {/* Kirish sahifasida sarlavha yo'q - burchaklarda ikkita boshqaruv
+          turadi: chapda ortga qaytish, o'ngda rejim tugmasi. */}
+      <div className="auth-back">
+        <Link to="/">{tx("login.bosh_sahifa")}</Link>
+      </div>
       <ThemeToggle className="top-icon theme-float" />
       <div className="auth-card">
-        <div className="center mb">
+        <div className="auth-head">
           <Logo size={46} />
-          <h2 style={{ fontWeight: 300, marginTop: 14 }}>TeamFlow hisobiga kirish</h2>
+          <h2>{tx("login.hisobingizga_kiring")}</h2>
+          <p>{tx("login.teamflow_jamoa_vazifalarini_boshqarish_tizim")}</p>
         </div>
 
         <ErrorMsg error={error} />
@@ -44,29 +50,27 @@ export default function Login() {
         <div className="auth-box">
           <form onSubmit={submit}>
             <div className="field">
-              <label htmlFor={`${fid}-0`}>Email</label>
+              <label htmlFor={`${fid}-0`}>{tx("login.email")}</label>
               {/* `type="email"` emas: brauzer "@" yo'q qiymatni o'zi to'sib qo'yadi va
                   xizmat hisoblari (masalan `admin`) bilan kirib bo'lmasdi. Tekshiruv
                   serverda qoladi - `EmailBackend` baribir emailni topa olmasa rad etadi. */}
               <input id={`${fid}-0`} type="text" inputMode="email" value={email} autoFocus required
+                     name="username" autoComplete="username"
                      onChange={(e) => setEmail(e.target.value)} placeholder="siz@example.com" />
             </div>
             <div className="field">
-              <label htmlFor={`${fid}-1`}>Parol</label>
+              <label htmlFor={`${fid}-1`}>{tx("common.parol")}</label>
               <PasswordInput id={`${fid}-1`} value={password} required autoComplete="current-password"
                              onChange={setPassword} placeholder="parolingiz" />
             </div>
             <button className="btn btn-primary btn-block" disabled={busy}>
-              {busy ? "Tekshirilmoqda..." : "Kirish"}
+              {busy ? tx("login.tekshirilmoqda") : tx("common.kirish")}
             </button>
           </form>
         </div>
 
         <div className="auth-alt">
-          Hisobingiz yoqmi? <Link to="/royxatdan-otish">Royxatdan oting</Link>
-        </div>
-        <div className="center mt">
-          <Link className="muted" style={{ fontSize: 12 }} to="/">← Bosh sahifa</Link>
+          {tx("login.hisobingiz_yoqmi")} <Link to="/royxatdan-otish">{tx("login.royxatdan_oting")}</Link>
         </div>
       </div>
     </div>

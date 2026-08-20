@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { Logo } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -7,22 +7,24 @@ import {
   IconBoard, IconFile, IconHistory, IconReview, IconSearch, IconTasks, IconUsers,
   IconWorkspace,
 } from "@/components/icons";
+import { toSearch, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 const FEATURES = [
-  { cls: "", ico: <IconWorkspace size={20} />, h: "Loyihalar",
-    p: "Har bir loyihada oz kaliti (PAY-12), kanban doskasi, jamoasi va ozgarmas tarixi bor." },
-  { cls: "g", ico: <IconUsers size={20} />, h: "Mutaxassislik boyicha qoshilish",
-    p: "Royxatdan otishda mutaxassislik tanlanadi. Tizim sizga mos loyihalarni korsatadi va menejer mos odamni tanlaydi." },
-  { cls: "p", ico: <IconBoard size={20} />, h: "Kanban doska",
-    p: "Vazifalarni surib kochiring. Har bir karta prioritet, muddat va ijrochilarni korsatadi. Ruxsatsiz harakat toxtatiladi." },
-  { cls: "y", ico: <IconTasks size={20} />, h: "Koplab vazifa berish",
-    p: "Har qatorga bitta vazifa yozing - 20 ta task bir zumda yaratilib, mos mutaxassislar orasida taqsimlanadi." },
-  { cls: "g", ico: <IconReview size={20} />, h: "Admin tekshiruvi",
-    p: "Bajarilgan ish tekshiruv navbatiga tushadi. Admin qabul qiladi yoki izoh bilan qaytaradi - izohsiz qaytarish taqiqlangan." },
-  { cls: "r", ico: <IconHistory size={20} />, h: "Ozgarmas tarix",
-    p: "Kim, qachon, nima qilgani yozib boriladi. Statuslar, tekshiruvlar, ish jurnallari - hech biri ochirilmaydi." },
-  { cls: "", ico: <IconFile size={20} />, h: "Vazifaga fayl biriktirish",
-    p: "Skrinshot, hujjat, log yoki arxivni vazifa ostiga sudrab tashlang. Rasmlar darrov korinadi." },
+  { cls: "", ico: <IconWorkspace size={20} />, h: tx("common.loyihalar"),
+    p: tx("landing.har_bir_loyihada_oz_kaliti") },
+  { cls: "g", ico: <IconUsers size={20} />, h: tx("landing.mutaxassislik_boyicha_qoshilish"),
+    p: tx("landing.royxatdan_otishda_mutaxassislik_tanlanadi_ti") },
+  { cls: "p", ico: <IconBoard size={20} />, h: tx("landing.kanban_doska"),
+    p: tx("landing.vazifalarni_surib_kochiring_har_bir") },
+  { cls: "y", ico: <IconTasks size={20} />, h: tx("landing.koplab_vazifa_berish"),
+    p: tx("landing.har_qatorga_bitta_vazifa_yozing") },
+  { cls: "g", ico: <IconReview size={20} />, h: tx("landing.admin_tekshiruvi"),
+    p: tx("landing.bajarilgan_ish_tekshiruv_navbatiga_tushadi") },
+  { cls: "r", ico: <IconHistory size={20} />, h: tx("landing.ozgarmas_tarix"),
+    p: tx("landing.kim_qachon_nima_qilgani_yozib") },
+  { cls: "", ico: <IconFile size={20} />, h: tx("landing.vazifaga_fayl_biriktirish"),
+    p: tx("landing.skrinshot_hujjat_log_yoki_arxivni") },
 ];
 
 /** Raqam kelmaguncha - chiziqcha. Yolg'on raqam ko'rsatmaymiz. */
@@ -31,14 +33,14 @@ function num(value?: number | null) {
 }
 
 const FLOW = [
-  { n: 1, h: "Dasturchi qoshiladi",
-    p: "Royxatdan otadi, mutaxassisligini tanlaydi va mos loyihaga sorov yuboradi. Qabul qilingach Loyihaga kirish sahifasini oqiydi." },
-  { n: 2, h: "Menejer taqsimlaydi",
-    p: "Sorovni tasdiqlaydi, rol beradi, vazifa yaratadi va mos mutaxassislarni biriktiradi." },
-  { n: 3, h: "Ish bajariladi",
-    p: "Dasturchi taskni Jarayonda holatiga oladi, ish jurnaliga nima qilganini yozadi va tekshiruvga yuboradi." },
-  { n: 4, h: "Admin tekshiradi",
-    p: "Qabul qiladi yoki aniq izoh bilan tuzatishga qaytaradi. Har bir aylana tarixda saqlanadi." },
+  { n: 1, h: tx("landing.dasturchi_qoshiladi"),
+    p: tx("landing.royxatdan_otadi_mutaxassisligini_tanlaydi_va") },
+  { n: 2, h: tx("landing.menejer_taqsimlaydi"),
+    p: tx("landing.sorovni_tasdiqlaydi_rol_beradi_vazifa") },
+  { n: 3, h: tx("landing.ish_bajariladi"),
+    p: tx("landing.dasturchi_taskni_jarayonda_holatiga_oladi") },
+  { n: 4, h: tx("landing.admin_tekshiradi"),
+    p: tx("landing.qabul_qiladi_yoki_aniq_izoh") },
 ];
 
 interface PublicStats {
@@ -49,7 +51,7 @@ interface PublicStats {
 }
 
 export default function Landing() {
-  const nav = useNavigate();
+  const go = useGo();
   const [q, setQ] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
   // Raqamlar qo'lda yozilmaydi - ochiq endpointdan olinadi, hisobsiz ham ishlaydi.
@@ -82,47 +84,45 @@ export default function Landing() {
       <header className="lp-header">
         <div className="lp-wrap">
           <Link to="/" className="logo-link" style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text)", fontWeight: 600 }}>
-            <Logo size={30} /> <span>TeamFlow</span>
+            <Logo size={30} /> <span>{tx("common.teamflow")}</span>
           </Link>
           <nav className="lp-nav">
-            <a href="#imkoniyatlar">Imkoniyatlar</a>
-            <a href="#oqim">Ish oqimi</a>
-            <a href="#tarix">Loyiha tarixi</a>
+            <a href="#imkoniyatlar">{tx("landing.imkoniyatlar")}</a>
+            <a href="#oqim">{tx("landing.ish_oqimi")}</a>
+            <a href="#tarix">{tx("landing.loyiha_tarixi")}</a>
           </nav>
           <span className="spacer" />
           <form
             className="gh-search"
             onSubmit={(e) => {
               e.preventDefault();
-              nav(`/qidiruv?q=${encodeURIComponent(q.trim())}`);
+              go(toSearch(q.trim()));
             }}
           >
             <IconSearch size={14} />
-            <input ref={searchInput} type="search" value={q} placeholder="Loyiha qidirish…"
+            <input ref={searchInput} type="search" value={q} placeholder={tx("landing.loyiha_qidirish")}
                    onChange={(e) => setQ(e.target.value)} />
             <kbd>/</kbd>
           </form>
           <ThemeToggle />
-          <Link className="btn" to="/kirish">Kirish</Link>
-          <Link className="btn btn-primary" to="/royxatdan-otish">Royxatdan otish</Link>
+          <Link className="btn" to="/kirish">{tx("common.kirish")}</Link>
+          <Link className="btn btn-primary" to="/royxatdan-otish">{tx("landing.royxatdan_otish")}</Link>
         </div>
       </header>
 
       <div className="hero">
         <div className="lp-wrap">
-          <span className="pill"><span className="dot" /> Loyiha · Vazifa · Tekshiruv · Tarix</span>
-          <h1>Jamoangiz bir joyda<br />ishlaydigan platforma</h1>
+          <span className="pill"><span className="dot" /> {tx("landing.loyiha_vazifa_tekshiruv_tarix")}</span>
+          <h1>{tx("landing.jamoangiz_bir_joyda")}<br />{tx("landing.ishlaydigan_platforma")}</h1>
           <p className="lead">
-            Loyiha oching, jamoani mutaxassisligi boyicha qabul qiling, vazifa taqsimlang va
-            bajarilganini tekshiring. Har bir harakat tarixda qoladi — yangi dasturchi kelganda
-            hech narsa yoqolmaydi.
+            {tx("landing.loyiha_oching_jamoani_mutaxassisligi_boyicha")}
           </p>
           <div className="hero-actions">
-            <Link className="btn btn-lg btn-primary" to="/royxatdan-otish">Bepul boshlash</Link>
-            <Link className="btn btn-lg" to="/kirish">Hisobga kirish</Link>
+            <Link className="btn btn-lg btn-primary" to="/royxatdan-otish">{tx("landing.bepul_boshlash")}</Link>
+            <Link className="btn btn-lg" to="/kirish">{tx("landing.hisobga_kirish")}</Link>
           </div>
           <div className="mono muted" style={{ marginTop: 18, fontSize: 13 }}>
-            Django REST + React TypeScript + IBM Db2 + Docker
+            {tx("landing.django_rest_react_typescript_ibm")}
           </div>
 
           <div className="terminal">
@@ -130,15 +130,15 @@ export default function Landing() {
               <span className="d" style={{ background: "#f85149" }} />
               <span className="d" style={{ background: "#d29922" }} />
               <span className="d" style={{ background: "#3fb950" }} />
-              <span className="mono muted" style={{ marginLeft: 10 }}>teamflow — docker</span>
+              <span className="mono muted" style={{ marginLeft: 10 }}>{tx("landing.teamflow_docker")}</span>
             </div>
             <pre>
-<span className="c-gray">$</span> docker compose up --build{"\n\n"}
-<span className="c-green">==&gt;</span> Db2 tayyor{"\n"}
-<span className="c-green">==&gt;</span> Migratsiyalar qollandi        <span className="c-gray">backend</span>{"\n"}
-<span className="c-green">==&gt;</span> Admin yaratildi              <span className="c-blue">admin@teamflow.uz</span>{"\n"}
-<span className="c-purple">==&gt;</span> API                          <span className="c-blue">http://localhost:8010/api</span>{"\n"}
-<span className="c-purple">==&gt;</span> Interfeys                    <span className="c-blue">http://localhost:5183</span>
+<span className="c-gray">$</span> {tx("landing.docker_compose_up_build")}{"\n\n"}
+<span className="c-green">==&gt;</span> {tx("landing.db2_tayyor")}{"\n"}
+<span className="c-green">==&gt;</span> {tx("landing.migratsiyalar_qollandi")}        <span className="c-gray">{tx("landing.backend")}</span>{"\n"}
+<span className="c-green">==&gt;</span> {tx("landing.admin_yaratildi")}              <span className="c-blue">{tx("landing.admin_teamflow_uz")}</span>{"\n"}
+<span className="c-purple">==&gt;</span> {tx("landing.api")}                          <span className="c-blue">{tx("landing.http_localhost_8010_api")}</span>{"\n"}
+<span className="c-purple">==&gt;</span> {tx("landing.interfeys")}                    <span className="c-blue">{tx("landing.http_localhost_5183")}</span>
             </pre>
           </div>
         </div>
@@ -147,9 +147,9 @@ export default function Landing() {
       <section className="lp-section" id="imkoniyatlar">
         <div className="lp-wrap">
           <div className="sec-head">
-            <div className="eyebrow">Imkoniyatlar</div>
-            <h2>Loyihani boshqarish uchun kerak bolgan hamma narsa</h2>
-            <p>Vazifa doskasidan tortib tekshiruv navbati va toliq tarixgacha.</p>
+            <div className="eyebrow">{tx("landing.imkoniyatlar")}</div>
+            <h2>{tx("landing.loyihani_boshqarish_uchun_kerak_bolgan")}</h2>
+            <p>{tx("landing.vazifa_doskasidan_tortib_tekshiruv_navbati")}</p>
           </div>
           <div className="lp-cards">
             {FEATURES.map((f) => (
@@ -166,9 +166,9 @@ export default function Landing() {
       <section className="lp-section" id="oqim">
         <div className="lp-wrap">
           <div className="sec-head">
-            <div className="eyebrow">Ish oqimi</div>
-            <h2>Kim nima qiladi — aniq chegaralar</h2>
-            <p>Rollar aralashmaydi, shuning uchun hech kim ortiqcha vaqt sarflamaydi.</p>
+            <div className="eyebrow">{tx("landing.ish_oqimi")}</div>
+            <h2>{tx("landing.kim_nima_qiladi_aniq_chegaralar")}</h2>
+            <p>{tx("landing.rollar_aralashmaydi_shuning_uchun_hech")}</p>
           </div>
           <div className="flow">
             {FLOW.map((s) => (
@@ -185,63 +185,59 @@ export default function Landing() {
       <section className="lp-section" id="tarix">
         <div className="lp-wrap">
           <div className="sec-head">
-            <div className="eyebrow">Loyiha tarixi</div>
-            <h2>Yangi dasturchi 10 daqiqada kontekstga kiradi</h2>
-            <p>Avvalgi dasturchilar nima qilgani, qanday qaror qabul qilingani va qayerda
-               xato qilingani — hammasi bitta sahifada.</p>
+            <div className="eyebrow">{tx("landing.loyiha_tarixi")}</div>
+            <h2>{tx("landing.yangi_dasturchi_10_daqiqada_kontekstga")}</h2>
+            <p>{tx("landing.avvalgi_dasturchilar_nima_qilgani_qanday")}</p>
           </div>
           <div className="demo">
             <div className="demo-head">
-              <span className="mono muted">teamflow /</span>
-              <span>Tolov tizimi</span>
-              <span className="badge badge-ok">Faol</span>
+              <span className="mono muted">{tx("landing.teamflow_2")}</span>
+              <span>{tx("landing.tolov_tizimi")}</span>
+              <span className="badge badge-ok">{tx("landing.faol")}</span>
             </div>
             <div className="demo-body">
               <div className="ev">
-                <span className="avatar sm" style={{ background: "#6c5ce7" }}>JQ</span>
-                <span className="txt"><b>Jahongir</b> <span className="mono c-blue">PAY-14</span> vazifasini tekshiruvga yubordi{" "}
-                  <span className="badge badge-brand">Tekshiruvda</span></span>
-                <span className="time">2 daqiqa oldin</span>
+                <span className="avatar sm" style={{ background: "#6c5ce7" }}>{tx("landing.jq")}</span>
+                <span className="txt"><b>{tx("landing.jahongir")}</b> <span className="mono c-blue">{tx("landing.pay_14")}</span> {tx("landing.vazifasini_tekshiruvga_yubordi")}{" "}
+                  <span className="badge badge-brand">{tx("common.tekshiruvda")}</span></span>
+                <span className="time">{tx("landing.2_daqiqa_oldin")}</span>
               </div>
               <div className="ev">
-                <span className="avatar sm" style={{ background: "#238636" }}>AD</span>
-                <span className="txt"><b>Admin</b> <span className="mono c-blue">PAY-13</span> ni tuzatishga qaytardi{" "}
-                  <span className="badge badge-warn">Tuzatish kerak</span><br />
-                  <span className="muted">Webhook imzosi tekshirilmagan — qayta urinish logikasini qoshing</span>
+                <span className="avatar sm" style={{ background: "#238636" }}>{tx("landing.ad")}</span>
+                <span className="txt"><b>{tx("landing.admin")}</b> <span className="mono c-blue">{tx("landing.pay_13")}</span> {tx("landing.ni_tuzatishga_qaytardi")}{" "}
+                  <span className="badge badge-warn">{tx("landing.tuzatish_kerak")}</span><br />
+                  <span className="muted">{tx("landing.webhook_imzosi_tekshirilmagan_qayta_urinish")}</span>
                 </span>
-                <span className="time">1 soat oldin</span>
+                <span className="time">{tx("landing.1_soat_oldin")}</span>
               </div>
               <div className="ev">
-                <span className="avatar sm" style={{ background: "#d29922" }}>SB</span>
-                <span className="txt"><b>Sardor</b> ish jurnaliga yozdi: <span className="mono">3.5 soat</span><br />
-                  <span className="muted">Idempotentlik kaliti qoshildi, Redis emas DB tanlandi — sabab: tranzaksiya kerak</span>
+                <span className="avatar sm" style={{ background: "#d29922" }}>{tx("landing.sb")}</span>
+                <span className="txt"><b>{tx("landing.sardor")}</b> {tx("landing.ish_jurnaliga_yozdi")} <span className="mono">{tx("landing.3_5_soat")}</span><br />
+                  <span className="muted">{tx("landing.idempotentlik_kaliti_qoshildi_redis_emas")}</span>
                 </span>
-                <span className="time">Kecha</span>
+                <span className="time">{tx("landing.kecha")}</span>
               </div>
               <div className="ev">
-                <span className="avatar sm" style={{ background: "#2f81f7" }}>MK</span>
-                <span className="txt"><b>Malika</b> <span className="mono c-blue">PAY-11</span> vazifasini yakunladi{" "}
-                  <span className="badge badge-ok">Bajarildi</span></span>
-                <span className="time">3 kun oldin</span>
+                <span className="avatar sm" style={{ background: "#2f81f7" }}>{tx("landing.mk")}</span>
+                <span className="txt"><b>{tx("landing.malika")}</b> <span className="mono c-blue">{tx("landing.pay_11")}</span> {tx("landing.vazifasini_yakunladi")}{" "}
+                  <span className="badge badge-ok">{tx("common.bajarildi")}</span></span>
+                <span className="time">{tx("landing.3_kun_oldin")}</span>
               </div>
             </div>
           </div>
 
           <div className="lp-cards" style={{ marginTop: 20 }}>
             <div className="lp-card">
-              <h3>Dasturchi hisoboti</h3>
-              <p>Har bir odam boyicha: nechta task bajargan, necha soat sarflagan,
-                 qaysi tasklari qaytarilgan va nima yozib qoldirgan.</p>
+              <h3>{tx("landing.dasturchi_hisoboti")}</h3>
+              <p>{tx("landing.har_bir_odam_boyicha_nechta")}</p>
             </div>
             <div className="lp-card">
-              <h3>Loyiha brifi</h3>
-              <p>Maqsad, texnologiyalar, arxitektura, ishga tushirish qadamlari,
-                 kelishuvlar va ehtiyot boling royxati.</p>
+              <h3>{tx("landing.loyiha_arxitekturasi")}</h3>
+              <p>{tx("landing.maqsad_texnologiyalar_arxitektura_ishga_tush")}</p>
             </div>
             <div className="lp-card">
-              <h3>Topshiriq eslatmasi</h3>
-              <p>Dasturchi loyihadan chiqishda keyingi odam uchun izoh qoldiradi —
-                 bilim jamoada qoladi.</p>
+              <h3>{tx("landing.topshiriq_eslatmasi")}</h3>
+              <p>{tx("landing.dasturchi_loyihadan_chiqishda_keyingi_odam")}</p>
             </div>
           </div>
         </div>
@@ -252,19 +248,19 @@ export default function Landing() {
           <div className="lp-stats">
             <div>
               <div className="v c-blue">{num(stats?.projects)}</div>
-              <div className="k">ochiq loyiha</div>
+              <div className="k">{tx("landing.ochiq_loyiha")}</div>
             </div>
             <div>
               <div className="v c-green">{num(stats?.people)}</div>
-              <div className="k">royxatdan otgan odam</div>
+              <div className="k">{tx("landing.royxatdan_otgan_odam")}</div>
             </div>
             <div>
               <div className="v c-purple">{num(stats?.tasks_done)}</div>
-              <div className="k">bajarilgan vazifa</div>
+              <div className="k">{tx("landing.bajarilgan_vazifa")}</div>
             </div>
             <div>
               <div className="v" style={{ color: "var(--attention)" }}>{num(specialtyCount)}</div>
-              <div className="k">mutaxassislik yonalishi</div>
+              <div className="k">{tx("landing.mutaxassislik_yonalishi")}</div>
             </div>
           </div>
         </div>
@@ -272,11 +268,11 @@ export default function Landing() {
 
       <div className="cta">
         <div className="lp-wrap">
-          <h2>Bugundan boshlang</h2>
-          <p>Akkaunt yarating, mutaxassisligingizni tanlang va loyihaga qoshiling.</p>
+          <h2>{tx("landing.bugundan_boshlang")}</h2>
+          <p>{tx("landing.akkaunt_yarating_mutaxassisligingizni_tanlan")}</p>
           <div className="hero-actions">
-            <Link className="btn btn-lg btn-primary" to="/royxatdan-otish">Royxatdan otish</Link>
-            <Link className="btn btn-lg" to="/kirish">Kirish</Link>
+            <Link className="btn btn-lg btn-primary" to="/royxatdan-otish">{tx("landing.royxatdan_otish")}</Link>
+            <Link className="btn btn-lg" to="/kirish">{tx("common.kirish")}</Link>
           </div>
         </div>
       </div>
@@ -284,9 +280,9 @@ export default function Landing() {
       <footer className="lp-footer">
         <div className="lp-wrap">
           <Logo size={24} />
-          <span>© TeamFlow</span>
+          <span>{tx("landing.teamflow")}</span>
           <span className="spacer" />
-          <span className="mono">Django · React · IBM Db2 · Docker</span>
+          <span className="mono">{tx("landing.django_react_ibm_db2_docker")}</span>
         </div>
       </footer>
     </>

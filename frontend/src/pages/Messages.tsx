@@ -5,19 +5,20 @@
  * O'ngda: tanlangan odam bilan real vaqtdagi suhbat.
  */
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { Conversation, UserBrief } from "@/api/types";
 import Chat from "@/components/Chat";
 import UserSearch from "@/components/UserSearch";
 import { PageHead } from "@/components/Layout";
-import { IconChat } from "@/components/icons";
 import { Avatar, Card, Empty, SpecialtyTag, timeAgo } from "@/components/ui";
 import { useRealtime } from "@/realtime/RealtimeContext";
+import { toMessages, toUser, useEntityId, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function Messages() {
-  const { userId } = useParams();
-  const nav = useNavigate();
+  // Suhbatdosh manzilda emas: `/xabarlar/12` emas, `/xabarlar`.
+  const userId = useEntityId("user");
+  const go = useGo();
   const { subscribe } = useRealtime();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -70,34 +71,35 @@ export default function Messages() {
 
   return (
     <>
-      <PageHead title={<><IconChat size={18} /> <strong>Xabarlar</strong></>} />
+      <PageHead title={<strong>{tx("messages.xabarlar")}</strong>}
+                subtitle={tx("messages.loyiha_jamoasi_va_azolari_bilan")} />
 
       <div className="content">
         <div className="dm-layout">
           <div className="dm-side">
-            <Card title="Kimga yozamiz">
+            <Card title={tx("messages.kimga_yozamiz")}>
               <UserSearch
                 search={search}
-                onPick={(u) => nav(`/xabarlar/${u.id}`)}
+                onPick={(u) => go(toMessages(u.id))}
                 activeId={activeId}
-                placeholder="Email yoki ism bo'yicha qidiring"
-                emptyText="Hech kim topilmadi"
+                placeholder={tx("common.email_yoki_ism_boyicha_qidiring")}
+                emptyText={tx("common.hech_kim_topilmadi")}
               />
             </Card>
 
-            <Card title="Suhbatlar" padded={false}
+            <Card title={tx("messages.suhbatlar")} padded={false}
                   badge={<span className="badge">{conversations.length}</span>}>
               <div className="card-list">
                 {!conversations.length && (
                   <div className="muted center" style={{ padding: 18, fontSize: 13 }}>
-                    Hali yozishma yo'q.
+                    {tx("messages.hali_yozishma_yoq")}
                   </div>
                 )}
                 {conversations.map((c) => (
                   <button
                     key={c.partner.id}
                     className={`conv ${activeId === c.partner.id ? "on" : ""}`}
-                    onClick={() => nav(`/xabarlar/${c.partner.id}`)}
+                    onClick={() => go(toMessages(c.partner.id))}
                   >
                     <Avatar user={c.partner} size="sm" />
                     <span className="conv-text">
@@ -107,7 +109,7 @@ export default function Messages() {
                         <span className="tl-time">{timeAgo(c.last_at)}</span>
                       </span>
                       <span className="muted">
-                        {c.outgoing && "Siz: "}{c.last_message}
+                        {c.outgoing && tx("messages.siz")}{c.last_message}
                       </span>
                     </span>
                   </button>
@@ -127,8 +129,8 @@ export default function Messages() {
                     <small className="muted mono">{partner.email}</small>
                   </div>
                   <span className="spacer" />
-                  <button className="btn btn-sm" onClick={() => nav(`/profil/${partner.id}`)}>
-                    Profil
+                  <button className="btn btn-sm" onClick={() => go(toUser(partner.id))}>
+                    {tx("messages.profil")}
                   </button>
                 </div>
                 <Chat
@@ -141,8 +143,8 @@ export default function Messages() {
               <Card>
                 <Empty
                   icon="✉️"
-                  title="Suhbat tanlanmagan"
-                  text="Chapdan odamni email yoki ism bo'yicha toping va yozing."
+                  title={tx("messages.suhbat_tanlanmagan")}
+                  text={tx("messages.chapdan_odamni_email_yoki_ism")}
                 />
               </Card>
             )}

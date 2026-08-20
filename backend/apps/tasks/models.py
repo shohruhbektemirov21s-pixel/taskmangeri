@@ -7,8 +7,11 @@ from apps.core.softdelete import SoftDeleteModel, SoftDeleteQuerySet
 
 
 class TaskStatus(models.TextChoices):
-    BACKLOG = "BACKLOG", "Backlog"
-    TODO = "TODO", "Bajarilishi kerak"
+    # `BACKLOG` olib tashlandi: doskada u doim bo'sh turadigan birinchi
+    # ustun edi va «Nazoratda» bilan bir xil ma'noni bildirardi - ish
+    # ochilgan, lekin hali boshlanmagan. Ikkita nom bitta holat uchun
+    # odamni ikkilantirardi: yangi vazifani qayerga qo'yish kerak?
+    TODO = "TODO", "Nazoratda"
     IN_PROGRESS = "IN_PROGRESS", "Jarayonda"
     IN_REVIEW = "IN_REVIEW", "Tekshiruvda"
     CHANGES_REQUESTED = "CHANGES_REQUESTED", "Tuzatish kerak"
@@ -17,11 +20,22 @@ class TaskStatus(models.TextChoices):
     CANCELLED = "CANCELLED", "Bekor qilindi"
 
 
-# Kanban ustunlari (tartib bilan)
+# Kanban ustunlari (tartib bilan).
+#
+# RO'YXAT TO'LIQ BO'LISHI SHART. Ustuni yo'q holatdagi ish doskada
+# UMUMAN ko'rinmaydi - `board` faqat shu ro'yxat bo'yicha guruhlaydi.
+# `BLOCKED` shu sababdan tushib qolgandi: loyihada 74 ta vazifa bo'lsa,
+# doskada 69 tasi turardi va to'xtab qolgan 5 ta ish ko'rinmasdi. Aynan
+# ular ko'rinishi kerak edi - to'xtagan ish o'zi hal bo'lmaydi.
+#
+# `CANCELLED` ataylab yo'q: bekor qilingan ish - yopilgan ish, uni
+# doskada ushlab turish faqat shovqin. U «Vazifalar» ro'yxatida bor.
 BOARD_COLUMNS = [
-    TaskStatus.BACKLOG,
     TaskStatus.TODO,
     TaskStatus.IN_PROGRESS,
+    # To'xtab qolgani jarayondagi ishning yonida turadi - shunda u
+    # ko'zdan qochmaydi.
+    TaskStatus.BLOCKED,
     TaskStatus.CHANGES_REQUESTED,
     TaskStatus.IN_REVIEW,
     TaskStatus.DONE,
@@ -34,7 +48,6 @@ DEVELOPER_TRANSITIONS = {
     TaskStatus.CHANGES_REQUESTED: [TaskStatus.IN_PROGRESS],
     TaskStatus.BLOCKED: [TaskStatus.IN_PROGRESS, TaskStatus.TODO],
     TaskStatus.IN_REVIEW: [],          # faqat tekshiruvchi harakat qiladi
-    TaskStatus.BACKLOG: [],
     TaskStatus.DONE: [],
     TaskStatus.CANCELLED: [],
 }
@@ -175,6 +188,26 @@ class Task(SoftDeleteModel):
         return "{} {}".format(self.code, self.title)
 
     def save(self, *args, **kwargs):
+        # «Bajarildi» holatidagi vazifada YAKUNLANGAN VAQT bo'lishi shart.
+        #
+        # `apply_status()` uni qo'yadi, lekin holat boshqa yo'llar bilan ham
+        # yoziladi: import skripti, admin paneli, to'g'ridan-to'g'ri ORM.
+        # O'shanda `completed_at` bo'sh qolardi va panel «Bajarilganlar: 0»
+        # deb turardi - bazada 29 ta yopilgan ish bo'lgani holda. Sabab:
+        # sanoq holatga emas, aynan shu maydonga qaraydi
+        # (`panel_metric_q` da `completed_at__gte=start`), chunki "qachon
+        # bajarilgani" bilinmasa uni davr bo'yicha sanab bo'lmaydi.
+        #
+        # Shuning uchun qoida modelning o'zida: qaysi yo'l bilan yozilishidan
+        # qat'i nazar, DONE degan qator vaqtsiz saqlanmaydi.
+        if self.status == TaskStatus.DONE and self.completed_at is None:
+            self.completed_at = timezone.now()
+            # `update_fields` berilgan bo'lsa yangi maydon ham ro'yxatga
+            # tushsin - aks holda o'zgarish jimgina yo'qolardi.
+            fields = kwargs.get("update_fields")
+            if fields is not None and "completed_at" not in fields:
+                kwargs["update_fields"] = list(fields) + ["completed_at"]
+
         if not self.pk:
             # Raqam olish va yozish bitta tranzaksiyada bo'lishi shart -
             # `next_task_number` qo'ygan qulf shunda ma'no kasb etadi.

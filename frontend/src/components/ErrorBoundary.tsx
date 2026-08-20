@@ -17,6 +17,7 @@
  */
 import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
+import { tx } from "@/i18n";
 
 interface Props {
   children: ReactNode;
@@ -53,19 +54,18 @@ export default class ErrorBoundary extends Component<Props, State> {
       <div className={page ? "content" : "auth-wrap"}>
         <div className="empty">
           <div className="ico">⚠️</div>
-          <h3>Bu bo'limni ko'rsatib bo'lmadi</h3>
+          <h3>{tx("error_boundary.bu_bolimni_korsatib_bolmadi")}</h3>
           <p>
-            Kutilmagan xatolik yuz berdi. Sahifani qayta yuklab ko'ring —
-            takrorlansa, iltimos, nima qilganingizni administratorga ayting.
+            {tx("error_boundary.kutilmagan_xatolik_yuz_berdi_sahifani")}
           </p>
           {/* Xato matni kerak bo'ladi: odam uni nusxalab yuborishi mumkin. */}
           <pre className="pre-wrap mono error-detail">{error.message}</pre>
           <div className="row center" style={{ gap: 8, marginTop: 14 }}>
             <button type="button" className="btn btn-primary" onClick={this.reset}>
-              Qayta urinish
+              {tx("error_boundary.qayta_urinish")}
             </button>
             <button type="button" className="btn" onClick={() => window.location.reload()}>
-              Sahifani yangilash
+              {tx("error_boundary.sahifani_yangilash")}
             </button>
           </div>
         </div>

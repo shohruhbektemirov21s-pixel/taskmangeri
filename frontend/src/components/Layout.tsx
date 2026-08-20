@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, listOf } from "@/api/client";
 import type { SidebarCounts, UserBrief } from "@/api/types";
@@ -6,18 +6,59 @@ import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import ErrorBoundary from "./ErrorBoundary";
 import { Logo } from "./Logo";
-import {
-  IconBell, IconBoard, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLogout,
-  IconCalendar, IconMenu, IconPlus, IconReview, IconSearch, IconTasks,
-} from "./icons";
+import { IconBack, IconBell, IconBoard, IconCalendar, IconChat, IconClose, IconDashboard, IconHistory, IconIdea, IconInbox, IconLayers, IconLogout, IconMenu, IconPlus, IconReview, IconSearch, IconSettings, IconTasks } from "./icons";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 import { Avatar, SpecialtyTag } from "./ui";
+import { toFeed, toMessages, toNewProject, toSelfProfile, toUser, type NavTarget, useGo } from "@/nav";
+import { tx } from "@/i18n";
+
+/**
+ * Orqaga qaytish tugmasi.
+ *
+ * NEGA KERAK. Manzilda endi identifikator yo'q (`/loyiha`, `/vazifa`) va
+ * qaysi yozuv ochilgani sahifa holatida saqlanadi. Brauzerning o'z
+ * tugmasi buni to'g'ri tiklaydi, lekin u ekranning tepasida, ilovadan
+ * tashqarida - ayniqsa to'liq ekran rejimida ko'rinmaydi. Shuning uchun
+ * ilovaning o'zida ham bo'lsin.
+ *
+ * QAYERDA TURADI. Yuqori panelning o'ng chekkasida, boshqa nishonlar
+ * bilan bir guruhda. Chapda qidiruv turadi va u sahifa sarlavhasi bilan
+ * bir chiziqda: tepadagi qator pastdagi mazmundan surilib qolmasin.
+ *
+ * QACHON O'CHIQ. React Router har bir tarix yozuviga o'z tartib raqamini
+ * qo'yadi (`history.state.idx`). Nol bo'lsa - bu ilovadagi birinchi
+ * sahifa va qaytadigan joy yo'q: tugma bosilmaydigan holatda turadi,
+ * yo'qolib qolmaydi (aks holda panel sakrab turardi).
+ */
+function BackButton() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // `location` o'zgarganda qayta hisoblanadi - shuning uchun u bog'liqlikda.
+  const canGoBack = useMemo(() => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    return typeof idx === "number" ? idx > 0 : window.history.length > 1;
+  }, [location.key]);
+
+  return (
+    <button type="button" className="top-icon top-back" disabled={!canGoBack}
+            onClick={() => navigate(-1)}
+            title={canGoBack ? tx("layout.orqaga_qaytish") : tx("layout.orqaga_qaytadigan_sahifa_yoq")}
+            aria-label={tx("layout.orqaga_qaytish")}>
+      <IconBack size={17} />
+    </button>
+  );
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  // Loyiha boshqaradimi - yon panel shunga qarab boshqacha yoziladi.
+  // ROLdan emas, AMALDAGI holatdan: global roli «Dasturchi» bo'lgan odam
+  // ham biror loyihaga menejer qilib qo'yilgan bo'lishi mumkin.
+  const manages = Boolean(user?.can_create_project || user?.manages_projects);
   const { subscribe } = useRealtime();
-  const nav = useNavigate();
+  const go = useGo();
   const loc = useLocation();
   const [counts, setCounts] = useState({ open: 0, reviews: 0, joins: 0 });
   const [q, setQ] = useState("");
@@ -85,46 +126,79 @@ export default function Layout() {
     };
   }, [menu]);
 
-  const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) => (
-    <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`} end>
+  /**
+   * Bo'lim O'Z manzilidan tashqarida ham belgilanadi.
+   *
+   * `NavLink` faqat o'z manzilini biladi, loyiha sahifasi esa butunlay
+   * boshqa marshrutda turadi: ro'yxat `/loyihalar`, bittasi `/loyiha/...`.
+   * Ya'ni loyiha ichida (yoki uning vazifasida) turgan odam yon panelda
+   * hech nima yonmaganini ko'rardi va "men qayerdaman" degan savol
+   * javobsiz qolardi. Nom bo'yicha ham bog'lab bo'lmaydi - `/loyiha`
+   * `/loyihalar` ning boshlanishi emas, aksincha.
+   *
+   * Sahifaning o'zi buni allaqachon aytadi: loyiha va vazifa sarlavhasi
+   * «loyihalar / ...» dan boshlanadi. Yon panel shu bilan mos bo'lsin.
+   */
+  const NAV_FAMILY: Record<string, string[]> = {
+    "/loyihalar": ["/loyiha", "/vazifa"],
+  };
+
+  const inFamily = (to: string) =>
+    (NAV_FAMILY[to] || []).some(
+      (base) => loc.pathname === base || loc.pathname.startsWith(base + "/"));
+
+  const item = (to: string, icon: React.ReactNode, label: string, count?: number, hot = false) =>
+    itemTo({ to, state: {} }, icon, label, count, hot);
+
+  // Ba'zi bo'limlar sessiyadagi raqamni ATAYLAB tozalaydi (masalan
+  // «Xabarlar» - suhbatdosh emas, ro'yxat ochilsin), shuning uchun
+  // maqsadni to'liq qabul qiladigan variant ham bor.
+  const itemTo = (target: NavTarget, icon: React.ReactNode, label: string,
+                  count?: number, hot = false) => (
+    <NavLink to={target.to} state={target.state}
+             className={({ isActive }) =>
+               `nav-item ${isActive || inFamily(target.to) ? "active" : ""}`} end>
       <span className="ico">{icon}</span>
       <span className="label">{label}</span>
       {!!count && <span className={`count ${hot ? "hot" : ""}`}>{count}</span>}
     </NavLink>
   );
 
-  return (
-    <>
-      <header className="gh-top">
-        <button type="button" className="top-icon menu-btn" onClick={() => setMenu((v) => !v)}
-                aria-label={menu ? "Menyuni yopish" : "Menyuni ochish"} aria-expanded={menu}>
-          {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
-        </button>
-        <Link to="/panel" className="logo-link">
-          <Logo size={30} />
-          <span>TeamFlow</span>
-        </Link>
+  // Yuqori panel: yon panelning o'ng tomonida turadi, shuning uchun u
+  // `.main` ustuni ichida chiziladi. Logotip esa yon panelning tepasida -
+  // dizaynda shunday: chapda brend va navigatsiya, o'ngda qidiruv va
+  // amallar. Ikkalasi bir marta yoziladi va shu yerda yig'iladi.
+  const header = (
+    <header className="gh-top">
+      <button type="button" className="top-icon menu-btn" onClick={() => setMenu((v) => !v)}
+              aria-label={menu ? tx("layout.menyuni_yopish") : tx("layout.menyuni_ochish")} aria-expanded={menu}>
+        {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
+      </button>
 
-        <nav className="top-nav">
-          <Link to="/loyihalar">Loyihalar</Link>
-          <Link to="/mening-ishim">Mening ishim</Link>
-        </nav>
+      {/* Yuqori panelda navigatsiya havolalari yo'q: «Loyihalar» va
+          «Mening ishim» yon panelda turadi va u har doim ko'rinadi
+          (mobilda menyu tugmasi bilan). Bir xil havola ikki joyda
+          turgani foyda bermaydi - odam qaysi biri "asosiy" ekanini
+          o'ylab qoladi. */}
 
-        <span className="spacer" />
-
+        {/* QIDIRUV ENG CHAPDA - pastdagi ustun bilan bir tekislikda.
+            Ilgari uning oldida «orqaga» tugmasi turardi va qidiruv sahifa
+            mazmunidan bir tugma kengligiga o'ngga surilib qolardi: tepadagi
+            qator bilan pastdagi sarlavha bir chiziqda emas edi. Endi
+            «orqaga» qidiruvdan keyin turadi - u ikkinchi darajali amal. */}
         <div className="top-search">
           <form
             className="gh-search"
             onSubmit={(e) => {
               e.preventDefault();
               setOpenHits(false);
-              nav(`/tarix?q=${encodeURIComponent(q)}`);
+              go(toFeed(q));
             }}
           >
             <IconSearch size={14} />
             <input
               type="search"
-              placeholder="Odam, tarix va loyihalardan qidirish"
+              placeholder={tx("layout.odam_tarix_va_loyihalardan_qidirish")}
               value={q}
               onChange={(e) => { setQ(e.target.value); setOpenHits(true); }}
               onFocus={() => setOpenHits(true)}
@@ -138,9 +212,9 @@ export default function Layout() {
                ro'yxatni yopadi va havola bosilishga ulgurmaydi (mousedown bilan
                mouseup orasida 160 ms dan ko'p vaqt o'tsa - odatiy hol). */
             <div className="top-hits" onMouseDown={(e) => e.preventDefault()}>
-              {people.length > 0 && <div className="top-hits-head">Odamlar</div>}
+              {people.length > 0 && <div className="top-hits-head">{tx("layout.odamlar")}</div>}
               {people.map((u) => (
-                <Link key={u.id} className="top-hit" to={`/profil/${u.id}`}
+                <Link key={u.id} className="top-hit" {...toUser(u.id)}
                       onClick={() => { setOpenHits(false); setQ(""); }}>
                   <Avatar user={u} size="sm" />
                   <span className="top-hit-text">
@@ -152,57 +226,101 @@ export default function Layout() {
               ))}
               {!people.length && (
                 <div className="muted" style={{ padding: "10px 12px", fontSize: 13 }}>
-                  Bu ism bo'yicha odam topilmadi.
+                  {tx("layout.bu_ism_boyicha_odam_topilmadi")}
                 </div>
               )}
               <button type="button" className="top-hit top-hit-all"
-                      onClick={() => { setOpenHits(false); nav(`/tarix?q=${encodeURIComponent(q)}`); }}>
-                «{q.trim()}» bo'yicha tarix va loyihalarni qidirish
+                      onClick={() => { setOpenHits(false); go(toFeed(q)); }}>
+                «{q.trim()}{tx("layout.boyicha_tarix_va_loyihalarni_qidirish")}
               </button>
             </div>
           )}
         </div>
 
+        {/* Qidiruv chapda, amallar o'ngda - orasi bo'sh qoladi */}
+        <span className="spacer" />
+
+        {/* «Orqaga» - amallar guruhining boshida. Ilgari u qidiruvdan keyin,
+            bo'sh joyning o'rtasida yolg'iz turardi: qaysi guruhga tegishli
+            ekani ko'rinmasdi. Endi u ham nishon, o'z tengdoshlari yonida. */}
+        <BackButton />
         <ThemeToggle />
         <NotificationBell />
-        <Link className="top-icon hide-sm" to="/xabarlar" title="Xabarlar">
+        <Link className="top-icon hide-sm" {...toMessages()} title={tx("layout.xabarlar")}>
           <IconChat size={17} />
         </Link>
-        <Link className="top-icon hide-sm" to="/tekshiruv" title="Tekshiruv navbati">
-          <IconInbox size={17} />
-          {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
-        </Link>
+        {/* Tekshiruv navbati - faqat ish qabul qiladigan odamga: loyiha
+            menejeri va admin. Ijrochida bu navbat har doim bo'sh edi
+            (server uni boshqariladigan loyihalar bo'yicha qirqadi), ya'ni
+            menyuda doim bo'sh sahifaga olib boradigan yozuv turardi. */}
+        {manages && (
+          <Link className="top-icon hide-sm" to="/tekshiruv" title={tx("common.tekshiruv_navbati")}>
+            <IconInbox size={17} />
+            {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
+          </Link>
+        )}
         {/* Loyiha ochish - faqat menejer va admin */}
         {user?.can_create_project && (
-          <Link className="top-icon hide-sm" to="/loyiha/yangi" title="Yangi loyiha">
+          <Link className="top-icon hide-sm" {...toNewProject()} title={tx("common.yangi_loyiha")}>
             <IconPlus size={17} />
           </Link>
         )}
-        <Link to="/profil" title={user?.full_name}>
+        <Link {...toSelfProfile()} title={user?.full_name}>
           <Avatar user={user} />
         </Link>
-      </header>
+    </header>
+  );
 
+  return (
+    <>
       <div className="layout">
-        {menu && <button type="button" className="scrim" aria-label="Menyuni yopish"
+        {menu && <button type="button" className="scrim" aria-label={tx("layout.menyuni_yopish")}
                          onClick={() => setMenu(false)} />}
         <aside className={`sidebar ${menu ? "open" : ""}`}>
+          <Link to="/panel" className="logo-link">
+            <Logo size={28} />
+            <span>{tx("common.teamflow")}</span>
+          </Link>
+
           <div className="nav-section">
-            {item("/panel", <IconDashboard />, "Bosh panel")}
+            {item("/panel", <IconDashboard />, tx("layout.bosh_panel"))}
             {/* Loyihalar birma-bir sanalmaydi - hammasi shu sahifada, qidiruv
                 bilan. Jamoa kattalashganda yon panel uzayib ketmasin. Ochiq
                 loyihalar ham o'sha yerdagi «Ochiq» tugmasida. */}
-            {item("/loyihalar", <IconBoard />, "Loyihalar")}
-            {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}
-            {item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
-            {item("/xabarlar", <IconChat />, "Xabarlar")}
-            {item("/bildirishnomalar", <IconBell />, "Bildirishnomalar")}
-            {item("/taqvim", <IconCalendar />, "Taqvim")}
-            {item("/tarix", <IconHistory />, "Umumiy tarix")}
+            {/* BIR MANZIL, IKKI NOM. `/loyihalar` menejerga loyiha
+                kartalarini, ijrochiga esa o'z vazifalarini ochadi
+                (`pages/Projects.tsx`) - yorliq ham shunga qarab yoziladi.
+                Ijrochida «Loyihalar» degan yozuv turib, ichidan vazifalar
+                chiqishi chalkash edi. */}
+            {manages
+              ? item("/loyihalar", <IconBoard />, tx("common.loyihalar"))
+              : item("/loyihalar", <IconLayers />, tx("common.vazifalar"))}
+            {/* Jamoaning ishi - kim nima qilayapti. Faqat loyiha
+                boshqaradigan odamga: ijrochiga o'z ishi yetadi. Marshrut ham
+                himoyalangan (`ManagesOnly`), server ham
+                (`managed_projects_q`). */}
+            {manages && item("/vazifalar", <IconLayers />, tx("common.vazifalar"))}
+            {item("/mening-ishim", <IconTasks />, tx("layout.mening_ishim"), counts.open)}
+            {/* Tekshiruv navbati - ishni QABUL QILADIGAN odamga (menejer va
+                admin). Marshrut ham himoyalangan (`ManagesOnly`), server
+                ham (`review-queue` boshqariladigan loyihalar bo'yicha). */}
+            {manages && item("/tekshiruv", <IconReview />, tx("common.tekshiruv_navbati"), counts.reviews, true)}
+            {/* Ro'yxat ochilsin: sessiyada qolgan suhbatdosh emas. */}
+            {itemTo(toMessages(), <IconChat />, tx("layout.xabarlar"))}
+            {item("/bildirishnomalar", <IconBell />, tx("common.bildirishnomalar"))}
+            {item("/taqvim", <IconCalendar />, tx("layout.taqvim"))}
+            {/* Takliflar - hammaga. Yopiq taklifni faqat muallif va
+                boshliq ko'radi, buni server hal qiladi. */}
+            {item("/takliflar", <IconIdea />, tx("layout.takliflar"))}
+            {item("/tarix", <IconHistory />, tx("layout.umumiy_tarix"))}
+            {/* Admin panel - faqat platforma adminida ko'rinadi. Marshrut
+                ham himoyalangan (`AdminOnly`), serverdagi amallar ham
+                (`IsPlatformAdmin`) - bu shunchaki qulay havola. */}
+            {user?.is_platform_admin && item("/admin", <IconSettings />, tx("common.admin_panel"))}
           </div>
 
           <div className="sidebar-footer">
-            <Link to="/profil" className="sidebar-user">
+            <Link {...toSelfProfile()} className="sidebar-user">
               <Avatar user={user} />
               <span style={{ minWidth: 0 }}>
                 <span className="name">{user?.full_name}</span>
@@ -211,25 +329,35 @@ export default function Layout() {
               </span>
             </Link>
             <button
-              className="btn btn-sm btn-block"
+              className="btn btn-sm btn-block btn-logout"
               onClick={() => {
                 logout();
-                nav("/kirish");
+                go("/kirish");
               }}
             >
-              <IconLogout size={14} /> Chiqish
+              <IconLogout size={14} /> {tx("common.chiqish")}
             </button>
           </div>
         </aside>
 
         <div className="main">
+          {header}
           {/* Sahifa to'sig'i: bitta bo'lim yiqilsa yon panel, qidiruv va
               bildirishnomalar joyida qoladi - odam boshqa bo'limga o'tib
               ketaveradi. `key` manzil: yangi sahifada to'siq o'zi tiklanadi,
-              aks holda xato holati saqlanib qolardi. */}
-          <ErrorBoundary key={loc.pathname}>
-            <Outlet />
-          </ErrorBoundary>
+              aks holda xato holati saqlanib qolardi.
+
+              O'sha `key` endi tashqi qatlamda turadi va qisqa o'tishni ham
+              boshqaradi: bo'lim almashganda tugun yangidan chiziladi, ya'ni
+              animatsiya o'z-o'zidan qaytadan boshlanadi. Manzilning FAQAT
+              yo'l qismi olinadi - qidiruv parametri emas: aks holda filtr
+              yozayotgan odam har harfda sahifaning yonib-o'chishini
+              ko'rardi. */}
+          <div className="page-swap" key={loc.pathname}>
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+          </div>
         </div>
       </div>
     </>
@@ -242,15 +370,26 @@ export function PageHead({
   subtitle,
   actions,
   tabs,
+  sticky = false,
 }: {
   title: React.ReactNode;
   /** Sarlavha ostidagi qator - masalan loyiha tavsifi */
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   tabs?: React.ReactNode;
+  /**
+   * Aylantirilganda sarlavha tepada YOPISHIB qoladi.
+   *
+   * Uzun formalar uchun: «Saqlash» va «Bekor qilish» sarlavhaning o'ng
+   * chetida turadi va pastdagi maydonni to'ldirayotgan odam ularni
+   * ko'rmay qoladi - saqlash uchun har safar tepaga qaytish kerak
+   * bo'lardi. Doim yoqib qo'yilmagan: qolgan sahifalarda sarlavha
+   * bekorga joy egallardi.
+   */
+  sticky?: boolean;
 }) {
   return (
-    <div className="page-head">
+    <div className={`page-head ${sticky ? "sticky" : ""}`}>
       <div className="title-row">
         <h1>{title}</h1>
         <span className="spacer" />

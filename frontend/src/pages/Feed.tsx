@@ -10,13 +10,16 @@
  *   - loyiha ochilganda — o'sha loyihaning yozuvlari matn bo'yicha filtrlanadi.
  */
 import { useCallback, useEffect, useId, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { api } from "@/api/client";
+import { Link } from "react-router-dom";
+import { api, listOf } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
-import type { Activity } from "@/api/types";
+import type { Activity, ProjectFile } from "@/api/types";
+import { IconFile } from "@/components/icons";
 import { PageHead } from "@/components/Layout";
 import Timeline from "@/components/Timeline";
 import { Card, Empty, Loading, timeAgo } from "@/components/ui";
+import { toProject, useNavParams } from "@/nav";
+import { tx } from "@/i18n";
 
 interface ProjectRow {
   id: number;
@@ -28,6 +31,64 @@ interface ProjectRow {
   manager_name: string;
   activity_count: number;
   last_activity: string | null;
+}
+
+/** Ochilgan loyihaning hujjatlari — yozuvlardan OLDIN turadi.
+ *
+ * Tarixni ochgan odamning birinchi savoli ko'pincha "bu loyihada qanday
+ * hujjat bor?" bo'ladi: texnik topshiriq, dizayn, shartnoma. Ular yozuvlar
+ * lentasining ostida qolib ketmasin.
+ *
+ * Fayllar faqat loyihani ko'ra oladigan odamga ko'rinadi — begonaga server
+ * 403 qaytaradi, o'shanda bo'lim umuman chizilmaydi.
+ */
+function ProjectDocuments({ projectId }: { projectId: number }) {
+  const [files, setFiles] = useState<ProjectFile[] | null>(null);
+  const [denied, setDenied] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setFiles(null);
+    setDenied(false);
+    void api.get<any>(`/projects/${projectId}/files/`)
+      .then((d) => { if (alive) setFiles(listOf<ProjectFile>(d)); })
+      .catch(() => { if (alive) { setFiles([]); setDenied(true); } });
+    return () => { alive = false; };
+  }, [projectId]);
+
+  if (denied || files === null) return null;
+
+  return (
+    <div className="feed-docs">
+      <div className="row wrap">
+        <span className="muted nowrap">
+          <IconFile size={13} /> {tx("feed.loyiha_fayllari")}
+        </span>
+        {files.length > 0 ? (
+          <>
+            {files.slice(0, 12).map((f) => (
+              <a key={f.id} className="chip" href={f.url || "#"} target="_blank"
+                 rel="noreferrer"
+                 title={[f.original_name, f.size_display, f.description]
+                   .filter(Boolean).join(" · ")}>
+                {/* Uzun nom kesiladi, hajm esa doim ko'rinadi - fayl nomi
+                    ko'pincha uzun bo'ladi, hajmi qisqa va foydali. */}
+                <span className="doc-name">{f.original_name}</span>
+                <span className="muted doc-size">{f.size_display}</span>
+              </a>
+            ))}
+            {files.length > 12 && (
+              <Link className="chip" {...toProject(projectId, "fayllar")}>
+                {tx("common.yana")} {files.length - 12} {tx("common.ta")}
+              </Link>
+            )}
+          </>
+        ) : (
+          <span className="muted">{tx("feed.hujjat_yuklanmagan")}</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /** Ochilgan loyihaning yozuvlari — faqat ochilganda so'raladi. */
@@ -61,45 +122,45 @@ function ProjectFeed({ projectId }: { projectId: number }) {
   return (
     <div className="card-body">
       <div className="filters">
-        <div className="f" style={{ flex: 1 }}>
-          <label htmlFor={`${fid}-0`}>Yozuvlar ichidan qidirish</label>
-          <input id={`${fid}-0`} defaultValue={f.search} placeholder="Matn boyicha"
+        <div className="f grow">
+          <label htmlFor={`${fid}-0`}>{tx("feed.yozuvlar_ichidan_qidirish")}</label>
+          <input id={`${fid}-0`} defaultValue={f.search} placeholder={tx("feed.matn_boyicha")}
                  onKeyDown={(e) => {
                    if (e.key === "Enter") set("search", (e.target as HTMLInputElement).value);
                  }} />
         </div>
         <div className="f">
-          <label htmlFor={`${fid}-1`}>Turkum</label>
+          <label htmlFor={`${fid}-1`}>{tx("feed.turkum")}</label>
           <select id={`${fid}-1`} value={f.category} onChange={(e) => set("category", e.target.value)}>
-            <option value="">Hammasi</option>
+            <option value="">{tx("common.hammasi")}</option>
             {(meta?.activity_category || []).map((c) => (
               <option key={String(c.value)} value={String(c.value)}>{c.label}</option>
             ))}
           </select>
         </div>
         <div className="f">
-          <label htmlFor={`${fid}-2`}>Davr</label>
+          <label htmlFor={`${fid}-2`}>{tx("common.davr")}</label>
           <select id={`${fid}-2`} value={f.days} onChange={(e) => set("days", e.target.value)}>
-            <option value="">Butun tarix</option>
-            <option value="7">Songgi 7 kun</option>
-            <option value="30">Songgi 30 kun</option>
-            <option value="90">Songgi 90 kun</option>
+            <option value="">{tx("feed.butun_tarix")}</option>
+            <option value="7">{tx("feed.songgi_7_kun")}</option>
+            <option value="30">{tx("feed.songgi_30_kun")}</option>
+            <option value="90">{tx("feed.songgi_90_kun")}</option>
           </select>
         </div>
       </div>
 
       {!items ? <Loading /> : items.length
         ? <Timeline items={items} showProject={false} />
-        : <Empty title="Yozuv topilmadi" text="Filtrni bo'shatib ko'ring." />}
+        : <Empty title={tx("feed.yozuv_topilmadi")} text={tx("feed.filtrni_boshatib_koring")} />}
 
       {pages > 1 && (
         <div className="row" style={{ justifyContent: "center", marginTop: 12 }}>
           <button className="btn btn-sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
-            ← Oldingi
+            {tx("feed.oldingi")}
           </button>
           <span className="muted">{page} / {pages}</span>
           <button className="btn btn-sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>
-            Keyingi →
+            {tx("feed.keyingi")}
           </button>
         </div>
       )}
@@ -109,7 +170,7 @@ function ProjectFeed({ projectId }: { projectId: number }) {
 
 export default function Feed() {
   const fid = useId();
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useNavParams();
   const [rows, setRows] = useState<ProjectRow[] | null>(null);
 
   const q = params.get("q") || "";
@@ -137,14 +198,14 @@ export default function Feed() {
 
   return (
     <>
-      <PageHead title={<strong>Umumiy tarix</strong>}
-                subtitle="Loyihani bosing — o'sha loyihaning tarixi ochiladi"
-                actions={<span className="badge">{total} yozuv</span>} />
+      <PageHead title={<strong>{tx("feed.umumiy_tarix")}</strong>}
+                subtitle={tx("feed.loyihani_bosing_osha_loyihaning_tarixi")}
+                actions={<span className="badge">{total} {tx("feed.yozuv")}</span>} />
       <div className="content">
         <div className="filters">
-          <div className="f" style={{ flex: 1 }}>
-            <label htmlFor={`${fid}-3`}>Loyiha qidirish</label>
-            <input id={`${fid}-3`} defaultValue={q} placeholder="Nom, kalit yoki tavsif boyicha"
+          <div className="f grow">
+            <label htmlFor={`${fid}-3`}>{tx("feed.loyiha_qidirish")}</label>
+            <input id={`${fid}-3`} defaultValue={q} placeholder={tx("feed.nom_kalit_yoki_tavsif_boyicha")}
                    onKeyDown={(e) => {
                      if (e.key === "Enter") set("q", (e.target as HTMLInputElement).value);
                    }} />
@@ -152,8 +213,8 @@ export default function Feed() {
         </div>
 
         {!rows ? <Loading /> : !rows.length ? (
-          <Empty icon="☰" title="Loyiha topilmadi"
-                 text={q ? "Qidiruvni o'zgartirib ko'ring." : "Hali loyiha yo'q."} />
+          <Empty icon="☰" title={tx("common.loyiha_topilmadi")}
+                 text={q ? tx("feed.qidiruvni_ozgartirib_koring") : tx("feed.hali_loyiha_yoq")} />
         ) : (
           <div className="card">
             <div className="card-list">
@@ -168,25 +229,27 @@ export default function Feed() {
                       <div className="row wrap">
                         <h3 style={{ margin: 0 }}>
                           <span className="lang-dot" style={{ background: r.color }} />{" "}
-                          <Link to={`/loyiha/${r.id}`}
+                          <Link {...toProject(r.id)}
                                 onClick={(e) => e.stopPropagation()}>{r.name}</Link>
                         </h3>
                         <span className="badge mono">{r.key}</span>
                         <span className="badge">{r.status_display}</span>
-                        {!r.is_public && <span className="badge badge-warn">yopiq</span>}
+                        {!r.is_public && <span className="badge badge-warn">{tx("feed.yopiq")}</span>}
                         <span className="spacer" />
-                        <span className="badge">{r.activity_count} yozuv</span>
+                        <span className="badge">{r.activity_count} {tx("feed.yozuv")}</span>
                         <span className="muted" style={{ fontSize: 18, lineHeight: 1 }}>
                           {isOpen ? "▴" : "▾"}
                         </span>
                       </div>
                       <div className="repo-meta">
-                        {r.manager_name && <span>PM: {r.manager_name}</span>}
-                        {r.last_activity && <span>songgi harakat: {timeAgo(r.last_activity)}</span>}
+                        {r.manager_name && <span>{tx("common.pm")} {r.manager_name}</span>}
+                        {r.last_activity && <span>{tx("feed.songgi_harakat")} {timeAgo(r.last_activity)}</span>}
                       </div>
                     </div>
                     {isOpen && (
                       <Card padded={false}>
+                        {/* Avval hujjatlar, keyin yozuvlar lentasi. */}
+                        <ProjectDocuments projectId={r.id} />
                         <ProjectFeed projectId={r.id} />
                       </Card>
                     )}

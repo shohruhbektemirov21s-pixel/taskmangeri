@@ -40,6 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
     initials = serializers.CharField(read_only=True)
     avatar_color = serializers.CharField(read_only=True)
     is_platform_admin = serializers.BooleanField(read_only=True)
+    is_boss = serializers.BooleanField(read_only=True)
     can_create_project = serializers.BooleanField(read_only=True)
     skill_list = serializers.ListField(read_only=True)
     global_role_display = serializers.CharField(source="get_global_role_display", read_only=True)
@@ -66,8 +67,8 @@ class UserSerializer(serializers.ModelSerializer):
             "seniority", "seniority_display", "years_experience",
             "suggested_task_types", "suggested_skills", "quality_checklist",
             "default_project_role",
-            "bio", "skills", "skill_list", "github_username", "telegram", "avatar",
-            "initials", "avatar_color", "is_platform_admin", "can_create_project",
+            "bio", "skills", "skill_list", "telegram", "avatar",
+            "initials", "avatar_color", "is_platform_admin", "is_boss", "can_create_project",
             "is_active", "date_joined",
         ]
         read_only_fields = ["email", "global_role", "is_active", "date_joined"]
@@ -76,6 +77,38 @@ class UserSerializer(serializers.ModelSerializer):
         from apps.core.media import media_url
 
         return media_url(obj.avatar)
+
+
+class MeSerializer(UserSerializer):
+    """O'z hisobi - `/api/auth/me/`, kirish va ro'yxatdan o'tish javobi.
+
+    `manages_projects` FAQAT shu yerda: interfeys shunga qarab ikkiga
+    bo'linadi - loyihalarni boshqaradigan odam loyihalar ro'yxatini va
+    jamoaning ish yukini ko'radi, ijrochi esa o'z vazifalarini.
+
+    NEGA `UserSerializer` DA EMAS. Bu maydon bazaga so'rov qiladi, o'sha
+    seriyalizator esa foydalanuvchilar RO'YXATIDA ham ishlatiladi
+    (`UserAdminSerializer`) - u yerda har odam uchun bitta qo'shimcha
+    so'rov bo'lardi (N+1). O'z hisobi esa bitta.
+
+    `can_create_project` bilan aralashtirmang: u ROLdan kelib chiqadi
+    (menejer/admin yangi loyiha ocha oladi), bu esa AMALDAGI holat -
+    global roli dasturchi bo'lgan odam ham biror loyihaga menejer qilib
+    qo'yilgan bo'lishi mumkin.
+    """
+
+    manages_projects = serializers.SerializerMethodField()
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["manages_projects"]
+
+    def get_manages_projects(self, obj):
+        from apps.core.permissions import managed_projects_q
+        from apps.projects.models import Project
+
+        if obj.is_platform_admin:
+            return True
+        return Project.objects.filter(managed_projects_q(obj)).exists()
 
 
 class UserAdminSerializer(UserSerializer):
@@ -93,8 +126,8 @@ class UserListSerializer(UserBriefSerializer):
     """Odamlar ro'yxati - kartochka uchun yetarli, shaxsiy kontaktsiz.
 
     Ilgari ro'yxat `UserAdminSerializer` bilan qaytardi, ya'ni har bir
-    so'rovda tizimdagi HAMMA odamning `bio`, `skills`, `telegram` va
-    `github_username` maydonlari ham chiqib ketardi. Ro'yxatda ular
+    so'rovda tizimdagi HAMMA odamning `bio`, `skills` va `telegram`
+    maydonlari ham chiqib ketardi. Ro'yxatda ular
     ko'rsatilmaydi ham - kerak bo'lsa odamning o'z sahifasidan o'qiladi
     (`GET /api/users/<id>/`).
 
@@ -114,6 +147,59 @@ class UserListSerializer(UserBriefSerializer):
         ]
 
 
+class AdminCreateUserSerializer(serializers.ModelSerializer):
+    """Admin panelidan hisob ochish.
+
+    `RegisterSerializer` dan farqi ikkita:
+      * parol TAKRORLANMAYDI - uni admin qo'yadi, egasiga aytadi;
+      * `email` odatdagi pochta bo'lishi shart emas. Bo'limda loginlar
+        familiya ko'rinishida beriladi (`Abdraxmanov`) va tizim shu
+        maydonni login sifatida ishlatadi (`USERNAME_FIELD = "email"`).
+
+    Parol siyosati esa BIR XIL: `validate_password` shu yerda ham
+    chaqiriladi, ya'ni admin ham qisqa parol qo'ya olmaydi.
+    """
+
+    # `EmailField` EMAS: model maydoni `EmailField` bo'lgani uchun
+    # `ModelSerializer` uni o'zi shunday yasab qo'yardi va `Abdraxmanov`
+    # kabi login «to'g'ri pochta emas» deb rad etilardi. Tekshiruv
+    # `validate_email` da - u loginga mos qoidalarni qo'llaydi.
+    email = serializers.CharField(max_length=254)
+    password = serializers.CharField(write_only=True, min_length=8)
+    specialty = serializers.ChoiceField(choices=Specialty.choices, required=False,
+                                        default=Specialty.BACKEND)
+    seniority = serializers.ChoiceField(choices=Seniority.choices, required=False,
+                                        default=Seniority.JUNIOR)
+    global_role = serializers.ChoiceField(choices=GlobalRole.choices, required=False,
+                                          default=GlobalRole.DEVELOPER)
+
+    class Meta:
+        model = User
+        fields = ["email", "full_name", "specialty", "seniority", "global_role",
+                  "job_title", "password"]
+
+    def validate_email(self, value):
+        login = (value or "").strip().lower()
+        if not login:
+            raise serializers.ValidationError("Login yozing.")
+        if " " in login:
+            raise serializers.ValidationError("Loginda bo'sh joy bo'lmaydi.")
+        if User.objects.filter(email__iexact=login).exists():
+            raise serializers.ValidationError("Bu login band.")
+        return login
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def create(self, data):
+        password = data.pop("password")
+        user = User(**data)
+        user.set_password(password)
+        user.save()
+        return user
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     """Royxatdan otish - faqat mutaxassislik majburiy.
 
@@ -131,7 +217,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["email", "full_name", "specialty", "seniority", "years_experience",
-                  "job_title", "skills", "github_username", "password", "password_confirm"]
+                  "job_title", "skills", "password", "password_confirm"]
 
     def validate_email(self, value):
         email = value.strip().lower()
@@ -188,7 +274,7 @@ class TokenSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        data["user"] = UserSerializer(self.user, context=self.context).data
+        data["user"] = MeSerializer(self.user, context=self.context).data
         return data
 
 

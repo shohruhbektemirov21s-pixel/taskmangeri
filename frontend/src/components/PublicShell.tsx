@@ -7,11 +7,13 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { IconSearch } from "./icons";
 import ThemeToggle from "./ThemeToggle";
 import { Logo } from "./Logo";
+import { toSearch, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function PublicShell({
   children, query = "", showSearch = true,
@@ -21,7 +23,7 @@ export default function PublicShell({
   showSearch?: boolean;
 }) {
   const { user } = useAuth();
-  const nav = useNavigate();
+  const go = useGo();
   const [q, setQ] = useState(query);
   const input = useRef<HTMLInputElement>(null);
 
@@ -48,7 +50,7 @@ export default function PublicShell({
         <div className="lp-wrap">
           <Link to="/" className="logo-link"
                 style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text)", fontWeight: 600 }}>
-            <Logo size={30} /> <span>TeamFlow</span>
+            <Logo size={30} /> <span>{tx("common.teamflow")}</span>
           </Link>
 
           <span className="spacer" />
@@ -58,11 +60,11 @@ export default function PublicShell({
               className="gh-search"
               onSubmit={(e) => {
                 e.preventDefault();
-                nav(`/qidiruv?q=${encodeURIComponent(q.trim())}`);
+                go(toSearch(q.trim()));
               }}
             >
               <IconSearch size={14} />
-              <input ref={input} type="search" value={q} placeholder="Loyiha qidirish…"
+              <input ref={input} type="search" value={q} placeholder={tx("public_shell.loyiha_qidirish")}
                      onChange={(e) => setQ(e.target.value)} />
               <kbd>/</kbd>
             </form>
@@ -71,11 +73,11 @@ export default function PublicShell({
           <ThemeToggle />
 
           {user ? (
-            <Link className="btn btn-primary" to="/panel">Panelga o'tish</Link>
+            <Link className="btn btn-primary" to="/panel">{tx("public_shell.panelga_otish")}</Link>
           ) : (
             <>
-              <Link className="btn" to="/kirish">Kirish</Link>
-              <Link className="btn btn-primary" to="/royxatdan-otish">Ro'yxatdan o'tish</Link>
+              <Link className="btn" to="/kirish">{tx("common.kirish")}</Link>
+              <Link className="btn btn-primary" to="/royxatdan-otish">{tx("common.royxatdan_otish")}</Link>
             </>
           )}
         </div>
@@ -86,11 +88,11 @@ export default function PublicShell({
       <footer className="lp-footer">
         <div className="lp-wrap">
           <Logo size={22} />
-          <span>TeamFlow</span>
+          <span>{tx("common.teamflow")}</span>
           <span className="spacer" />
-          <Link to="/">Bosh sahifa</Link>
-          <Link to="/qidiruv">Loyihalar</Link>
-          {!user && <Link to="/royxatdan-otish">Ro'yxatdan o'tish</Link>}
+          <Link to="/">{tx("public_shell.bosh_sahifa")}</Link>
+          <Link to="/qidiruv">{tx("common.loyihalar")}</Link>
+          {!user && <Link to="/royxatdan-otish">{tx("common.royxatdan_otish")}</Link>}
         </div>
       </footer>
     </>

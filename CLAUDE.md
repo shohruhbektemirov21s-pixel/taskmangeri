@@ -6,6 +6,7 @@ Vazifa boshqaruv tizimi. Repo: `shohruhbektemirov21s-pixel/taskmangeri`. Ildiz: 
 
 - Foydalanuvchi bilan **o'zbek tilida** yoz.
 - **UI matnlari o'zbekcha bo'lishi shart.** Kod identifikatorlari, o'zgaruvchi nomlari, commit xabarlari va test nomlari inglizcha qoladi.
+- **UI matnini kodga qattiq yozma** — u bazadan keladi, pastdagi «Interfeys matnlari» bo'limiga qara.
 - `LANGUAGE_CODE = "uz"`, `TIME_ZONE = "Asia/Tashkent"`.
 
 ## Stack
@@ -66,7 +67,7 @@ Backend `./backend/.env` faylini `env_file` orqali oladi. U yerda `DB2_*`, `REDI
 
 ## Backend tuzilishi va konvensiyalar
 
-`backend/apps/` ichida: `accounts`, `activity`, `chat`, `core`, `notifications`, `projects`, `tasks`, `workspaces`.
+`backend/apps/` ichida: `accounts`, `activity`, `chat`, `core`, `notifications`, `projects`, `suggestions`, `tasks`, `telegram`, `uitexts`, `workspaces`.
 
 - **API view'lar `api.py` da yoziladi, `views.py` da emas.** Bu loyihaning konvensiyasi — buzma.
 - Biznes-mantiq `services.py` ga chiqariladi (`activity`, `chat`, `notifications` da shunday).
@@ -84,12 +85,69 @@ Bu qatlamni olib tashlasang migratsiyalar birinchi yozuvdayoq buziladi.
 
 ## Frontend tuzilishi
 
-`frontend/src/` ichida: `api/`, `auth/`, `components/`, `pages/` (+ `pages/project/`), `realtime/`, `styles/`. 56 ta `.tsx`, 6 ta `.ts`.
+`frontend/src/` ichida: `api/`, `auth/`, `components/`, `i18n/`, `nav/`, `pages/` (+ `pages/project/`), `realtime/`, `styles/`.
 
 - Marshrutlash — `react-router-dom` v7.
 - Real-time ulanishlar `realtime/` da.
 - API chaqiruvlari `api/` orqali; komponent ichida `fetch` yozma.
 - Vite proxy: `VITE_API_URL=/api`, `VITE_PROXY_TARGET=http://backend:8000`.
+- Kirish nuqtasi ikkiga bo'lingan: `main.tsx` matnlarni yuklaydi, so'ng `bootstrap.tsx` ni **dinamik** import qiladi. Bu tartibni buzma — sababi quyida.
+
+## Interfeys matnlari (sayt so'zlari)
+
+Saytdagi hamma yozuv Db2 da, `apps.uitexts.UiText` jadvalida turadi va
+`django-admin/` dan tahrirlanadi. Kodda faqat kalit qoladi:
+
+```tsx
+import { tx } from "@/i18n";
+
+<h2>{tx("login.hisobingizga_kiring")}</h2>
+<p>{tx("ui.kun_oldin", { n: 3 })}</p>     // matn: "{n} kun oldin"
+```
+
+| Qism | Joyi |
+|---|---|
+| Model va admin | `backend/apps/uitexts/` |
+| Endpoint | `GET /api/ui-texts/` — **tokensiz**, ETag bilan (o'zgarmasa 304) |
+| Repodagi nusxa | `backend/apps/uitexts/defaults.json` (`{kalit: {value, note}}`) |
+| Urug'lantirish | `manage.py seed_ui_texts` (`--force` — repodagi holatga qaytaradi, `--prune` — ortiqchasini o'chiradi) |
+| Frontend | `frontend/src/i18n/index.ts` — `tx(kalit, o'rinEgalari?)` |
+
+**Yangi matn qo'shish:** `defaults.json` ga kalit yoz → `seed_ui_texts` → kodda
+`tx("kalit")`. Entrypoint har ishga tushishda `seed_ui_texts` ni chaqiradi,
+shuning uchun yangi kalitlar o'zi paydo bo'ladi; admin tahrirlagan matnga
+tegilmaydi.
+
+**Funksiya nomi `t` EMAS, `tx`** — loyihada `t` allaqachon vazifa (task)
+o'zgaruvchisi sifatida 20 ta faylda ishlatilgan.
+
+**Nega `main.tsx` alohida.** `tx()` faqat komponent ichida emas, modul
+darajasidagi jadvallarda ham chaqiriladi (masalan `Dashboard.tsx` dagi davr
+nomlari). Bunday chaqiruv modul birinchi import qilinganda bir marta
+bajariladi. Agar lug'at o'sha paytda bo'sh bo'lsa, o'sha yozuvlar butun seans
+davomida kalit ko'rinishida qolib ketadi. Shuning uchun `main.tsx` ilova
+modullarini statik import QILMAYDI — avval lug'at keladi, keyin `bootstrap.tsx`.
+
+## Takliflar (`apps/suggestions`)
+
+Jamoa taklif beradi, **boshliq** (`GlobalRole.BOSS`) qaror qiladi. Uchta
+qoida kodda ham, testda ham qulflangan — buzma:
+
+- **Anonim taklifda muallif hech kimga ko'rsatilmaydi** — boshliqqa ham,
+  `django-admin/` da ham.
+- **Kim ovoz bergani tashqariga chiqmaydi.** `SuggestionVote` da `user` bor
+  (bir odam bir marta ovoz bersin), lekin API faqat sonlarni va so'ragan
+  odamning o'z tanlovini beradi. `SuggestionVote` ataylab admin panelida
+  ro'yxatdan o'tkazilmagan.
+- **Yopiq taklifni faqat muallif va boshliq ko'radi** — filtr `get_queryset`
+  da, frontendda emas.
+
+Tahrirlash va o'chirish — muallifga; tasdiqlash, rad etish va izoh — faqat
+boshliqqa (tizim admini ham qila olmaydi). Boshliq hisobi `backend/.env`
+dagi `BOSS_*` dan `manage.py bootstrap_boss` orqali yaratiladi.
+
+Ovoz sonlari `Count()` bilan emas, `related_count` (ichki so'rov) bilan
+olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
 
 ## Ish tartibi
 
@@ -102,6 +160,7 @@ Bu qatlamni olib tashlasang migratsiyalar birinchi yozuvdayoq buziladi.
 ## Qat'iy taqiqlar
 
 - **Soxta/mock ma'lumot qo'shma.** Ro'yxatlar backend'dan, backend esa Db2 dan olishi shart. Vaqtinchalik "namuna" massivlar qoldirilmasin.
+- **Ko'rinadigan matnni JSX ga qattiq yozma** — `tx("kalit")` ishlat va kalitni `defaults.json` ga qo'sh. Yagona istisno: `main.tsx` dagi "aloqa yo'q" xabari (lug'atsiz chiqadi).
 - `django-admin/` marshrutini o'zgartirma — foydalanuvchi undan foydalanadi.
 - N+1 so'rov yaratma; `select_related` / `prefetch_related` ishlat.
 - Migratsiya fayllarini qo'lda tahrirlama, `makemigrations` orqali yarat.
@@ -109,4 +168,6 @@ Bu qatlamni olib tashlasang migratsiyalar birinchi yozuvdayoq buziladi.
 
 ## Git
 
-Joriy branch: `kunduzgi-rejim-mobil-ruxsatlar`. Push qilishdan oldin `main` ga emas, o'z branchingga commit qil va foydalanuvchidan tasdiq so'ra.
+Joriy branch: 'main'  mainga push qil, o'z branchingga commit qil va foydalanuvchidan tasdiq so'ra.
+## esingdan chiqmasin
+malumotlarni beckenddan ol db2dan ol

@@ -24,9 +24,13 @@ class MediaTestCase(ApiTestCase):
     """Yuklangan fayllarni testdan keyin diskdan tozalaydi."""
 
     def upload(self, name="hujjat.txt", body=b"maxfiy matn"):
+        # Nom (izoh) va hujjat sanasi majburiy - shartlar
+        # `test_deadlines_files_and_delete.py` da tekshiriladi.
         response = self.api.post(
             "/api/projects/%d/files/" % self.project.id,
-            {"file": SimpleUploadedFile(name, body)}, format="multipart")
+            {"file": SimpleUploadedFile(name, body),
+             "description": "Sinov hujjati", "doc_date": "2026-02-21"},
+            format="multipart")
         for f in ProjectFile.objects.all():
             if f.file:
                 self.addCleanup(self.remove_file, f.file.path)

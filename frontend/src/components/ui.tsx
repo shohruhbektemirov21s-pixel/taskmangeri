@@ -1,8 +1,11 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import type { DiffPiece, Task, TextDiff, UserBrief } from "@/api/types";
+import { Link } from "react-router-dom";
+import type { Access, DiffPiece, Task, TextDiff, UserBrief } from "@/api/types";
+import { confirmDialog } from "./Confirm";
 import { IconCalendar, IconEye, IconEyeOff, IconFile } from "./icons";
+import { toTask, useGo, type NavTarget } from "@/nav";
+import { tx } from "@/i18n";
 
 /* ---------------------------------------------------------------- Avatar */
 export function Avatar({ user, size = "" }: { user?: UserBrief | null; size?: "sm" | "lg" | "xl" | "" }) {
@@ -48,7 +51,7 @@ export function PhotoView({
 
   return (
     <div className="photo-view" onClick={onClose} role="dialog" aria-modal="true"
-         aria-label={alt || "Rasm"}>
+         aria-label={alt || tx("ui.rasm")}>
       <div className="photo-bar" onClick={(e) => e.stopPropagation()}>
         <div className="photo-meta">
           {title && <strong>{title}</strong>}
@@ -56,9 +59,9 @@ export function PhotoView({
         </div>
         <span className="spacer" />
         <a className="photo-btn" href={src} download target="_blank" rel="noreferrer"
-           title="Yuklab olish" aria-label="Yuklab olish">↓</a>
+           title={tx("ui.yuklab_olish")} aria-label={tx("ui.yuklab_olish")}>↓</a>
         <button className="photo-btn" type="button" onClick={onClose}
-                title="Yopish (Esc)" aria-label="Yopish">×</button>
+                title={tx("ui.yopish_esc")} aria-label={tx("common.yopish")}>×</button>
       </div>
       {/* Rasmning o'ziga bosilganda yopilmasin - odam kattalashtirib qarayotgan bo'lishi mumkin */}
       <img src={src} alt={alt || ""} onClick={(e) => e.stopPropagation()} />
@@ -73,12 +76,12 @@ export function AvatarViewable({ user, size = "" }: { user?: UserBrief | null; s
   return (
     <>
       <button type="button" className="avatar-btn" onClick={() => setOpen(true)}
-              title="Rasmni to'liq ko'rish">
+              title={tx("ui.rasmni_toliq_korish")}>
         <Avatar user={user} size={size} />
       </button>
       {open && (
         <PhotoView src={user.avatar} alt={user.full_name}
-                   title="Profil rasmi" subtitle={user.full_name}
+                   title={tx("ui.profil_rasmi")} subtitle={user.full_name}
                    onClose={() => setOpen(false)} />
       )}
     </>
@@ -171,29 +174,60 @@ export function OkMsg({ text }: { text?: string | null }) {
 
 /* ---------------------------------------------------------------- Karta / Panel */
 export function Card({
+  id,
   title,
   action,
   children,
   badge,
   padded = true,
+  collapsible = false,
+  defaultOpen = true,
 }: {
+  /** Sahifa ichidan shu kartaga olib tushish uchun (`scrollIntoView`). */
+  id?: string;
   title?: ReactNode;
   action?: ReactNode;
   badge?: ReactNode;
   children: ReactNode;
   padded?: boolean;
+  /**
+   * Sarlavha bosilganda karta yig'iladi.
+   *
+   * Uzun ro'yxatlar uchun: profildagi «Nima qilgan» yigirmadan ortiq
+   * yozuvni ochib tashlaydi va sahifaning qolgani ancha pastga tushib
+   * ketadi. Sanoq nishonda ko'rinib turgani uchun yig'ilgan holatda ham
+   * "ichida nima bor" ma'lum bo'ladi.
+   */
+  collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const shown = !collapsible || open;
+
   return (
-    <div className="card">
+    <div className="card" id={id}>
       {title && (
         <div className="card-head">
-          <h3>{title}</h3>
-          {badge}
+          {collapsible ? (
+            // Butun sarlavha nishon: kichik uchburchakni aniq bosish shart
+            // emas. `action` esa tashqarida qoladi - u o'z ishini qiladi.
+            <button type="button" className="card-toggle" aria-expanded={open}
+                    onClick={() => setOpen((v) => !v)}>
+              <span className="card-caret" aria-hidden="true">{open ? "▾" : "▸"}</span>
+              <h3>{title}</h3>
+              {badge}
+            </button>
+          ) : (
+            <>
+              <h3>{title}</h3>
+              {badge}
+            </>
+          )}
           <span className="spacer" />
           {action}
         </div>
       )}
-      {padded ? <div className="card-body">{children}</div> : children}
+      {shown && (padded ? <div className="card-body">{children}</div> : children)}
     </div>
   );
 }
@@ -202,10 +236,24 @@ export function Card({
  * Raqamli ko'rsatkich.
  *
  * `to` berilsa karta bosiladigan bo'ladi: raqamni ko'rgan odam "buni qayerdan
- * ko'raman?" deb qidirib o'tirmaydi, ustiga bosaveradi.
+ * ko'raman?" deb qidirib o'tirmaydi, ustiga bosaveradi. Ro'yxat SHU sahifada
+ * turgan bo'lsa `onClick` beriladi - katak boshqa manzilga olib ketmaydi,
+ * o'sha kartaga olib tushadi.
+ *
+ * `to` ham, `onClick` ham berilmasa - oddiy `div`. Bu MUHIM: `.stat:hover`
+ * hamma katakni ko'taradi, ya'ni bosilmaydigani ham "bosilaman" deb turadi.
+ * Shuning uchun raqam ortida ko'rsatadigan narsa bo'lsa, ikkovidan biri
+ * albatta berilsin.
  */
-export function Stat({ value, label, tone = "", to, title }: {
-  value: ReactNode; label: string; tone?: string; to?: string; title?: string;
+export function Stat({ value, label, tone = "", to, onClick, title }: {
+  value: ReactNode; label: string; tone?: string;
+  /**
+   * Oddiy manzil (`/mening-ishim`) yoki `src/nav` dagi maqsad. Ikkinchisi
+   * identifikatorni ham olib yuradi - u manzilda emas, sahifa holatida
+   * uzatiladi.
+   */
+  to?: string | NavTarget;
+  onClick?: () => void; title?: string;
 }) {
   const body = (
     <>
@@ -213,12 +261,26 @@ export function Stat({ value, label, tone = "", to, title }: {
       <div className="k">{label}</div>
     </>
   );
-  if (!to) return <div className={`stat ${tone}`}>{body}</div>;
-  return (
-    <Link className={`stat ${tone} clickable`} to={to} title={title || label}>
-      {body}
-    </Link>
-  );
+  if (to) {
+    const target = typeof to === "string" ? { to, state: undefined } : to;
+    return (
+      <Link className={`stat ${tone} clickable`} to={target.to} state={target.state}
+            title={title || label}>
+        {body}
+      </Link>
+    );
+  }
+  // Havola emas, TUGMA: sahifa almashmaydi, lekin klaviaturadan ham
+  // bosiladi va o'quvchi dasturga "bu bosiladi" deb yetkaziladi.
+  if (onClick) {
+    return (
+      <button type="button" className={`stat ${tone} clickable`}
+              onClick={onClick} title={title || label}>
+        {body}
+      </button>
+    );
+  }
+  return <div className={`stat ${tone}`}>{body}</div>;
 }
 
 export function Progress({ value }: { value: number }) {
@@ -229,6 +291,59 @@ export function Progress({ value }: { value: number }) {
   );
 }
 
+/**
+ * Sahifa raqamlari - «‹ 1 2 3 … 9 10 ›».
+ *
+ * NEGA KERAK. Uzun ro'yxat ilgari jimgina qirqilar va ostida «450 tadan
+ * 100 tasi ko'rsatildi» degan yozuv turardi. Qolganiga yetadigan yo'l
+ * yo'q edi - bu javob emas, maslahat edi.
+ *
+ * IKKI XIL ISHLATILADI. Panel ro'yxatida sahifa SERVERDAN so'raladi
+ * (`/dashboard/tasks/?page=`), profil kartasida esa allaqachon yuklangan
+ * ro'yxat brauzerda bo'linadi. Komponentga farqi yo'q: u faqat raqamlarni
+ * chizadi va bosilganini aytadi.
+ *
+ * NEGA HAMMA RAQAM EMAS. Ellik sahifa bo'lsa ellikta tugma qatorni
+ * buzardi. Shuning uchun ATROFDAGILAR ko'rsatiladi: birinchi, oxirgi va
+ * joriyning ikki yon qo'shnisi; uzilish joyiga «…» qo'yiladi. Bu Google
+ * ham, GitHub ham ishlatadigan naqsh - odam tanish narsani o'ylab
+ * o'tirmaydi.
+ */
+export function Pager({ page, pages, onPick }: {
+  page: number; pages: number; onPick: (n: number) => void;
+}) {
+  // Qaysi raqamlar chiziladi: chekkalar + joriyning atrofi.
+  const near = new Set<number>([1, pages, page, page - 1, page + 1]);
+  // Boshida yoki oxirida turganda qator qisqarib qolmasin - to'ldiramiz.
+  if (page <= 3) [2, 3, 4].forEach((n) => near.add(n));
+  if (page >= pages - 2) [pages - 1, pages - 2, pages - 3].forEach((n) => near.add(n));
+  const shown = [...near].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+
+  const items: (number | "gap")[] = [];
+  shown.forEach((n, i) => {
+    // Ketma-ketlik uzilgan joyda - uch nuqta.
+    if (i > 0 && n - shown[i - 1] > 1) items.push("gap");
+    items.push(n);
+  });
+
+  return (
+    <nav className="pager" aria-label={tx("ui.sahifalar")}>
+      <button type="button" className="pager-step" disabled={page <= 1}
+              onClick={() => onPick(page - 1)} aria-label={tx("ui.oldingi_sahifa")}>‹</button>
+      {items.map((it, i) => (
+        it === "gap"
+          ? <span key={`gap${i}`} className="pager-gap">…</span>
+          : <button key={it} type="button"
+                    className={`pager-num ${it === page ? "on" : ""}`}
+                    aria-current={it === page ? "page" : undefined}
+                    onClick={() => onPick(it)}>{it}</button>
+      ))}
+      <button type="button" className="pager-step" disabled={page >= pages}
+              onClick={() => onPick(page + 1)} aria-label={tx("ui.keyingi_sahifa")}>›</button>
+    </nav>
+  );
+}
+
 /* ---------------------------------------------------------------- Vazifa kartasi */
 /**
  * Qator chekkasidagi «⋯» menyusi.
@@ -236,7 +351,7 @@ export function Progress({ value }: { value: number }) {
  * Ro'yxatda har bir yozuv uchun tahrirlash/o'chirish kabi amallar kerak,
  * lekin ular doim ko'rinib tursa ro'yxat shovqinga to'ladi.
  */
-export function RowMenu({ children, label = "Amallar" }: {
+export function RowMenu({ children, label = tx("common.amallar") }: {
   children: React.ReactNode;
   label?: string;
 }) {
@@ -279,19 +394,41 @@ export function RowMenu({ children, label = "Amallar" }: {
  * Avval bu yerda nomni yozdirib tasdiqlash bor edi - amal qaytmasligi uchun.
  * Amalda u ortiqcha to'siq bo'ldi: bitta aniq savol yetadi.
  */
-export function confirmDelete(name: string) {
-  return window.confirm(
-    `«${name}» vazifalari, fayllari va tarixi bilan butunlay ochiriladi. Davom etamizmi?`);
+export function confirmDelete(name: string, warning?: string) {
+  return confirmDialog({
+    title: `«${name}» o'chirilsinmi?`,
+    warning,
+    body: "Loyiha vazifalari, fayllari va tarixi bilan butunlay o'chadi. Buni qaytarib bo'lmaydi.",
+    confirmText: tx("common.ochirish"),
+    danger: true,
+  });
 }
 
-export function TaskCard({ task, draggable = false, onDragStart }: {
+export function TaskCard({ task, draggable = false, onDragStart, onMove }: {
   task: Task;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
+  /**
+   * Kartani boshqa ustunga ko'chirish. Berilsa kartaning ostida tanlash
+   * maydoni paydo bo'ladi.
+   *
+   * Sudrab ko'chirish (HTML5 drag&drop) faqat sichqoncha bilan ishlaydi:
+   * sensorli ekran `dragstart` ni umuman tug'dirmaydi, klaviatura ham. Ya'ni
+   * telefondan kirgan odam va Tab bilan yuradigan odam doskada hech narsani
+   * ko'chira olmasdi. Native `<select>` ikkovida ham ishlaydi va o'z-o'zidan
+   * qulay: brauzer uni har platformada odatdagidek chizadi.
+   *
+   * Ro'yxat serverdan keladi (`allowed_transitions`) - qaysi holatga o'tish
+   * mumkinligi qoidasi backendda, bitta joyda qoladi.
+   */
+  onMove?: (task: Task, status: string) => void;
 }) {
-  return (
+  const moveId = useId();
+  const moves = task.allowed_transitions || [];
+
+  const card = (
     <Link
-      to={`/vazifa/${task.id}`}
+      {...toTask(task.id)}
       className={`tcard ${task.is_overdue ? "overdue" : ""}`}
       draggable={draggable}
       onDragStart={onDragStart}
@@ -308,7 +445,7 @@ export function TaskCard({ task, draggable = false, onDragStart }: {
         {/* Biriktirilgan fayl bor-yo'qligi kartaning o'zida ko'rinsin - odam
             vazifani ochmasdan turib biladi. */}
         {!!task.attachment_count && (
-          <span className="badge" title={`${task.attachment_count} ta fayl biriktirilgan`}>
+          <span className="badge" title={tx("ui.fayl_biriktirilgan", { n: task.attachment_count })}>
             <IconFile size={11} /> {task.attachment_count}
           </span>
         )}
@@ -320,17 +457,94 @@ export function TaskCard({ task, draggable = false, onDragStart }: {
       </div>
     </Link>
   );
+
+  if (!onMove || !moves.length) return card;
+
+  return (
+    <div className="tcard-wrap">
+      {card}
+      <div className="tcard-move">
+        {/* Yorliq ko'rinmaydi, lekin ekran o'qigichga kerak: "Ko'chirish"
+            degan maydon qaysi vazifaga tegishli ekani aytilsin. */}
+        <label className="sr-only" htmlFor={moveId}>
+          {task.code} {tx("ui.boshqa_ustunga_kochirish")}
+        </label>
+        <select
+          id={moveId}
+          value=""
+          onChange={(e) => { if (e.target.value) onMove(task, e.target.value); }}
+        >
+          <option value="">{tx("ui.kochirish")}</option>
+          {moves.map((m) => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
 }
 
+/**
+ * Ustun sarlavhasidagi holat nuqtasining rangi.
+ *
+ * Bitta joyda turadi: doska ham (`pages/project/Board.tsx`), «Mening ishim»
+ * ham shu ro'yxatdan oladi - aks holda bir xil holat ikki sahifada ikki xil
+ * rangda ko'rinardi. Qiymatlar CSS o'zgaruvchisi: rejim almashganda rang
+ * o'zi moslashadi.
+ */
+/**
+ * «Ro'yxat qirqilgan» izohi — doska va vazifalar ro'yxati tepasida.
+ *
+ * Server ro'yxatni rolga qarab qirqadi (`apps/core/permissions.py`
+ * `task_scope_q`): IJROCHI (dasturchi, QA) faqat o'ziga biriktirilgan ishni
+ * ko'radi, menejer/loyiha admini/kuzatuvchi esa hammasini. Bu izohsiz
+ * dasturchi 74 ta vazifadan uchtasini ko'rib "ro'yxat buzilibdi" deb
+ * o'ylaydi.
+ *
+ * Cheklov YO'Q bo'lganda hech narsa chizilmaydi: menejerga "siz hammasini
+ * ko'ryapsiz" deb aytishning keragi yo'q, u shundoq ham ko'rib turibdi.
+ */
+export function TaskScopeNote({ access }: { access?: Access | null }) {
+  if (!access?.is_developer) return null;
+  return (
+    <p className="scope-note">
+      {tx("ui.faqat_sizga_biriktirilgan_ishlar_qolganini")}
+    </p>
+  );
+}
+
+/**
+ * «Davr» tanlagichining variantlari - «Vazifalar» va «Vazifalarim»
+ * sahifalarida bir xil.
+ *
+ * Kalitlar serverdagi `DUE_RANGES` bilan bir xil va oraliqni ham server
+ * hisoblaydi (`due_span`): «shu hafta» dushanbadan yakshanbagacha, «shu
+ * oy» oy boshidan oxirigacha - ya'ni KALENDAR davri, «oxirgi 7 kun» emas.
+ */
+export const DUE_PERIODS = [
+  { value: "today", label: tx("common.bugun") },
+  { value: "week", label: tx("ui.shu_hafta") },
+  { value: "month", label: tx("ui.shu_oy") },
+  { value: "year", label: tx("ui.shu_yil") },
+] as const;
+
+export const STATUS_DOT: Record<string, string> = {
+  TODO: "var(--accent)",
+  IN_PROGRESS: "var(--attention)",
+  CHANGES_REQUESTED: "var(--danger)",
+  IN_REVIEW: "var(--done)",
+  DONE: "var(--success)",
+};
+
 export function TaskRow({ task, showProject = false }: { task: Task; showProject?: boolean }) {
-  const nav = useNavigate();
+  const go = useGo();
   return (
     /* Qatorning istalgan yeriga bosilsa vazifa ochiladi - sarlavhani
        aniq nishonga olish shart emas. */
-    <tr className="clickable" onClick={() => nav(`/vazifa/${task.id}`)}>
+    <tr className="clickable" onClick={() => go(toTask(task.id))}>
       <td className="nowrap mono muted">{task.code}</td>
       <td>
-        <Link to={`/vazifa/${task.id}`} style={{ color: "var(--text)", fontWeight: 500 }}
+        <Link {...toTask(task.id)} style={{ color: "var(--text)", fontWeight: 500 }}
               onClick={(e) => e.stopPropagation()}>
           {task.title}
         </Link>
@@ -469,10 +683,10 @@ export function fmtDateTime(value?: string | null) {
 export function timeAgo(value?: string | null) {
   if (!value) return "";
   const diff = (Date.now() - new Date(value).getTime()) / 1000;
-  if (diff < 60) return "hozir";
-  if (diff < 3600) return `${Math.floor(diff / 60)} daqiqa oldin`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} soat oldin`;
-  if (diff < 2592000) return `${Math.floor(diff / 86400)} kun oldin`;
+  if (diff < 60) return tx("ui.hozir");
+  if (diff < 3600) return tx("ui.daqiqa_oldin", { n: Math.floor(diff / 60) });
+  if (diff < 86400) return tx("ui.soat_oldin", { n: Math.floor(diff / 3600) });
+  if (diff < 2592000) return tx("ui.kun_oldin", { n: Math.floor(diff / 86400) });
   return fmtDate(value);
 }
 
@@ -598,7 +812,7 @@ function BaseDateField({ withTime, id, value, onChange, min, max, required, disa
         autoComplete="off"
         required={required}
         disabled={disabled}
-        placeholder={withTime ? "kk.oo.yyyy soat:daq" : "kk.oo.yyyy"}
+        placeholder={withTime ? tx("ui.kk_oo_yyyy_soat_daq") : "kk.oo.yyyy"}
         value={text}
         onChange={(e) => type(e.target.value)}
         onBlur={() => setText(toUz(toIso(text)))}
@@ -621,8 +835,8 @@ function BaseDateField({ withTime, id, value, onChange, min, max, required, disa
         type="button"
         className="dt-pick"
         disabled={disabled}
-        aria-label="Taqvimdan tanlash"
-        title="Taqvimdan tanlash"
+        aria-label={tx("ui.taqvimdan_tanlash")}
+        title={tx("ui.taqvimdan_tanlash")}
         onClick={() => {
           const el = native.current;
           if (!el) return;
@@ -662,7 +876,7 @@ export function DateTimeField(props: DateFieldProps) {
  *
  * Tor ekranda ustunlar pastma-past tushadi - CSS `diff-grid` da.
  */
-export function DiffView({ diff, oldLabel = "Eski", newLabel = "Yangi" }: {
+export function DiffView({ diff, oldLabel = tx("ui.eski"), newLabel = tx("ui.yangi") }: {
   diff?: TextDiff | null;
   oldLabel?: string;
   newLabel?: string;
@@ -684,19 +898,19 @@ export function DiffView({ diff, oldLabel = "Eski", newLabel = "Yangi" }: {
       <div className="diff-grid">
         <div className="diff-col">
           <div className="diff-head">{oldLabel}</div>
-          <div className="diff-body diff-old">{side(diff.old, "bo'sh edi")}</div>
+          <div className="diff-body diff-old">{side(diff.old, tx("ui.bosh_edi"))}</div>
         </div>
         <div className="diff-col">
           <div className="diff-head">{newLabel}</div>
-          <div className="diff-body diff-new">{side(diff.new, "bo'sh qoldirildi")}</div>
+          <div className="diff-body diff-new">{side(diff.new, tx("ui.bosh_qoldirildi"))}</div>
         </div>
       </div>
       {!diff.has_changes && (
-        <p className="muted diff-note">Matn o'zgarmagan.</p>
+        <p className="muted diff-note">{tx("ui.matn_ozgarmagan")}</p>
       )}
       {diff.truncated && (
         <p className="muted diff-note">
-          Matn juda uzun - o'zgargan joylari alohida ajratilmadi.
+          {tx("ui.matn_juda_uzun_ozgargan_joylari")}
         </p>
       )}
     </div>
@@ -782,8 +996,8 @@ export function PasswordInput({
         type="button"
         className="pw-toggle"
         onClick={() => setShown((v) => !v)}
-        title={shown ? "Parolni yashirish" : "Parolni ko'rsatish"}
-        aria-label={shown ? "Parolni yashirish" : "Parolni ko'rsatish"}
+        title={shown ? tx("ui.parolni_yashirish") : tx("ui.parolni_korsatish")}
+        aria-label={shown ? tx("ui.parolni_yashirish") : tx("ui.parolni_korsatish")}
         aria-pressed={shown}
         tabIndex={-1}
       >

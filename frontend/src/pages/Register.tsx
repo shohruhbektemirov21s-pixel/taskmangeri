@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { Logo } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ErrorMsg, PasswordInput } from "@/components/ui";
+import { tx } from "@/i18n";
 
 interface SpecialtyItem {
   value: string;
@@ -34,7 +35,7 @@ export default function Register() {
         const data = await api.get<{ specialties: SpecialtyItem[] }>("/auth/specialties/");
         setSpecialties(data.specialties);
       } catch {
-        setError("Mutaxassisliklar royxatini yuklab bolmadi");
+        setError(tx("register.mutaxassisliklar_royxatini_yuklab_bolmadi"));
       }
     })();
   }, []);
@@ -53,7 +54,7 @@ export default function Register() {
       if (err instanceof ApiError) {
         setErrors(err.fields);
         setError(err.message);
-      } else setError("Royxatdan otishda xatolik");
+      } else setError(tx("register.royxatdan_otishda_xatolik"));
     } finally {
       setBusy(false);
     }
@@ -61,12 +62,17 @@ export default function Register() {
 
   return (
     <div className="auth-wrap">
-      {/* Kirish sahifasida sarlavha yo'q - rejim tugmasi burchakda turadi */}
+      {/* Sarlavha yo'q - burchaklarda ikkita boshqaruv turadi: chapda
+          ortga qaytish, o'ngda rejim tugmasi. */}
+      <div className="auth-back">
+        <Link to="/">{tx("register.bosh_sahifa")}</Link>
+      </div>
       <ThemeToggle className="top-icon theme-float" />
-      <div className="auth-card" style={{ maxWidth: 380 }}>
-        <div className="center mb">
+      <div className="auth-card">
+        <div className="auth-head">
           <Logo size={46} />
-          <h2 style={{ fontWeight: 300, marginTop: 12 }}>TeamFlow hisobini yarating</h2>
+          <h2>{tx("register.hisob_yarating")}</h2>
+          <p>{tx("register.mutaxassisligingizga_mos_vazifalar_shu_boyic")}</p>
         </div>
 
         <ErrorMsg error={error} />
@@ -74,26 +80,28 @@ export default function Register() {
         <div className="auth-box">
           <form onSubmit={submit}>
             <div className="field">
-              <label htmlFor={`${fid}-0`}>F.I.Sh.</label>
+              <label htmlFor={`${fid}-0`}>{tx("common.f_i_sh")}</label>
               <input id={`${fid}-0`} value={form.full_name} required autoFocus
+                     name="name" autoComplete="name"
                      onChange={(e) => set("full_name", e.target.value)}
-                     placeholder="Ism Familiya" />
+                     placeholder={tx("register.ism_familiya")} />
               {errors.full_name && <div className="err">{errors.full_name}</div>}
             </div>
 
             <div className="field">
-              <label htmlFor={`${fid}-1`}>Email</label>
+              <label htmlFor={`${fid}-1`}>{tx("register.email")}</label>
               <input id={`${fid}-1`} type="email" value={form.email} required
+                     name="email" autoComplete="email"
                      onChange={(e) => set("email", e.target.value)}
                      placeholder="siz@example.com" />
               {errors.email && <div className="err">{errors.email}</div>}
             </div>
 
             <div className="field">
-              <label htmlFor={`${fid}-2`}>Mutaxassislik</label>
+              <label htmlFor={`${fid}-2`}>{tx("common.mutaxassislik")}</label>
               <select id={`${fid}-2`} value={form.specialty} required
                       onChange={(e) => set("specialty", e.target.value)}>
-                <option value="">Tanlang</option>
+                <option value="">{tx("register.tanlang")}</option>
                 {specialties.map((s) => (
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
@@ -102,15 +110,15 @@ export default function Register() {
             </div>
 
             <div className="field">
-              <label htmlFor={`${fid}-3`}>Parol</label>
+              <label htmlFor={`${fid}-3`}>{tx("common.parol")}</label>
               <PasswordInput id={`${fid}-3`} value={form.password} required autoComplete="new-password"
                              onChange={(v) => set("password", v)}
-                             placeholder="kamida 8 belgi" />
+                             placeholder={tx("register.kamida_8_belgi")} />
               {errors.password && <div className="err">{errors.password}</div>}
             </div>
 
             <div className="field">
-              <label htmlFor={`${fid}-4`}>Parolni tasdiqlang</label>
+              <label htmlFor={`${fid}-4`}>{tx("register.parolni_tasdiqlang")}</label>
               <PasswordInput id={`${fid}-4`} value={form.password_confirm} required autoComplete="new-password"
                              onChange={(v) => set("password_confirm", v)}
                              placeholder="parolni qayta yozing" />
@@ -118,13 +126,13 @@ export default function Register() {
             </div>
 
             <button className="btn btn-primary btn-block" disabled={busy}>
-              {busy ? "Yaratilmoqda..." : "Akkaunt yaratish"}
+              {busy ? tx("common.yaratilmoqda") : tx("register.akkaunt_yaratish")}
             </button>
           </form>
         </div>
 
         <div className="auth-alt">
-          Akkauntingiz bormi? <Link to="/kirish">Kirish</Link>
+          {tx("register.akkauntingiz_bormi")} <Link to="/kirish">{tx("common.kirish")}</Link>
         </div>
       </div>
     </div>

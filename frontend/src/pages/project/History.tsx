@@ -5,6 +5,8 @@ import { useAuth } from "@/auth/AuthContext";
 import type { Activity, Project, ProjectMember } from "@/api/types";
 import Timeline from "@/components/Timeline";
 import { Avatar, Card, ErrorMsg, Loading } from "@/components/ui";
+import { toDeveloper, toProject } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function History({ project }: { project: Project }) {
   const fid = useId();
@@ -37,7 +39,7 @@ export default function History({ project }: { project: Project }) {
       .catch((e) => {
         if (!alive) return;
         setItems([]);
-        setError(e instanceof ApiError ? e.message : "Tarixni yuklab bo'lmadi.");
+        setError(e instanceof ApiError ? e.message : tx("project_history.tarixni_yuklab_bolmadi"));
       });
     return () => { alive = false; };
   }, [project.id, f, page]);
@@ -50,60 +52,60 @@ export default function History({ project }: { project: Project }) {
         <ErrorMsg error={error} />
         <div className="filters">
           <div className="f">
-            <label htmlFor={`${fid}-0`}>Kim</label>
+            <label htmlFor={`${fid}-0`}>{tx("project_history.kim")}</label>
             <select id={`${fid}-0`} value={f.actor} onChange={(e) => set("actor", e.target.value)}>
-              <option value="">Hamma</option>
+              <option value="">{tx("project_history.hamma")}</option>
               {members.map((m) => (
                 <option key={m.user.id} value={m.user.id}>{m.user.full_name}</option>
               ))}
             </select>
           </div>
           <div className="f">
-            <label htmlFor={`${fid}-1`}>Turkum</label>
+            <label htmlFor={`${fid}-1`}>{tx("project_history.turkum")}</label>
             <select id={`${fid}-1`} value={f.category} onChange={(e) => set("category", e.target.value)}>
-              <option value="">Hammasi</option>
+              <option value="">{tx("common.hammasi")}</option>
               {(meta?.activity_category || []).map((c) => (
                 <option key={String(c.value)} value={String(c.value)}>{c.label}</option>
               ))}
             </select>
           </div>
           <div className="f">
-            <label htmlFor={`${fid}-2`}>Davr</label>
+            <label htmlFor={`${fid}-2`}>{tx("common.davr")}</label>
             <select id={`${fid}-2`} value={f.days} onChange={(e) => set("days", e.target.value)}>
-              <option value="">Butun tarix</option>
-              <option value="7">Songgi 7 kun</option>
-              <option value="30">Songgi 30 kun</option>
-              <option value="90">Songgi 90 kun</option>
+              <option value="">{tx("project_history.butun_tarix")}</option>
+              <option value="7">{tx("project_history.songgi_7_kun")}</option>
+              <option value="30">{tx("project_history.songgi_30_kun")}</option>
+              <option value="90">{tx("project_history.songgi_90_kun")}</option>
             </select>
           </div>
-          <div className="f" style={{ flex: 1 }}>
-            <label htmlFor={`${fid}-3`}>Qidiruv</label>
+          <div className="f grow">
+            <label htmlFor={`${fid}-3`}>{tx("common.qidiruv")}</label>
             <input id={`${fid}-3`} value={f.search} onChange={(e) => set("search", e.target.value)}
-                   placeholder="Matn boyicha" />
+                   placeholder={tx("project_history.matn_boyicha")} />
           </div>
         </div>
 
-        <Card title={`Loyiha tarixi (${count} yozuv)`}>
+        <Card title={tx("project_history.loyiha_tarixi_yozuv", { n: count })}>
           {!items ? <Loading /> : <Timeline items={items} showProject={false} />}
           {count > 50 && (
             <div className="row" style={{ justifyContent: "center", marginTop: 12 }}>
               <button className="btn btn-sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
-                ← Oldingi
+                {tx("project_history.oldingi")}
               </button>
               <span className="muted">{page} / {Math.ceil(count / 50)}</span>
               <button className="btn btn-sm" disabled={page >= Math.ceil(count / 50)}
-                      onClick={() => setPage(page + 1)}>Keyingi →</button>
+                      onClick={() => setPage(page + 1)}>{tx("project_history.keyingi")}</button>
             </div>
           )}
         </Card>
       </div>
 
       <div>
-        <Card title="Loyihada ishlaganlar" padded={false}>
+        <Card title={tx("project_history.loyihada_ishlaganlar")} padded={false}>
           <div className="card-list">
             {members.map((m) => (
               <Link className="card-body tight row" key={m.id}
-                    to={`/loyiha/${project.id}/dasturchi/${m.user.id}`}
+                    {...toDeveloper(project.id, m.user.id)}
                     style={{ color: "inherit", textDecoration: "none" }}>
                 <Avatar user={m.user} size="sm" />
                 <div>
@@ -111,7 +113,7 @@ export default function History({ project }: { project: Project }) {
                   <br />
                   <small className="muted">
                     {m.user.specialty_display}
-                    {!m.is_active && " · sobiq aʼzo"}
+                    {!m.is_active && tx("project_history.sobiq_azo")}
                   </small>
                 </div>
                 <span className="spacer" />
@@ -121,9 +123,9 @@ export default function History({ project }: { project: Project }) {
           </div>
         </Card>
 
-        <Card title="Nima uchun bu kerak">
-          <Link className="btn btn-sm btn-block" to={`/loyiha/${project.id}/kirish`}>
-            Loyihaga kirish qollanmasi
+        <Card title={tx("project_history.nima_uchun_bu_kerak")}>
+          <Link className="btn btn-sm btn-block" {...toProject(project.id, "kirish")}>
+            {tx("project_history.loyihaga_kirish_qollanmasi")}
           </Link>
         </Card>
       </div>

@@ -3,16 +3,15 @@ import { useFetch } from "@/api/useFetch";
 import type { OnboardingData, Project } from "@/api/types";
 import Timeline from "@/components/Timeline";
 import { Avatar, Card, ErrorMsg, Loading, Priority, Progress, StatusBadge, fmtDate, timeAgo } from "@/components/ui";
+import { toDeveloper, toProject, toTask } from "@/nav";
+import { tx } from "@/i18n";
 
 const BRIEF_SECTIONS: [keyof NonNullable<OnboardingData["brief"]>, string][] = [
-  ["goal", "Loyiha maqsadi"],
-  ["tech_stack", "Texnologiyalar"],
-  ["architecture", "Arxitektura"],
-  ["setup_steps", "Ishga tushirish"],
-  ["conventions", "Kelishuvlar"],
-  ["definition_of_done", "Tayyorlik mezoni"],
-  ["pitfalls", "Ehtiyot boling"],
-  ["contacts", "Kim nima boyicha javob beradi"],
+  ["goal", tx("project_onboarding.loyiha_maqsadi")],
+  ["tech_stack", tx("project_onboarding.texnologiyalar")],
+  ["architecture", tx("project_onboarding.arxitektura")],
+  ["pitfalls", tx("project_onboarding.ehtiyot_boling")],
+  ["contacts", tx("project_onboarding.kim_nima_boyicha_javob_beradi")],
 ];
 
 export default function Onboarding({ project }: { project: Project }) {
@@ -20,39 +19,39 @@ export default function Onboarding({ project }: { project: Project }) {
     "/activity/onboarding/", { project: project.id });
 
   if (error) return <ErrorMsg error={error} />;
-  if (!d) return <Loading text="Kontekst yigilmoqda..." />;
+  if (!d) return <Loading text={tx("project_onboarding.kontekst_yigilmoqda")} />;
 
   return (
     <>
       <div className="split">
         <div>
-          <Card title="1. Loyiha nima qiladi">
-            <p className="pre-wrap">{d.project.description || "Tavsif kiritilmagan."}</p>
+          <Card title={tx("project_onboarding.1_loyiha_nima_qiladi")}>
+            <p className="pre-wrap">{d.project.description || tx("common.tavsif_kiritilmagan")}</p>
             <div className="row mb">
               <div style={{ flex: 1, maxWidth: 300 }}><Progress value={d.project.progress} /></div>
-              <span className="muted">{d.project.progress}% bajarildi</span>
+              <span className="muted">{d.project.progress}{tx("project_onboarding.bajarildi")}</span>
             </div>
             <div className="row wrap" style={{ gap: 8 }}>
               {d.project.repo_url && (
                 <a className="btn btn-sm" href={d.project.repo_url} target="_blank" rel="noreferrer">
-                  Repozitoriy
+                  {tx("project_onboarding.repozitoriy")}
                 </a>
               )}
               {d.project.docs_url && (
                 <a className="btn btn-sm" href={d.project.docs_url} target="_blank" rel="noreferrer">
-                  Hujjatlar
+                  {tx("common.hujjatlar")}
                 </a>
               )}
               {d.project.manager && (
-                <span className="chip">Menejer: {d.project.manager.full_name}</span>
+                <span className="chip">{tx("common.menejer")} {d.project.manager.full_name}</span>
               )}
             </div>
           </Card>
 
-          <Card title="2. Loyiha brifi"
-                badge={d.brief && <span className="badge">{d.brief.filled_ratio}% toldirilgan</span>}
+          <Card title={tx("project_onboarding.2_loyiha_arxitekturasi")}
+                badge={d.brief && <span className="badge">{d.brief.filled_ratio}{tx("project_onboarding.toldirilgan")}</span>}
                 action={project.access.can_manage &&
-                  <Link className="btn btn-sm" to={`/loyiha/${project.id}/brif`}>Tahrirlash</Link>}>
+                  <Link className="btn btn-sm" {...toProject(project.id, "brif")}>{tx("common.tahrirlash")}</Link>}>
             {d.brief ? (
               <div className="stack">
                 {BRIEF_SECTIONS.map(([key, label]) => {
@@ -66,13 +65,13 @@ export default function Onboarding({ project }: { project: Project }) {
                   );
                 })}
                 {d.brief.filled_ratio === 0 && (
-                  <p className="muted">Brif toldirilmagan.</p>
+                  <p className="muted">{tx("project_onboarding.arxitektura_toldirilmagan")}</p>
                 )}
               </div>
-            ) : <p className="muted">Brif yaratilmagan.</p>}
+            ) : <p className="muted">{tx("project_onboarding.arxitektura_yozilmagan")}</p>}
           </Card>
 
-          <Card title="3. Muhim qarorlar va eslatmalar"
+          <Card title={tx("project_onboarding.3_muhim_qarorlar_va_eslatmalar")}
                 badge={<span className="badge">{d.key_notes.length}</span>}>
             <ul className="list-plain">
               {d.key_notes.map((w) => (
@@ -80,25 +79,29 @@ export default function Onboarding({ project }: { project: Project }) {
                   <div className="row">
                     <Avatar user={w.user} size="sm" />
                     <strong style={{ fontSize: 13 }}>{w.user.full_name}</strong>
-                    <Link className="mono muted" to={`/vazifa/${w.task}`}>{w.task_code}</Link>
+                    {w.task
+                      ? <Link className="mono muted" {...toTask(w.task)}>{w.task_code}</Link>
+                      : <span className="mono muted">{w.task_code}</span>}
                     <span className="spacer" />
-                    <small className="muted">{w.hours} soat · {fmtDate(w.work_date)}</small>
+                    <small className="muted">{w.hours} {tx("project_onboarding.soat")} {fmtDate(w.work_date)}</small>
                   </div>
                   <div className="pre-wrap" style={{ marginTop: 6 }}>{w.note}</div>
                 </li>
               ))}
-              {!d.key_notes.length && <li className="muted">Hozircha ish jurnali yoq.</li>}
+              {!d.key_notes.length && <li className="muted">{tx("project_onboarding.hozircha_ish_jurnali_yoq")}</li>}
             </ul>
           </Card>
 
-          <Card title="4. Takrorlanmasligi kerak bolgan xatolar"
+          <Card title={tx("project_onboarding.4_takrorlanmasligi_kerak_bolgan_xatolar")}
                 badge={<span className="badge badge-danger">{d.lessons.length}</span>}>
             <ul className="list-plain">
               {d.lessons.map((r) => (
                 <li key={r.id}>
                   <div className="row">
                     <span className="badge badge-warn">{r.verdict_display}</span>
-                    <Link className="mono" to={`/vazifa/${r.task}`}>{r.task_code}</Link>
+                    {r.task
+                      ? <Link className="mono" {...toTask(r.task)}>{r.task_code}</Link>
+                      : <span className="mono">{r.task_code}</span>}
                     <span className="muted">{r.task_title}</span>
                     <span className="spacer" />
                     <small className="muted">{r.reviewer?.full_name} · {timeAgo(r.created_at)}</small>
@@ -106,21 +109,21 @@ export default function Onboarding({ project }: { project: Project }) {
                   <div className="tl-detail">{r.comment}</div>
                 </li>
               ))}
-              {!d.lessons.length && <li className="muted">Hali qaytarilgan ish yoq.</li>}
+              {!d.lessons.length && <li className="muted">{tx("project_onboarding.hali_qaytarilgan_ish_yoq")}</li>}
             </ul>
           </Card>
 
-          <Card title="5. Loyiha bosqichlari">
+          <Card title={tx("project_onboarding.5_loyiha_bosqichlari")}>
             <Timeline items={d.milestones} showProject={false} />
           </Card>
         </div>
 
         <div>
-          <Card title="Kim nima qilgan" padded={false}>
+          <Card title={tx("project_onboarding.kim_nima_qilgan")} padded={false}>
             <div className="card-list">
               {d.contributions.map((c) => (
                 <Link key={c.member.id} className="card-body tight"
-                      to={`/loyiha/${project.id}/dasturchi/${c.member.user.id}`}
+                      {...toDeveloper(project.id, c.member.user.id)}
                       style={{ color: "inherit", textDecoration: "none", display: "block" }}>
                   <div className="row">
                     <Avatar user={c.member.user} size="sm" />
@@ -129,18 +132,18 @@ export default function Onboarding({ project }: { project: Project }) {
                       <br />
                       <small className="muted">
                         {c.member.user.specialty_display} · {c.member.role_display}
-                        {!c.member.is_active && " · sobiq"}
+                        {!c.member.is_active && tx("project_onboarding.sobiq")}
                       </small>
                     </div>
                   </div>
                   <div className="row wrap" style={{ marginTop: 6, gap: 6 }}>
-                    <span className="badge badge-ok">{c.done} bajarilgan</span>
-                    <span className="badge badge-info">{c.open} ochiq</span>
-                    <span className="badge">{c.hours} soat</span>
+                    <span className="badge badge-ok">{c.done} {tx("common.bajarilgan_2")}</span>
+                    <span className="badge badge-info">{c.open} {tx("common.ochiq")}</span>
+                    <span className="badge">{c.hours} {tx("common.soat")}</span>
                   </div>
                   {c.member.handover_note && (
                     <div className="tl-detail" style={{ marginTop: 8 }}>
-                      <strong>Eslatma:</strong> {c.member.handover_note}
+                      <strong>{tx("project_onboarding.eslatma")}</strong> {c.member.handover_note}
                     </div>
                   )}
                 </Link>
@@ -148,35 +151,35 @@ export default function Onboarding({ project }: { project: Project }) {
             </div>
           </Card>
 
-          <Card title="Hozir ochiq turgan ishlar" padded={false}>
+          <Card title={tx("project_onboarding.hozir_ochiq_turgan_ishlar")} padded={false}>
             <div className="table-wrap"><table className="table">
               <tbody>
                 {d.open_now.map((t) => (
                   <tr key={t.id}>
                     <td className="mono muted nowrap">{t.code}</td>
-                    <td><Link to={`/vazifa/${t.id}`}>{t.title}</Link></td>
+                    <td><Link {...toTask(t.id)}>{t.title}</Link></td>
                     <td><Priority task={t} /></td>
                   </tr>
                 ))}
                 {!d.open_now.length && (
-                  <tr><td className="muted center">Ochiq vazifa yoq</td></tr>
+                  <tr><td className="muted center">{tx("project_onboarding.ochiq_vazifa_yoq")}</td></tr>
                 )}
               </tbody>
             </table></div>
           </Card>
 
-          <Card title="Songgi bajarilganlar" padded={false}>
+          <Card title={tx("project_onboarding.songgi_bajarilganlar")} padded={false}>
             <div className="table-wrap"><table className="table">
               <tbody>
                 {d.recent_done.map((t) => (
                   <tr key={t.id}>
                     <td className="mono muted nowrap">{t.code}</td>
-                    <td><Link to={`/vazifa/${t.id}`}>{t.title}</Link></td>
+                    <td><Link {...toTask(t.id)}>{t.title}</Link></td>
                     <td><StatusBadge task={t} /></td>
                   </tr>
                 ))}
                 {!d.recent_done.length && (
-                  <tr><td className="muted center">Hali bajarilgan vazifa yoq</td></tr>
+                  <tr><td className="muted center">{tx("project_onboarding.hali_bajarilgan_vazifa_yoq")}</td></tr>
                 )}
               </tbody>
             </table></div>

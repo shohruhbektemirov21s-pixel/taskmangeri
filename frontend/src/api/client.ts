@@ -2,6 +2,7 @@
  * Backend (Django REST) bilan ishlovchi yagona HTTP mijoz.
  * JWT tokenni localStorage da saqlaydi va 401 da avtomatik yangilaydi.
  */
+import { tx } from "@/i18n";
 
 export const BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -46,7 +47,7 @@ export class ApiError extends Error {
   data: any;
 
   constructor(status: number, data: any) {
-    super(ApiError.readable(data) || `Xatolik (${status})`);
+    super(ApiError.readable(data) || tx("api_client.xatolik_kodi", { kod: status }));
     this.status = status;
     this.data = data;
   }
@@ -77,8 +78,8 @@ export class ApiError extends Error {
     if (!/^<(!doctype|html)/i.test(trimmed)) return trimmed;
     const title = trimmed.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim();
     return title
-      ? `Serverda xatolik: ${title}`
-      : "Serverda kutilmagan xatolik. Backend loglarini tekshiring.";
+      ? tx("api_client.serverda_xatolik", { sarlavha: title })
+      : tx("api_client.serverda_kutilmagan_xatolik_backend_loglarin");
   }
 
   /** Maydon bo'yicha xatoliklar (formalarda ko'rsatish uchun) */
@@ -168,9 +169,26 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
   return data as T;
 }
 
+/**
+ * O'qish shlyuzi — hamma o'qish shu manzilga POST bo'lib ketadi.
+ *
+ * Ilgari `api.get("/projects/6/")` to'g'ridan-to'g'ri `GET /api/projects/6/`
+ * ga aylanardi: identifikator manzilda, filtrlar esa `?` dan keyin turardi.
+ * Endi ikkovi ham so'rov TANASIDA ketadi:
+ *
+ *     POST /api/read/
+ *     {"path": "/projects/6/", "params": {"status": "ACTIVE"}}
+ *
+ * Chaqiruvchi kod o'zgarmadi - `api.get` o'sha-o'sha. Shu sabab ellikdan
+ * ortiq joyni qayta yozish shart bo'lmadi va serverda ham ikkinchi kod
+ * yo'li paydo bo'lmadi: shlyuz ichkarida O'SHA view ni chaqiradi
+ * (`backend/apps/core/read.py`).
+ */
+const READ_PATH = "/read/";
+
 export const api = {
   get: <T,>(path: string, params?: RequestOptions["params"], signal?: AbortSignal) =>
-    request<T>(path, { params, signal }),
+    request<T>(READ_PATH, { method: "POST", body: { path, params: params || {} }, signal }),
   post: <T,>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   patch: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   put: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),

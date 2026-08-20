@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Count, Exists, OuterRef, Q, Sum
 from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -17,9 +19,10 @@ from apps.core.permissions import IsPlatformAdmin, visible_projects_q
 from apps.tasks.models import TaskStatus
 
 from .specialties import Seniority, Specialty, specialty_catalog
-from .serializers import (ChangePasswordSerializer, RefreshSerializer, RegisterSerializer,
+from .serializers import (AdminCreateUserSerializer, ChangePasswordSerializer,
+                          MeSerializer, RefreshSerializer, RegisterSerializer,
                           TokenSerializer, UserAdminSerializer, UserBriefSerializer,
-                          UserListSerializer, UserSerializer)
+                          UserListSerializer)
 
 User = get_user_model()
 
@@ -77,14 +80,14 @@ class RegisterView(generics.CreateAPIView):
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-            "user": UserSerializer(user, context=self.get_serializer_context()).data,
+            "user": MeSerializer(user, context=self.get_serializer_context()).data,
         }, status=status.HTTP_201_CREATED)
 
 
 class MeView(generics.RetrieveUpdateAPIView):
     """GET/PATCH /api/auth/me/"""
 
-    serializer_class = UserSerializer
+    serializer_class = MeSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -103,7 +106,7 @@ class AvatarView(generics.GenericAPIView):
     media papkasida yig'ilib qolmasin.
     """
 
-    serializer_class = UserSerializer
+    serializer_class = MeSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -125,7 +128,7 @@ class AvatarView(generics.GenericAPIView):
             user.avatar.delete(save=False)
         user.avatar = image
         user.save(update_fields=["avatar"])
-        return Response(UserSerializer(user, context={"request": request}).data)
+        return Response(MeSerializer(user, context={"request": request}).data)
 
     def delete(self, request):
         user = request.user
@@ -133,7 +136,7 @@ class AvatarView(generics.GenericAPIView):
             user.avatar.delete(save=False)
             user.avatar = None
             user.save(update_fields=["avatar"])
-        return Response(UserSerializer(user, context={"request": request}).data)
+        return Response(MeSerializer(user, context={"request": request}).data)
 
 
 def revoke_refresh_tokens(user):
@@ -224,7 +227,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_class(self):
         # Ro'yxatda qisqa ko'rinish: shaxsiy kontakt ma'lumotlari (bio,
-        # telegram, github) faqat odamning o'z sahifasida chiqadi.
+        # telegram) faqat odamning o'z sahifasida chiqadi.
         if self.action == "list":
             return UserListSerializer
         return UserAdminSerializer
@@ -327,8 +330,18 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 "workspace_name": p.workspace.name,
                 "role": roles.get(p.id, ""),
             } for p in projects],
+            # Kartada sahifalanadi (o'ntadan), shuning uchun yigirmata emas -
+            # yuztagacha. Sahifa BRAUZERDA almashadi: bu javob butun profil
+            # sahifasini olib keladi (statistika, loyihalar, tarix), ya'ni
+            # har sahifa bosilganda uni qaytadan so'rash bekorchilik bo'lardi.
+            #
+            # `prefetch_related` shart: seriyalizator har vazifa uchun
+            # ijrochilarni, teglarni va fayl sonini o'qiydi - usiz yuzta
+            # vazifa yuzlab qo'shimcha so'rovga aylanardi.
             "tasks": TaskSerializer(
-                tasks.exclude(status=TaskStatus.CANCELLED).order_by("-updated_at")[:20],
+                tasks.exclude(status=TaskStatus.CANCELLED)
+                     .prefetch_related("assignments__user", "labels")
+                     .order_by("-updated_at")[:100],
                 many=True, context=ctx).data,
             "activity": ActivitySerializer(activity[:25], many=True, context=ctx).data,
             "limited": not wide,
@@ -378,3 +391,55 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             summary="{} roli: {} -> {}".format(target.full_name, old,
                                                target.get_global_role_display()))
         return Response(UserAdminSerializer(target, context={"request": request}).data)
+
+    @action(detail=False, methods=["post"], url_path="create",
+            permission_classes=[IsPlatformAdmin])
+    def create_account(self, request):
+        """POST /api/users/create/ - admin panelidan hisob ochish.
+
+        Nega `ViewSet.create` emas: `UserViewSet` ataylab `ReadOnly` -
+        ro'yxat hamma uchun ochiq va uni yozishga ochib qo'yish xavfli
+        bo'lardi. Bu esa alohida, ADMINGA cheklangan amal.
+        """
+        serializer = AdminCreateUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        log(actor=request.user, verb="user.created", target=user,
+            summary="Yangi hisob: {} ({})".format(user.full_name, user.email))
+        return Response(UserAdminSerializer(user, context={"request": request}).data,
+                        status=201)
+
+    @action(detail=True, methods=["post"], url_path="set-password",
+            permission_classes=[IsPlatformAdmin])
+    def set_password(self, request, pk=None):
+        """POST /api/users/:id/set-password/  {password}
+
+        Odam parolini unutganda admin yangisini qo'yadi va og'zaki aytadi.
+        Eski parolni SO'RAMAYDI - admin uni bilmaydi ham (parol xeshlangan).
+
+        Bosh hisobga tegib bo'lmaydi: uning paroli faqat o'zi orqali
+        almashadi, aks holda bitta admin butun platformani egallab olishi
+        mumkin edi.
+        """
+        target = self.get_object()
+        if target.is_superuser and target.pk != request.user.pk:
+            raise ValidationError({"detail": "Bosh hisobning parolini almashtirib bo'lmaydi."})
+
+        password = (request.data.get("password") or "").strip()
+        if not password:
+            raise ValidationError({"password": "Yangi parol yozing."})
+        # Siyosat odamning o'zi almashtirgandagi bilan bir xil.
+        #
+        # `validate_password` DJANGO ning istisnosini uloqtiradi, DRF esa uni
+        # tanimaydi va 400 o'rniga 500 chiqarardi. Seriyalizator ichida bu
+        # o'zi o'giriladi, view ichida esa - qo'lda.
+        try:
+            validate_password(password, target)
+        except DjangoValidationError as exc:
+            raise ValidationError({"password": list(exc.messages)})
+
+        target.set_password(password)
+        target.save(update_fields=["password"])
+        log(actor=request.user, verb="user.password_reset", target=target,
+            summary="{} paroli admin tomonidan almashtirildi".format(target.full_name))
+        return Response({"detail": "Parol almashtirildi."})

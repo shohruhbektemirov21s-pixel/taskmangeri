@@ -16,8 +16,9 @@ import { api, listOf } from "@/api/client";
 import type { Choice, Task, UserBrief } from "@/api/types";
 import { MAX_FILE_BYTES, fileSize, uploadFiles } from "./FilePicker";
 import UserSearch from "./UserSearch";
-import { IconClose, IconFile, IconPlus } from "./icons";
+import { IconCheck, IconClose, IconFile, IconPlus } from "./icons";
 import { Avatar, DateField, fromDateTimeInput, SpecialtyTag } from "./ui";
+import { tx } from "@/i18n";
 
 /** Odamga atab yozilgan, hali yaratilmagan vazifa. */
 export interface PickTask {
@@ -37,17 +38,36 @@ export interface Pick {
   /** Yozilayotgan, lekin hali «Qoshish» bosilmagan vazifa.
       Shu yerda turgani uchun forma saqlanganda ham yo'qolmaydi. */
   draft: PickTask;
+  /**
+   * Ochilgan vazifa: qaysi qator (`index`) va uning tahrirdagi holati.
+   *
+   * Qoralama kabi bu ham `Pick` ichida turadi, komponent holatida emas:
+   * odam «Saqlash» ni bosmasdan formani yuborsa ham yozgani yo'qolmasin
+   * (`tasksOf` uni hisobga oladi).
+   */
+  edit?: { index: number; task: PickTask } | null;
 }
 
 export const emptyTask = (): PickTask => ({
   title: "", priority: 2, start_date: "", due_date: "", files: [],
 });
 
-/** Odamga tegishli hamma vazifa: qo'shilganlar + to'ldirilgan qoralama. */
+/**
+ * Odamga tegishli hamma vazifa: qo'shilganlar + to'ldirilgan qoralama.
+ *
+ * Ochiq tahrir ham shu yerda qo'llanadi - yozilgani o'z qatorining o'rniga
+ * tushadi. Aks holda odam vazifani ochib tuzatib, «Saqlash» o'rniga to'g'ridan
+ * to'g'ri formani yuborsa, tuzatishi jimgina yo'qolardi.
+ */
 export function tasksOf(p: Pick) {
-  return p.draft.title.trim()
-    ? [...p.tasks, { ...p.draft, title: p.draft.title.trim() }]
+  const edit = p.edit;
+  const list = edit && edit.task.title.trim()
+    ? p.tasks.map((t, i) => (i === edit.index
+        ? { ...edit.task, title: edit.task.title.trim() } : t))
     : p.tasks;
+  return p.draft.title.trim()
+    ? [...list, { ...p.draft, title: p.draft.title.trim() }]
+    : list;
 }
 
 /** Ekranda yangisi tepada turadi; serverga esa qo'shilgan tartibda boradi. */
@@ -163,8 +183,8 @@ export default function TeamPicker({
           { user: u, role: defaultRole, tasks: [], draft: emptyTask() },
           ...picks,
         ])}
-        placeholder="Email yoki ism-familiya"
-        emptyText="Hech kim topilmadi"
+        placeholder={tx("team_picker.email_yoki_ism_familiya")}
+        emptyText={tx("common.hech_kim_topilmadi")}
         clearOnPick
       />
 
@@ -181,7 +201,7 @@ export default function TeamPicker({
                   <small className="muted">{p.user.email}</small>
                 </div>
                 <span className="spacer" />
-                <button type="button" className="btn btn-sm" title="Royxatdan olib tashlash"
+                <button type="button" className="btn btn-sm" title={tx("team_picker.royxatdan_olib_tashlash")}
                         onClick={() => onChange(picks.filter((_, n) => n !== i))}>
                   <IconClose size={13} />
                 </button>
@@ -195,45 +215,78 @@ export default function TeamPicker({
 
               <div className="pick-tasks">
                 {p.tasks.map((t, n) => (
-                  <div className="pick-task" key={n}>
-                    <span className="pick-task-title" title={t.title}>{t.title}</span>
-                    <span className={`pri pri-${t.priority}`}>
-                      {priorities.find((x) => Number(x.value) === t.priority)?.label}
-                    </span>
-                    {(t.start_date || t.due_date) && (
-                      <small className="muted nowrap">
-                        {t.start_date && dmy(t.start_date)}
-                        {t.start_date && t.due_date && " → "}
-                        {t.due_date && dmy(t.due_date)}
-                      </small>
-                    )}
-                    {!!t.files.length && (
-                      <small className="muted nowrap" title={t.files.map((f) => f.name).join(", ")}>
-                        <IconFile size={11} /> {t.files.length}
-                      </small>
-                    )}
-                    <button type="button" className="chip-x" title="Vazifani olib tashlash"
-                            onClick={() => patch(i, {
-                              tasks: p.tasks.filter((_, k) => k !== n),
-                            })}>
-                      <IconClose size={9} />
-                    </button>
-                  </div>
+                  p.edit && p.edit.index === n ? (
+                    /* Tahrir aynan SHU qatorning o'rnida ochiladi - odam
+                       qaysi vazifani ochganini ko'rib tursin. */
+                    <TaskAdder
+                      key={n}
+                      priorities={priorities}
+                      value={p.edit.task}
+                      onValue={(d) => patch(i, { edit: { index: n, task: d } })}
+                      onSubmit={(saved) => patch(i, {
+                        tasks: p.tasks.map((old, k) => (k === n ? saved : old)),
+                        edit: null,
+                      })}
+                      onCancel={() => patch(i, { edit: null })}
+                    />
+                  ) : (
+                    <div className="pick-task" key={n}>
+                      {/* Nomini bosish vazifani OCHADI. Ilgari qatorda faqat
+                          o'chirish tugmasi bor edi: sarlavhada xato ketsa yoki
+                          sana o'zgarsa, vazifani o'chirib qaytadan yozib
+                          chiqishdan boshqa yo'l yo'q edi. */}
+                      <button type="button" className="pick-task-title" title={t.title}
+                              onClick={() => patch(i, { edit: { index: n, task: t } })}>
+                        {t.title}
+                      </button>
+                      <span className={`pri pri-${t.priority}`}>
+                        {priorities.find((x) => Number(x.value) === t.priority)?.label}
+                      </span>
+                      {(t.start_date || t.due_date) && (
+                        <small className="muted nowrap">
+                          {t.start_date && dmy(t.start_date)}
+                          {t.start_date && t.due_date && " → "}
+                          {t.due_date && dmy(t.due_date)}
+                        </small>
+                      )}
+                      {!!t.files.length && (
+                        <small className="muted nowrap" title={t.files.map((f) => f.name).join(", ")}>
+                          <IconFile size={11} /> {t.files.length}
+                        </small>
+                      )}
+                      <button type="button" className="chip-x" title={tx("team_picker.vazifani_olib_tashlash")}
+                              onClick={() => patch(i, {
+                                tasks: p.tasks.filter((_, k) => k !== n),
+                                // Qator o'chsa ochiq tahrirning indeksi siljiydi:
+                                // o'chirilgani tahrirdagidan OLDINDA bo'lsa, u bir
+                                // qator yuqoriga ko'chadi; o'zi o'chsa - yopiladi.
+                                edit: !p.edit || p.edit.index === n ? null
+                                  : { ...p.edit,
+                                      index: p.edit.index - (p.edit.index > n ? 1 : 0) },
+                              })}>
+                        <IconClose size={9} />
+                      </button>
+                    </div>
+                  )
                 ))}
 
-                <TaskAdder
-                  priorities={priorities}
-                  draft={p.draft}
-                  onDraft={(d) => patch(i, { draft: d })}
-                  onAdd={(t) => patch(i, { tasks: [...p.tasks, t], draft: emptyTask() })}
-                />
+                {/* Tahrir ochiq turganda yangi vazifa formasi ko'rinmaydi -
+                    bitta katakda ikkita bir xil forma chalkashtirardi. */}
+                {!p.edit && (
+                  <TaskAdder
+                    priorities={priorities}
+                    value={p.draft}
+                    onValue={(d) => patch(i, { draft: d })}
+                    onSubmit={(t) => patch(i, { tasks: [...p.tasks, t], draft: emptyTask() })}
+                  />
+                )}
               </div>
             </div>
           ))}
 
           <div className="muted" style={{ fontSize: 12 }}>
-            {picks.length} ta a'zo
-            {total > 0 && <> · {total} ta vazifa</>}
+            {picks.length} {tx("team_picker.ta_azo")}
+            {total > 0 && <> · {total} {tx("team_picker.ta_vazifa")}</>}
           </div>
         </div>
       )}
@@ -242,56 +295,73 @@ export default function TeamPicker({
 }
 
 /**
- * Bitta odamga vazifa yozish qatori.
+ * Bitta vazifa formasi - YANGI vazifa yozish uchun ham, mavjudini
+ * TAHRIRLASH uchun ham. `onCancel` berilsa tahrir rejimi: tugma «Saqlash»
+ * bo'ladi va yonida «Bekor qilish» turadi.
  *
- * Qoralama bu yerda emas, `Pick.draft` da turadi: odam sarlavhani yozib
- * «Qoshish» ni bosmasa ham, forma saqlanganda vazifa yaratiladi. Avval
- * qoralama shu komponent ichida turardi va jimgina yo'qolib ketardi.
+ * Bitta forma ikki ishga xizmat qiladi - maydonlar (sarlavha, ish oynasi,
+ * muhimlik, fayllar) ikki joyda takrorlanmasin va bittasi tuzatilganda
+ * ikkinchisi eskirib qolmasin.
+ *
+ * Qiymat bu yerda emas, `Pick` ichida turadi (`draft` yoki `edit.task`):
+ * odam «Qoshish»/«Saqlash» ni bosmasa ham, forma yuborilganda yozgani
+ * saqlanadi. Avval qoralama shu komponent ichida turardi va jimgina
+ * yo'qolib ketardi.
  */
-function TaskAdder({ priorities, draft, onDraft, onAdd }: {
+function TaskAdder({ priorities, value, onValue, onSubmit, onCancel }: {
   priorities: Choice[];
-  draft: PickTask;
-  onDraft: (task: PickTask) => void;
-  onAdd: (task: PickTask) => void;
+  value: PickTask;
+  onValue: (task: PickTask) => void;
+  onSubmit: (task: PickTask) => void;
+  /** Berilsa - tahrir rejimi. */
+  onCancel?: () => void;
 }) {
   const [tooBig, setTooBig] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+  const editing = Boolean(onCancel);
 
-  const set = (part: Partial<PickTask>) => onDraft({ ...draft, ...part });
+  const set = (part: Partial<PickTask>) => onValue({ ...value, ...part });
 
-  /** Tanlangan yoki sudrab tashlangan fayllarni qoralamaga qo'shadi. */
+  /** Tanlangan yoki sudrab tashlangan fayllarni vazifaga qo'shadi. */
   function addFiles(list: FileList | null) {
     if (!list || !list.length) return;
     const picked = Array.from(list);
     // Katta faylni shu yerdayoq to'samiz - server 400 qaytarguncha kutmaymiz.
     setTooBig(picked.filter((f) => f.size > MAX_FILE_BYTES).map((f) => f.name));
-    const seen = new Set(draft.files.map((f) => `${f.name}:${f.size}`));
-    set({ files: [...draft.files, ...picked.filter(
+    const seen = new Set(value.files.map((f) => `${f.name}:${f.size}`));
+    set({ files: [...value.files, ...picked.filter(
       (f) => f.size <= MAX_FILE_BYTES && !seen.has(`${f.name}:${f.size}`))] });
     if (fileInput.current) fileInput.current.value = "";
   }
 
-  function add() {
-    const clean = draft.title.trim();
+  function submit() {
+    const clean = value.title.trim();
     if (!clean) return;
-    onAdd({ ...draft, title: clean });
+    onSubmit({ ...value, title: clean });
     setTooBig([]);
   }
 
   return (
-    <div className="pick-add"
+    <div className={`pick-add${editing ? " editing" : ""}`}
          /* Faylni to'g'ridan-to'g'ri shu qatorga sudrab tashlash ham mumkin */
          onDragOver={(e) => e.preventDefault()}
          onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}>
       <input
-        value={draft.title}
-        placeholder="Vazifa: masalan «Login sahifasini yigish»"
+        value={value.title}
+        /* Tahrirda maydon o'zi fokusga tushadi - odam nomni bosgan edi,
+           demak birinchi tuzatadigan narsasi ham shu. */
+        autoFocus={editing}
+        placeholder={tx("team_picker.vazifa_masalan_login_sahifasini_yigish")}
         onChange={(e) => set({ title: e.target.value })}
-        /* Enter forma yuborib yubormasin — u yerda vazifa qoshiladi */
+        /* Enter forma yuborib yubormasin — u yerda vazifa qoshiladi.
+           Escape esa tahrirni yopadi. */
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            add();
+            submit();
+          } else if (e.key === "Escape" && onCancel) {
+            e.preventDefault();
+            onCancel();
           }
         }}
       />
@@ -299,44 +369,52 @@ function TaskAdder({ priorities, draft, onDraft, onAdd }: {
           bir-birini cheklaydi - teskari oraliq tanlab bo'lmaydi. */}
       <div className="row wrap">
         <label className="pick-date">
-          <small className="muted">Boshlanish</small>
-          <DateField value={draft.start_date} max={draft.due_date || undefined}
+          <small className="muted">{tx("common.boshlanish")}</small>
+          <DateField value={value.start_date} max={value.due_date || undefined}
                      onChange={(v) => set({ start_date: v })} />
         </label>
         <label className="pick-date">
-          <small className="muted">Tugash</small>
-          <DateField value={draft.due_date} min={draft.start_date || undefined}
+          <small className="muted">{tx("team_picker.tugash")}</small>
+          <DateField value={value.due_date} min={value.start_date || undefined}
                      onChange={(v) => set({ due_date: v })} />
         </label>
       </div>
 
       <div className="row wrap">
-        <select value={draft.priority} style={{ flex: 1, minWidth: 110 }}
+        <select value={value.priority} style={{ flex: 1, minWidth: 110 }}
                 onChange={(e) => set({ priority: Number(e.target.value) })}>
           {priorities.map((x) => (
             <option key={String(x.value)} value={String(x.value)}>{x.label}</option>
           ))}
         </select>
-        <button type="button" className="btn btn-sm" title="Vazifaga fayl biriktirish"
+        <button type="button" className="btn btn-sm" title={tx("team_picker.vazifaga_fayl_biriktirish")}
                 onClick={() => fileInput.current?.click()}>
-          <IconFile size={13} /> Fayl
+          <IconFile size={13} /> {tx("team_picker.fayl")}
         </button>
         <input ref={fileInput} type="file" multiple style={{ display: "none" }}
                onChange={(e) => addFiles(e.target.files)} />
-        <button type="button" className="btn btn-sm" disabled={!draft.title.trim()} onClick={add}>
-          <IconPlus size={13} /> Qoshish
+        {onCancel && (
+          <button type="button" className="btn btn-sm" onClick={onCancel}>
+            {tx("common.bekor_qilish")}
+          </button>
+        )}
+        <button type="button" className={`btn btn-sm${editing ? " btn-primary" : ""}`}
+                disabled={!value.title.trim()} onClick={submit}>
+          {editing
+            ? <><IconCheck size={13} /> {tx("common.saqlash")}</>
+            : <><IconPlus size={13} /> {tx("team_picker.qoshish")}</>}
         </button>
       </div>
 
-      {!!draft.files.length && (
+      {!!value.files.length && (
         <div className="pick-files">
-          {draft.files.map((f, i) => (
+          {value.files.map((f, i) => (
             <span className="chip" key={`${f.name}-${f.size}-${i}`} title={f.name}>
               <IconFile size={11} />
               <span className="pick-file-name">{f.name}</span>
               <small className="muted">{fileSize(f.size)}</small>
-              <button type="button" className="chip-x" title="Faylni olib tashlash"
-                      onClick={() => set({ files: draft.files.filter((_, n) => n !== i) })}>
+              <button type="button" className="chip-x" title={tx("team_picker.faylni_olib_tashlash")}
+                      onClick={() => set({ files: value.files.filter((_, n) => n !== i) })}>
                 <IconClose size={9} />
               </button>
             </span>
@@ -346,7 +424,7 @@ function TaskAdder({ priorities, draft, onDraft, onAdd }: {
 
       {!!tooBig.length && (
         <small className="err">
-          25 MB dan katta bolgani uchun qoshilmadi: {tooBig.join(", ")}
+          {tx("team_picker.25_mb_dan_katta_bolgani")} {tooBig.join(", ")}
         </small>
       )}
     </div>

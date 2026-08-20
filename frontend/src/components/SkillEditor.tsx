@@ -13,6 +13,7 @@
  */
 import { useState } from "react";
 import { IconClose, IconPlus } from "./icons";
+import { tx } from "@/i18n";
 
 function parse(value: string) {
   return value.split(",").map((s) => s.trim()).filter(Boolean);
@@ -60,7 +61,7 @@ export default function SkillEditor({
           {items.map((s) => (
             <span className="chip" key={s}>
               {s}
-              <button type="button" className="chip-x" aria-label={`${s} ni olib tashlash`}
+              <button type="button" className="chip-x" aria-label={tx("skill_editor.olib_tashlash", { nom: s })}
                       onClick={() => commit(items.filter((x) => x !== s))}>
                 <IconClose size={11} />
               </button>
@@ -73,7 +74,7 @@ export default function SkillEditor({
         <input
           id={id}
           value={draft}
-          placeholder="Masalan: PostgreSQL"
+          placeholder={tx("skill_editor.masalan_postgresql")}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             // Enter forma yuborib yubormasin - shu yerda ushlaymiz.
@@ -89,7 +90,7 @@ export default function SkillEditor({
         />
         <button type="button" className="btn btn-sm" disabled={!draft.trim()}
                 onClick={() => add(draft)}>
-          <IconPlus size={13} /> Qoshish
+          <IconPlus size={13} /> {tx("skill_editor.qoshish")}
         </button>
       </div>
 

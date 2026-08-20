@@ -7,6 +7,7 @@
  */
 import { IconMoon, IconSun } from "./icons";
 import { useTheme } from "@/theme";
+import { tx } from "@/i18n";
 
 export default function ThemeToggle({ className = "top-icon" }: { className?: string }) {
   const { theme, toggle } = useTheme();
@@ -17,8 +18,8 @@ export default function ThemeToggle({ className = "top-icon" }: { className?: st
       type="button"
       className={className}
       onClick={toggle}
-      title={toLight ? "Kunduzgi rejim" : "Kechki rejim"}
-      aria-label={toLight ? "Kunduzgi rejimga o'tish" : "Kechki rejimga o'tish"}
+      title={toLight ? tx("theme_toggle.kunduzgi_rejim") : tx("theme_toggle.kechki_rejim")}
+      aria-label={toLight ? tx("theme_toggle.kunduzgi_rejimga_otish") : tx("theme_toggle.kechki_rejimga_otish")}
       aria-pressed={!toLight}
     >
       {toLight ? <IconSun size={17} /> : <IconMoon size={17} />}

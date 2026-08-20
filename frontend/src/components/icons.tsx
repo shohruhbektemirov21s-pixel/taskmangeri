@@ -236,3 +236,45 @@ export const IconMenu = ({ size = 16 }: P) => (
     <path d="M4 6.5h16M4 12h16M4 17.5h16" />
   </svg>
 );
+
+/** Orqaga qaytish - chapga qaragan strelka. */
+export const IconBack = ({ size = 16 }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 12H5" />
+    <path d="M12 19l-7-7 7-7" />
+  </svg>
+);
+
+/** Taklif - lampochka. Yon paneldagi «Takliflar» bo'limi uchun. */
+export const IconIdea = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M9 18h6" />
+    <path d="M10 21h4" />
+    <path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.8 1 .8 1.6V16h5.4v-.5c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3Z" />
+  </svg>
+);
+
+/** Qo'shilaman - yuqoriga qaragan barmoq. */
+export const IconThumbUp = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M7 21V10l4.5-7c1.2 0 2 1 1.8 2.2L12.6 9H18a2 2 0 0 1 2 2.3l-1.1 7A2 2 0 0 1 17 20H7Z" />
+    <path d="M7 10H4.5v11H7" />
+  </svg>
+);
+
+/** Qo'shilmayman - pastga qaragan barmoq. */
+export const IconThumbDown = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <path d="M17 3v11l-4.5 7c-1.2 0-2-1-1.8-2.2l.7-3.8H6a2 2 0 0 1-2-2.3l1.1-7A2 2 0 0 1 7 4h10Z" />
+    <path d="M17 14h2.5V3H17" />
+  </svg>
+);
+
+/** Betarafman - gorizontal chiziq. */
+export const IconNeutral = ({ size = 16 }: P) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M8 12h8" />
+  </svg>
+);
