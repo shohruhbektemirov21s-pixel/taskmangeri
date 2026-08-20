@@ -10,7 +10,7 @@
  * odam bosgan karta shu zahoti boshqa joyga uchib ketardi va u nimani
  * bosganini yo'qotardi. Yangi tartib keyingi yuklashda ko'rinadi.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { api, listOf } from "@/api/client";
 import type {
@@ -24,7 +24,7 @@ import {
   IconCheck, IconClose, IconFile, IconIdea, IconNeutral, IconThumbDown, IconThumbUp,
 } from "@/components/icons";
 import {
-  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, Pager, timeAgo,
+  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, Pager, PhotoView, timeAgo,
 } from "@/components/ui";
 import { tx } from "@/i18n";
 
@@ -175,7 +175,11 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
             <div className="stack" style={{ marginBottom: 10 }}>
               {kept.map((file) => (
                 <div key={file.id} className="row sg-file">
-                  <span className="file-ico"><IconFile size={15} /></span>
+                  {/* Tahrirda ham rasm ko'rinib tursin: muallif qaysi
+                      birini o'chirayotganini nomdan emas, ko'rib biladi. */}
+                  {file.is_image && file.url
+                    ? <img src={file.url} alt={file.original_name} className="sg-thumb" />
+                    : <span className="file-ico"><IconFile size={15} /></span>}
                   <a href={file.url} target="_blank" rel="noreferrer" className="sg-file-name">
                     {file.original_name}
                   </a>
@@ -295,6 +299,11 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
   onDelete: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  // Kattalashtirib ko'rilayotgan rasm (yoki `null`).
+  const [shot, setShot] = useState<SuggestionFile | null>(null);
+  // Rasm va qolgan fayl ikki xil chiziladi - sababi pastda, chizilgan joyda.
+  const images = useMemo(() => item.files.filter((f) => f.is_image && f.url), [item.files]);
+  const docs = useMemo(() => item.files.filter((f) => !(f.is_image && f.url)), [item.files]);
 
   async function vote(choice: VoteChoiceValue) {
     setBusy(true);
@@ -341,10 +350,32 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
       <p className="sg-body">{item.body}</p>
 
       {/* Biriktirilgan fayl - kim yuklagani bilan. Anonim taklifda
-          `uploaded_by` serverdan `null` keladi. */}
-      {!!item.files.length && (
+          `uploaded_by` serverdan `null` keladi.
+
+          RASM ALOHIDA CHIZILADI. Ilgari hamma fayl bir xil qatorda,
+          umumiy nishoncha bilan turardi: chizma yoki skrinshot
+          «shartnoma.pdf» dan farq qilmasdi va uni ko'rish uchun har
+          birini navbat bilan ochib chiqishga to'g'ri kelardi. Taklifga
+          esa aynan rasm ko'p qo'shiladi - «hozir shunday, shunday
+          bo'lsin». Endi rasmlar tepada, ko'rinadigan holda; qolgan
+          fayllar oldingidek ro'yxat bo'lib pastda qoladi. Qoida
+          «Vazifa» va «Hujjatlar» sahifalaridagi bilan bir xil
+          (`is_image` serverdan keladi). */}
+      {!!images.length && (
+        <div className="sg-shots">
+          {images.map((file) => (
+            <button key={file.id} type="button" className="sg-shot"
+                    onClick={() => setShot(file)}
+                    title={tx("suggestions.rasmni_kattalashtirish")}>
+              <img src={file.url} alt={file.original_name} loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!!docs.length && (
         <div className="stack sg-files">
-          {item.files.map((file) => (
+          {docs.map((file) => (
             <div key={file.id} className="row sg-file">
               <span className="file-ico"><IconFile size={15} /></span>
               <a href={file.url} target="_blank" rel="noreferrer" className="sg-file-name">
@@ -360,6 +391,20 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Rasm to'liq holda - «Vazifa» sahifasidagi ko'ruvchining o'zi.
+          Anonim taklifda «kim yuklagani» yozilmaydi. */}
+      {shot && (
+        <PhotoView
+          src={shot.url}
+          alt={shot.original_name}
+          title={shot.original_name}
+          subtitle={shot.uploaded_by
+            ? tx("suggestions.yuklagan", { ism: shot.uploaded_by.full_name })
+            : tx("suggestions.anonim_muallif")}
+          onClose={() => setShot(null)}
+        />
       )}
 
       {item.can_vote && (

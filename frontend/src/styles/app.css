@@ -548,16 +548,22 @@ html, body { transition: background-color .18s ease, color .18s ease; }
    bir-biriga tiqilib qolardi - kartaning yarmi bo'sh, mazmuni esa siqiq.
 
    Keng qatorda hammasi bir chiziqqa yoyiladi: chapda nom va ish maydoni,
-   o'rtada jarayon chizig'i, o'ngda raqamlar. Setka (grid) ishlatildi -
-   ustunlar kartadan kartaga BIR XIL kenglikda tursin, aks holda uzun
-   nomli loyihada chiziq va raqamlar surilib ketardi. */
+   o'rtada jarayon chizig'i, o'ngda raqamlar, eng chetida «⋯» menyusi.
+   Setka (grid) ishlatildi - ustunlar kartadan kartaga BIR XIL kenglikda
+   tursin, aks holda uzun nomli loyihada chiziq va raqamlar surilib ketardi.
+
+   «⋯» ALOHIDA ustun. Ilgari u nomning yonida, `.pcard-top` ichida turardi
+   va nom ustuni nomdan kengroq bo'lgani uchun qatorning o'rtasiga, jarayon
+   chizig'ining oldiga tushib qolardi: qatorni ikkiga bo'lib turardi va
+   boshqa ro'yxatlardagi «⋯» dan boshqa joyda edi. Endi u eng o'ngda -
+   menyu qayerda bo'lishini odam bir marta o'rganadi. */
 .grid-projects { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .grid-projects .pcard {
   display: grid; align-items: center; column-gap: 26px; padding: 16px 20px;
-  grid-template-columns: minmax(220px, 1.5fr) minmax(190px, 1fr) auto;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(190px, 1fr) auto auto;
   grid-template-areas:
-    "name prog foot"
-    "sub  bar  foot";
+    "name prog foot menu"
+    "sub  bar  foot menu";
 }
 .grid-projects .pcard-top { grid-area: name; align-self: end; }
 .grid-projects .pcard-sub { grid-area: sub; align-self: start; }
@@ -566,12 +572,20 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 .grid-projects .pcard-foot {
   grid-area: foot; align-items: center; gap: 26px; margin: 0;
 }
+/* Raqamlar bilan menyu orasi qolgan ustunlarnikidan tor: «⋯» kartaning
+   chetiga yopishib tursin, raqamlar esa undan uzoqlashib ketmasin. */
+.grid-projects .pcard-menu { grid-area: menu; margin-left: -14px; }
 /* Tor ekranda ustunlar yonma-yon sig'maydi - karta yana ustma-ust
-   yoziladi (nom, jarayon, raqamlar). */
+   yoziladi (nom, jarayon, raqamlar). Menyu esa oqimdan chiqadi va
+   kartaning o'ng yuqori burchagida qoladi - pastga, raqamlardan keyin
+   tushib qolmasin. */
 @media (max-width: 820px) {
-  .grid-projects .pcard { display: block; padding: 16px; }
+  .grid-projects .pcard { display: block; padding: 16px; position: relative; }
   .grid-projects .pcard-prog { margin: 16px 0 7px; }
   .grid-projects .pcard-foot { margin-top: 16px; gap: 18px; align-items: flex-end; }
+  /* Nom menyu tagiga kirib ketmasin. */
+  .grid-projects .pcard-top { padding-right: 40px; }
+  .grid-projects .pcard-menu { position: absolute; top: 12px; right: 12px; margin: 0; }
 }
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .grid-4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
@@ -2584,7 +2598,6 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .sg-file-name {
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
 /* Boshliq qarori - tasdiq yashil, rad qizil chiziq bilan. */
 .sg-decision {
   margin-top: 14px; padding: 11px 14px; border-radius: 10px;

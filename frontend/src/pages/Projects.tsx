@@ -163,10 +163,10 @@ function ManagerProjects() {
             </Empty>
           </div>
         ) : (
-          /* Ro'yxat emas, kartalar setkasi: bir qatorda UCHTA karta -
-             har loyihaning jarayoni va uchta asosiy raqami bir qarashda
-             ko'rinadi. Ikkilamchi havolalar («Doska», «Tarix»,
-             tahrirlash) kartaning o'ng yuqorisidagi menyuda. */
+          /* Har loyiha - butun kenglikka cho'zilgan BITTA qator: chapda
+             nomi, o'rtada jarayoni, o'ngda uchta asosiy raqami. Ikkilamchi
+             amallar (tahrirlash, o'chirish) qatorning eng chetidagi «⋯»
+             menyusida. */
           <div className="grid grid-projects">
             {projects.map((p) => (
               /* Kartaning istalgan yeriga bosilsa loyiha ochiladi - nomni
@@ -181,28 +181,6 @@ function ManagerProjects() {
                         onClick={(e) => e.stopPropagation()}>{p.name}</Link>
                   {p.status !== "ACTIVE" && (
                     <span className="badge">{p.status_display}</span>
-                  )}
-                  <span className="spacer" />
-                  {/* «⋯» menyusi FAQAT loyihani boshqaradigan odamga -
-                      ichida boshqaruv amallari turadi.
-
-                      Bu faqat KO'RINISH: tahrirlash va o'chirish ruxsati
-                      serverda ham tekshiriladi (`ProjectAccess`). */}
-                  {canManage(p) && (
-                    <span onClick={(e) => e.stopPropagation()}>
-                      <RowMenu>
-                        {/* «Doska» va «Tarix» bu yerdan olib tashlandi:
-                            ikkovi ham loyiha ochilgandan keyin yuqorida
-                            bo'lim bo'lib turadi, menyuda esa faqat
-                            takrorlanardi. Bu yerda o'sha yerda yo'q
-                            amallar qoladi. */}
-                        <Link {...toProjectEdit(p.id)}>{tx("common.tahrirlash")}</Link>
-                        <button type="button" className="danger"
-                                onClick={() => void removeProject(p.id, p.name)}>
-                          {tx("common.ochirish_2")}
-                        </button>
-                      </RowMenu>
-                    </span>
                   )}
                 </div>
 
@@ -231,6 +209,34 @@ function ManagerProjects() {
                     <strong>{p.my_tasks} {tx("common.ta")}</strong>
                   </span>
                 </div>
+
+                {/* «⋯» menyusi FAQAT loyihani boshqaradigan odamga -
+                    ichida boshqaruv amallari turadi.
+
+                    Qatorning eng o'ng chetida turadi, nom bilan jarayon
+                    chizig'ining ORASIDA emas: o'rtada turganida u
+                    ikkalasini ajratib, ko'z qatorni ikki marta kesib
+                    o'tishiga to'g'ri kelardi. Chetda esa u boshqa
+                    ro'yxatlardagi «⋯» bilan bir tekisda qoladi.
+
+                    Bu faqat KO'RINISH: tahrirlash va o'chirish ruxsati
+                    serverda ham tekshiriladi (`ProjectAccess`). */}
+                {canManage(p) && (
+                  <span className="pcard-menu" onClick={(e) => e.stopPropagation()}>
+                    <RowMenu>
+                      {/* «Doska» va «Tarix» bu yerdan olib tashlandi:
+                          ikkovi ham loyiha ochilgandan keyin yuqorida
+                          bo'lim bo'lib turadi, menyuda esa faqat
+                          takrorlanardi. Bu yerda o'sha yerda yo'q
+                          amallar qoladi. */}
+                      <Link {...toProjectEdit(p.id)}>{tx("common.tahrirlash")}</Link>
+                      <button type="button" className="danger"
+                              onClick={() => void removeProject(p.id, p.name)}>
+                        {tx("common.ochirish_2")}
+                      </button>
+                    </RowMenu>
+                  </span>
+                )}
               </div>
             ))}
           </div>
