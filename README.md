@@ -345,14 +345,31 @@ a'zo bo'lgan va ochiq loyihalarni ko'radi (`GET /api/projects/calendar/?month=`)
 Muddat o'tib ketgandan keyin «kechikdingiz» deyish kech. Shuning uchun
 eslatma **oldin** keladi — loyiha tugashiga **1 hafta** va **3 kun** qolganda:
 
+Ikki bosqich ataylab: birinchisi rejani qayta ko'rish uchun, ikkinchisi
+«endi haqiqatan shoshiling» uchun.
+
+**Xabar ikki xil yoziladi.** Loyihani boshqaradigan odam (menejer va loyiha
+admini) kim nima qilishi kerakligini ism-familiya va vazifa kodi bilan
+ko'radi; ijrochiga esa faqat **o'zining** tugallanmagan ishlari yoziladi:
+
 ```
-srf tugashiga 1 hafta qoldi     Muddat: 2027-04-09
-srf tugashiga 3 kun qoldi       Muddat: 2027-04-09
+Menejerga:  Haftalik rejasi tugashiga 3 kun qoldi
+            Muddat: 2026-08-23. Kim nima qilishi kerak: Abdraxmanov Toxir —
+            HIR-2 BYD taqsimlash qismi; Kulbayev Bexzod — HIR-11 gate
+            tizimi bazasi; … va yana 42 ta
+
+Ijrochiga:  Haftalik rejasi tugashiga 3 kun qoldi
+            Muddat: 2026-08-23. Sizda tugallanmagan: HIR-2 BYD taqsimlash qismi
 ```
 
-Ikki bosqich ataylab: birinchisi rejani qayta ko'rish uchun, ikkinchisi
-«endi haqiqatan shoshiling» uchun. Xabar menejerga ham, jamoaga ham boradi —
-muddatni faqat menejer bilib turishi ishni tezlashtirmaydi.
+Ilgari bitta umumiy xabar butun jamoaga borardi. Ijrochi uchun undan foyda
+yo'q edi — o'zining nima qilishi kerakligi yozilmagan, ba'zan esa odamning
+o'sha loyihada ochiq ishi ham yo'q edi. Endi **ochiq ishi yo'q a'zoga xabar
+umuman ketmaydi**, tekshiruvdagi (`IN_REVIEW`) ish esa «bajarishingiz kerak»
+ro'yxatiga tushmaydi: navbat qabul qiladigan odamda.
+
+Havola ham har kimga o'zinikini ochadi: menejerga «Vazifalar» (jamoa
+yuklamasi), ijrochiga «Mening ishim».
 
 Takrorlanmasligini `projects.ProjectDeadlineNotice` ta'minlaydi: bosqich va
 muddat bo'yicha yagona yozuv. Muddat surilsa eslatma yangi sana uchun
