@@ -8,6 +8,7 @@ import { IconChat } from "@/components/icons";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, ErrorMsg, Loading, Progress } from "@/components/ui";
 import { toNewProject, toProject, toUser, toWorkspaceChat, useEntityId } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function WorkspaceDetail() {
   const slug = useEntityId("workspace");
@@ -23,7 +24,7 @@ export default function WorkspaceDetail() {
         workspace: slug, scope: "discover",
       })));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Ish maydonini ochib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("workspace_detail.ish_maydonini_ochib_bolmadi"));
     }
   }, [slug]);
 
@@ -35,7 +36,7 @@ export default function WorkspaceDetail() {
       await fn();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Amalni bajarib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("common.amalni_bajarib_bolmadi"));
     }
   }
 
@@ -53,7 +54,7 @@ export default function WorkspaceDetail() {
         title={
           <>
             <span className="lang-dot" style={{ background: ws.color }} />{" "}
-            <Link className="muted" to="/ish-maydonlari">ish maydonlari</Link>
+            <Link className="muted" to="/ish-maydonlari">{tx("workspace_detail.ish_maydonlari")}</Link>
             <span className="muted"> / </span>
             <strong>{ws.name}</strong>
             {ws.my_role && <span className="badge">{ws.my_role}</span>}
@@ -64,16 +65,16 @@ export default function WorkspaceDetail() {
             {!ws.my_role && (
               <button className="btn btn-sm btn-primary"
                       onClick={() => void act(() => api.post(`/workspaces/${ws.slug}/join/`, {}))}>
-                Qoshilish
+                {tx("common.qoshilish")}
               </button>
             )}
             {ws.my_role && (
               <Link className="btn btn-sm" {...toWorkspaceChat(ws.slug)}>
-                <IconChat size={14} /> Suhbat
+                <IconChat size={14} /> {tx("common.suhbat")}
               </Link>
             )}
             {user?.can_create_project && (
-              <Link className="btn btn-sm btn-primary" {...toNewProject()}>Yangi loyiha</Link>
+              <Link className="btn btn-sm btn-primary" {...toNewProject()}>{tx("common.yangi_loyiha")}</Link>
             )}
           </>
         }
@@ -83,10 +84,10 @@ export default function WorkspaceDetail() {
         <div className="split">
           <div>
             {ws.description && (
-              <Card title="Maydon haqida"><p className="pre-wrap">{ws.description}</p></Card>
+              <Card title={tx("workspace_detail.maydon_haqida")}><p className="pre-wrap">{ws.description}</p></Card>
             )}
 
-            <Card title="Loyihalar" padded={false}
+            <Card title={tx("common.loyihalar")} padded={false}
                   badge={<span className="badge">{projects.length}</span>}>
               <div className="card-list">
                 {projects.map((p) => (
@@ -97,25 +98,25 @@ export default function WorkspaceDetail() {
                         <Link {...toProject(p.id)}>{p.name}</Link>
                       </h3>
                       <span className="badge mono">{p.key}</span>
-                      {p.matches_my_specialty && <span className="badge badge-info">sizga mos</span>}
+                      {p.matches_my_specialty && <span className="badge badge-info">{tx("workspace_detail.sizga_mos")}</span>}
                       <span className="spacer" />
-                      <Link className="btn btn-sm" {...toProject(p.id, "doska")}>Doska</Link>
+                      <Link className="btn btn-sm" {...toProject(p.id, "doska")}>{tx("workspace_detail.doska")}</Link>
                     </div>
                     {p.description && (
                       <p className="muted" style={{ margin: "8px 0 0" }}>{p.description}</p>
                     )}
                     <div style={{ marginTop: 8 }}><Progress value={p.progress} /></div>
                     <div className="repo-meta">
-                      <span>{p.open_tasks} ochiq</span>
-                      <span>{p.member_count} aʼzo</span>
-                      {p.manager && <span>PM: {p.manager.full_name}</span>}
+                      <span>{p.open_tasks} {tx("common.ochiq")}</span>
+                      <span>{p.member_count} {tx("workspace_detail.azo")}</span>
+                      {p.manager && <span>{tx("common.pm")} {p.manager.full_name}</span>}
                     </div>
                   </div>
                 ))}
                 {!projects.length && (
-                  <Empty title="Loyiha yoq" text="Bu maydonda hali loyiha yaratilmagan.">
+                  <Empty title={tx("workspace_detail.loyiha_yoq")} text={tx("workspace_detail.bu_maydonda_hali_loyiha_yaratilmagan")}>
                     {user?.can_create_project && (
-                      <Link className="btn btn-primary btn-sm" {...toNewProject()}>Loyiha yaratish</Link>
+                      <Link className="btn btn-primary btn-sm" {...toNewProject()}>{tx("workspace_detail.loyiha_yaratish")}</Link>
                     )}
                   </Empty>
                 )}
@@ -124,7 +125,7 @@ export default function WorkspaceDetail() {
           </div>
 
           <div>
-            <Card title="Aʼzolar" padded={false}
+            <Card title={tx("workspace_detail.azolar")} padded={false}
                   badge={<span className="badge">{ws.member_count}</span>}>
               <div className="card-list">
                 {(ws.members || []).map((m) => (
@@ -150,7 +151,7 @@ export default function WorkspaceDetail() {
                     ) : <span className="badge">{m.role_display}</span>}
                   </div>
                 ))}
-                {!(ws.members || []).length && <Empty title="Aʼzo yoq" />}
+                {!(ws.members || []).length && <Empty title={tx("workspace_detail.azo_yoq")} />}
               </div>
             </Card>
 
@@ -163,13 +164,13 @@ export default function WorkspaceDetail() {
               />
             )}
 
-            <Card title="Maʼlumot">
+            <Card title={tx("workspace_detail.malumot")}>
               <ul className="list-plain" style={{ fontSize: 13 }}>
-                <li><span className="muted">Egasi:</span> {ws.owner.full_name}</li>
-                <li><span className="muted">Loyihalar:</span> {ws.project_count}</li>
-                <li><span className="muted">Turi:</span> {ws.is_open ? "ochiq" : "yopiq"}</li>
+                <li><span className="muted">{tx("workspace_detail.egasi")}</span> {ws.owner.full_name}</li>
+                <li><span className="muted">{tx("workspace_detail.loyihalar")}</span> {ws.project_count}</li>
+                <li><span className="muted">{tx("workspace_detail.turi")}</span> {ws.is_open ? "ochiq" : "yopiq"}</li>
                 {ws.can_manage && (
-                  <li><span className="muted">Qoshilish kodi:</span> <code>{ws.join_code}</code></li>
+                  <li><span className="muted">{tx("workspace_detail.qoshilish_kodi")}</span> <code>{ws.join_code}</code></li>
                 )}
               </ul>
             </Card>

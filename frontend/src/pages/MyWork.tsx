@@ -9,6 +9,7 @@ import {
   Empty, ErrorMsg, Loading, Priority, STATUS_DOT, fmtDate,
 } from "@/components/ui";
 import { toTask, useNavParams } from "@/nav";
+import { tx } from "@/i18n";
 
 /**
  * «Mening ishim» — holatlar bo'yicha ustunlar.
@@ -48,8 +49,8 @@ export default function MyWork() {
   return (
     <>
       <PageHead
-        title={<strong>Mening ishim</strong>}
-        subtitle="Menga biriktirilgan barcha shaxsiy vazifalar"
+        title={<strong>{tx("my_work.mening_ishim")}</strong>}
+        subtitle={tx("my_work.menga_biriktirilgan_barcha_shaxsiy_vazifalar")}
       />
       <div className="content">
         {error ? (
@@ -60,9 +61,9 @@ export default function MyWork() {
           <>
             <div className="filters">
               <div className="f">
-                <label htmlFor={`${fid}-0`}>Loyiha</label>
+                <label htmlFor={`${fid}-0`}>{tx("common.loyiha")}</label>
                 <select id={`${fid}-0`} value={project} onChange={(e) => set("project", e.target.value)}>
-                  <option value="">Barcha loyihalar</option>
+                  <option value="">{tx("common.barcha_loyihalar")}</option>
                   {data.projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -71,7 +72,7 @@ export default function MyWork() {
               <span className="spacer" />
               {status && (
                 <button className="btn btn-accent" onClick={() => set("status", "")}>
-                  Faqat: {statusLabel || "tanlangan holat"} ✕
+                  {tx("my_work.faqat")} {statusLabel || "tanlangan holat"} ✕
                 </button>
               )}
             </div>
@@ -106,7 +107,7 @@ export default function MyWork() {
                       ))}
                       {!g.tasks.length && (
                         <p className="muted center" style={{ fontSize: 12.5, padding: "14px 6px" }}>
-                          Bu ustun bo'sh.
+                          {tx("my_work.bu_ustun_bosh")}
                         </p>
                       )}
                     </div>
@@ -116,15 +117,15 @@ export default function MyWork() {
             ) : (
               <div className="card">
                 {status ? (
-                  <Empty icon="☐" title="Bu holatda ishingiz yoq"
-                         text="Tanlangan holat boyicha sizga biriktirilgan vazifa topilmadi.">
+                  <Empty icon="☐" title={tx("my_work.bu_holatda_ishingiz_yoq")}
+                         text={tx("my_work.tanlangan_holat_boyicha_sizga_biriktirilgan")}>
                     <button className="btn" onClick={() => set("status", "")}>
-                      Hammasini korish
+                      {tx("my_work.hammasini_korish")}
                     </button>
                   </Empty>
                 ) : (
-                <Empty icon="☐" title="Sizga hali vazifa biriktirilmagan"
-                       text="Loyihaga qoshiling - menejer mutaxassisligingizga mos vazifa beradi." />
+                <Empty icon="☐" title={tx("my_work.sizga_hali_vazifa_biriktirilmagan")}
+                       text={tx("my_work.loyihaga_qoshiling_menejer_mutaxassisligingi")} />
                 )}
               </div>
             )}

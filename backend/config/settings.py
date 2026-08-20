@@ -79,6 +79,11 @@ INSTALLED_APPS = [
     # Telegram boti: bildirishnomalarni Telegramga ham uzatadi.
     # Token qo'yilmasa butunlay jim turadi (`apps/telegram/client.is_configured`).
     "apps.telegram",
+    # Interfeys so'zlari: sayt matnlari kodda emas, bazada turadi va
+    # `django-admin/` dan tahrirlanadi.
+    "apps.uitexts",
+    # Takliflar: jamoa taklif beradi va ovoz beradi, boshliq qaror qiladi.
+    "apps.suggestions",
 ]
 
 MIDDLEWARE = [

@@ -1,26 +1,41 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import App from "./App";
-import { AuthProvider } from "./auth/AuthContext";
-import ConfirmHost from "./components/Confirm";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { RealtimeProvider } from "./realtime/RealtimeContext";
+/**
+ * Kirish nuqtasi: avval so'zlar, keyin ilova.
+ *
+ * NEGA SHUNDAY TARTIB. Interfeys matnlari backenddan keladi (`src/i18n`), va
+ * `tx()` faqat komponent ichida emas — modul darajasidagi jadvallarda ham
+ * chaqiriladi (masalan `Dashboard.tsx` dagi davr nomlari). Bunday chaqiruv
+ * modul birinchi import qilinganda, ya'ni bir marta bajariladi. Agar lug'at
+ * o'sha paytda bo'sh bo'lsa, o'sha yozuvlar butun seans davomida kalit
+ * ko'rinishida qolib ketardi.
+ *
+ * Shuning uchun bu fayl ilova modullarini STATIK import qilmaydi: lug'at
+ * kelgach `bootstrap.tsx` dinamik yuklanadi va shundan keyingina qolgan
+ * modullar baholanadi.
+ */
+import { loadTexts } from "./i18n";
 import "./styles/app.css";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    {/* Oxirgi to'siq: bundan tashqarida xato bo'lsa odam oq ekran ko'rardi. */}
-    <ErrorBoundary scope="app">
-      <BrowserRouter>
-        <AuthProvider>
-          <RealtimeProvider>
-            <App />
-            {/* Tasdiqlash oynasi - `window.confirm` o'rniga, bir marta. */}
-            <ConfirmHost />
-          </RealtimeProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
-  </React.StrictMode>
-);
+/**
+ * Server javob bermasa - qisqa xabar.
+ *
+ * React ham bu yerda ishlatilmaydi: lug'atsiz ilovani ko'tarishning ma'nosi
+ * yo'q. Shu ikki jumla - saytdagi yagona qattiq yozilgan matn.
+ */
+function showOffline() {
+  const root = document.getElementById("root");
+  if (!root) return;
+  root.innerHTML = `
+    <div class="auth-wrap">
+      <div class="card">
+        <h2>Server bilan aloqa yo'q</h2>
+        <p>Interfeys matnlarini yuklab bo'lmadi. Sahifani yangilab ko'ring.</p>
+        <button class="btn btn-primary" id="tf-retry">Yangilash</button>
+      </div>
+    </div>`;
+  document.getElementById("tf-retry")?.addEventListener("click", () => location.reload());
+}
+
+loadTexts().then((ok) => {
+  if (ok) import("./bootstrap");
+  else showOffline();
+});

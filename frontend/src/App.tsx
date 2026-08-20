@@ -15,6 +15,7 @@ import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
+import { tx } from "@/i18n";
 
 /**
  * Qolgan sahifalar talab bo'yicha yuklanadi.
@@ -49,10 +50,11 @@ const Messages = lazy(() => import("@/pages/Messages"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const AdminGate = lazy(() => import("@/pages/AdminGate"));
 const WorkspaceChat = lazy(() => import("@/pages/WorkspaceChat"));
+const Suggestions = lazy(() => import("@/pages/Suggestions"));
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <Loading text="Yuklanmoqda..." />;
+  if (loading) return <Loading text={tx("app.yuklanmoqda")} />;
   if (!user) return <Navigate to="/kirish" replace />;
   return <>{children}</>;
 }
@@ -93,7 +95,7 @@ function GuestOnly({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     // Sahifa bo'lagi yuklanayotganda - odatdagi "Yuklanmoqda".
-    <Suspense fallback={<Loading text="Yuklanmoqda..." />}>
+    <Suspense fallback={<Loading text={tx("app.yuklanmoqda")} />}>
     <Routes>
       <Route path="/" element={<GuestOnly><Landing /></GuestOnly>} />
       {/* Ochiq sahifalar: kirmagan odam ham ko'radi */}
@@ -142,6 +144,9 @@ export default function App() {
         <Route path="/ish-maydoni" element={<WorkspaceDetail />} />
         <Route path="/xabarlar" element={<Messages />} />
         <Route path="/bildirishnomalar" element={<Notifications />} />
+        {/* Takliflar - hamma ko'radi. Yopiq takliflar va boshliq
+            qarori serverda filtrlanadi (`SuggestionViewSet`). */}
+        <Route path="/takliflar" element={<Suggestions />} />
         <Route path="/profil" element={<Profile />} />
       </Route>
 

@@ -15,6 +15,7 @@
 import { useId, useState } from "react";
 import { ApiError, api, tokens } from "@/api/client";
 import { Card, ErrorMsg, PasswordInput } from "@/components/ui";
+import { tx } from "@/i18n";
 
 interface Result {
   detail: string;
@@ -45,7 +46,7 @@ export default function PasswordCard() {
     // Takrorni SERVERGA yubormaymiz - bu yerdagi tekshiruv odamning
     // xatosini darhol ko'rsatish uchun.
     if (next !== repeat) {
-      setError("Yangi parollar mos kelmadi.");
+      setError(tx("password_card.yangi_parollar_mos_kelmadi"));
       return;
     }
     setBusy(true);
@@ -57,29 +58,29 @@ export default function PasswordCard() {
       });
       // Yangi juftlikni saqlaymiz - aks holda keyingi so'rov 401 bo'lardi.
       tokens.set(data.access, data.refresh);
-      setOkMsg("Parol yangilandi. Boshqa qurilmalardagi seanslar yopildi.");
+      setOkMsg(tx("password_card.parol_yangilandi_boshqa_qurilmalardagi_seans"));
       reset();
       setOpen(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Parolni almashtirib bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("password_card.parolni_almashtirib_bolmadi"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Card title="Parol">
+    <Card title={tx("common.parol")}>
       {okMsg && <div className="callout mb">{okMsg}</div>}
 
       {!open ? (
         <div className="stack">
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            Parolni faqat o'zingiz almashtirasiz — buning uchun joriy parol so'raladi.
+            {tx("password_card.parolni_faqat_ozingiz_almashtirasiz_buning")}
           </p>
           <div>
             <button type="button" className="btn btn-sm"
                     onClick={() => { setOpen(true); setOkMsg(null); }}>
-              Parolni almashtirish
+              {tx("password_card.parolni_almashtirish")}
             </button>
           </div>
         </div>
@@ -87,31 +88,30 @@ export default function PasswordCard() {
         <form onSubmit={submit}>
           <ErrorMsg error={error} />
           <div className="field">
-            <label htmlFor={`${fid}-0`}>Joriy parol</label>
+            <label htmlFor={`${fid}-0`}>{tx("password_card.joriy_parol")}</label>
             <PasswordInput id={`${fid}-0`} value={oldPassword} required
                            autoComplete="current-password" onChange={setOld} />
           </div>
           <div className="field">
-            <label htmlFor={`${fid}-1`}>Yangi parol</label>
+            <label htmlFor={`${fid}-1`}>{tx("password_card.yangi_parol")}</label>
             <PasswordInput id={`${fid}-1`} value={next} required
                            autoComplete="new-password" onChange={setNext} />
           </div>
           <div className="field">
-            <label htmlFor={`${fid}-2`}>Yangi parolni takrorlang</label>
+            <label htmlFor={`${fid}-2`}>{tx("password_card.yangi_parolni_takrorlang")}</label>
             <PasswordInput id={`${fid}-2`} value={repeat} required
                            autoComplete="new-password" onChange={setRepeat} />
           </div>
           <p className="muted" style={{ fontSize: 12.5 }}>
-            Kamida 8 belgi. Faqat raqamdan iborat yoki juda oddiy parol qabul
-            qilinmaydi.
+            {tx("password_card.kamida_8_belgi_faqat_raqamdan")}
           </p>
           <div className="row" style={{ gap: 8 }}>
             <button className="btn btn-primary btn-sm" disabled={busy}>
-              {busy ? "Almashtirilmoqda..." : "Saqlash"}
+              {busy ? tx("password_card.almashtirilmoqda") : tx("common.saqlash")}
             </button>
             <button type="button" className="btn btn-sm"
                     onClick={() => { setOpen(false); reset(); }}>
-              Bekor qilish
+              {tx("common.bekor_qilish")}
             </button>
           </div>
         </form>

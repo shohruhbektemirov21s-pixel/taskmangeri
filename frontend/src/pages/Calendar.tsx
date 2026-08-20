@@ -21,11 +21,12 @@ import type { CalendarMonth, CalendarProject, CalendarTask } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, ErrorMsg, Loading, fmtDate } from "@/components/ui";
 import { toProject, toTask, useNavParams } from "@/nav";
+import { tx } from "@/i18n";
 
 const WEEKDAYS = ["dushanba", "seshanba", "chorshanba", "payshanba",
                   "juma", "shanba", "yakshanba"];
-const MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-                "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+const MONTHS = [tx("calendar.yanvar"), tx("calendar.fevral"), tx("calendar.mart"), tx("calendar.aprel"), tx("calendar.may"), tx("calendar.iyun"),
+                tx("calendar.iyul"), tx("calendar.avgust"), tx("calendar.sentabr"), tx("calendar.oktabr"), tx("calendar.noyabr"), tx("calendar.dekabr")];
 
 /** "2026-08-14" -> UTC kun raqami (mintaqa aralashmasin). */
 const dayNo = (iso: string) => {
@@ -106,7 +107,7 @@ export default function CalendarPage() {
     try {
       setData(await api.get<CalendarMonth>("/projects/calendar/", { month }));
     } catch {
-      setError("Taqvimni yuklab bo'lmadi");
+      setError(tx("calendar.taqvimni_yuklab_bolmadi"));
     }
   }, [month]);
 
@@ -159,7 +160,7 @@ export default function CalendarPage() {
 
   const title = data
     ? `${MONTHS[Number(data.month.split("-")[1]) - 1]} ${data.month.split("-")[0]}`
-    : "Taqvim";
+    : tx("calendar.taqvim");
 
   // Tanlangan kunda nima ishda turgani
   const pickedDay = picked ? dayNo(picked) : null;
@@ -171,8 +172,8 @@ export default function CalendarPage() {
   return (
     <>
       <PageHead
-        title={<strong>Taqvim</strong>}
-        subtitle="Faqat tugash sanalari — qaysi kuni nima topshirilishi kerak"
+        title={<strong>{tx("calendar.taqvim")}</strong>}
+        subtitle={tx("calendar.faqat_tugash_sanalari_qaysi_kuni")}
       />
 
       <div className="content">
@@ -192,38 +193,38 @@ export default function CalendarPage() {
                 <h3>{title}</h3>
                 <span className="badge">{data.total}</span>
                 {showTasks && !!data.task_total && (
-                  <span className="badge badge-info">{data.task_total} vazifa</span>
+                  <span className="badge badge-info">{data.task_total} {tx("calendar.vazifa")}</span>
                 )}
                 {/* Ro'yxat qirqilgan bo'lsa aytib qo'yamiz - ijrochi
                     "nega jamoaning muddatlari ko'rinmayapti" deb
                     o'ylamasin. Cheklovsiz odamga bu satr chizilmaydi. */}
                 {showTasks && data.tasks_limited && (
                   <small className="muted">
-                    Ijrochi bo'lgan loyihalarda faqat sizning ishlaringiz
+                    {tx("calendar.ijrochi_bolgan_loyihalarda_faqat_sizning")}
                   </small>
                 )}
                 <span className="spacer" />
-                <label className="cal-check" title="Vazifalarni ham ko'rsatish">
+                <label className="cal-check" title={tx("calendar.vazifalarni_ham_korsatish")}>
                   <input type="checkbox" checked={showTasks}
                          onChange={() => setShowTasks((v) => !v)} />
-                  Vazifalar
+                  {tx("common.vazifalar")}
                 </label>
                 {/* Rang izohi: rangni ko'rgan odam nimani anglatishini
                     taxmin qilib o'tirmasin. */}
                 {showTasks && (
                   <div className="cal-legend">
-                    <span><i className="cal-st-TODO" /> Nazoratda</span>
-                    <span><i className="cal-st-IN_PROGRESS" /> Jarayonda</span>
-                    <span><i className="cal-st-DONE" /> Bajarildi</span>
-                    <span><i className="cal-legend-late" /> Muddati o'tgan</span>
+                    <span><i className="cal-st-TODO" /> {tx("common.nazoratda")}</span>
+                    <span><i className="cal-st-IN_PROGRESS" /> {tx("common.jarayonda")}</span>
+                    <span><i className="cal-st-DONE" /> {tx("common.bajarildi")}</span>
+                    <span><i className="cal-legend-late" /> {tx("calendar.muddati_otgan")}</span>
                   </div>
                 )}
                 <div className="cal-nav">
-                  <button type="button" title="Oldingi oy"
+                  <button type="button" title={tx("calendar.oldingi_oy")}
                           onClick={() => set("oy", shiftMonth(data.month, -1))}>‹</button>
-                  <button type="button" title="Joriy oy"
-                          onClick={() => set("oy", "")}>Bugun</button>
-                  <button type="button" title="Keyingi oy"
+                  <button type="button" title={tx("calendar.joriy_oy")}
+                          onClick={() => set("oy", "")}>{tx("common.bugun")}</button>
+                  <button type="button" title={tx("calendar.keyingi_oy")}
                           onClick={() => set("oy", shiftMonth(data.month, 1))}>›</button>
                 </div>
               </div>
@@ -321,7 +322,7 @@ export default function CalendarPage() {
                           to={bar.to_}
                           title={bar.kind === "task"
                             ? `${bar.label} — ${bar.people}`
-                            : `${bar.label}${bar.openEnded ? " (muddat qo'yilmagan)" : ""}`}
+                            : `${bar.label}${bar.openEnded ? tx("calendar.muddat_qoyilmagan_2") : ""}`}
                           className={`cal-bar ${bar.kind}`
                                      + (bar.status ? ` cal-st-${bar.status}` : "")
                                      + (bar.overdue ? " overdue" : "")
@@ -357,9 +358,9 @@ export default function CalendarPage() {
                         return (
                           <button type="button" key={`m${d}`} className="cal-more"
                                   style={{ gridColumn: i + 1, gridRow: laneRows + 2 }}
-                                  title={`Yana ${extra} ta - kunning to'liq ro'yxatini ochish`}
+                                  title={tx("calendar.yana_nechta_ochish", { n: extra })}
                                   onClick={() => set("kun", iso)}>
-                            +{extra} ta
+                            +{extra} {tx("common.ta")}
                           </button>
                         );
                       })}
@@ -372,10 +373,10 @@ export default function CalendarPage() {
             {picked && (
               <aside className="cal-day">
               <Card title={`${dayOfMonth(dayNo(picked))}-${MONTHS[Number(picked.split("-")[1]) - 1].toLowerCase()}`}
-                    badge={<button className="btn btn-sm" onClick={() => set("kun", "")}>Yopish</button>}
+                    badge={<button className="btn btn-sm" onClick={() => set("kun", "")}>{tx("common.yopish")}</button>}
                     padded={false}>
                 {!dayProjects.length && !dayTasks.length ? (
-                  <Empty title="Bu kuni hech narsa yo'q" text="Boshqa kunni tanlang." />
+                  <Empty title={tx("calendar.bu_kuni_hech_narsa_yoq")} text={tx("calendar.boshqa_kunni_tanlang")} />
                 ) : (
                   <div className="card-list">
                     {dayProjects.map((p) => (
@@ -383,10 +384,10 @@ export default function CalendarPage() {
                         <span className="lang-dot" style={{ background: p.color }} />
                         <Link {...toProject(p.id)}><strong>{p.name}</strong></Link>
                         <span className="badge">{p.status_display}</span>
-                        {p.overdue && <span className="badge badge-danger">kechikkan</span>}
+                        {p.overdue && <span className="badge badge-danger">{tx("calendar.kechikkan")}</span>}
                         <span className="spacer" />
                         <small className="muted nowrap">
-                          {fmtDate(p.start_date)} → {p.due_date ? fmtDate(p.due_date) : "muddat qo'yilmagan"}
+                          {fmtDate(p.start_date)} → {p.due_date ? fmtDate(p.due_date) : tx("calendar.muddat_qoyilmagan")}
                           {p.manager_name && ` · PM: ${p.manager_name}`}
                         </small>
                       </div>
@@ -396,7 +397,7 @@ export default function CalendarPage() {
                         <span className="badge mono">{t.code}</span>
                         <Link {...toTask(t.id)}>{t.title}</Link>
                         <span className="badge">{t.status_display}</span>
-                        {t.overdue && <span className="badge badge-danger">kechikkan</span>}
+                        {t.overdue && <span className="badge badge-danger">{tx("calendar.kechikkan")}</span>}
                         <span className="spacer" />
                         {t.assignees.length ? (
                           <span className="row" style={{ gap: 6 }}>
@@ -407,7 +408,7 @@ export default function CalendarPage() {
                               </span>
                             ))}
                           </span>
-                        ) : <small className="muted">biriktirilmagan</small>}
+                        ) : <small className="muted">{tx("calendar.biriktirilmagan")}</small>}
                         <small className="muted nowrap">
                           {" · "}{fmtDate(t.due_date || t.start_date)}
                         </small>
@@ -421,8 +422,8 @@ export default function CalendarPage() {
             </div>
 
             {!picked && !data.total && !data.task_total && (
-              <Empty icon="🗓" title="Bu oyda tugaydigan ish yo'q"
-                     text="Boshqa oyni ko'ring yoki loyiha va vazifalarga muddat qo'ying." />
+              <Empty icon="🗓" title={tx("calendar.bu_oyda_tugaydigan_ish_yoq")}
+                     text={tx("calendar.boshqa_oyni_koring_yoki_loyiha")} />
             )}
           </>
         )}

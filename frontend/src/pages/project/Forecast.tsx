@@ -16,6 +16,7 @@ import { ApiError, api } from "@/api/client";
 import type { Forecast, Project } from "@/api/types";
 import { Avatar, Card, Empty, ErrorMsg, Loading, Stat, fmtDate } from "@/components/ui";
 import { toDeveloper, toProject, toTask, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function ForecastTab({ project }: { project: Project }) {
   const go = useGo();
@@ -27,7 +28,7 @@ export default function ForecastTab({ project }: { project: Project }) {
       setData(await api.get<Forecast>(`/projects/${project.id}/forecast/`));
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Bashoratni hisoblab bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("project_forecast.bashoratni_hisoblab_bolmadi"));
     }
   }, [project.id]);
 
@@ -44,18 +45,18 @@ export default function ForecastTab({ project }: { project: Project }) {
           ro'yxati filtrlangan holda ochiladi. Oxirgi katak - sana, uning
           ortida ro'yxat yo'q, shuning uchun u bosilmaydi. */}
       <div className="grid grid-4 mb">
-        <Stat value={p.open} label="Ochiq vazifa" tone="accent"
+        <Stat value={p.open} label={tx("common.ochiq_vazifa_2")} tone="accent"
               {...toProject(project.id, "vazifalar", "open=1")}
-              title="Ochiq vazifalarni korish" />
-        <Stat value={p.done} label="Bajarilgan" tone="ok"
+              title={tx("project_forecast.ochiq_vazifalarni_korish")} />
+        <Stat value={p.done} label={tx("common.bajarilgan")} tone="ok"
               {...toProject(project.id, "vazifalar", "status=DONE")}
-              title="Bajarilgan vazifalarni korish" />
-        <Stat value={p.overdue} label="Muddati otgan" tone={p.overdue ? "danger" : "ok"}
+              title={tx("project_forecast.bajarilgan_vazifalarni_korish")} />
+        <Stat value={p.overdue} label={tx("common.muddati_otgan")} tone={p.overdue ? "danger" : "ok"}
               {...toProject(project.id, "vazifalar", "overdue=1")}
-              title="Muddati otgan vazifalarni korish" />
+              title={tx("project_forecast.muddati_otgan_vazifalarni_korish")} />
         <Stat
           value={p.start_date ? fmtDate(p.start_date) : "—"}
-          label="Loyiha boshlanish sanasi"
+          label={tx("project_forecast.loyiha_boshlanish_sanasi")}
           tone="done"
         />
       </div>
@@ -64,13 +65,13 @@ export default function ForecastTab({ project }: { project: Project }) {
         <div className="card-body">
           <div className="row wrap" style={{ gap: 24 }}>
             <div>
-              <div className="muted" style={{ fontSize: 12 }}>Loyiha (kiritilgan)</div>
+              <div className="muted" style={{ fontSize: 12 }}>{tx("project_forecast.loyiha_kiritilgan")}</div>
               <strong>{p.start_date ? fmtDate(p.start_date) : "—"}</strong>
               <span className="muted"> → </span>
               <strong>{p.due_date ? fmtDate(p.due_date) : "—"}</strong>
             </div>
             <div>
-              <div className="muted" style={{ fontSize: 12 }}>Vazifalar (kiritilgan)</div>
+              <div className="muted" style={{ fontSize: 12 }}>{tx("project_forecast.vazifalar_kiritilgan")}</div>
               <strong>{p.task_start ? fmtDate(p.task_start) : "—"}</strong>
               <span className="muted"> → </span>
               <strong className={p.at_risk ? "c-red" : ""}>
@@ -83,19 +84,18 @@ export default function ForecastTab({ project }: { project: Project }) {
 
       {p.at_risk && (
         <div className="callout danger mb">
-          Vazifalarning oxirgi muddati <strong>{fmtDate(p.task_due)}</strong> —
-          loyiha muddatidan (<strong>{fmtDate(p.due_date)}</strong>) kech.
+          {tx("project_forecast.vazifalarning_oxirgi_muddati")} <strong>{fmtDate(p.task_due)}</strong> {tx("project_forecast.loyiha_muddatidan")}<strong>{fmtDate(p.due_date)}</strong>{tx("project_forecast.kech")}
         </div>
       )}
       {!!p.unassigned && (
         <div className="callout warn mb">
-          {p.unassigned} ta vazifa hech kimga biriktirilmagan.
+          {p.unassigned} {tx("project_forecast.ta_vazifa_hech_kimga_biriktirilmagan")}
         </div>
       )}
 
       {!data.members.length ? (
-        <Card title="Kim qachon tugatadi">
-          <Empty title="Ma'lumot yo'q" text="Vazifalarni jamoaga taqsimlang." />
+        <Card title={tx("project_forecast.kim_qachon_tugatadi")}>
+          <Empty title={tx("project_forecast.malumot_yoq")} text={tx("project_forecast.vazifalarni_jamoaga_taqsimlang")} />
         </Card>
       ) : data.members.map((m) => (
         <Card key={m.user.id} padded={false}
@@ -112,24 +112,24 @@ export default function ForecastTab({ project }: { project: Project }) {
               }
               badge={
                 <span className="row" style={{ gap: 6 }}>
-                  <span className="badge">{m.open} ochiq</span>
-                  {!!m.in_review && <span className="badge badge-info">{m.in_review} tekshiruvda</span>}
-                  {!!m.done && <span className="badge badge-ok">{m.done} bajarilgan</span>}
-                  {!!m.overdue && <span className="badge badge-danger">{m.overdue} kechikkan</span>}
+                  <span className="badge">{m.open} {tx("common.ochiq")}</span>
+                  {!!m.in_review && <span className="badge badge-info">{m.in_review} {tx("project_forecast.tekshiruvda")}</span>}
+                  {!!m.done && <span className="badge badge-ok">{m.done} {tx("common.bajarilgan_2")}</span>}
+                  {!!m.overdue && <span className="badge badge-danger">{m.overdue} {tx("project_forecast.kechikkan")}</span>}
                 </span>
               }>
           {/* Yig'indi sana emas, har bir vazifa o'z sanasi bilan: odam nimani
               qachon tugatishini aynan shu jadvaldan ko'radi. */}
           {!m.tasks.length ? (
             <div className="card-body">
-              <span className="muted">Ochiq vazifa yo'q.</span>
+              <span className="muted">{tx("project_forecast.ochiq_vazifa_yoq")}</span>
             </div>
           ) : (
             <div className="table-wrap"><table className="table">
               <thead>
                 <tr>
-                  <th>Vazifa</th><th>Holat</th>
-                  <th>Boshlanish</th><th>Tugatish sanasi</th>
+                  <th>{tx("common.vazifa")}</th><th>{tx("common.holat")}</th>
+                  <th>{tx("common.boshlanish")}</th><th>{tx("project_forecast.tugatish_sanasi")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -149,10 +149,10 @@ export default function ForecastTab({ project }: { project: Project }) {
                         <strong className={t.overdue ? "c-red" : ""}>
                           {fmtDate(t.due_date)}
                           {t.overdue && <span className="badge badge-danger"
-                                              style={{ marginLeft: 6 }}>kechikkan</span>}
+                                              style={{ marginLeft: 6 }}>{tx("project_forecast.kechikkan")}</span>}
                         </strong>
                       ) : (
-                        <span className="muted">sana qoyilmagan</span>
+                        <span className="muted">{tx("project_forecast.sana_qoyilmagan")}</span>
                       )}
                     </td>
                   </tr>

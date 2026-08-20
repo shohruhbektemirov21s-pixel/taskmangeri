@@ -6,6 +6,7 @@ import type { Workspace } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { Card, Empty, ErrorMsg, Loading } from "@/components/ui";
 import { toNewWorkspace, toWorkspace } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function Workspaces() {
   const fid = useId();
@@ -28,7 +29,7 @@ export default function Workspaces() {
       await api.post(`/workspaces/${ws.slug}/join/`, { code });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Qoshilib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("workspaces.qoshilib_bolmadi"));
     }
   }
 
@@ -39,20 +40,20 @@ export default function Workspaces() {
           <span className="lang-dot" style={{ background: w.color }} />{" "}
           <Link {...toWorkspace(w.slug)}>{w.name}</Link>
         </h3>
-        {w.is_open && <span className="badge badge-ok">ochiq</span>}
+        {w.is_open && <span className="badge badge-ok">{tx("common.ochiq")}</span>}
         {joined && <span className="badge">{w.my_role}</span>}
         <span className="spacer" />
         {joined ? (
-          <Link className="btn btn-sm" {...toWorkspace(w.slug)}>Ochish</Link>
+          <Link className="btn btn-sm" {...toWorkspace(w.slug)}>{tx("workspaces.ochish")}</Link>
         ) : (
-          <button className="btn btn-sm btn-primary" onClick={() => void join(w)}>Qoshilish</button>
+          <button className="btn btn-sm btn-primary" onClick={() => void join(w)}>{tx("common.qoshilish")}</button>
         )}
       </div>
       {w.description && <p className="muted" style={{ margin: "8px 0 0" }}>{w.description}</p>}
       <div className="repo-meta">
-        <span>{w.project_count} loyiha</span>
-        <span>{w.member_count} aʼzo</span>
-        <span>Egasi: {w.owner.full_name}</span>
+        <span>{w.project_count} {tx("workspaces.loyiha")}</span>
+        <span>{w.member_count} {tx("workspaces.azo")}</span>
+        <span>{tx("workspaces.egasi")} {w.owner.full_name}</span>
       </div>
     </div>
   );
@@ -60,40 +61,40 @@ export default function Workspaces() {
   return (
     <>
       <PageHead
-        title={<strong>Ish maydonlari</strong>}
+        title={<strong>{tx("workspaces.ish_maydonlari")}</strong>}
         actions={user?.can_create_project
-                 ? <Link className="btn btn-sm btn-primary" {...toNewWorkspace()}>Yangi maydon</Link>
+                 ? <Link className="btn btn-sm btn-primary" {...toNewWorkspace()}>{tx("workspaces.yangi_maydon")}</Link>
                  : undefined}
       />
       <div className="content">
         <ErrorMsg error={error} />
         <div className="split">
           <div>
-            <Card title="Mening maydonlarim" padded={false}>
+            <Card title={tx("workspaces.mening_maydonlarim")} padded={false}>
               <div className="card-list">
                 {!mine ? <Loading /> : mine.length ? mine.map((w) => row(w, true)) : (
-                  <Empty title="Siz hali ish maydonida emassiz"
-                         text="Yangi maydon yarating yoki ochiq maydonga qoshiling." />
+                  <Empty title={tx("workspaces.siz_hali_ish_maydonida_emassiz")}
+                         text={tx("workspaces.yangi_maydon_yarating_yoki_ochiq")} />
                 )}
               </div>
             </Card>
 
             {others.length > 0 && (
-              <Card title="Ochiq maydonlar" padded={false}>
+              <Card title={tx("workspaces.ochiq_maydonlar")} padded={false}>
                 <div className="card-list">{others.map((w) => row(w, false))}</div>
               </Card>
             )}
           </div>
 
           <div>
-            <Card title="Qoshilish kodi bilan qoshilish">
+            <Card title={tx("workspaces.qoshilish_kodi_bilan_qoshilish")}>
               <div className="field">
-                <label htmlFor={`${fid}-0`}>Kod</label>
+                <label htmlFor={`${fid}-0`}>{tx("workspaces.kod")}</label>
                 <input id={`${fid}-0`} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
                        placeholder="ABC123XYZ" />
               </div>
               <p className="muted" style={{ fontSize: 12 }}>
-                Kodni kiritib, quyidagi royxatdan kerakli maydonga Qoshilish tugmasini bosing.
+                {tx("workspaces.kodni_kiritib_quyidagi_royxatdan_kerakli")}
               </p>
             </Card>
           </div>

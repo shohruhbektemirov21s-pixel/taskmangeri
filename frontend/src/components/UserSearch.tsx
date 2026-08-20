@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import type { UserBrief } from "@/api/types";
 import { IconSearch } from "./icons";
 import { Avatar, SpecialtyTag } from "./ui";
+import { tx } from "@/i18n";
 
 interface Props {
   /** Backenddan qidiruv natijasini oladi */
@@ -29,8 +30,8 @@ interface Props {
 const DEBOUNCE_MS = 250;
 
 export default function UserSearch({
-  search, onPick, placeholder = "Email yoki ism bo'yicha qidiring",
-  emptyText = "Hech kim topilmadi", activeId, autoFocus, minChars = 2,
+  search, onPick, placeholder = tx("common.email_yoki_ism_boyicha_qidiring"),
+  emptyText = tx("common.hech_kim_topilmadi"), activeId, autoFocus, minChars = 2,
   clearOnPick = false,
 }: Props) {
   const [q, setQ] = useState("");

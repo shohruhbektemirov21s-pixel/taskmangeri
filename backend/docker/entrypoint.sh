@@ -27,6 +27,11 @@ if [ "$1" = "daphne" ]; then
   python manage.py migrate --noinput
   python manage.py collectstatic --noinput
   python manage.py bootstrap_admin
+  # Boshliq - takliflarni tasdiqlaydigan yagona rol.
+  python manage.py bootstrap_boss
+  # Interfeys so'zlari bazadan o'qiladi. Yangi kalitlar qo'shiladi, admin
+  # tahrirlagan matnlarga tegilmaydi (`--force` berilmagan).
+  python manage.py seed_ui_texts
 
   # DEBUG=1 bo'lsa runserver ishlatamiz - kod o'zgarishi darrov qo'llanadi.
   if [ "${DEBUG}" = "1" ] || [ "${DEBUG}" = "true" ]; then

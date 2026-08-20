@@ -8,6 +8,7 @@ import {
 } from "@/components/icons";
 import { Card, Empty, safePath, timeAgo } from "@/components/ui";
 import { useRealtime } from "@/realtime/RealtimeContext";
+import { tx } from "@/i18n";
 
 /**
  * Kesimlar - dizayndagi tablar.
@@ -19,10 +20,10 @@ import { useRealtime } from "@/realtime/RealtimeContext";
 type Tab = "all" | "unread" | "tasks" | "comments";
 
 const TABS: [Tab, string][] = [
-  ["all", "Barchasi"],
-  ["unread", "O'qilmaganlar"],
-  ["tasks", "Vazifalar"],
-  ["comments", "Izohlar"],
+  ["all", tx("notifications.barchasi")],
+  ["unread", tx("notifications.oqilmaganlar")],
+  ["tasks", tx("common.vazifalar")],
+  ["comments", tx("notifications.izohlar")],
 ];
 
 /** Turga qarab belgi - dizaynda har qatorning chapida rangli kvadratcha turadi. */
@@ -66,8 +67,8 @@ export default function Notifications() {
   return (
     <>
       <PageHead
-        title={<strong>Bildirishnomalar</strong>}
-        subtitle="Barcha loyihalar bo'yicha eng so'nggi yangiliklar va eslatmalar"
+        title={<strong>{tx("common.bildirishnomalar")}</strong>}
+        subtitle={tx("notifications.barcha_loyihalar_boyicha_eng_songgi")}
         actions={
           <>
             <span className={`live-tag ${connected ? "on" : ""}`}>
@@ -75,11 +76,11 @@ export default function Notifications() {
             </span>
             {!!unread && (
               <button className="btn btn-sm" onClick={() => void markAllRead()}>
-                Hammasini o'qilgan deb belgilash
+                {tx("notifications.hammasini_oqilgan_deb_belgilash")}
               </button>
             )}
             <button className="btn btn-sm btn-ghost" onClick={() => void clearRead()}>
-              O'qilganlarini tozalash
+              {tx("notifications.oqilganlarini_tozalash")}
             </button>
           </>
         }
@@ -95,10 +96,10 @@ export default function Notifications() {
       <div className="content" style={{ maxWidth: 980 }}>
         {!items.length ? (
           <Card>
-            <Empty icon="🔕" title="Bildirishnoma yo'q"
+            <Empty icon="🔕" title={tx("notifications.bildirishnoma_yoq")}
                    text={tab === "all"
-                     ? "Vazifa, suhbat yoki qo'shilish so'roviga oid yangilik shu yerda paydo bo'ladi."
-                     : "Bu kesimda hozircha hech narsa yo'q."} />
+                     ? tx("notifications.vazifa_suhbat_yoki_qoshilish_soroviga")
+                     : tx("notifications.bu_kesimda_hozircha_hech_narsa")} />
           </Card>
         ) : (
           <Card padded={false}>
@@ -110,7 +111,7 @@ export default function Notifications() {
                   <span className="notif-text">
                     <span className="row" style={{ gap: 8 }}>
                       <strong>{n.title}</strong>
-                      {!n.is_read && <span className="badge badge-danger">Yangi</span>}
+                      {!n.is_read && <span className="badge badge-danger">{tx("notifications.yangi")}</span>}
                     </span>
                     {n.body && <span className="muted">{n.body}</span>}
                   </span>

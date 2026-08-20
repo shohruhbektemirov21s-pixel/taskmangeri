@@ -2,6 +2,7 @@
  * Backend (Django REST) bilan ishlovchi yagona HTTP mijoz.
  * JWT tokenni localStorage da saqlaydi va 401 da avtomatik yangilaydi.
  */
+import { tx } from "@/i18n";
 
 export const BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -46,7 +47,7 @@ export class ApiError extends Error {
   data: any;
 
   constructor(status: number, data: any) {
-    super(ApiError.readable(data) || `Xatolik (${status})`);
+    super(ApiError.readable(data) || tx("api_client.xatolik_kodi", { kod: status }));
     this.status = status;
     this.data = data;
   }
@@ -77,8 +78,8 @@ export class ApiError extends Error {
     if (!/^<(!doctype|html)/i.test(trimmed)) return trimmed;
     const title = trimmed.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim();
     return title
-      ? `Serverda xatolik: ${title}`
-      : "Serverda kutilmagan xatolik. Backend loglarini tekshiring.";
+      ? tx("api_client.serverda_xatolik", { sarlavha: title })
+      : tx("api_client.serverda_kutilmagan_xatolik_backend_loglarin");
   }
 
   /** Maydon bo'yicha xatoliklar (formalarda ko'rsatish uchun) */

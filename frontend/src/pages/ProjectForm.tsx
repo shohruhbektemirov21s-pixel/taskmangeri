@@ -10,6 +10,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { Card, DateField, ErrorMsg, Loading } from "@/components/ui";
 import { toProject, useEntityId, useGo, useIsPath } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function ProjectForm() {
   const fid = useId();
@@ -64,7 +65,7 @@ export default function ProjectForm() {
       }
     })().catch((e) => {
       // Xato ushlanmasa sahifa abadiy "Yuklanmoqda" da qolardi.
-      if (alive) setError(e instanceof ApiError ? e.message : "Loyihani ochib bo'lmadi.");
+      if (alive) setError(e instanceof ApiError ? e.message : tx("project_form.loyihani_ochib_bolmadi"));
     });
     return () => { alive = false; };
   }, [id, editing]);
@@ -80,12 +81,12 @@ export default function ProjectForm() {
     // qolar, odam esa uni «Hujjatlar» bo'limidan qayta yuklashi kerak edi.
     if (files.length) {
       if (!fileNote.trim()) {
-        setError("Fayllar uchun hujjat nomini yozing.");
+        setError(tx("project_form.fayllar_uchun_hujjat_nomini_yozing"));
         return;
       }
       const missing = files.filter((_, i) => !(fileDates[i] || fileDate));
       if (missing.length) {
-        setError("Hujjat sanasi korsatilmagan: " + missing.map((f) => f.name).join(", "));
+        setError(tx("project_form.hujjat_sanasi_korsatilmagan") + missing.map((f) => f.name).join(", "));
         return;
       }
     }
@@ -111,8 +112,8 @@ export default function ProjectForm() {
                             files.map((_, i) => fileDates[i] || fileDate));
         } catch {
           setBusy(false);
-          setError("Loyiha yaratildi, lekin fayllarni yuklab bolmadi — "
-                   + "ularni «Fayllar» bolimidan qayta yuklang.");
+          setError(tx("project_form.loyiha_yaratildi_lekin_fayllarni_yuklab")
+                   + tx("project_form.ularni_fayllar_bolimidan_qayta_yuklang"));
           go(toProject(saved.id, "fayllar"));
           return;
         }
@@ -128,15 +129,15 @@ export default function ProjectForm() {
           : { failedTasks: [], failedFiles: [] };
         if (failedMembers.length || failedTasks.length || failedFiles.length) {
           const parts = [];
-          if (failedMembers.length) parts.push("jamoaga qo'shilmadi: " + failedMembers.join(", "));
-          if (failedTasks.length) parts.push("vazifa yaratilmadi: " + failedTasks.join(", "));
+          if (failedMembers.length) parts.push(tx("project_form.jamoaga_qoshilmadi") + failedMembers.join(", "));
+          if (failedTasks.length) parts.push(tx("project_form.vazifa_yaratilmadi") + failedTasks.join(", "));
           if (failedFiles.length) {
-            parts.push("fayllari biriktirilmadi: " + failedFiles.join(", ")
-                       + " (vazifaning ozi yaratildi)");
+            parts.push(tx("project_form.fayllari_biriktirilmadi") + failedFiles.join(", ")
+                       + tx("project_form.vazifaning_ozi_yaratildi"));
           }
           setBusy(false);
-          setError("Loyiha yaratildi, lekin " + parts.join("; ")
-                   + " — «Jamoa» va «Doska» bolimidan qayta urinib koring.");
+          setError(tx("project_form.loyiha_yaratildi_lekin") + parts.join("; ")
+                   + tx("project_form.jamoa_va_doska_bolimidan_qayta"));
           go(toProject(saved.id, failedMembers.length ? "jamoa" : "doska"));
           return;
         }
@@ -149,7 +150,7 @@ export default function ProjectForm() {
       if (err instanceof ApiError) {
         setErrors(err.fields);
         setError(err.message);
-      } else setError("Saqlashda xatolik");
+      } else setError(tx("common.saqlashda_xatolik"));
     } finally {
       setBusy(false);
     }
@@ -165,7 +166,7 @@ export default function ProjectForm() {
         return;
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Loyihani ochirib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("project_form.loyihani_ochirib_bolmadi"));
     }
     setBusy(false);
   }
@@ -179,10 +180,10 @@ export default function ProjectForm() {
           ko'rinib tursin. Tugma formadan tashqarida turgani uchun `form`
           atributi bilan bog'lanadi - bosilganda odatdagidek `submit` bo'ladi. */}
       <PageHead
-        title={<strong>{editing ? "Loyiha sozlamalari" : "Yangi loyiha"}</strong>}
+        title={<strong>{editing ? tx("project_form.loyiha_sozlamalari") : tx("common.yangi_loyiha")}</strong>}
         actions={(
           <div className="row" style={{ gap: 8 }}>
-            <select aria-label="Loyiha holati" title="Loyiha holati" value={f.status}
+            <select aria-label={tx("project_form.loyiha_holati")} title={tx("project_form.loyiha_holati")} value={f.status}
                     style={{ width: "auto", minWidth: 140 }}
                     onChange={(e) => set("status", e.target.value)}>
               {(meta?.project_status || []).map((s) => (
@@ -190,9 +191,9 @@ export default function ProjectForm() {
               ))}
             </select>
             <button className="btn btn-primary" form={formId} disabled={busy}>
-              {busy ? "Saqlanmoqda..." : editing ? "Saqlash" : "Loyiha yaratish"}
+              {busy ? tx("common.saqlanmoqda") : editing ? tx("common.saqlash") : tx("project_form.loyiha_yaratish")}
             </button>
-            <button type="button" className="btn" onClick={() => go(-1)}>Bekor qilish</button>
+            <button type="button" className="btn" onClick={() => go(-1)}>{tx("common.bekor_qilish")}</button>
           </div>
         )}
       />
@@ -202,28 +203,28 @@ export default function ProjectForm() {
           <div className="split">
             {/* Chap ustun: asosiy maydonlar va boshlang'ich fayllar */}
             <div>
-            <Card title="Asosiy maʼlumot">
+            <Card title={tx("project_form.asosiy_malumot")}>
               <div className="field">
-                <label htmlFor={`${fid}-0`}>Loyiha nomi</label>
+                <label htmlFor={`${fid}-0`}>{tx("project_form.loyiha_nomi")}</label>
                 <input id={`${fid}-0`} value={f.name} required onChange={(e) => set("name", e.target.value)}
-                       placeholder="Masalan: Mobil ilova v2" />
+                       placeholder={tx("project_form.masalan_mobil_ilova_v2")} />
                 {errors.name && <div className="err">{errors.name}</div>}
               </div>
               <div className="field">
-                <label htmlFor={`${fid}-1`}>Tavsif</label>
+                <label htmlFor={`${fid}-1`}>{tx("project_form.tavsif")}</label>
                 <textarea id={`${fid}-1`} rows={3} value={f.description}
                           onChange={(e) => set("description", e.target.value)} />
               </div>
               <div className="row">
                 <div className="field" style={{ flex: 1 }}>
-                  <label htmlFor={`${fid}-2`}>Boshlanish sanasi</label>
+                  <label htmlFor={`${fid}-2`}>{tx("project_form.boshlanish_sanasi")}</label>
                   <DateField id={`${fid}-2`} value={f.start_date}
                              max={f.due_date || undefined}
                              onChange={(v) => set("start_date", v)} />
                   {errors.start_date && <div className="err">{errors.start_date}</div>}
                 </div>
                 <div className="field" style={{ flex: 1 }}>
-                  <label htmlFor={`${fid}-4`}>Tugash sanasi (muddat)</label>
+                  <label htmlFor={`${fid}-4`}>{tx("project_form.tugash_sanasi_muddat")}</label>
                   {/* min: tugash boshlanishdan oldin bo'lib qolmasin */}
                   <DateField id={`${fid}-4`} value={f.due_date}
                              min={f.start_date || undefined}
@@ -236,7 +237,7 @@ export default function ProjectForm() {
             {/* Tahrirlashda fayllar alohida «Fayllar» bolimida boshqariladi -
                 bu yerda faqat yangi loyiha uchun boshlangich hujjatlar. */}
             {!editing && (
-              <Card title="Boshlangich fayllar">
+              <Card title={tx("project_form.boshlangich_fayllar")}>
                 <FilePicker
                   files={files}
                   onChange={setFiles}
@@ -261,10 +262,10 @@ export default function ProjectForm() {
               {/* O'chirish - faqat loyiha menejeri va admin uchun (serverda ham
                   shunday tekshiriladi). */}
               {editing && (acc?.is_manager || acc?.is_admin) && (
-                <Card title="Loyihani ochirish">
+                <Card title={tx("project_form.loyihani_ochirish")}>
                   <button type="button" className="btn btn-danger btn-block" disabled={busy}
                           onClick={() => void removeProject()}>
-                    Loyihani butunlay ochirish
+                    {tx("project_form.loyihani_butunlay_ochirish")}
                   </button>
                 </Card>
               )}
@@ -272,7 +273,7 @@ export default function ProjectForm() {
               {/* Tahrirlashda jamoa «Jamoa» bolimida boshqariladi - bu yerda
                   faqat yangi loyihaga qoshiladigan odamlar. */}
               {!editing && (
-                <Card title="Jamoa va vazifalar">
+                <Card title={tx("project_form.jamoa_va_vazifalar")}>
                   <TeamPicker
                     picks={team}
                     onChange={setTeam}

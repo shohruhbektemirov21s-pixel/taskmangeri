@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { Card, fmtDateTime } from "@/components/ui";
+import { tx } from "@/i18n";
 
 interface TelegramState {
   enabled: boolean;
@@ -53,57 +54,56 @@ export default function TelegramCard() {
   const botUrl = state.bot_username ? `https://t.me/${state.bot_username}` : null;
 
   return (
-    <Card title="Telegram">
+    <Card title={tx("telegram_card.telegram")}>
       {state.is_linked ? (
         <div className="stack">
           <p className="row" style={{ gap: 8, margin: 0 }}>
-            <span className="badge badge-ok">Bog'langan</span>
-            {state.is_muted && <span className="badge badge-warn">Xabarlar o'chirilgan</span>}
+            <span className="badge badge-ok">{tx("telegram_card.boglangan")}</span>
+            {state.is_muted && <span className="badge badge-warn">{tx("telegram_card.xabarlar_ochirilgan")}</span>}
             {state.linked_at && (
               <small className="muted">{fmtDateTime(state.linked_at)}</small>
             )}
           </p>
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            Bildirishnomalar Telegramga ham keladi. Botda <code>/vazifalarim</code>,{" "}
-            <code>/bugun</code> va <code>/tekshiruv</code> buyruqlari bor.
+            {tx("telegram_card.bildirishnomalar_telegramga_ham_keladi_botda")} <code>{tx("telegram_card.vazifalarim")}</code>,{" "}
+            <code>{tx("telegram_card.bugun")}</code> {tx("telegram_card.va")} <code>{tx("telegram_card.tekshiruv")}</code> {tx("telegram_card.buyruqlari_bor")}
           </p>
           <div className="row" style={{ gap: 8 }}>
             <button type="button" className="btn btn-sm" disabled={busy}
                     onClick={() => void act(() =>
                       api.post<TelegramState>("/telegram/link/", { is_muted: !state.is_muted }))}>
-              {state.is_muted ? "Xabarlarni yoqish" : "Xabarlarni o'chirish"}
+              {state.is_muted ? tx("telegram_card.xabarlarni_yoqish") : tx("telegram_card.xabarlarni_ochirish")}
             </button>
             <button type="button" className="btn btn-sm" disabled={busy}
                     onClick={() => void act(() => api.delete<TelegramState>("/telegram/link/"))}>
-              Uzish
+              {tx("telegram_card.uzish")}
             </button>
           </div>
         </div>
       ) : (
         <div className="stack">
           <p className="row" style={{ gap: 8, margin: 0 }}>
-            <span className="badge">Bog'lanmagan</span>
+            <span className="badge">{tx("telegram_card.boglanmagan")}</span>
           </p>
           {/* Ikki qadam - ikkinchisini ilova bajara olmaydi, shuning uchun
               ular ochiq ro'yxat bo'lib turadi. */}
           <ol className="tg-steps">
             <li>
-              Profilingizdagi <strong>Telegram</strong> maydoniga username'ingizni yozing
+              {tx("telegram_card.profilingizdagi")} <strong>{tx("telegram_card.telegram")}</strong> {tx("telegram_card.maydoniga_usernameingizni_yozing")}
               {state.username
-                ? <> — hozir <code>@{state.username}</code> turibdi</>
-                : <> — hozir <strong>bo'sh</strong></>}
+                ? <> {tx("telegram_card.hozir")} <code>@{state.username}</code> {tx("telegram_card.turibdi")}</>
+                : <> {tx("telegram_card.hozir")} <strong>{tx("telegram_card.bosh")}</strong></>}
             </li>
             <li>
               {botUrl
-                ? <>Telegramda <a href={botUrl} target="_blank" rel="noreferrer">{bot}</a> ni oching</>
-                : <>Telegramda {bot} oching</>}{" "}
-              va <code>/start</code> bosing
+                ? <>{tx("telegram_card.telegramda")} <a href={botUrl} target="_blank" rel="noreferrer">{bot}</a> {tx("telegram_card.ni_oching")}</>
+                : <>{tx("telegram_card.telegramda")} {bot} {tx("telegram_card.oching")}</>}{" "}
+              {tx("telegram_card.va")} <code>{tx("telegram_card.start")}</code> {tx("telegram_card.bosing")}
             </li>
           </ol>
           <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
-            Bot username'ingizni profildagi nom bilan solishtiradi. Telegram
-            o'zi tanimagan odamga xabar yubora olmaydi — shuning uchun
-            <code>/start</code> bosish shart.
+            {tx("telegram_card.bot_usernameingizni_profildagi_nom_bilan")}
+            <code>{tx("telegram_card.start")}</code> {tx("telegram_card.bosish_shart")}
           </p>
         </div>
       )}

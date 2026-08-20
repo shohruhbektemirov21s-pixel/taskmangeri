@@ -9,6 +9,7 @@ import { IconCalendar, IconPlus } from "@/components/icons";
 import { DUE_PERIODS, DateField, Empty, ErrorMsg, Loading, Progress, RowMenu, fmtDate } from "@/components/ui";
 import { deleteProject } from "@/api/projects";
 import { toNewProject, toProject, toProjectEdit, toTask, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 /**
  * «Loyihalar» bo'limi ikki xil odamga ikki xil ochiladi.
@@ -80,19 +81,19 @@ function ManagerProjects() {
     try {
       if (await deleteProject(id, name)) reload();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Loyihani ochirib bolmadi");
+      setActionError(err instanceof ApiError ? err.message : tx("projects.loyihani_ochirib_bolmadi"));
     }
   }
 
   return (
     <>
       <PageHead
-        title={<strong>Loyihalar</strong>}
-        subtitle="Faol loyihalar va jarayonlar monitoringi"
+        title={<strong>{tx("common.loyihalar")}</strong>}
+        subtitle={tx("projects.faol_loyihalar_va_jarayonlar_monitoringi")}
         actions={
           user?.can_create_project && (
             <Link className="btn btn-primary" {...toNewProject()}>
-              <IconPlus size={15} /> Yangi loyiha
+              <IconPlus size={15} /> {tx("common.yangi_loyiha")}
             </Link>
           )
         }
@@ -105,28 +106,28 @@ function ManagerProjects() {
             loyihalar ham topiladi. */}
         <form className="filters" onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); }}>
           <div className="f grow">
-            <label htmlFor={`${fid}-0`}>Qidiruv</label>
+            <label htmlFor={`${fid}-0`}>{tx("common.qidiruv")}</label>
             <input id={`${fid}-0`} value={q} onChange={(e) => setQ(e.target.value)}
-                   placeholder="Nom, tavsif yoki hujjat nomi boyicha" />
+                   placeholder={tx("projects.nom_tavsif_yoki_hujjat_nomi")} />
           </div>
           {/* Loyihaning MUDDATI bo'yicha. Davrlar kalendar bo'yicha va
               hisob serverda (`due_date_span`) - «shu hafta» bu yerda ham,
               vazifalar ro'yxatida ham bitta hafta bo'lsin. */}
           <div className="f">
-            <label htmlFor={`${fid}-r`}>Muddat</label>
+            <label htmlFor={`${fid}-r`}>{tx("common.muddat")}</label>
             <select id={`${fid}-r`} value={period}
                     onChange={(e) => setPeriod(e.target.value)}>
-              <option value="">Barcha muddatlar</option>
+              <option value="">{tx("projects.barcha_muddatlar")}</option>
               {DUE_PERIODS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
-          <button className="btn">Qidirish</button>
+          <button className="btn">{tx("projects.qidirish")}</button>
           {(!!applied || !!period) && (
             <button type="button" className="btn btn-ghost"
                     onClick={() => { setQ(""); setApplied(""); setPeriod(""); }}>
-              Tozalash
+              {tx("common.tozalash")}
             </button>
           )}
         </form>
@@ -138,24 +139,24 @@ function ManagerProjects() {
                 (server tomonda `due_date` bo'sh bo'lsa solishtiruv NULL
                 beradi) - buni aytmasak, ro'yxatdan yo'qolgan loyiha
                 xatodek tuyulardi. */}
-            <Empty icon="☰" title="Loyiha topilmadi"
+            <Empty icon="☰" title={tx("common.loyiha_topilmadi")}
                    text={applied
-                     ? `«${applied}» boyicha hech narsa topilmadi - boshqacha yozib koring.`
+                     ? tx("projects.qidiruv_natijasi_yoq", { soz: applied })
                      : period
-                       ? "Bu davrga muddati tushadigan loyiha yoq. "
-                         + "Muddati qoyilmagan loyihalar bu kesimda korinmaydi."
-                       : "Ochiq loyihaga qoshiling yoki yangi yarating."}>
+                       ? tx("projects.bu_davrga_muddati_tushadigan_loyiha")
+                         + tx("projects.muddati_qoyilmagan_loyihalar_bu_kesimda")
+                       : tx("projects.ochiq_loyihaga_qoshiling_yoki_yangi")}>
               <div className="row" style={{ justifyContent: "center" }}>
                 {applied || period ? (
                   <button className="btn"
                           onClick={() => { setQ(""); setApplied(""); setPeriod(""); }}>
-                    Filtrni tozalash
+                    {tx("common.filtrni_tozalash")}
                   </button>
                 ) : (
                   <>
-                    <Link className="btn btn-primary" to="/qoshilish">Loyiha topish</Link>
+                    <Link className="btn btn-primary" to="/qoshilish">{tx("projects.loyiha_topish")}</Link>
                     {user?.can_create_project && (
-                      <Link className="btn" {...toNewProject()}>Yangi loyiha</Link>
+                      <Link className="btn" {...toNewProject()}>{tx("common.yangi_loyiha")}</Link>
                     )}
                   </>
                 )}
@@ -196,10 +197,10 @@ function ManagerProjects() {
                             bo'lim bo'lib turadi, menyuda esa faqat
                             takrorlanardi. Bu yerda o'sha yerda yo'q
                             amallar qoladi. */}
-                        <Link {...toProjectEdit(p.id)}>Tahrirlash</Link>
+                        <Link {...toProjectEdit(p.id)}>{tx("common.tahrirlash")}</Link>
                         <button type="button" className="danger"
                                 onClick={() => void removeProject(p.id, p.name)}>
-                          Ochirish
+                          {tx("common.ochirish_2")}
                         </button>
                       </RowMenu>
                     </span>
@@ -211,7 +212,7 @@ function ManagerProjects() {
                 </div>
 
                 <div className="pcard-prog">
-                  <span className="muted">Jarayon</span>
+                  <span className="muted">{tx("projects.jarayon")}</span>
                   <span className="spacer" />
                   <strong>{p.progress}%</strong>
                 </div>
@@ -219,16 +220,16 @@ function ManagerProjects() {
 
                 <div className="pcard-foot">
                   <span className="pcard-metric">
-                    <small>Ochiq vazifa</small>
-                    <strong>{p.open_tasks} ta</strong>
+                    <small>{tx("common.ochiq_vazifa_2")}</small>
+                    <strong>{p.open_tasks} {tx("common.ta")}</strong>
                   </span>
                   <span className="pcard-metric">
-                    <small>A'zolar</small>
-                    <strong>{p.member_count} kishi</strong>
+                    <small>{tx("projects.azolar")}</small>
+                    <strong>{p.member_count} {tx("common.kishi")}</strong>
                   </span>
                   <span className="pcard-metric">
-                    <small>Menda</small>
-                    <strong>{p.my_tasks} ta</strong>
+                    <small>{tx("projects.menda")}</small>
+                    <strong>{p.my_tasks} {tx("common.ta")}</strong>
                   </span>
                 </div>
               </div>
@@ -293,9 +294,9 @@ function MyProjectTasks() {
   return (
     <>
       <PageHead
-        title={<strong>Vazifalarim</strong>}
-        subtitle="Loyihalar boyicha - vazifani bosib osha loyihaga kiring"
-        actions={!!total && <span className="badge">{total} ta vazifa</span>}
+        title={<strong>{tx("projects.vazifalarim")}</strong>}
+        subtitle={tx("projects.loyihalar_boyicha_vazifani_bosib_osha")}
+        actions={!!total && <span className="badge">{total} {tx("projects.ta_vazifa")}</span>}
       />
       {/* Filtr qatori «Vazifalar» sahifasidagi bilan bir xil: qidiruv
           chapda, tanlovlar o'ngda. Shu sabab `wl` sinfi ham shu yerda -
@@ -305,34 +306,34 @@ function MyProjectTasks() {
 
         <div className="filters">
           <div className="f wl-search">
-            <label htmlFor={`${fid}-q`}>Qidiruv</label>
+            <label htmlFor={`${fid}-q`}>{tx("common.qidiruv")}</label>
             {/* Vazifa nomi, tavsifi, kodi yoki LOYIHA nomi bo'yicha -
                 «Vazifalar» sahifasidagi bilan bir xil qoidadan
                 (`task_search_q`). */}
             <input id={`${fid}-q`} value={f.search} onChange={(e) => set("search", e.target.value)}
-                   placeholder="Vazifa, kod (HIR-75) yoki loyiha nomi" />
+                   placeholder={tx("projects.vazifa_kod_hir_75_yoki")} />
           </div>
           <div className="wl-filters">
             <div className="f">
-              <label htmlFor={`${fid}-r`}>Davr</label>
+              <label htmlFor={`${fid}-r`}>{tx("common.davr")}</label>
               <select id={`${fid}-r`} value={f.period} onChange={(e) => set("period", e.target.value)}>
-                <option value="">Barcha muddatlar</option>
+                <option value="">{tx("projects.barcha_muddatlar")}</option>
                 {DUE_PERIODS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </div>
             <div className="f wl-date">
-              <label htmlFor={`${fid}-d`}>Sana</label>
+              <label htmlFor={`${fid}-d`}>{tx("common.sana")}</label>
               <DateField id={`${fid}-d`} value={f.due} onChange={(v) => set("due", v)} />
             </div>
             <div className="f">
-              <label htmlFor={`${fid}-s`}>Holat</label>
+              <label htmlFor={`${fid}-s`}>{tx("common.holat")}</label>
               {/* Bu yerda standart - HAMMASI: odam o'z bajarganini ham
                   ko'rib turadi («Vazifalar» sahifasi boshqacha: u menejerga
                   "hozir nima bo'layapti" ni ko'rsatadi). */}
               <select id={`${fid}-s`} value={f.status} onChange={(e) => set("status", e.target.value)}>
-                <option value="">Barcha holatlar</option>
+                <option value="">{tx("projects.barcha_holatlar")}</option>
                 {(meta?.task_status || []).map((s) => (
                   <option key={s.value} value={String(s.value)}>{s.label}</option>
                 ))}
@@ -341,7 +342,7 @@ function MyProjectTasks() {
             {dirty && (
               <button type="button" className="btn btn-ghost"
                       onClick={() => setF({ search: "", period: "", due: "", status: "" })}>
-                Tozalash
+                {tx("common.tozalash")}
               </button>
             )}
           </div>
@@ -350,17 +351,17 @@ function MyProjectTasks() {
         {loading ? <Loading /> : !groups ? null : !groups.length ? (
           <div className="card">
             <Empty icon="☐"
-                   title={dirty ? "Bu kesimda vazifa yoq" : "Sizga hali vazifa biriktirilmagan"}
+                   title={dirty ? tx("projects.bu_kesimda_vazifa_yoq") : tx("projects.sizga_hali_vazifa_biriktirilmagan")}
                    text={dirty
-                     ? "Tanlangan kesim boyicha sizda ish yoq - filtrni bo'shatib koring."
-                     : "Menejer vazifa berganda u shu yerda loyihasi bilan korinadi."}>
+                     ? tx("projects.tanlangan_kesim_boyicha_sizda_ish")
+                     : tx("projects.menejer_vazifa_berganda_u_shu")}>
               {dirty ? (
                 <button className="btn"
                         onClick={() => setF({ search: "", period: "", due: "", status: "" })}>
-                  Filtrni tozalash
+                  {tx("common.filtrni_tozalash")}
                 </button>
               ) : (
-                <Link className="btn btn-primary" to="/qoshilish">Loyiha topish</Link>
+                <Link className="btn btn-primary" to="/qoshilish">{tx("projects.loyiha_topish")}</Link>
               )}
             </Empty>
           </div>
@@ -372,9 +373,9 @@ function MyProjectTasks() {
                 {/* Loyiha nomi ham havola: vazifasiz ham loyihaning
                     o'ziga kirish yo'li ochiq qolsin. */}
                 <h3><Link {...toProject(id)} className="wl-name">{g.name}</Link></h3>
-                <span className="badge">{g.tasks.length} ta</span>
+                <span className="badge">{g.tasks.length} {tx("common.ta")}</span>
                 <span className="spacer" />
-                <Link className="btn btn-sm" {...toProject(id)}>Loyihaga kirish</Link>
+                <Link className="btn btn-sm" {...toProject(id)}>{tx("projects.loyihaga_kirish")}</Link>
               </div>
               <div className="card-body wl-tasks">
                 {g.tasks.map((t) => (

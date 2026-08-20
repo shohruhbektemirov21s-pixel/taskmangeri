@@ -8,6 +8,7 @@ import { Avatar, Card, Empty, ErrorMsg, Loading, SpecialtyTag, fmtDate, timeAgo 
 import { confirmDialog } from "@/components/Confirm";
 import { useProjectLive } from "@/realtime/RealtimeContext";
 import { toDeveloper, toProjectJoin } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function Members({ project, onChange }: { project: Project; onChange: () => void }) {
   const { meta, user } = useAuth();
@@ -39,7 +40,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
       onChange();
       setVersion((n) => n + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Amalni bajarib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("common.amalni_bajarib_bolmadi"));
     }
   }
 
@@ -76,7 +77,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
       )}
 
       {acc.can_manage && pending.length > 0 && (
-        <Card title="Qoshilish sorovlari" padded={false}
+        <Card title={tx("project_members.qoshilish_sorovlari")} padded={false}
               badge={<span className="badge badge-warn">{pending.length}</span>}>
           <div className="card-list">
             {pending.map((r) => (
@@ -88,7 +89,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
                     <SpecialtyTag user={r.user} />
                     <br />
                     <small className="muted">
-                      {r.user.seniority_display} · istagan roli: {r.desired_role_display} · {timeAgo(r.created_at)}
+                      {r.user.seniority_display} {tx("project_members.istagan_roli")} {r.desired_role_display} · {timeAgo(r.created_at)}
                     </small>
                   </div>
                   <span className="spacer" />
@@ -100,13 +101,13 @@ export default function Members({ project, onChange }: { project: Project; onCha
                   <button className="btn btn-sm btn-primary" onClick={() => {
                     const sel = document.getElementById(`role-${r.id}`) as HTMLSelectElement;
                     void act(() => api.post(`/projects/${project.id}/requests/${r.id}/decide/`, {
-                      action: "approve", role: sel.value, note: "Xush kelibsiz",
+                      action: "approve", role: sel.value, note: tx("project_members.xush_kelibsiz"),
                     }));
-                  }}>Qabul qilish</button>
+                  }}>{tx("common.qabul_qilish")}</button>
                   <button className="btn btn-sm btn-danger" onClick={() =>
                     void act(() => api.post(`/projects/${project.id}/requests/${r.id}/decide/`, {
-                      action: "reject", note: "Hozircha orin yoq",
-                    }))}>Rad etish</button>
+                      action: "reject", note: tx("project_members.hozircha_orin_yoq"),
+                    }))}>{tx("project_members.rad_etish")}</button>
                 </div>
                 {r.message && <div className="tl-detail" style={{ marginTop: 10 }}>{r.message}</div>}
               </div>
@@ -117,10 +118,10 @@ export default function Members({ project, onChange }: { project: Project; onCha
 
       <div className="split">
         <div>
-          <Card title="Jamoa" padded={false} badge={<span className="badge">{active.length}</span>}>
+          <Card title={tx("common.jamoa")} padded={false} badge={<span className="badge">{active.length}</span>}>
             <div className="table-wrap"><table className="table">
               <thead>
-                <tr><th>Azo</th><th>Mutaxassislik</th><th>Rol</th><th>Yuklama</th><th></th></tr>
+                <tr><th>{tx("project_members.azo")}</th><th>{tx("common.mutaxassislik")}</th><th>{tx("common.rol")}</th><th>{tx("project_members.yuklama")}</th><th></th></tr>
               </thead>
               <tbody>
                 {active.map((m) => (
@@ -133,7 +134,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
                           <br />
                           <small className="muted">{m.user.email}</small>
                           {m.user.is_platform_admin && (
-                            <> <span className="badge badge-brand">tizim admini</span></>
+                            <> <span className="badge badge-brand">{tx("project_members.tizim_admini")}</span></>
                           )}
                         </div>
                       </div>
@@ -165,21 +166,21 @@ export default function Members({ project, onChange }: { project: Project; onCha
                       )}
                     </td>
                     <td className="nowrap">
-                      <span className="badge badge-info">{m.load?.open ?? 0} ochiq</span>{" "}
-                      <span className="badge badge-ok">{m.load?.done ?? 0} bajarilgan</span>
+                      <span className="badge badge-info">{m.load?.open ?? 0} {tx("common.ochiq")}</span>{" "}
+                      <span className="badge badge-ok">{m.load?.done ?? 0} {tx("common.bajarilgan_2")}</span>
                     </td>
                     <td className="right"><div className="row-actions">
                       {acc.can_appoint_admin && !isSelf(m) && (
                         m.user.is_platform_admin ? (
                           /* Berilgan huquqni qaytarib olish. Oxirgi admin va bosh
                              hisob serverda himoyalangan - u yerdan 400 keladi. */
-                          <button className="btn btn-sm" title="Tizim admini huquqini bekor qilish"
+                          <button className="btn btn-sm" title={tx("project_members.tizim_admini_huquqini_bekor_qilish")}
                                   onClick={() => void (async () => {
                                     const ok = await confirmDialog({
-                                      title: `${m.user.full_name} adminlikdan chiqarilsinmi?`,
-                                      body: "Tizim admini huquqidan mahrum bo'ladi. "
-                                        + "Loyihadagi roli o'zgarmaydi.",
-                                      confirmText: "Bekor qilish",
+                                      title: tx("project_members.adminlikdan_chiqarilsinmi", { ism: m.user.full_name }),
+                                      body: tx("project_members.tizim_admini_huquqidan_mahrum_boladi")
+                                        + tx("project_members.loyihadagi_roli_ozgarmaydi"),
+                                      confirmText: tx("common.bekor_qilish"),
                                       danger: true,
                                     });
                                     if (!ok) return;
@@ -187,44 +188,44 @@ export default function Members({ project, onChange }: { project: Project; onCha
                                       `/projects/${project.id}/members/${m.id}/`,
                                       { action: "revoke_admin" }));
                                   })()}>
-                            Adminlikni bekor qilish
+                            {tx("project_members.adminlikni_bekor_qilish")}
                           </button>
                         ) : (
-                          <button className="btn btn-sm" title="Tizim admini qilib tayinlash"
+                          <button className="btn btn-sm" title={tx("project_members.tizim_admini_qilib_tayinlash")}
                                   onClick={() => void (async () => {
                                     const ok = await confirmDialog({
-                                      title: `${m.user.full_name} tizim admini bo'lsinmi?`,
-                                      body: "Butun platformada hamma huquqqa ega bo'ladi: "
-                                        + "barcha loyihalar, foydalanuvchilar va sozlamalar.",
-                                      confirmText: "Admin qilish",
+                                      title: tx("project_members.tizim_admini_bolsinmi", { ism: m.user.full_name }),
+                                      body: tx("project_members.butun_platformada_hamma_huquqqa_ega")
+                                        + tx("project_members.barcha_loyihalar_foydalanuvchilar_va_sozlama"),
+                                      confirmText: tx("project_members.admin_qilish"),
                                     });
                                     if (!ok) return;
                                     await act(() => api.post(
                                       `/projects/${project.id}/members/${m.id}/`,
                                       { action: "appoint_admin" }));
                                   })()}>
-                            Admin qilish
+                            {tx("project_members.admin_qilish")}
                           </button>
                         )
                       )}
                       {acc.can_manage && (
                         isSelf(m) ? (
-                          <span className="badge" title="O'zingizga bu yerdan tega olmaysiz">
-                            bu sizsiz
+                          <span className="badge" title={tx("project_members.ozingizga_bu_yerdan_tega_olmaysiz")}>
+                            {tx("project_members.bu_sizsiz")}
                           </span>
                         ) : isManager(m) ? (
-                          <span className="badge" title="Menejerga tegib bo'lmaydi - u loyihadan faqat o'zi chiqadi">
-                            himoyalangan
+                          <span className="badge" title={tx("project_members.menejerga_tegib_bolmaydi_u_loyihadan")}>
+                            {tx("project_members.himoyalangan")}
                           </span>
                         ) : (
                           <button className="btn btn-sm btn-danger" onClick={() => {
                             const note = window.prompt(
-                              "Keyingi dasturchi uchun topshiriq eslatmasi (tarixda saqlanadi):", "");
+                              tx("project_members.keyingi_dasturchi_uchun_topshiriq_eslatmasi"), "");
                             if (note === null) return;
                             void act(() => api.post(`/projects/${project.id}/members/${m.id}/`, {
                               action: "remove", handover_note: note,
                             }));
-                          }}>Chiqarish</button>
+                          }}>{tx("project_members.chiqarish")}</button>
                         )
                       )}
                       </div>
@@ -236,7 +237,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
           </Card>
 
           {former.length > 0 && (
-            <Card title="Sobiq aʼzolar" padded={false}>
+            <Card title={tx("project_members.sobiq_azolar")} padded={false}>
               <div className="card-list">
                 {former.map((m) => (
                   <div className="card-body tight" key={m.id}>
@@ -245,11 +246,11 @@ export default function Members({ project, onChange }: { project: Project; onCha
                       <Link {...toDeveloper(project.id, m.user.id)}>{m.user.full_name}</Link>
                       <span className="badge">{m.role_display}</span>
                       <span className="spacer" />
-                      <small className="muted">chiqqan: {fmtDate(m.left_at)}</small>
+                      <small className="muted">{tx("project_members.chiqqan")} {fmtDate(m.left_at)}</small>
                     </div>
                     {m.handover_note && (
                       <div className="tl-detail" style={{ marginTop: 8 }}>
-                        <strong>Topshiriq eslatmasi:</strong> {m.handover_note}
+                        <strong>{tx("project_members.topshiriq_eslatmasi")}</strong> {m.handover_note}
                       </div>
                     )}
                   </div>
@@ -259,7 +260,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
           )}
 
           {decided.length > 0 && acc.can_manage && (
-            <Card title="Sorovlar tarixi" padded={false}>
+            <Card title={tx("project_members.sorovlar_tarixi")} padded={false}>
               <div className="table-wrap"><table className="table">
                 <tbody>
                   {decided.map((r) => (
@@ -282,17 +283,17 @@ export default function Members({ project, onChange }: { project: Project; onCha
 
         <div>
           {acc.can_manage && (
-            <Card title="Qoshilish kodi">
+            <Card title={tx("project_members.qoshilish_kodi")}>
               <div className="muted" style={{ fontSize: 12 }}>
-                Kod bilan o'zi qo'shilishi uchun: <code>{project.join_code}</code>
+                {tx("project_members.kod_bilan_ozi_qoshilishi_uchun")} <code>{project.join_code}</code>
               </div>
             </Card>
           )}
 
           {!acc.is_member && (
-            <Card title="Qoshilish">
+            <Card title={tx("common.qoshilish")}>
               <Link className="btn btn-primary btn-block" {...toProjectJoin(project.id)}>
-                Sorov yuborish
+                {tx("project_members.sorov_yuborish")}
               </Link>
             </Card>
           )}
@@ -302,35 +303,34 @@ export default function Members({ project, onChange }: { project: Project; onCha
               menejerdan yashirilardi va loyiha menejeri interfeys orqali
               hech qachon o'zgarmas bo'lib qolardi. */}
           {acc.is_member && (
-            <Card title="Loyihadan chiqish">
+            <Card title={tx("project_members.loyihadan_chiqish")}>
               {acc.is_manager && (
                 <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>
-                  Siz loyiha menejerisiz - chiqsangiz loyiha menejersiz qoladi va
-                  yangisini tizim admini tayinlaydi.
+                  {tx("project_members.siz_loyiha_menejerisiz_chiqsangiz_loyiha")}
                 </p>
               )}
               <button className="btn btn-danger btn-block" onClick={() => void (async () => {
                 if (acc.is_manager) {
                   const ok = await confirmDialog({
-                    title: "Loyiha menejerligidan chiqasizmi?",
-                    body: "Loyiha menejersiz qoladi. O'zingizni qaytara olmaysiz - "
-                      + "yangi menejerni tizim admini tayinlaydi.",
-                    confirmText: "Chiqish",
+                    title: tx("project_members.loyiha_menejerligidan_chiqasizmi"),
+                    body: tx("project_members.loyiha_menejersiz_qoladi_ozingizni_qaytara")
+                      + tx("project_members.yangi_menejerni_tizim_admini_tayinlaydi"),
+                    confirmText: tx("common.chiqish"),
                     danger: true,
                   });
                   if (!ok) return;
                 }
-                const note = window.prompt("Keyingi dasturchi uchun eslatma qoldiring:", "");
+                const note = window.prompt(tx("project_members.keyingi_dasturchi_uchun_eslatma_qoldiring"), "");
                 if (note === null) return;
                 await act(() => api.post(`/projects/${project.id}/leave/`,
                                          { handover_note: note }));
-              })()}>Chiqish</button>
+              })()}>{tx("common.chiqish")}</button>
             </Card>
           )}
         </div>
       </div>
 
-      {!active.length && <Empty title="Jamoa hali shakllanmagan" />}
+      {!active.length && <Empty title={tx("project_members.jamoa_hali_shakllanmagan")} />}
     </>
   );
 }

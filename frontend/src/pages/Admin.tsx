@@ -24,6 +24,7 @@ import {
   Avatar, Card, Empty, ErrorMsg, Loading, confirmDelete, fmtDate,
 } from "@/components/ui";
 import { toProject, toUser } from "@/nav";
+import { tx } from "@/i18n";
 
 type Tab = "users" | "projects";
 
@@ -81,11 +82,11 @@ export default function Admin() {
     setBusy(true);
     try {
       await api.post("/users/create/", form);
-      done(`«${form.full_name}» uchun hisob ochildi. Login: ${form.email}`);
+      done(tx("admin.hisob_ochildi", { ism: form.full_name, login: form.email }));
       setForm(EMPTY_FORM);
       setCreating(false);
     } catch (err) {
-      failed(err, "Hisob ochib bo'lmadi");
+      failed(err, tx("admin.hisob_ochib_bolmadi"));
     } finally {
       setBusy(false);
     }
@@ -97,7 +98,7 @@ export default function Admin() {
       await api.patch(`/users/${target.id}/role/`, body);
       done(message);
     } catch (err) {
-      failed(err, "O'zgartirib bo'lmadi");
+      failed(err, tx("admin.ozgartirib_bolmadi"));
     } finally {
       setBusy(false);
     }
@@ -105,14 +106,14 @@ export default function Admin() {
 
   async function resetPassword(target: User) {
     const next = window.prompt(
-      `«${target.full_name}» uchun yangi parol (kamida 8 belgi):`, "");
+      tx("admin.yangi_parol_soraladi", { ism: target.full_name }), "");
     if (next === null) return;
     setBusy(true);
     try {
       await api.post(`/users/${target.id}/set-password/`, { password: next });
-      done(`«${target.full_name}» paroli almashtirildi. Yangi parolni unga o'zingiz ayting.`);
+      done(tx("admin.parol_almashtirildi", { ism: target.full_name }));
     } catch (err) {
-      failed(err, "Parolni almashtirib bo'lmadi");
+      failed(err, tx("admin.parolni_almashtirib_bolmadi"));
     } finally {
       setBusy(false);
     }
@@ -122,8 +123,8 @@ export default function Admin() {
     if (target.is_active && !(await confirmDelete(`${target.full_name} hisobini o'chirish`))) return;
     await patchUser(target, { is_active: !target.is_active },
                     target.is_active
-                      ? `«${target.full_name}» hisobi o'chirildi.`
-                      : `«${target.full_name}» hisobi qayta yoqildi.`);
+                      ? tx("admin.hisob_ochirildi", { ism: target.full_name })
+                      : tx("admin.hisob_qayta_yoqildi", { ism: target.full_name }));
   }
 
   const counts = {
@@ -135,8 +136,8 @@ export default function Admin() {
   return (
     <>
       <PageHead
-        title={<strong>Admin panel</strong>}
-        subtitle="Hisoblar, rollar va loyihalar — bir joyda"
+        title={<strong>{tx("common.admin_panel")}</strong>}
+        subtitle={tx("admin.hisoblar_rollar_va_loyihalar_bir")}
         tabs={[
           ["users", `Foydalanuvchilar${counts.users ? ` (${counts.users})` : ""}`],
           ["projects", `Loyihalar${counts.projects ? ` (${counts.projects})` : ""}`],
@@ -155,56 +156,56 @@ export default function Admin() {
           <>
             <div className="filters">
               <div className="f grow">
-                <label htmlFor="adm-q">Qidiruv</label>
+                <label htmlFor="adm-q">{tx("common.qidiruv")}</label>
                 <input id="adm-q" value={q} onChange={(e) => setQ(e.target.value)}
-                       placeholder="Ism, login yoki lavozim boyicha" />
+                       placeholder={tx("admin.ism_login_yoki_lavozim_boyicha")} />
               </div>
               <div className="f">
-                <label htmlFor="adm-role">Rol</label>
+                <label htmlFor="adm-role">{tx("common.rol")}</label>
                 <select id="adm-role" value={role} onChange={(e) => setRole(e.target.value)}>
-                  <option value="">Hammasi</option>
+                  <option value="">{tx("common.hammasi")}</option>
                   {(meta?.global_role || []).map((r) => (
                     <option key={String(r.value)} value={String(r.value)}>{r.label}</option>
                   ))}
                 </select>
               </div>
-              <label className="cal-check" title="O'chirilgan hisoblarni ko'rsatish">
+              <label className="cal-check" title={tx("admin.ochirilgan_hisoblarni_korsatish")}>
                 <input type="checkbox" checked={showInactive}
                        onChange={() => setShowInactive((v) => !v)} />
-                O'chirilganlar
+                {tx("admin.ochirilganlar")}
               </label>
               <button type="button" className="btn btn-primary"
                       onClick={() => { setCreating((v) => !v); setOkMsg(null); }}>
-                {creating ? "Bekor qilish" : "Yangi hisob"}
+                {creating ? tx("common.bekor_qilish") : tx("admin.yangi_hisob")}
               </button>
             </div>
 
             {creating && (
-              <Card title="Yangi hisob">
+              <Card title={tx("admin.yangi_hisob")}>
                 <form onSubmit={createUser}>
                   <div className="row wrap" style={{ gap: 12 }}>
                     <div className="field" style={{ flex: "1 1 220px" }}>
-                      <label htmlFor="nu-name">F.I.Sh.</label>
+                      <label htmlFor="nu-name">{tx("common.f_i_sh")}</label>
                       <input id="nu-name" required value={form.full_name}
                              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                             placeholder="Abdraxmanov Toxir Toxtasinovich" />
+                             placeholder={tx("admin.abdraxmanov_toxir_toxtasinovich")} />
                     </div>
                     <div className="field" style={{ flex: "1 1 180px" }}>
-                      <label htmlFor="nu-login">Login</label>
+                      <label htmlFor="nu-login">{tx("admin.login")}</label>
                       <input id="nu-login" required value={form.email}
                              onChange={(e) => setForm({ ...form, email: e.target.value })}
-                             placeholder="Abdraxmanov" />
+                             placeholder={tx("admin.abdraxmanov")} />
                     </div>
                     <div className="field" style={{ flex: "1 1 180px" }}>
-                      <label htmlFor="nu-pass">Parol</label>
+                      <label htmlFor="nu-pass">{tx("common.parol")}</label>
                       <input id="nu-pass" required minLength={8} value={form.password}
                              onChange={(e) => setForm({ ...form, password: e.target.value })}
-                             placeholder="Kamida 8 belgi" />
+                             placeholder={tx("admin.kamida_8_belgi")} />
                     </div>
                   </div>
                   <div className="row wrap" style={{ gap: 12 }}>
                     <div className="field" style={{ flex: "1 1 160px" }}>
-                      <label htmlFor="nu-role">Rol</label>
+                      <label htmlFor="nu-role">{tx("common.rol")}</label>
                       <select id="nu-role" value={form.global_role}
                               onChange={(e) => setForm({ ...form, global_role: e.target.value })}>
                         {(meta?.global_role || []).map((r) => (
@@ -213,17 +214,17 @@ export default function Admin() {
                       </select>
                     </div>
                     <div className="field" style={{ flex: "1 1 200px" }}>
-                      <label htmlFor="nu-spec">Mutaxassislik</label>
+                      <label htmlFor="nu-spec">{tx("common.mutaxassislik")}</label>
                       <select id="nu-spec" value={form.specialty}
                               onChange={(e) => setForm({ ...form, specialty: e.target.value })}>
-                        <option value="">Tanlanmagan</option>
+                        <option value="">{tx("admin.tanlanmagan")}</option>
                         {(meta?.specialties || []).map((s: any) => (
                           <option key={String(s.value)} value={String(s.value)}>{s.label}</option>
                         ))}
                       </select>
                     </div>
                     <div className="field" style={{ flex: "1 1 160px" }}>
-                      <label htmlFor="nu-sen">Daraja</label>
+                      <label htmlFor="nu-sen">{tx("common.daraja")}</label>
                       <select id="nu-sen" value={form.seniority}
                               onChange={(e) => setForm({ ...form, seniority: e.target.value })}>
                         {(meta?.seniority || []).map((s) => (
@@ -235,32 +236,31 @@ export default function Admin() {
                   {/* Parol ochiq ko'rinadi - admin uni egasiga aytishi kerak,
                       shuning uchun yashirishning ma'nosi yo'q. */}
                   <p className="muted" style={{ fontSize: 12.5 }}>
-                    Parolni hisob egasiga o'zingiz yetkazasiz — tizim uni hech qayerga
-                    yubormaydi va keyin ko'rsatmaydi.
+                    {tx("admin.parolni_hisob_egasiga_ozingiz_yetkazasiz")}
                   </p>
                   <button className="btn btn-primary" disabled={busy}>
-                    {busy ? "Ochilmoqda..." : "Hisob ochish"}
+                    {busy ? tx("admin.ochilmoqda") : tx("admin.hisob_ochish")}
                   </button>
                 </form>
               </Card>
             )}
 
             {loading ? <Loading /> : !users?.length ? (
-              <Card><Empty title="Hech kim topilmadi"
-                           text="Qidiruvni yoki filtrni o'zgartiring." /></Card>
+              <Card><Empty title={tx("common.hech_kim_topilmadi")}
+                           text={tx("admin.qidiruvni_yoki_filtrni_ozgartiring")} /></Card>
             ) : (
-              <Card padded={false} badge={<span className="badge">{counts.admins} admin</span>}
-                    title="Hisoblar">
+              <Card padded={false} badge={<span className="badge">{counts.admins} {tx("admin.admin")}</span>}
+                    title={tx("admin.hisoblar")}>
                 <div className="table-wrap"><table className="table">
                   <thead>
                     <tr>
-                      <th>Odam</th>
-                      <th>Login</th>
-                      <th>Rol</th>
-                      <th className="right">Loyiha</th>
-                      <th className="right">Ochiq ish</th>
-                      <th>Qo'shilgan</th>
-                      <th className="right">Amallar</th>
+                      <th>{tx("admin.odam")}</th>
+                      <th>{tx("admin.login")}</th>
+                      <th>{tx("common.rol")}</th>
+                      <th className="right">{tx("common.loyiha")}</th>
+                      <th className="right">{tx("admin.ochiq_ish")}</th>
+                      <th>{tx("admin.qoshilgan")}</th>
+                      <th className="right">{tx("common.amallar")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -271,7 +271,7 @@ export default function Admin() {
                             <Avatar user={u} size="sm" />
                             <div style={{ minWidth: 0 }}>
                               <Link {...toUser(u.id)}>{u.full_name}</Link>
-                              {!u.is_active && <span className="badge"> o'chirilgan</span>}
+                              {!u.is_active && <span className="badge"> {tx("admin.ochirilgan")}</span>}
                               <br />
                               <small className="muted">{u.specialty_display || "—"}</small>
                             </div>
@@ -286,7 +286,7 @@ export default function Admin() {
                           <select className="admin-role"
                                   value={u.global_role} disabled={busy || u.id === me?.id}
                                   title={u.id === me?.id
-                                    ? "O'z rolingizni o'zingiz o'zgartira olmaysiz"
+                                    ? tx("admin.oz_rolingizni_ozingiz_ozgartira_olmaysiz")
                                     : undefined}
                                   onChange={(e) => void patchUser(
                                     u, { global_role: e.target.value },
@@ -296,7 +296,7 @@ export default function Admin() {
                             ))}
                           </select>
                           {u.is_platform_admin && (
-                            <span className={`badge ${ROLE_TONE.ADMIN}`}> admin</span>
+                            <span className={`badge ${ROLE_TONE.ADMIN}`}> {tx("admin.admin")}</span>
                           )}
                         </td>
                         <td className="right">{(u as any).project_count ?? 0}</td>
@@ -304,10 +304,10 @@ export default function Admin() {
                         <td className="nowrap muted">{fmtDate(u.date_joined)}</td>
                         <td className="right nowrap">
                           <button type="button" className="btn btn-sm" disabled={busy}
-                                  onClick={() => void resetPassword(u)}>Parol</button>{" "}
+                                  onClick={() => void resetPassword(u)}>{tx("common.parol")}</button>{" "}
                           <button type="button" className="btn btn-sm" disabled={busy || u.id === me?.id}
                                   onClick={() => void toggleActive(u)}>
-                            {u.is_active ? "O'chirish" : "Yoqish"}
+                            {u.is_active ? tx("common.ochirish") : tx("admin.yoqish")}
                           </button>
                         </td>
                       </tr>
@@ -318,19 +318,19 @@ export default function Admin() {
             )}
           </>
         ) : (
-          <Card padded={false} title="Barcha loyihalar">
+          <Card padded={false} title={tx("common.barcha_loyihalar")}>
             {!projects?.length ? (
-              <Empty title="Loyiha yo'q" text="Hali birorta loyiha ochilmagan." />
+              <Empty title={tx("admin.loyiha_yoq")} text={tx("admin.hali_birorta_loyiha_ochilmagan")} />
             ) : (
               <div className="table-wrap"><table className="table">
                 <thead>
                   <tr>
-                    <th>Loyiha</th>
-                    <th>Ish maydoni</th>
-                    <th>Menejer</th>
-                    <th className="right">A'zo</th>
-                    <th className="right">Ochiq ish</th>
-                    <th className="right">Jarayon</th>
+                    <th>{tx("common.loyiha")}</th>
+                    <th>{tx("admin.ish_maydoni")}</th>
+                    <th>{tx("admin.menejer")}</th>
+                    <th className="right">{tx("admin.azo")}</th>
+                    <th className="right">{tx("admin.ochiq_ish")}</th>
+                    <th className="right">{tx("admin.jarayon")}</th>
                   </tr>
                 </thead>
                 <tbody>

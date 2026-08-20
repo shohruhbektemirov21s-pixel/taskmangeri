@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { Activity } from "@/api/types";
 import { Avatar, fmtDateTime, timeAgo } from "./ui";
 import { toProject, toTask } from "@/nav";
+import { tx } from "@/i18n";
 
 /**
  * Tarix lentasi.
@@ -13,7 +14,7 @@ import { toProject, toTask } from "@/nav";
 export default function Timeline({
   items, showProject = true, compact = false,
 }: { items: Activity[]; showProject?: boolean; compact?: boolean }) {
-  if (!items.length) return <p className="muted center">Hozircha yozuv yoq.</p>;
+  if (!items.length) return <p className="muted center">{tx("timeline.hozircha_yozuv_yoq")}</p>;
   return (
     <div className={`timeline ${compact ? "compact" : ""}`}>
       {items.map((a) => {

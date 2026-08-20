@@ -14,6 +14,12 @@ AVATAR_COLORS = [
 
 class GlobalRole(models.TextChoices):
     ADMIN = "ADMIN", "Admin"
+    # Boshliq - takliflar bo'yicha qaror qabul qiladigan yagona rol.
+    # Tizim adminidan ataylab AJRATILGAN: admin texnik huquqlarni boshqaradi,
+    # boshliq esa jamoaning taklifini tasdiqlaydi yoki rad etadi. Ikkovini
+    # bitta rolga qo'shsak, "faqat boshliq qaror qiladi" degan qoida
+    # har bir adminga tarqalib ketardi.
+    BOSS = "BOSS", "Boshliq"
     MANAGER = "MANAGER", "Loyiha menejeri"
     DEVELOPER = "DEVELOPER", "Dasturchi"
 
@@ -90,6 +96,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_platform_admin(self):
         return self.global_role == GlobalRole.ADMIN or self.is_superuser
+
+    @property
+    def is_boss(self):
+        """Takliflar bo'yicha qaror qabul qiladigan odam.
+
+        Tizim admini bu yerga KIRMAYDI - talab «tasdiqlash faqat
+        boshliqqa». Admin kerak bo'lsa `django-admin/` dan birovga
+        «Boshliq» rolini bera oladi, lekin o'zi taklifni tasdiqlay olmaydi.
+        """
+        return self.global_role == GlobalRole.BOSS
 
     @property
     def can_create_project(self):

@@ -5,7 +5,7 @@ export type TaskStatusValue =
   | "CHANGES_REQUESTED" | "BLOCKED" | "DONE" | "CANCELLED";
 
 export type ProjectRoleValue = "MANAGER" | "ADMIN" | "DEVELOPER" | "QA" | "VIEWER";
-export type GlobalRoleValue = "ADMIN" | "MANAGER" | "DEVELOPER";
+export type GlobalRoleValue = "ADMIN" | "BOSS" | "MANAGER" | "DEVELOPER";
 export type VerdictValue = "APPROVED" | "CHANGES_REQUESTED" | "REJECTED";
 
 export interface UserBrief {
@@ -41,6 +41,14 @@ export interface User extends UserBrief {
   default_project_role: string;
   /** Loyiha va ish maydoni ocha oladimi - faqat menejer va admin */
   can_create_project: boolean;
+  /**
+   * Takliflar bo'yicha qaror qabul qiladimi.
+   *
+   * Tizim admini bu yerga kirmaydi: tasdiqlash faqat «Boshliq» rolida.
+   * Frontend faqat tugmani yashiradi - haqiqiy tekshiruv serverda
+   * (`SuggestionViewSet.decide`).
+   */
+  is_boss: boolean;
   /**
    * Amalda biror loyihani boshqaradimi (menejeri yoki loyiha admini).
    *
@@ -801,4 +809,71 @@ export interface UserWork {
   activity: Activity[];
   /** true bo'lsa - ro'yxat so'rovchining huquqi bilan cheklangan */
   limited: boolean;
+}
+
+/* ------------------------------------------------------------------ Takliflar */
+
+/** Ochiq — hamma ko'radi; Yopiq — faqat muallif va boshliq. */
+export type SuggestionScopeValue = "OPEN" | "CLOSED";
+export type SuggestionStatusValue = "PENDING" | "APPROVED" | "REJECTED";
+export type VoteChoiceValue = "FOR" | "AGAINST" | "NEUTRAL";
+
+/** Taklifga biriktirilgan fayl. */
+export interface SuggestionFile {
+  id: number;
+  url: string;
+  original_name: string;
+  size: number;
+  size_display: string;
+  content_type: string;
+  extension: string;
+  is_image: boolean;
+  /** Kim yuklagani — anonim taklifda `null`. */
+  uploaded_by: UserBrief | null;
+  created_at: string;
+}
+
+export interface Suggestion {
+  id: number;
+  title: string;
+  body: string;
+  scope: SuggestionScopeValue;
+  scope_display: string;
+  is_anonymous: boolean;
+  status: SuggestionStatusValue;
+  status_display: string;
+  /** Anonim taklifda `null` — muallif hech kimga ko'rsatilmaydi. */
+  author: UserBrief | null;
+
+  decided_by: UserBrief | null;
+  decided_at: string | null;
+  decision_note: string;
+
+  /** Ovoz sonlari. Kim bergani hech qachon kelmaydi. */
+  for_count: number;
+  against_count: number;
+  neutral_count: number;
+  /** `for_count - against_count` — ro'yxat shu bo'yicha saralanadi. */
+  score: number;
+  /** So'ragan odamning O'Z tanlovi (yoki `null`). */
+  my_vote: VoteChoiceValue | null;
+
+  /** Biriktirilgan fayllar — bo'lmasa bo'sh massiv. */
+  files: SuggestionFile[];
+
+  is_mine: boolean;
+  can_edit: boolean;
+  can_decide: boolean;
+  can_vote: boolean;
+
+  created_at: string;
+  updated_at: string;
+}
+
+/** `GET /api/suggestions/counts/` javobi */
+export interface SuggestionCounts {
+  open: number;
+  closed: number;
+  /** Boshliq uchun: qaror kutayotganlar soni (boshqalarda 0). */
+  pending: number;
 }

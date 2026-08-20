@@ -15,6 +15,7 @@ import { confirmDialog } from "@/components/Confirm";
 import { toMessages, toMyWork, toProject, toTask, useEntityId } from "@/nav";
 import PasswordCard from "@/components/PasswordCard";
 import TelegramCard from "@/components/TelegramCard";
+import { tx } from "@/i18n";
 
 /** Profil kartasidagi vazifalar ro'yxati bir sahifada nechta. */
 const TASKS_PER_PAGE = 10;
@@ -69,7 +70,7 @@ export default function Profile() {
       // Ko'rinish serverda so'rovchining huquqiga qarab cheklanadi.
       const w = await api.get<UserWork>(`/users/${u.id}/work/`);
       if (alive) setWork(w);
-    })().catch(() => { if (alive) setError("Profilni ochib bolmadi"); });
+    })().catch(() => { if (alive) setError(tx("profile.profilni_ochib_bolmadi")); });
     return () => { alive = false; };
   }, [userId, isSelf]);
 
@@ -82,10 +83,10 @@ export default function Profile() {
       const body = new FormData();
       body.append("avatar", file);
       setTarget(await api.post<User>("/auth/me/avatar/", body));
-      setSaved("Profil rasmi yangilandi.");
+      setSaved(tx("profile.profil_rasmi_yangilandi"));
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Rasmni yuklab bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("profile.rasmni_yuklab_bolmadi"));
     } finally {
       setPhotoBusy(false);
     }
@@ -93,9 +94,9 @@ export default function Profile() {
 
   async function removePhoto() {
     const ok = await confirmDialog({
-      title: "Profil rasmi o'chirilsinmi?",
+      title: tx("profile.profil_rasmi_ochirilsinmi"),
       body: "O'rniga ism harflaridan tuzilgan belgi ko'rinadi. Keyin yangisini yuklashingiz mumkin.",
-      confirmText: "O'chirish",
+      confirmText: tx("common.ochirish"),
       danger: true,
     });
     if (!ok) return;
@@ -104,10 +105,10 @@ export default function Profile() {
     setSaved(null);
     try {
       setTarget(await api.delete<User>("/auth/me/avatar/"));
-      setSaved("Profil rasmi ochirildi.");
+      setSaved(tx("profile.profil_rasmi_ochirildi"));
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Rasmni ochirib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("profile.rasmni_ochirib_bolmadi"));
     } finally {
       setPhotoBusy(false);
     }
@@ -121,11 +122,11 @@ export default function Profile() {
     try {
       const u = await api.patch<User>("/auth/me/", form);
       setTarget(u);
-      setSaved("Profil yangilandi.");
+      setSaved(tx("profile.profil_yangilandi"));
       setEdit(false);
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Saqlashda xatolik");
+      setError(err instanceof ApiError ? err.message : tx("common.saqlashda_xatolik"));
     } finally {
       setBusy(false);
     }
@@ -162,17 +163,17 @@ export default function Profile() {
            tugmasi esa sarlavhada. Aks holda pastki maydonni to'ldirgan odam
            tugmani ko'rmay qolardi. */
         sticky={isSelf && edit}
-        title={<><span className="muted">profil / </span><strong>{target.full_name}</strong></>}
+        title={<><span className="muted">{tx("profile.profil")} </span><strong>{target.full_name}</strong></>}
         actions={
           <>
             {!isSelf && (
               <Link className="btn btn-sm" {...toMessages(target.id)}>
-                <IconChat size={14} /> Xabar yozish
+                <IconChat size={14} /> {tx("profile.xabar_yozish")}
               </Link>
             )}
             {isSelf && !edit && (
               <button className="btn btn-sm btn-primary" onClick={() => setEdit(true)}>
-                Tahrirlash
+                {tx("common.tahrirlash")}
               </button>
             )}
             {/* Tahrirlash paytida saqlash tugmasi SHU YERDA - sarlavhaning
@@ -186,10 +187,10 @@ export default function Profile() {
               <>
                 <button className="btn btn-sm btn-primary" type="submit"
                         form={`${fid}-form`} disabled={busy}>
-                  {busy ? "Saqlanmoqda..." : "Saqlash"}
+                  {busy ? tx("common.saqlanmoqda") : tx("common.saqlash")}
                 </button>
                 <button className="btn btn-sm" type="button" onClick={() => setEdit(false)}>
-                  Bekor qilish
+                  {tx("common.bekor_qilish")}
                 </button>
               </>
             )}
@@ -210,7 +211,7 @@ export default function Profile() {
                   {isSelf && (
                     <div className="avatar-edit" style={{ marginTop: 10 }}>
                       <label className="btn btn-sm" style={{ marginBottom: 0 }}>
-                        {target.avatar ? "Almashtirish" : "Rasm qoyish"}
+                        {target.avatar ? tx("profile.almashtirish") : tx("profile.rasm_qoyish")}
                         <input type="file" accept="image/*" disabled={photoBusy}
                                onChange={(e) => {
                                  const file = e.target.files?.[0];
@@ -221,7 +222,7 @@ export default function Profile() {
                       {target.avatar && (
                         <button type="button" className="btn btn-sm btn-danger"
                                 disabled={photoBusy} onClick={() => void removePhoto()}>
-                          Ochirish
+                          {tx("common.ochirish_2")}
                         </button>
                       )}
                     </div>
@@ -232,7 +233,7 @@ export default function Profile() {
                   <p className="muted" style={{ margin: "4px 0" }}>{target.job_title}</p>
                   <div className="row wrap" style={{ gap: 6 }}>
                     <span className="badge">{target.seniority_display}</span>
-                    <span className="badge">{target.years_experience} yil tajriba</span>
+                    <span className="badge">{target.years_experience} {tx("profile.yil_tajriba")}</span>
                     <span className="badge badge-info">{target.global_role_display}</span>
                   </div>
                   {target.bio && <p className="pre-wrap" style={{ marginTop: 10 }}>{target.bio}</p>}
@@ -240,7 +241,7 @@ export default function Profile() {
                     {target.skill_list.map((s) => <span className="chip" key={s}>{s}</span>)}
                     {!target.skill_list.length && isSelf && !edit && (
                       <button type="button" className="btn btn-sm" onClick={() => setEdit(true)}>
-                        Konikma qoshish
+                        {tx("profile.konikma_qoshish")}
                       </button>
                     )}
                   </div>
@@ -249,12 +250,12 @@ export default function Profile() {
             </div>
 
             {edit && (
-              <Card title="Profilni tahrirlash">
+              <Card title={tx("profile.profilni_tahrirlash")}>
                 <form id={`${fid}-form`} onSubmit={save}>
                   {[
-                    ["full_name", "F.I.Sh.", "text"],
-                    ["job_title", "Lavozim", "text"],
-                    ["telegram", "Telegram", "text"],
+                    ["full_name", tx("common.f_i_sh"), "text"],
+                    ["job_title", tx("profile.lavozim"), "text"],
+                    ["telegram", tx("profile.telegram_2"), "text"],
                   ].map(([k, label]) => (
                     <div className="field" key={k}>
                       <label htmlFor={`${fid}-0`}>{label}</label>
@@ -263,7 +264,7 @@ export default function Profile() {
                     </div>
                   ))}
                   <div className="field">
-                    <label htmlFor={`${fid}-4`}>Konikmalar</label>
+                    <label htmlFor={`${fid}-4`}>{tx("profile.konikmalar")}</label>
                     <SkillEditor
                       id={`${fid}-4`}
                       value={form.skills || ""}
@@ -274,7 +275,7 @@ export default function Profile() {
 
                   <div className="row">
                     <div className="field" style={{ flex: 1 }}>
-                      <label htmlFor={`${fid}-1`}>Daraja</label>
+                      <label htmlFor={`${fid}-1`}>{tx("common.daraja")}</label>
                       <select id={`${fid}-1`} value={form.seniority || ""}
                               onChange={(e) => setForm({ ...form, seniority: e.target.value })}>
                         {(meta?.seniority || []).map((s) => (
@@ -283,13 +284,13 @@ export default function Profile() {
                       </select>
                     </div>
                     <div className="field" style={{ width: 140 }}>
-                      <label htmlFor={`${fid}-2`}>Tajriba (yil)</label>
+                      <label htmlFor={`${fid}-2`}>{tx("profile.tajriba_yil")}</label>
                       <input id={`${fid}-2`} type="number" min={0} max={30} value={form.years_experience || "0"}
                              onChange={(e) => setForm({ ...form, years_experience: e.target.value })} />
                     </div>
                   </div>
                   <div className="field">
-                    <label htmlFor={`${fid}-3`}>Qisqacha maʼlumot</label>
+                    <label htmlFor={`${fid}-3`}>{tx("profile.qisqacha_malumot")}</label>
                     <textarea id={`${fid}-3`} rows={3} value={form.bio || ""}
                               onChange={(e) => setForm({ ...form, bio: e.target.value })} />
                   </div>
@@ -297,12 +298,12 @@ export default function Profile() {
               </Card>
             )}
 
-            <Card title={isSelf ? "Songgi vazifalarim" : "Songgi vazifalari"} padded={false}
+            <Card title={isSelf ? tx("profile.songgi_vazifalarim") : tx("profile.songgi_vazifalari")} padded={false}
                   badge={<span className="badge">{tasks.length}</span>}
                   action={pickedStat && (
                     <button type="button" className="btn btn-sm"
                             onClick={() => { setTaskPage(1); setPickedStat(null); }}>
-                      Filtrni tozalash
+                      {tx("common.filtrni_tozalash")}
                     </button>
                   )}>
               <div className="table-wrap"><table className="table">
@@ -320,7 +321,7 @@ export default function Profile() {
                   ))}
                   {!tasks.length && (
                     <tr><td className="muted center">
-                      {pickedStat ? "Bu kesimda vazifa yoq" : "Vazifa yoq"}
+                      {pickedStat ? tx("profile.bu_kesimda_vazifa_yoq") : tx("profile.vazifa_yoq")}
                     </td></tr>
                   )}
                 </tbody>
@@ -329,8 +330,8 @@ export default function Profile() {
               {taskPages > 1 && (
                 <div className="card-body pager-bar">
                   <span className="muted">
-                    {tasks.length} tadan {(page - 1) * TASKS_PER_PAGE + 1}—
-                    {Math.min(page * TASKS_PER_PAGE, tasks.length)} tasi
+                    {tasks.length} {tx("common.tadan")} {(page - 1) * TASKS_PER_PAGE + 1}—
+                    {Math.min(page * TASKS_PER_PAGE, tasks.length)} {tx("common.tasi")}
                   </span>
                   <Pager page={page} pages={taskPages} onPick={setTaskPage} />
                 </div>
@@ -340,12 +341,12 @@ export default function Profile() {
             {/* Tarix uzun bo'lishi mumkin (o'nlab yozuv) va u sahifaning
                 qolgan qismini pastga surib yuboradi. Shuning uchun yig'ilgan
                 holda ochiladi - sanoq nishonda ko'rinib turadi. */}
-            <Card title={isSelf ? "Nima qilganman" : "Nima qilgan"} padded={false}
+            <Card title={isSelf ? tx("profile.nima_qilganman") : tx("profile.nima_qilgan")} padded={false}
                   collapsible defaultOpen={false}
                   badge={<span className="badge">{(work?.activity || []).length}</span>}>
               {work?.activity?.length
                 ? <div className="card-body"><Timeline items={work.activity} /></div>
-                : <div className="empty">Hozircha yozuv yo'q</div>}
+                : <div className="empty">{tx("profile.hozircha_yozuv_yoq")}</div>}
             </Card>
 
           </div>
@@ -354,20 +355,20 @@ export default function Profile() {
             <div className="grid grid-2 mb">
               {/* Uchtasi ro'yxatni filtrlaydi, soat esa yo'q - u yig'indi,
                   ro'yxatga aylanmaydi. */}
-              <Stat value={stats?.open ?? 0} label="Ochiq vazifa" tone="accent"
+              <Stat value={stats?.open ?? 0} label={tx("common.ochiq_vazifa_2")} tone="accent"
                     onClick={() => pickStat("open")}
-                    title="Ochiq ishlarni royxatda korish" />
-              <Stat value={stats?.done ?? 0} label="Bajarilgan" tone="ok"
+                    title={tx("profile.ochiq_ishlarni_royxatda_korish")} />
+              <Stat value={stats?.done ?? 0} label={tx("common.bajarilgan")} tone="ok"
                     onClick={() => pickStat("done")}
-                    title="Bajarilgan ishlarni royxatda korish" />
-              <Stat value={stats?.in_review ?? 0} label="Tekshiruvda" tone="done"
+                    title={tx("profile.bajarilgan_ishlarni_royxatda_korish")} />
+              <Stat value={stats?.in_review ?? 0} label={tx("common.tekshiruvda")} tone="done"
                     onClick={() => pickStat("in_review")}
-                    title="Tekshiruvdagi ishlarni royxatda korish" />
-              <Stat value={stats?.hours ?? 0} label="Sarflangan soat" tone="warn" />
+                    title={tx("profile.tekshiruvdagi_ishlarni_royxatda_korish")} />
+              <Stat value={stats?.hours ?? 0} label={tx("common.sarflangan_soat")} tone="warn" />
             </div>
 
             {!!work?.projects?.length && (
-              <Card title={isSelf ? "Loyihalarim" : "Loyihalari"} padded={false}
+              <Card title={isSelf ? tx("common.loyihalarim") : tx("profile.loyihalari")} padded={false}
                     badge={<span className="badge">{work.projects.length}</span>}>
                 <div className="card-list">
                   {work.projects.map((p) => (
@@ -391,11 +392,11 @@ export default function Profile() {
             {isSelf && <PasswordCard />}
             {isSelf && <TelegramCard />}
 
-            <Card title="Aloqa">
+            <Card title={tx("profile.aloqa")}>
               <ul className="list-plain" style={{ fontSize: 13 }}>
-                <li><span className="muted">Email:</span> {target.email}</li>
-                {target.telegram && <li><span className="muted">Telegram:</span> {target.telegram}</li>}
-                <li><span className="muted">Royxatdan otgan:</span> {fmtDate(target.date_joined)}</li>
+                <li><span className="muted">{tx("profile.email")}</span> {target.email}</li>
+                {target.telegram && <li><span className="muted">{tx("profile.telegram")}</span> {target.telegram}</li>}
+                <li><span className="muted">{tx("profile.royxatdan_otgan")}</span> {fmtDate(target.date_joined)}</li>
               </ul>
             </Card>
           </div>

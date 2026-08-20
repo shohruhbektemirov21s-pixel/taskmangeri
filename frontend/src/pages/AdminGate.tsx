@@ -24,6 +24,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { Logo } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ErrorMsg, Loading, PasswordInput } from "@/components/ui";
+import { tx } from "@/i18n";
 
 export default function AdminGate() {
   const fid = useId();
@@ -46,7 +47,7 @@ export default function AdminGate() {
       // Muvaffaqiyatda komponent qayta chiziladi va `user` yangilanadi.
       // Agar kirgan hisob admin bo'lmasa - pastdagi ogohlantirish chiqadi.
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Kirishda xatolik");
+      setError(err instanceof ApiError ? err.message : tx("admin_gate.kirishda_xatolik"));
     } finally {
       setBusy(false);
     }
@@ -55,25 +56,24 @@ export default function AdminGate() {
   return (
     <div className="auth-wrap">
       <div className="auth-back">
-        <Link to="/panel">← Ilovaga qaytish</Link>
+        <Link to="/panel">{tx("admin_gate.ilovaga_qaytish")}</Link>
       </div>
       <ThemeToggle className="top-icon theme-float" />
 
       <div className="auth-card">
         <div className="auth-head">
           <Logo size={46} />
-          <h2>Admin panel</h2>
-          <p>Bu bo'lim tizim adminiga — hisoblar, rollar va parollar</p>
+          <h2>{tx("common.admin_panel")}</h2>
+          <p>{tx("admin_gate.bu_bolim_tizim_adminiga_hisoblar")}</p>
         </div>
 
         {/* Kirgan, lekin huquqi yo'q: sabab aytiladi va boshqa hisob bilan
             kirish taklif qilinadi. Ilgari bu holat umuman ko'rsatilmasdi. */}
         {user && (
           <div className="callout mb">
-            <strong>{user.full_name}</strong> hisobida tizim admini huquqi yo'q
-            ({user.global_role_display}).{" "}
+            <strong>{user.full_name}</strong> {tx("admin_gate.hisobida_tizim_admini_huquqi_yoq")}{user.global_role_display}).{" "}
             <button type="button" className="btn btn-sm" onClick={logout}>
-              Chiqish
+              {tx("common.chiqish")}
             </button>
           </div>
         )}
@@ -83,7 +83,7 @@ export default function AdminGate() {
         <div className="auth-box">
           <form onSubmit={submit}>
             <div className="field">
-              <label htmlFor={`${fid}-0`}>Login</label>
+              <label htmlFor={`${fid}-0`}>{tx("admin_gate.login")}</label>
               {/* `type="email"` emas: xizmat hisoblari (masalan `admin`)
                   va familiya ko'rinishidagi loginlar ham kiritilsin. */}
               <input id={`${fid}-0`} type="text" value={email} autoFocus required
@@ -92,14 +92,14 @@ export default function AdminGate() {
                      placeholder="admin" />
             </div>
             <div className="field">
-              <label htmlFor={`${fid}-1`}>Parol</label>
+              <label htmlFor={`${fid}-1`}>{tx("common.parol")}</label>
               {/* `PasswordInput` qiymatning O'ZINI beradi, hodisani emas. */}
               <PasswordInput id={`${fid}-1`} value={password} required
                              autoComplete="current-password"
                              onChange={setPassword} />
             </div>
             <button className="btn btn-primary btn-block" disabled={busy}>
-              {busy ? "Tekshirilmoqda..." : "Kirish"}
+              {busy ? tx("admin_gate.tekshirilmoqda") : tx("common.kirish")}
             </button>
           </form>
         </div>

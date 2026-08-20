@@ -18,6 +18,7 @@
 import { ApiError, api } from "./client";
 import { confirmDialog } from "@/components/Confirm";
 import { confirmDelete } from "@/components/ui";
+import { tx } from "@/i18n";
 
 /** Server 409 bilan qaytaradigan sanoq. */
 interface LiveWork {
@@ -35,15 +36,18 @@ function workText(d: LiveWork) {
   // Noldan katta bo'lgani yoziladi: "0 ta tekshiruvda" degan qator
   // ogohlantirishni uzaytiradi-yu, hech narsa demaydi.
   const rows: [number | undefined, string][] = [
-    [d.in_progress, "jarayonda"],
-    [d.in_review, "tekshiruvda"],
-    [d.changes_requested, "tuzatishda"],
-    [d.blocked, "to'xtab qolgan"],
-    [d.todo, "nazoratda"],
+    [d.in_progress, tx("api_projects.holat_jarayonda")],
+    [d.in_review, tx("api_projects.holat_tekshiruvda")],
+    [d.changes_requested, tx("api_projects.holat_tuzatishda")],
+    [d.blocked, tx("api_projects.toxtab_qolgan")],
+    [d.todo, tx("api_projects.holat_nazoratda")],
   ];
-  const parts = rows.filter(([n]) => Number(n) > 0).map(([n, label]) => `${n} ta ${label}`);
-  const head = `Diqqat: loyihada ${d.open_tasks || 0} ta tugallanmagan ish bor`;
-  return parts.length ? `${head} — ${parts.join(", ")}.` : `${head}.`;
+  const parts = rows.filter(([n]) => Number(n) > 0).map(([n, label]) =>
+    tx("api_projects.nechta_holatda", { n: Number(n), holat: label }));
+  const head = tx("api_projects.tugallanmagan_ish_bor", { n: d.open_tasks || 0 });
+  return parts.length
+    ? tx("api_projects.ogohlantirish_royxat", { bosh: head, royxat: parts.join(", ") })
+    : `${head}.`;
 }
 
 /**
@@ -61,10 +65,10 @@ export async function deleteProject(id: number | string, name: string): Promise<
     const ok = await confirmDialog({
       title: `«${name}» rostdan o'chirilsinmi?`,
       warning: workText(err.data as LiveWork),
-      body: "Bu ishlar loyiha bilan birga ro'yxatlardan, doskadan va taqvimdan "
-            + "yo'qoladi. Tasdiqlasangiz — o'chiriladi.",
-      confirmText: "Ha, o'chirilsin",
-      cancelText: "Yo'q, qolsin",
+      body: tx("api_projects.bu_ishlar_loyiha_bilan_birga")
+            + tx("api_projects.yoqoladi_tasdiqlasangiz_ochiriladi"),
+      confirmText: tx("api_projects.ha_ochirilsin"),
+      cancelText: tx("api_projects.yoq_qolsin"),
       danger: true,
     });
     if (!ok) return false;

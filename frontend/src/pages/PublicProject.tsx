@@ -13,6 +13,7 @@ import { useAuth } from "@/auth/AuthContext";
 import PublicShell from "@/components/PublicShell";
 import { Card, Empty, Loading, Progress, Stat, fmtDate } from "@/components/ui";
 import { toProject, toProjectJoin, useEntityId } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function PublicProject() {
   const id = useEntityId("project");
@@ -29,8 +30,8 @@ export default function PublicProject() {
       } catch (err) {
         if (!alive) return;
         setError(err instanceof ApiError && err.status === 404
-          ? "Bunday ochiq loyiha topilmadi — u yopiq bo'lishi mumkin."
-          : "Loyihani ochib bo'lmadi");
+          ? tx("public_project.bunday_ochiq_loyiha_topilmadi_u")
+          : tx("public_project.loyihani_ochib_bolmadi"));
       }
     })();
     return () => { alive = false; };
@@ -40,8 +41,8 @@ export default function PublicProject() {
     return (
       <PublicShell>
         <div className="lp-wrap" style={{ padding: "60px 24px" }}>
-          <Empty icon="🔒" title="Ko'rsatib bo'lmadi" text={error}>
-            <Link className="btn" to="/qidiruv">Boshqa loyihalarni ko'rish</Link>
+          <Empty icon="🔒" title={tx("public_project.korsatib_bolmadi")} text={error}>
+            <Link className="btn" to="/qidiruv">{tx("public_project.boshqa_loyihalarni_korish")}</Link>
           </Empty>
         </div>
       </PublicShell>
@@ -56,7 +57,7 @@ export default function PublicProject() {
     <PublicShell>
       <div className="lp-wrap" style={{ padding: "36px 24px 64px" }}>
         <div className="row wrap mb" style={{ gap: 10 }}>
-          <Link className="muted" to="/qidiruv">ochiq loyihalar</Link>
+          <Link className="muted" to="/qidiruv">{tx("public_project.ochiq_loyihalar")}</Link>
           <span className="muted">/</span>
           <span className="lang-dot" style={{ background: project.color }} />
           <h1 style={{ margin: 0 }}>{project.name}</h1>
@@ -66,29 +67,29 @@ export default function PublicProject() {
 
         <div className="split">
           <div>
-            <Card title="Loyiha haqida">
+            <Card title={tx("common.loyiha_haqida")}>
               <p className="pre-wrap" style={{ marginBottom: 0 }}>
-                {project.description || "Tavsif kiritilmagan."}
+                {project.description || tx("common.tavsif_kiritilmagan")}
               </p>
             </Card>
 
-            <Card title="Bajarilgani">
+            <Card title={tx("public_project.bajarilgani")}>
               <Progress value={project.progress} />
               <div className="grid grid-3 mt">
-                <Stat value={`${project.progress}%`} label="Bajarildi" tone="ok" />
-                <Stat value={project.open_tasks ?? 0} label="Ochiq vazifa" tone="accent" />
-                <Stat value={project.done_tasks ?? 0} label="Yopilgan vazifa" tone="done" />
+                <Stat value={`${project.progress}%`} label={tx("common.bajarildi")} tone="ok" />
+                <Stat value={project.open_tasks ?? 0} label={tx("common.ochiq_vazifa_2")} tone="accent" />
+                <Stat value={project.done_tasks ?? 0} label={tx("public_project.yopilgan_vazifa")} tone="done" />
               </div>
             </Card>
 
             {!!project.team_composition?.length && (
-              <Card title="Jamoa tarkibi" padded={false}>
+              <Card title={tx("public_project.jamoa_tarkibi")} padded={false}>
                 <div className="table-wrap"><table className="table">
                   <tbody>
                     {project.team_composition.map((t) => (
                       <tr key={t.value}>
                         <td>{t.label}</td>
-                        <td className="right mono">{t.count} kishi</td>
+                        <td className="right mono">{t.count} {tx("common.kishi")}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -98,35 +99,34 @@ export default function PublicProject() {
           </div>
 
           <div>
-            <Card title={user ? "Qo'shilish" : "Jamoaga qo'shilmoqchimisiz?"}>
+            <Card title={user ? tx("public_project.qoshilish") : tx("public_project.jamoaga_qoshilmoqchimisiz")}>
               {user ? (
                 <>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Siz tizimdasiz — loyihaga so'rov yuborishingiz mumkin.
+                    {tx("public_project.siz_tizimdasiz_loyihaga_sorov_yuborishingiz")}
                   </p>
                   <Link className="btn btn-primary btn-block" {...toProjectJoin(project.id)}>
-                    So'rov yuborish
+                    {tx("public_project.sorov_yuborish")}
                   </Link>
                   <Link className="btn btn-block mt" {...toProject(project.id)}>
-                    Loyihani ochish
+                    {tx("public_project.loyihani_ochish")}
                   </Link>
                 </>
               ) : (
                 <>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Ro'yxatdan o'ting va mutaxassisligingizni tanlang — sizga mos
-                    loyihalar birinchi ko'rsatiladi.
+                    {tx("public_project.royxatdan_oting_va_mutaxassisligingizni_tanl")}
                   </p>
                   <Link className="btn btn-primary btn-block" to="/royxatdan-otish">
-                    Ro'yxatdan o'tish
+                    {tx("common.royxatdan_otish")}
                   </Link>
-                  <Link className="btn btn-block mt" to="/kirish">Hisobga kirish</Link>
+                  <Link className="btn btn-block mt" to="/kirish">{tx("public_project.hisobga_kirish")}</Link>
                 </>
               )}
             </Card>
 
             {!!project.needed_specialties.length && (
-              <Card title="Qanday mutaxassis kerak">
+              <Card title={tx("public_project.qanday_mutaxassis_kerak")}>
                 <div className="row wrap" style={{ gap: 7 }}>
                   {project.needed_specialties.map((s) => (
                     <span className="badge badge-info" key={s.value}>{s.label}</span>
@@ -136,7 +136,7 @@ export default function PublicProject() {
                   <>
                     <div className="divider" />
                     <div className="muted mb" style={{ fontSize: 13 }}>
-                      Hozir jamoada yo'q — bo'sh o'rin:
+                      {tx("public_project.hozir_jamoada_yoq_bosh_orin")}
                     </div>
                     <div className="row wrap" style={{ gap: 7 }}>
                       {project.specialty_gaps.map((s) => (
@@ -148,13 +148,13 @@ export default function PublicProject() {
               </Card>
             )}
 
-            <Card title="Ma'lumot">
+            <Card title={tx("public_project.malumot")}>
               <ul className="list-plain" style={{ fontSize: 13 }}>
                 {project.manager_name && (
-                  <li><span className="muted">Menejer:</span> {project.manager_name}</li>
+                  <li><span className="muted">{tx("common.menejer")}</span> {project.manager_name}</li>
                 )}
-                <li><span className="muted">Jamoa:</span> {project.member_count} a'zo</li>
-                <li><span className="muted">Ochilgan:</span> {fmtDate(project.created_at)}</li>
+                <li><span className="muted">{tx("public_project.jamoa")}</span> {project.member_count} {tx("public_project.azo")}</li>
+                <li><span className="muted">{tx("public_project.ochilgan")}</span> {fmtDate(project.created_at)}</li>
               </ul>
             </Card>
           </div>

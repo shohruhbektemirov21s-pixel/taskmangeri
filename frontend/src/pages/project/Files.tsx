@@ -35,6 +35,7 @@ import {
   fromDateTimeInput, Loading, OkMsg, timeAgo, toDateTimeInput,
 } from "@/components/ui";
 import { useProjectLive } from "@/realtime/RealtimeContext";
+import { tx } from "@/i18n";
 
 export default function Files({ project }: { project: Project }) {
   const fid = useId();
@@ -60,7 +61,7 @@ export default function Files({ project }: { project: Project }) {
       setError(null);
     } catch (err) {
       setItems([]);
-      setError(err instanceof ApiError ? err.message : "Fayllarni yuklab bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("project_files.fayllarni_yuklab_bolmadi"));
     }
   }, [project.id]);
 
@@ -75,7 +76,10 @@ export default function Files({ project }: { project: Project }) {
   const minAt = minDate ? `${minDate}T00:00` : undefined;
   const maxAt = maxDate ? `${maxDate}T23:59` : undefined;
   const rangeText = minDate || maxDate
-    ? `Loyiha oralig'i: ${minDate ? fmtDate(minDate) : "…"} — ${maxDate ? fmtDate(maxDate) : "…"}`
+    ? tx("project_files.loyiha_oraligi", {
+        boshi: minDate ? fmtDate(minDate) : "…",
+        oxiri: maxDate ? fmtDate(maxDate) : "…",
+      })
     : "";
 
   /** Sana oraliqdan chiqib ketgan bo'lsa - sabab matni, aks holda bo'sh. */
@@ -86,10 +90,10 @@ export default function Files({ project }: { project: Project }) {
     // bo'lib, muddat kunining o'zi ham rad etilardi.
     const day = value.slice(0, 10);
     if (minDate && day < minDate) {
-      return `Hujjat sanasi loyiha boshlanishidan (${fmtDate(minDate)}) oldin bo'lmasin.`;
+      return tx("project_files.sana_boshlanishdan_oldin", { sana: fmtDate(minDate) });
     }
     if (maxDate && day > maxDate) {
-      return `Hujjat sanasi loyiha muddatidan (${fmtDate(maxDate)}) keyin bo'lmasin.`;
+      return tx("project_files.sana_muddatdan_keyin", { sana: fmtDate(maxDate) });
     }
     return "";
   }
@@ -100,7 +104,7 @@ export default function Files({ project }: { project: Project }) {
   async function upload(list: FileList | null) {
     if (!list || !list.length) return;
     if (!ready) {
-      setError(rangeError(docDate) || "Avval hujjat nomini va sanasini yozing.");
+      setError(rangeError(docDate) || tx("project_files.avval_hujjat_nomini_va_sanasini"));
       return;
     }
     setBusy(true);
@@ -118,13 +122,13 @@ export default function Files({ project }: { project: Project }) {
     try {
       // `api.post` - xom `fetch` emas: 401 da token o'zi yangilanadi.
       await api.post(`/projects/${project.id}/files/`, body);
-      setOk(`${list.length} ta fayl yuklandi.`);
+      setOk(tx("project_files.fayl_yuklandi", { n: list.length }));
       setDescription("");
       setDocDate("");
       if (input.current) input.current.value = "";
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Yuklab bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("project_files.yuklab_bolmadi"));
     } finally {
       setBusy(false);
     }
@@ -134,7 +138,7 @@ export default function Files({ project }: { project: Project }) {
   async function saveEdit() {
     if (!edit) return;
     if (!edit.name.trim() || !edit.date) {
-      setError("Hujjat nomi ham, sanasi ham bo'sh qolmasin.");
+      setError(tx("project_files.hujjat_nomi_ham_sanasi_ham"));
       return;
     }
     const bad = rangeError(edit.date);
@@ -149,10 +153,10 @@ export default function Files({ project }: { project: Project }) {
                       { description: edit.name.trim(),
                         doc_date: fromDateTimeInput(edit.date) });
       setEdit(null);
-      setOk("Hujjat ma'lumoti yangilandi.");
+      setOk(tx("project_files.hujjat_malumoti_yangilandi"));
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Saqlab bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("project_files.saqlab_bolmadi"));
     } finally {
       setBusy(false);
     }
@@ -164,7 +168,7 @@ export default function Files({ project }: { project: Project }) {
     const ok = await confirmDialog({
       title: `«${item.description || item.original_name}» ochirilsinmi?`,
       body: "Hujjat royxatdan yoqoladi. Eski nusxalari ham u bilan ketadi.",
-      confirmText: "O'chirish",
+      confirmText: tx("common.ochirish"),
       danger: true,
     });
     if (!ok) return;
@@ -173,7 +177,7 @@ export default function Files({ project }: { project: Project }) {
       await api.delete(`/projects/${project.id}/files/${item.id}/`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "O'chirib bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("project_files.ochirib_bolmadi"));
     }
   }
 
@@ -185,19 +189,19 @@ export default function Files({ project }: { project: Project }) {
       <OkMsg text={ok} />
 
       {acc.can_work && (
-        <Card title="Hujjat yuklash">
+        <Card title={tx("project_files.hujjat_yuklash")}>
           {/* Nom va sana MAJBURIY: nomsiz hujjatni ro'yxatdan faqat uni
               yuklagan odam taniydi, sanasiz esa qaysi variant yangi ekani
               bilinmaydi. Shuning uchun ular to'lmaguncha maydon yopiq. */}
           <div className="row wrap">
             <div className="field" style={{ flex: 2, minWidth: 200 }}>
-              <label htmlFor={`${fid}-0`}>Hujjat nomi</label>
+              <label htmlFor={`${fid}-0`}>{tx("project_files.hujjat_nomi")}</label>
               <input id={`${fid}-0`} type="text" value={description} required
-                     placeholder="Masalan: texnik topshiriq v2"
+                     placeholder={tx("project_files.masalan_texnik_topshiriq_v2")}
                      onChange={(e) => setDescription(e.target.value)} />
             </div>
             <div className="field" style={{ flex: 1, minWidth: 160 }}>
-              <label htmlFor={`${fid}-1`}>Hujjat sanasi va vaqti</label>
+              <label htmlFor={`${fid}-1`}>{tx("project_files.hujjat_sanasi_va_vaqti")}</label>
               <DateTimeField id={`${fid}-1`} value={docDate} onChange={setDocDate} required
                              min={minAt} max={maxAt} />
               {rangeError(docDate)
@@ -209,26 +213,26 @@ export default function Files({ project }: { project: Project }) {
             className={`dropzone${ready ? "" : " disabled"}`}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); void upload(e.dataTransfer.files); }}
-            onClick={() => (ready ? input.current?.click() : setError("Avval hujjat nomini va sanasini yozing."))}
+            onClick={() => (ready ? input.current?.click() : setError(tx("project_files.avval_hujjat_nomini_va_sanasini")))}
           >
             {busy
-              ? "Yuklanmoqda…"
+              ? tx("project_files.yuklanmoqda")
               : ready
-                ? "Faylni shu yerga tashlang yoki bosing (25 MB gacha)"
-                : "Avval nom va sanani yozing — keyin fayl tanlanadi"}
+                ? tx("project_files.faylni_shu_yerga_tashlang_yoki")
+                : tx("project_files.avval_nom_va_sanani_yozing")}
           </div>
           <input ref={input} type="file" multiple hidden
                  onChange={(e) => void upload(e.target.files)} />
         </Card>
       )}
 
-      <Card title="Loyiha hujjatlari" padded={false}
+      <Card title={tx("project_files.loyiha_hujjatlari")} padded={false}
             badge={<span className="badge">{items.length}</span>}>
         {!items.length ? (
-          <Empty icon="📁" title="Hujjat yo'q"
+          <Empty icon="📁" title={tx("project_files.hujjat_yoq")}
                  text={acc.can_work
-                   ? "Texnik topshiriq, dizayn yoki hujjatni yuklang."
-                   : "Bu loyihaga hali hujjat yuklanmagan."} />
+                   ? tx("project_files.texnik_topshiriq_dizayn_yoki_hujjatni")
+                   : tx("project_files.bu_loyihaga_hali_hujjat_yuklanmagan")} />
         ) : (
           <div className="card-list">
             {items.map((f) => (
@@ -242,7 +246,7 @@ export default function Files({ project }: { project: Project }) {
                     {f.version > 1 && (
                       <>
                         {" "}
-                        <span className="badge mono" title="Nechanchi nusxa">v{f.version}</span>
+                        <span className="badge mono" title={tx("project_files.nechanchi_nusxa")}>{tx("project_files.v")}{f.version}</span>
                       </>
                     )}
                     <br />
@@ -251,7 +255,7 @@ export default function Files({ project }: { project: Project }) {
                       {f.version > 1 ? `yangilandi ${timeAgo(f.updated_at)}` : timeAgo(f.created_at)}
                       {/* Hujjat sanasi - yuklangan vaqtdan boshqa narsa,
                           shuning uchun nomi bilan yoziladi. */}
-                      {f.doc_date && ` · hujjat sanasi: ${fmtDateTime(f.doc_date)}`}
+                      {f.doc_date && tx("project_files.hujjat_sanasi_qatori", { sana: fmtDateTime(f.doc_date) })}
                       {f.description && ` · ${f.description}`}
                     </small>
                   </div>
@@ -267,10 +271,10 @@ export default function Files({ project }: { project: Project }) {
                                 name: f.description,
                                 date: toDateTimeInput(f.doc_date),
                               })}>
-                        Tahrirlash
+                        {tx("common.tahrirlash")}
                       </button>
                       <button className="btn btn-sm btn-danger" onClick={() => void remove(f)}>
-                        O'chirish
+                        {tx("common.ochirish")}
                       </button>
                     </>
                   )}
@@ -279,12 +283,12 @@ export default function Files({ project }: { project: Project }) {
                 {edit?.id === f.id && (
                   <div className="row wrap" style={{ marginTop: 10 }}>
                     <div className="field" style={{ flex: 2, minWidth: 200, marginBottom: 0 }}>
-                      <label htmlFor={`${fid}-e0`}>Hujjat nomi</label>
+                      <label htmlFor={`${fid}-e0`}>{tx("project_files.hujjat_nomi")}</label>
                       <input id={`${fid}-e0`} type="text" value={edit.name}
                              onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
                     </div>
                     <div className="field" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
-                      <label htmlFor={`${fid}-e1`}>Hujjat sanasi va vaqti</label>
+                      <label htmlFor={`${fid}-e1`}>{tx("project_files.hujjat_sanasi_va_vaqti")}</label>
                       <DateTimeField id={`${fid}-e1`} value={edit.date}
                                      onChange={(v) => setEdit({ ...edit, date: v })}
                                      min={minAt} max={maxAt} />
@@ -294,8 +298,8 @@ export default function Files({ project }: { project: Project }) {
                     </div>
                     <div className="row" style={{ gap: 8 }}>
                       <button className="btn btn-sm btn-primary" disabled={busy}
-                              onClick={() => void saveEdit()}>Saqlash</button>
-                      <button className="btn btn-sm" onClick={() => setEdit(null)}>Bekor qilish</button>
+                              onClick={() => void saveEdit()}>{tx("common.saqlash")}</button>
+                      <button className="btn btn-sm" onClick={() => setEdit(null)}>{tx("common.bekor_qilish")}</button>
                     </div>
                   </div>
                 )}
@@ -305,23 +309,23 @@ export default function Files({ project }: { project: Project }) {
                 {!!f.versions.length && (
                   <details className="file-history">
                     <summary>
-                      Tahrir tarixi — {f.versions.length} ta eski nusxa
+                      {tx("project_files.tahrir_tarixi")} {f.versions.length} {tx("project_files.ta_eski_nusxa")}
                     </summary>
                     <div className="stack" style={{ marginTop: 8 }}>
                       {f.versions.map((v) => (
                         <div key={v.id}>
                           <div className="row wrap" style={{ gap: 8 }}>
-                            <span className="badge mono">v{v.version}</span>
+                            <span className="badge mono">{tx("project_files.v")}{v.version}</span>
                             <a href={v.url || "#"} target="_blank" rel="noreferrer">
                               {v.original_name}
                             </a>
                             <small className="muted">
-                              {v.size_display} · {v.uploaded_by?.full_name || "—"} yuklagan
-                              {v.doc_date && ` · hujjat sanasi: ${fmtDateTime(v.doc_date)}`}
+                              {v.size_display} · {v.uploaded_by?.full_name || "—"} {tx("project_files.yuklagan")}
+                              {v.doc_date && tx("project_files.hujjat_sanasi_qatori", { sana: fmtDateTime(v.doc_date) })}
                             </small>
                             <span className="spacer" />
                             <small className="muted nowrap">
-                              {v.replaced_by?.full_name || "—"} almashtirgan · {timeAgo(v.replaced_at)}
+                              {v.replaced_by?.full_name || "—"} {tx("project_files.almashtirgan")} {timeAgo(v.replaced_at)}
                             </small>
                           </div>
                           {/* Hujjatning ichini solishtirib bo'lmaydi (ikkilik fayl),

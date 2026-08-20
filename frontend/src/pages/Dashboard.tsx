@@ -27,13 +27,14 @@ import {
   Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
 import { toTask } from "@/nav";
+import { tx } from "@/i18n";
 
 // Davr sarlavhalari. Kalitlar serverdagi `PERIODS` bilan bir xil, tartibni
 // esa server beradi - bu yerda faqat o'zbekcha nomi turadi.
 const LABELS: Record<DashboardPeriod, string> = {
   year: "Yil boshidan",
   month: "Oy boshidan",
-  week: "Hafta boshidan",
+  week: tx("dashboard.hafta_boshidan"),
 };
 
 /**
@@ -45,19 +46,19 @@ const LABELS: Record<DashboardPeriod, string> = {
  * yoki jamoanikimi» degan savol javobsiz qolardi.
  */
 const SCOPE_LABELS: Record<DashboardScope, string> = {
-  all: "Butun tizim bo'yicha",
-  managed: "Boshqaruvingizdagi loyihalar bo'yicha",
-  mine: "Sizga biriktirilgan ishlar bo'yicha",
+  all: tx("dashboard.butun_tizim_boyicha"),
+  managed: tx("dashboard.boshqaruvingizdagi_loyihalar_boyicha"),
+  mine: tx("dashboard.sizga_biriktirilgan_ishlar_boyicha"),
 };
 
 /** Taxtadagi uchta ustun: nomi, kaliti va nimani sanashi. */
 const COLUMNS = [
-  { key: "todo", label: "Nazoratda",
-    hint: "Shu davrda ochilgan va hamon yopilmagan ishlaringiz" },
-  { key: "overdue", label: "Muddati o'tgan",
-    hint: "Muddati shu davrga tushgan va o'tib ketgan ishlaringiz" },
-  { key: "done", label: "Bajarilganlar",
-    hint: "Shu davrda yakunlangan ishlaringiz" },
+  { key: "todo", label: tx("common.nazoratda"),
+    hint: tx("dashboard.shu_davrda_ochilgan_va_hamon") },
+  { key: "overdue", label: tx("dashboard.muddati_otgan"),
+    hint: tx("dashboard.muddati_shu_davrga_tushgan_va") },
+  { key: "done", label: tx("dashboard.bajarilganlar"),
+    hint: tx("dashboard.shu_davrda_yakunlangan_ishlaringiz") },
 ] as const;
 
 /**
@@ -67,12 +68,12 @@ const COLUMNS = [
  * yo kechikkan, yo hali kutilmoqda.
  */
 const DEADLINE_CARDS = [
-  { key: "late_done", label: "Muddati buzib bajarilgan",
-    hint: "Yakunlangan, lekin muddatidan keyin yopilgan ishlaringiz" },
-  { key: "overdue", label: "Muddati o'tgan",
-    hint: "Hali yopilmagan va muddati o'tib ketgan ishlaringiz" },
-  { key: "waiting", label: "Kutilmoqda",
-    hint: "Yopilmagan, muddati hali kelmagan yoki qo'yilmagan ishlaringiz" },
+  { key: "late_done", label: tx("dashboard.muddati_buzib_bajarilgan"),
+    hint: tx("dashboard.yakunlangan_lekin_muddatidan_keyin_yopilgan") },
+  { key: "overdue", label: tx("dashboard.muddati_otgan"),
+    hint: tx("dashboard.hali_yopilmagan_va_muddati_otib") },
+  { key: "waiting", label: tx("dashboard.kutilmoqda"),
+    hint: tx("dashboard.yopilmagan_muddati_hali_kelmagan_yoki") },
 ] as const;
 
 /** Bosilgan katak: qaysi davr va qaysi ko'rsatkich. */
@@ -118,8 +119,8 @@ function Band({ p, onPick, picked }: {
               role={hasAny ? "button" : undefined}
               tabIndex={hasAny ? 0 : undefined}
               title={hasAny
-                ? `${LABELS[p.key]}: nazoratdagi, muddati o'tgan va bajarilgan ishlar`
-                : "Bu davrda ish yo'q"}
+                ? tx("dashboard.davr_kesimi_izohi", { davr: LABELS[p.key] })
+                : tx("dashboard.bu_davrda_ish_yoq")}
               onClick={pickBand}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -130,7 +131,7 @@ function Band({ p, onPick, picked }: {
         <h2 className="stat-band-title">{LABELS[p.key]}</h2>
         {/* Qaysi sanadan sanalayotgani ko'rinib tursin - «yil boshidan»
             degani odamga aniq kunni aytmaydi. */}
-        <p className="stat-band-since">{fmtDate(p.since)} — bugun</p>
+        <p className="stat-band-since">{fmtDate(p.since)} {tx("dashboard.bugun")}</p>
       </header>
 
       <div className="stat-band-row">
@@ -201,12 +202,12 @@ function Deadlines({ d, onPick, picked }: {
  * emas. Chegara Toshkent kunidan yasalgani uchun tunda ham siljimaydi.
  */
 const DUE_OPTIONS = [
-  { value: "today", label: "Bugun" },
-  { value: "yesterday", label: "Kecha" },
-  { value: "tomorrow", label: "Ertaga" },
-  { value: "week", label: "Shu hafta" },
-  { value: "month", label: "Shu oy" },
-  { value: "year", label: "Shu yil" },
+  { value: "today", label: tx("common.bugun") },
+  { value: "yesterday", label: tx("dashboard.kecha") },
+  { value: "tomorrow", label: tx("dashboard.ertaga") },
+  { value: "week", label: tx("dashboard.shu_hafta") },
+  { value: "month", label: tx("dashboard.shu_oy") },
+  { value: "year", label: tx("dashboard.shu_yil") },
 ] as const;
 
 const EMPTY_FILTERS = {
@@ -298,13 +299,13 @@ function Combo({ id, label, options, value, onChange, placeholder }: {
         <div className="combo-list" id={id + "-list"} role="listbox"
              onMouseDown={(e) => e.preventDefault()}>
           <button type="button" className={"combo-item " + (value ? "" : "on")}
-                  onClick={() => pick("")}>Hammasi</button>
+                  onClick={() => pick("")}>{tx("common.hammasi")}</button>
           {hits.map((o) => (
             <button key={o.value} type="button"
                     className={"combo-item " + (o.value === value ? "on" : "")}
                     onClick={() => pick(o.value)}>{o.name}</button>
           ))}
-          {hits.length === 0 && <div className="combo-empty muted">Topilmadi</div>}
+          {hits.length === 0 && <div className="combo-empty muted">{tx("dashboard.topilmadi")}</div>}
         </div>
       )}
     </div>
@@ -345,30 +346,30 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
   return (
     <Card title={picked.title} padded={false}
           badge={data ? <span className="badge">{data.count}</span> : undefined}
-          action={<button type="button" className="btn btn-sm" onClick={onClose}>Yopish</button>}>
+          action={<button type="button" className="btn btn-sm" onClick={onClose}>{tx("common.yopish")}</button>}>
       {/* Filtr qatori kartaning ICHIDA: u shu ro'yxatga tegishli, sahifaga
           emas - katak yopilsa filtr ham u bilan ketadi. */}
       <div className="filters filters-inline">
         <div className="f grow">
-          <label htmlFor={fid + "-q"}>Qidiruv</label>
-          <input id={fid + "-q"} value={f.search} placeholder="Kod yoki sarlavha"
+          <label htmlFor={fid + "-q"}>{tx("common.qidiruv")}</label>
+          <input id={fid + "-q"} value={f.search} placeholder={tx("dashboard.kod_yoki_sarlavha")}
                  onChange={(e) => set("search", e.target.value)} />
         </div>
         <div className="f">
-          <label htmlFor={fid + "-due"}>Muddat</label>
+          <label htmlFor={fid + "-due"}>{tx("common.muddat")}</label>
           <select id={fid + "-due"} value={f.due}
                   onChange={(e) => set("due", e.target.value)}>
-            <option value="">Hammasi</option>
+            <option value="">{tx("common.hammasi")}</option>
             {DUE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
         </div>
         <div className="f">
-          <label htmlFor={fid + "-st"}>Holat</label>
+          <label htmlFor={fid + "-st"}>{tx("common.holat")}</label>
           <select id={fid + "-st"} value={f.status}
                   onChange={(e) => set("status", e.target.value)}>
-            <option value="">Hammasi</option>
+            <option value="">{tx("common.hammasi")}</option>
             {(meta?.task_status || []).map((s) => (
               <option key={s.value} value={String(s.value)}>{s.label}</option>
             ))}
@@ -378,26 +379,26 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
             bitta loyihali ro'yxatda u hech nimani o'zgartirmasdi, joyni
             esa egallardi. */}
         {projectOptions.length > 1 && (
-          <Combo id={fid + "-pr"} label="Loyiha" options={projectOptions}
+          <Combo id={fid + "-pr"} label={tx("common.loyiha")} options={projectOptions}
                  value={f.project} onChange={(v) => set("project", v)}
-                 placeholder="Loyiha nomini yozing" />
+                 placeholder={tx("dashboard.loyiha_nomini_yozing")} />
         )}
         {/* IJROCHI tanlagichi yo'q. Ro'yxat odamning O'Z kesimida ochiladi:
             ijrochida u doim bitta ismdan - o'zinikidan - iborat bo'lardi.
             Menejerga «kim nima qilyapti» uchun alohida sahifa bor
             («Vazifalar»), u shu ish uchun ancha qulay. */}
         {filtered && (
-          <button type="button" className="btn" onClick={clear}>Tozalash</button>
+          <button type="button" className="btn" onClick={clear}>{tx("common.tozalash")}</button>
         )}
       </div>
 
       {loading ? <Loading /> : !tasks?.length ? (
-        <Empty title="Ish yo'q"
+        <Empty title={tx("dashboard.ish_yoq")}
                text={filtered
-                 ? "Tanlangan filtrga mos vazifa topilmadi - filtrni tozalab ko'ring."
-                 : "Bu katakka kirgan vazifa topilmadi."}>
+                 ? tx("dashboard.tanlangan_filtrga_mos_vazifa_topilmadi")
+                 : tx("dashboard.bu_katakka_kirgan_vazifa_topilmadi")}>
           {filtered && (
-            <button type="button" className="btn" onClick={clear}>Filtrni tozalash</button>
+            <button type="button" className="btn" onClick={clear}>{tx("common.filtrni_tozalash")}</button>
           )}
         </Empty>
       ) : (
@@ -422,8 +423,8 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
       {data && data.pages > 1 && (
         <div className="card-body pager-bar">
           <span className="muted">
-            {data.count} tadan {(data.page - 1) * data.page_size + 1}—
-            {Math.min(data.page * data.page_size, data.count)} tasi
+            {data.count} {tx("common.tadan")} {(data.page - 1) * data.page_size + 1}—
+            {Math.min(data.page * data.page_size, data.count)} {tx("common.tasi")}
           </span>
           <Pager page={data.page} pages={data.pages} onPick={setPage} />
         </div>
@@ -444,8 +445,8 @@ export default function Dashboard() {
     if (e.event === "task.update" || e.event === "project.update") reload();
   });
 
-  if (loading) return <div className="content"><Loading text="Panel yuklanmoqda..." /></div>;
-  if (!d) return <div className="content"><ErrorMsg error={error || "Panelni yuklab bo'lmadi."} /></div>;
+  if (loading) return <div className="content"><Loading text={tx("dashboard.panel_yuklanmoqda")} /></div>;
+  if (!d) return <div className="content"><ErrorMsg error={error || tx("dashboard.panelni_yuklab_bolmadi")} /></div>;
 
   return (
     <div className="content">

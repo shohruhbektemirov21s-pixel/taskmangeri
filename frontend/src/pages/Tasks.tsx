@@ -10,6 +10,7 @@ import {
   SpecialtyTag, fmtDate,
 } from "@/components/ui";
 import { toTask, toUser } from "@/nav";
+import { tx } from "@/i18n";
 
 /**
  * «Vazifalar» - menejer va admin uchun alohida sahifa: kim nima qilayapti.
@@ -75,11 +76,11 @@ export default function Tasks() {
   return (
     <>
       <PageHead
-        title={<strong>Vazifalar</strong>}
-        subtitle="Dasturchilar va ular ustida ishlayotgan vazifalar"
+        title={<strong>{tx("common.vazifalar")}</strong>}
+        subtitle={tx("tasks.dasturchilar_va_ular_ustida_ishlayotgan")}
         /* Sanoq JAMI ijrochilarniki, sahifadagilarniki emas: u jamoaning
            kattaligini aytadi. */
-        actions={!!data && <span className="badge">{data.count} kishi</span>}
+        actions={!!data && <span className="badge">{data.count} {tx("common.kishi")}</span>}
       />
       <div className="content wl">
         <ErrorMsg error={error} />
@@ -88,23 +89,23 @@ export default function Tasks() {
             o'zgarmaydi. */}
         <div className="filters">
           <div className="f wl-search">
-            <label htmlFor={`${fid}-q`}>Qidiruv</label>
+            <label htmlFor={`${fid}-q`}>{tx("common.qidiruv")}</label>
             {/* Bitta maydon - uchta savol: VAZIFA (nomi, tavsifi, kodi
                 «HIR-75» yoki shunchaki «75»), LOYIHA nomi va ODAM ismi.
                 Nima yozilganini oldindan tanlab o'tirish shart emas -
                 server uchalasini ham sinab ko'radi (`core/team.py`).
                 Ism bo'yicha topilgan odamning hamma ishi chiqadi. */}
             <input id={`${fid}-q`} value={f.search} onChange={(e) => set("search", e.target.value)}
-                   placeholder="Ism, vazifa, kod (HIR-75) yoki loyiha nomi" />
+                   placeholder={tx("tasks.ism_vazifa_kod_hir_75")} />
           </div>
           {/* Uchala tanlov bitta guruhda va o'ng chekkada (`margin-left:auto`).
               Oradagi `.spacer` bo'lmaydi: u tor ekranda birinchi qatorni
               to'ldirib, tanlovlarni pastga tashlab yuborardi. */}
           <div className="wl-filters">
             <div className="f">
-              <label htmlFor={`${fid}-p`}>Loyiha</label>
+              <label htmlFor={`${fid}-p`}>{tx("common.loyiha")}</label>
               <select id={`${fid}-p`} value={f.project} onChange={(e) => set("project", e.target.value)}>
-                <option value="">Barcha loyihalar</option>
+                <option value="">{tx("common.barcha_loyihalar")}</option>
                 {(data?.projects || []).map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -115,9 +116,9 @@ export default function Tasks() {
                   yakshanbagacha, «shu oy» oy boshidan oxirigacha. Oraliqni
                   server hisoblaydi (`_due_range`) - bosh panel ham aynan shu
                   mantiqda sanaydi. */}
-              <label htmlFor={`${fid}-r`}>Davr</label>
+              <label htmlFor={`${fid}-r`}>{tx("common.davr")}</label>
               <select id={`${fid}-r`} value={f.period} onChange={(e) => set("period", e.target.value)}>
-                <option value="">Barcha muddatlar</option>
+                <option value="">{tx("tasks.barcha_muddatlar")}</option>
                 {DUE_PERIODS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
@@ -126,33 +127,33 @@ export default function Tasks() {
             <div className="f wl-date">
               {/* AYNAN shu kunga muddati tushadigan vazifalar: "23-avgustda
                   kimda nima bor?". Muddati yo'q ish bu kesimda ko'rinmaydi. */}
-              <label htmlFor={`${fid}-d`}>Sana</label>
+              <label htmlFor={`${fid}-d`}>{tx("common.sana")}</label>
               <DateField id={`${fid}-d`} value={f.due} onChange={(v) => set("due", v)} />
             </div>
             <div className="f">
-              <label htmlFor={`${fid}-t`}>Vazifa holati</label>
+              <label htmlFor={`${fid}-t`}>{tx("tasks.vazifa_holati")}</label>
               {/* Standart ko'rinish - TUGALLANMAGAN ish: bajarilgani ro'yxatni
                   uzaytirib, "hozir nima bo'layapti" degan savolni ko'mib
                   tashlardi. Bajarilganini ko'rish uchun holat tanlanadi. */}
               <select id={`${fid}-t`} value={f.status} onChange={(e) => set("status", e.target.value)}>
-                <option value="">Tugallanmaganlar</option>
+                <option value="">{tx("tasks.tugallanmaganlar")}</option>
                 {(meta?.task_status || []).map((s) => (
                   <option key={s.value} value={String(s.value)}>{s.label}</option>
                 ))}
               </select>
             </div>
             {dirty && (
-              <button type="button" className="btn btn-ghost" onClick={clear}>Tozalash</button>
+              <button type="button" className="btn btn-ghost" onClick={clear}>{tx("common.tozalash")}</button>
             )}
           </div>
         </div>
 
         {loading ? <Loading /> : !rows ? null : !rows.length ? (
           <div className="card">
-            <Empty icon="☺" title="Dasturchi topilmadi"
+            <Empty icon="☺" title={tx("tasks.dasturchi_topilmadi")}
                    text={dirty
-                     ? "Tanlangan filtrga mos ijrochi yoq - filtrni bo'shatib koring."
-                     : "Boshqaruvingizdagi loyihalarda hali ijrochi yoq. Loyiha «Jamoa» bolimidan qoshing."} />
+                     ? tx("tasks.tanlangan_filtrga_mos_ijrochi_yoq")
+                     : tx("tasks.boshqaruvingizdagi_loyihalarda_hali_ijrochi_")} />
           </div>
         ) : (
           <div className="card">
@@ -168,8 +169,8 @@ export default function Tasks() {
             {data && data.pages > 1 && (
               <div className="card-body pager-bar">
                 <span className="muted">
-                  {data.count} tadan {(data.page - 1) * data.page_size + 1}—
-                  {Math.min(data.page * data.page_size, data.count)} tasi
+                  {data.count} {tx("common.tadan")} {(data.page - 1) * data.page_size + 1}—
+                  {Math.min(data.page * data.page_size, data.count)} {tx("common.tasi")}
                 </span>
                 <Pager page={data.page} pages={data.pages}
                        onPick={(n) => { setOpen(null); setPage(n); }} />
@@ -202,10 +203,10 @@ export default function Tasks() {
  */
 function RowStats({ stats }: { stats: WorkloadStats }) {
   const extra: [string, number][] = [
-    ["Jarayonda", stats.in_progress],
-    ["Tekshiruvda", stats.review],
-    ["Tuzatish kerak", stats.changes_requested],
-    ["Toxtab qolgan", stats.blocked],
+    [tx("common.jarayonda"), stats.in_progress],
+    [tx("common.tekshiruvda"), stats.review],
+    [tx("tasks.tuzatish_kerak"), stats.changes_requested],
+    [tx("tasks.toxtab_qolgan"), stats.blocked],
   ];
   return (
     // Uch ustunli setka: sanoqlar chapda (ismi bilan bir chiziqda), foiz
@@ -214,14 +215,14 @@ function RowStats({ stats }: { stats: WorkloadStats }) {
     // orada butun ekran kengligicha bo'sh joy qolardi.
     <div className="wl-stats">
       <div className="wl-counts">
-        <span className="wl-stat">Nazoratda <b>{stats.todo}</b></span>
+        <span className="wl-stat">{tx("common.nazoratda")} <b>{stats.todo}</b></span>
         {extra.filter(([, n]) => n > 0).map(([label, n]) => (
           <span key={label} className="wl-stat">{label} <b>{n}</b></span>
         ))}
         <span className={`wl-stat ${stats.overdue ? "bad" : ""}`}>
-          Muddati otgan <b>{stats.overdue}</b>
+          {tx("common.muddati_otgan")} <b>{stats.overdue}</b>
         </span>
-        <span className="wl-stat">Bajarilgan <b>{stats.done}</b></span>
+        <span className="wl-stat">{tx("common.bajarilgan")} <b>{stats.done}</b></span>
       </div>
       {/* Foiz - shu kesimdagi ishning qanchasi yopilgani. Maxrajda bekor
           qilinganlar yo'q: ular na bajarilgan, na kutilyapti. */}
@@ -259,7 +260,7 @@ function DeveloperRow({ row, filtered, open, onToggle }: {
           <span className="badge">{u.seniority_display}</span>
           <span className="spacer" />
           {row.overdue_count > 0 && (
-            <span className="badge badge-danger">{row.overdue_count} ta muddati otgan</span>
+            <span className="badge badge-danger">{row.overdue_count} {tx("tasks.ta_muddati_otgan")}</span>
           )}
           {/* Ishi yo'qligi ham javob: menejer aynan shu odamga ish beradi. */}
           <span className={`badge ${row.task_count ? "" : "badge-ok"}`}>
@@ -285,7 +286,7 @@ function DeveloperRow({ row, filtered, open, onToggle }: {
         <div className="card-body wl-tasks">
           {!row.tasks.length ? (
             <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
-              {filtered ? "Bu holatda vazifasi yoq." : "Ochiq vazifasi yoq - ish berish mumkin."}
+              {filtered ? tx("tasks.bu_holatda_vazifasi_yoq") : tx("tasks.ochiq_vazifasi_yoq_ish_berish")}
             </p>
           ) : (
             <>
@@ -303,7 +304,7 @@ function DeveloperRow({ row, filtered, open, onToggle }: {
               ))}
               {row.task_count > row.tasks.length && (
                 <p className="muted" style={{ margin: "6px 0 0", fontSize: 12 }}>
-                  yana {row.task_count - row.tasks.length} ta - loyiha ichidagi royxatda
+                  {tx("common.yana")} {row.task_count - row.tasks.length} {tx("tasks.ta_loyiha_ichidagi_royxatda")}
                 </p>
               )}
             </>

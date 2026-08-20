@@ -20,6 +20,7 @@ import { useAuth } from "@/auth/AuthContext";
 import AddMemberBox from "./AddMemberBox";
 import { Avatar, Card, ErrorMsg, SpecialtyTag, timeAgo } from "./ui";
 import { toProject, toUser } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function TeamBuilder({
   projects, onChange,
@@ -64,7 +65,7 @@ export default function TeamBuilder({
       onChange?.();
       setVersion((n) => n + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Amalni bajarib bolmadi");
+      setError(err instanceof ApiError ? err.message : tx("common.amalni_bajarib_bolmadi"));
     }
   }
 
@@ -80,21 +81,21 @@ export default function TeamBuilder({
 
   return (
     <Card
-      title="Jamoa yigish"
-      badge={requests.length ? <span className="badge badge-warn">{requests.length} sorov</span> : undefined}
+      title={tx("team_builder.jamoa_yigish")}
+      badge={requests.length ? <span className="badge badge-warn">{requests.length} {tx("team_builder.sorov")}</span> : undefined}
       action={project && (
-        <Link className="btn btn-sm" {...toProject(project.id, "jamoa")}>Toliq bolim</Link>
+        <Link className="btn btn-sm" {...toProject(project.id, "jamoa")}>{tx("team_builder.toliq_bolim")}</Link>
       )}
     >
       <ErrorMsg error={error} />
 
       {projects.length > 1 && (
         <div className="field">
-          <label htmlFor={`${fid}-0`}>Qaysi loyihaga</label>
+          <label htmlFor={`${fid}-0`}>{tx("team_builder.qaysi_loyihaga")}</label>
           <select id={`${fid}-0`} value={projectId ?? ""} onChange={(e) => setProjectId(Number(e.target.value))}>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} ({p.member_count ?? 0} aʼzo)
+                {p.name} ({p.member_count ?? 0} {tx("team_builder.azo")}
               </option>
             ))}
           </select>
@@ -116,7 +117,7 @@ export default function TeamBuilder({
       {!!requests.length && (
         <>
           <div className="divider" />
-          <h4 style={{ margin: "0 0 10px" }}>Qoshilish sorovlari</h4>
+          <h4 style={{ margin: "0 0 10px" }}>{tx("team_builder.qoshilish_sorovlari")}</h4>
           <div className="stack">
             {requests.map((r) => (
               <div className="card-body tight" key={r.id}
@@ -137,13 +138,13 @@ export default function TeamBuilder({
                   <button className="btn btn-sm btn-primary" onClick={() => {
                     const sel = document.getElementById(`tb-role-${r.id}`) as HTMLSelectElement;
                     void act(() => api.post(`/projects/${r.project}/requests/${r.id}/decide/`, {
-                      action: "approve", role: sel.value, note: "Xush kelibsiz",
+                      action: "approve", role: sel.value, note: tx("team_builder.xush_kelibsiz"),
                     }));
-                  }}>Qabul qilish</button>
+                  }}>{tx("common.qabul_qilish")}</button>
                   <button className="btn btn-sm btn-danger" onClick={() =>
                     void act(() => api.post(`/projects/${r.project}/requests/${r.id}/decide/`, {
-                      action: "reject", note: "Hozircha orin yoq",
-                    }))}>Rad etish</button>
+                      action: "reject", note: tx("team_builder.hozircha_orin_yoq"),
+                    }))}>{tx("team_builder.rad_etish")}</button>
                 </div>
                 {r.message && <div className="tl-detail" style={{ marginTop: 8 }}>{r.message}</div>}
               </div>
@@ -157,7 +158,7 @@ export default function TeamBuilder({
         <>
           <div className="divider" />
           <h4 style={{ margin: "0 0 10px" }}>
-            Jamoa <span className="badge">{active.length}</span>
+            {tx("common.jamoa")} <span className="badge">{active.length}</span>
           </h4>
           <div className="stack">
             {active.map((m) => (
@@ -171,21 +172,21 @@ export default function TeamBuilder({
                 </div>
                 <span className="spacer" />
                 <span className="badge">{m.role_display}</span>
-                <span className="badge badge-info">{m.load?.open ?? 0} ochiq</span>
+                <span className="badge badge-info">{m.load?.open ?? 0} {tx("common.ochiq")}</span>
                 {acc?.can_manage && (
                   isManager(m)
-                    ? <span className="badge" title="Menejerga tegib bo'lmaydi - u loyihadan faqat o'zi chiqadi">
-                        himoyalangan
+                    ? <span className="badge" title={tx("team_builder.menejerga_tegib_bolmaydi_u_loyihadan")}>
+                        {tx("team_builder.himoyalangan")}
                       </span>
                     : <button className="btn btn-sm btn-danger" onClick={() => {
                         const note = window.prompt(
-                          `${m.user.full_name} jamoadan chiqariladi. Keyingi dasturchi uchun `
-                          + "topshiriq eslatmasi (tarixda saqlanadi):", "");
+                          tx("team_builder.jamoadan_chiqariladi", { ism: m.user.full_name })
+                          + tx("team_builder.topshiriq_eslatmasi_tarixda_saqlanadi"), "");
                         if (note === null) return;
                         void act(() => api.post(`/projects/${projectId}/members/${m.id}/`, {
                           action: "remove", handover_note: note,
                         }));
-                      }}>Chiqarish</button>
+                      }}>{tx("team_builder.chiqarish")}</button>
                 )}
               </div>
             ))}

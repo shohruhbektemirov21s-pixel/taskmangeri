@@ -20,6 +20,8 @@ urlpatterns = [
     path("api/", include("apps.notifications.urls")),
     path("api/", include("apps.chat.urls")),
     path("api/", include("apps.telegram.urls")),
+    path("api/", include("apps.uitexts.urls")),
+    path("api/", include("apps.suggestions.urls")),
     path("api/", include("apps.core.urls")),
 ]
 

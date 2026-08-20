@@ -13,6 +13,7 @@ import { PageHead } from "@/components/Layout";
 import { Avatar, Card, Empty, SpecialtyTag, timeAgo } from "@/components/ui";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { toMessages, toUser, useEntityId, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function Messages() {
   // Suhbatdosh manzilda emas: `/xabarlar/12` emas, `/xabarlar`.
@@ -70,28 +71,28 @@ export default function Messages() {
 
   return (
     <>
-      <PageHead title={<strong>Xabarlar</strong>}
-                subtitle="Loyiha jamoasi va a'zolari bilan real vaqtda muloqot" />
+      <PageHead title={<strong>{tx("messages.xabarlar")}</strong>}
+                subtitle={tx("messages.loyiha_jamoasi_va_azolari_bilan")} />
 
       <div className="content">
         <div className="dm-layout">
           <div className="dm-side">
-            <Card title="Kimga yozamiz">
+            <Card title={tx("messages.kimga_yozamiz")}>
               <UserSearch
                 search={search}
                 onPick={(u) => go(toMessages(u.id))}
                 activeId={activeId}
-                placeholder="Email yoki ism bo'yicha qidiring"
-                emptyText="Hech kim topilmadi"
+                placeholder={tx("common.email_yoki_ism_boyicha_qidiring")}
+                emptyText={tx("common.hech_kim_topilmadi")}
               />
             </Card>
 
-            <Card title="Suhbatlar" padded={false}
+            <Card title={tx("messages.suhbatlar")} padded={false}
                   badge={<span className="badge">{conversations.length}</span>}>
               <div className="card-list">
                 {!conversations.length && (
                   <div className="muted center" style={{ padding: 18, fontSize: 13 }}>
-                    Hali yozishma yo'q.
+                    {tx("messages.hali_yozishma_yoq")}
                   </div>
                 )}
                 {conversations.map((c) => (
@@ -108,7 +109,7 @@ export default function Messages() {
                         <span className="tl-time">{timeAgo(c.last_at)}</span>
                       </span>
                       <span className="muted">
-                        {c.outgoing && "Siz: "}{c.last_message}
+                        {c.outgoing && tx("messages.siz")}{c.last_message}
                       </span>
                     </span>
                   </button>
@@ -129,7 +130,7 @@ export default function Messages() {
                   </div>
                   <span className="spacer" />
                   <button className="btn btn-sm" onClick={() => go(toUser(partner.id))}>
-                    Profil
+                    {tx("messages.profil")}
                   </button>
                 </div>
                 <Chat
@@ -142,8 +143,8 @@ export default function Messages() {
               <Card>
                 <Empty
                   icon="✉️"
-                  title="Suhbat tanlanmagan"
-                  text="Chapdan odamni email yoki ism bo'yicha toping va yozing."
+                  title={tx("messages.suhbat_tanlanmagan")}
+                  text={tx("messages.chapdan_odamni_email_yoki_ism")}
                 />
               </Card>
             )}

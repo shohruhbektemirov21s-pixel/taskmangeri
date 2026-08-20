@@ -5,6 +5,7 @@ import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { Empty, ErrorMsg, Loading, Progress } from "@/components/ui";
 import { toBulkTasks, toNewTask, toProject, toProjectEdit, useEntityId } from "@/nav";
+import { tx } from "@/i18n";
 
 /**
  * Bo'limlar talab bo'yicha yuklanadi.
@@ -29,19 +30,19 @@ const ForecastTab = lazy(() => import("./project/Forecast"));
 // ekanini tushuntiradi. Yopiq qoladigan yagona joy — suhbat: u jamoaning
 // ish yozishmasi, tomoshabinga emas (serverda ham shunday).
 const TABS = [
-  { slug: "", label: "Umumiy" },
-  { slug: "doska", label: "Doska" },
-  { slug: "vazifalar", label: "Vazifalar" },
-  { slug: "jamoa", label: "Jamoa" },
-  { slug: "muddatlar", label: "Muddatlar" },
-  { slug: "fayllar", label: "Hujjatlar" },
-  { slug: "chat", label: "Suhbat", team: true },
-  { slug: "tarix", label: "Tarix" },
-  { slug: "kirish", label: "Loyihaga kirish" },
+  { slug: "", label: tx("project_detail.umumiy") },
+  { slug: "doska", label: tx("project_detail.doska") },
+  { slug: "vazifalar", label: tx("common.vazifalar") },
+  { slug: "jamoa", label: tx("common.jamoa") },
+  { slug: "muddatlar", label: tx("project_detail.muddatlar") },
+  { slug: "fayllar", label: tx("common.hujjatlar") },
+  { slug: "chat", label: tx("common.suhbat"), team: true },
+  { slug: "tarix", label: tx("project_detail.tarix") },
+  { slug: "kirish", label: tx("project_detail.loyihaga_kirish") },
   // Slug `brif` bo'lib qoladi - u serverdagi `ProjectBrief` bilan bir
   // xil nom va marshrutda ham shu. O'zbekcha yorlig'i esa loyihaning
   // texnik tavsifi ekanini aniqroq aytadi.
-  { slug: "brif", label: "Arxitekturasi" },
+  { slug: "brif", label: tx("project_detail.arxitekturasi") },
 ];
 
 export default function ProjectDetail() {
@@ -59,9 +60,9 @@ export default function ProjectDetail() {
   if (!id) {
     return (
       <div className="content">
-        <Empty title="Loyiha tanlanmagan"
-               text="Manzilda loyiha raqami saqlanmaydi - uni ro'yxatdan tanlang.">
-          <Link className="btn btn-primary" to="/loyihalar">Loyihalarim</Link>
+        <Empty title={tx("common.loyiha_tanlanmagan")}
+               text={tx("project_detail.manzilda_loyiha_raqami_saqlanmaydi_uni")}>
+          <Link className="btn btn-primary" to="/loyihalar">{tx("common.loyihalarim")}</Link>
         </Empty>
       </div>
     );
@@ -71,7 +72,7 @@ export default function ProjectDetail() {
   if (!project) {
     return (
       <div className="content">
-        <ErrorMsg error={error || "Loyihani ochib bo'lmadi - ruxsat yo'q yoki topilmadi."} />
+        <ErrorMsg error={error || tx("project_detail.loyihani_ochib_bolmadi_ruxsat_yoq")} />
       </div>
     );
   }
@@ -85,7 +86,7 @@ export default function ProjectDetail() {
         title={
           <>
             <span className="lang-dot" style={{ background: project.color }} />{" "}
-            <Link to="/loyihalar" className="muted">loyihalar</Link>
+            <Link to="/loyihalar" className="muted">{tx("project_detail.loyihalar")}</Link>
             <span className="muted"> / </span>
             <strong>{project.name}</strong>{" "}
             <span className="badge mono">{project.key}</span>{" "}
@@ -96,8 +97,8 @@ export default function ProjectDetail() {
             {/* Yopiq loyihada ishlayotganini odam bilib tursin */}
             {!project.is_public && (
               <span className="badge badge-warn"
-                    title="Bu loyihani faqat jamoa azolari koradi">
-                yopiq
+                    title={tx("project_detail.bu_loyihani_faqat_jamoa_azolari")}>
+                {tx("project_detail.yopiq")}
               </span>
             )}
           </>
@@ -109,14 +110,14 @@ export default function ProjectDetail() {
           <>
             {acc.can_create_task && (
               <>
-                <Link className="btn btn-sm" {...toBulkTasks(id)}>Koplab vazifa</Link>
+                <Link className="btn btn-sm" {...toBulkTasks(id)}>{tx("project_detail.koplab_vazifa")}</Link>
                 <Link className="btn btn-sm btn-primary" {...toNewTask(id)}>
-                  Yangi vazifa
+                  {tx("common.yangi_vazifa")}
                 </Link>
               </>
             )}
             {acc.can_manage && (
-              <Link className="btn btn-sm" {...toProjectEdit(id)}>Sozlamalar</Link>
+              <Link className="btn btn-sm" {...toProjectEdit(id)}>{tx("project_detail.sozlamalar")}</Link>
             )}
           </>
         }
@@ -141,7 +142,7 @@ export default function ProjectDetail() {
             <Progress value={project.progress} />
           </div>
           <span className="muted" style={{ fontSize: 12 }}>
-            {project.progress}% bajarildi · {project.open_tasks} ochiq · {project.member_count} azo
+            {project.progress}{tx("project_detail.bajarildi")} {project.open_tasks} {tx("project_detail.ochiq")} {project.member_count} {tx("common.azo")}
           </span>
         </div>
 

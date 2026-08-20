@@ -7,6 +7,7 @@ import { IconFile } from "@/components/icons";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { ErrorMsg, Loading, STATUS_DOT, TaskCard, TaskScopeNote } from "@/components/ui";
 import { toProject } from "@/nav";
+import { tx } from "@/i18n";
 
 interface Column {
   status: TaskStatusValue;
@@ -76,7 +77,7 @@ export default function Board({ project }: { project: Project }) {
       await api.post(`/tasks/${taskId}/status/`, { status });
       reload();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Holatni ozgartirib bolmadi");
+      setActionError(err instanceof ApiError ? err.message : tx("project_board.holatni_ozgartirib_bolmadi"));
     }
   }
 
@@ -89,7 +90,7 @@ export default function Board({ project }: { project: Project }) {
   }
 
   if (loading) return <Loading />;
-  if (!columns) return <ErrorMsg error={error || "Doskani yuklab bo'lmadi."} />;
+  if (!columns) return <ErrorMsg error={error || tx("project_board.doskani_yuklab_bolmadi")} />;
 
   return (
     <>
@@ -97,10 +98,10 @@ export default function Board({ project }: { project: Project }) {
       <TaskScopeNote access={access} />
       <div className="filters">
         <div className="f">
-          <label htmlFor={`${fid}-0`}>Ijrochi</label>
+          <label htmlFor={`${fid}-0`}>{tx("project_board.ijrochi")}</label>
           <select id={`${fid}-0`} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-            <option value="">Hammasi</option>
-            <option value="me">Faqat meniki</option>
+            <option value="">{tx("common.hammasi")}</option>
+            <option value="me">{tx("project_board.faqat_meniki")}</option>
             {(project.members || []).map((m) => (
               <option key={m.user.id} value={m.user.id}>{m.user.full_name}</option>
             ))}
@@ -111,7 +112,7 @@ export default function Board({ project }: { project: Project }) {
 
       {files.length > 0 && (
         <div className="board-files">
-          <span className="muted nowrap"><IconFile size={13} /> Loyiha fayllari:</span>
+          <span className="muted nowrap"><IconFile size={13} /> {tx("project_board.loyiha_fayllari")}</span>
           {files.slice(0, 5).map((f) => (
             <a key={f.id} className="chip" href={f.url || "#"} target="_blank" rel="noreferrer"
                title={f.description || f.original_name}>
@@ -120,7 +121,7 @@ export default function Board({ project }: { project: Project }) {
           ))}
           {files.length > 5 && (
             <Link className="chip" {...toProject(project.id, "fayllar")}>
-              yana {files.length - 5} ta
+              {tx("common.yana")} {files.length - 5} {tx("common.ta")}
             </Link>
           )}
         </div>
@@ -146,7 +147,7 @@ export default function Board({ project }: { project: Project }) {
             </div>
             {col.status === "DONE" && access?.can_review && (
               <p className="muted" style={{ fontSize: 11, padding: "0 12px 8px" }}>
-                Tekshiruvdagi ishni shu yerga tashlab tasdiqlaysiz.
+                {tx("project_board.tekshiruvdagi_ishni_shu_yerga_tashlab")}
               </p>
             )}
             <div className="column-body">
@@ -162,7 +163,7 @@ export default function Board({ project }: { project: Project }) {
                 />
               ))}
               {!col.tasks.length && (
-                <p className="muted center" style={{ fontSize: 12, padding: "16px 0" }}>bo'sh</p>
+                <p className="muted center" style={{ fontSize: 12, padding: "16px 0" }}>{tx("project_board.bosh")}</p>
               )}
             </div>
           </div>

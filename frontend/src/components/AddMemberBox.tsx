@@ -14,6 +14,7 @@ import type { Choice, UserBrief } from "@/api/types";
 import UserSearch from "./UserSearch";
 import { IconClose, IconUserPlus } from "./icons";
 import { Avatar, Card, ErrorMsg, OkMsg, SpecialtyTag } from "./ui";
+import { tx } from "@/i18n";
 
 interface Props {
   /** Loyihaga qo'shilsa — loyiha id si */
@@ -58,14 +59,14 @@ export default function AddMemberBox({
       setPicked(null);
       onChange?.();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Qo'shib bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("add_member_box.qoshib_bolmadi"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Card title={<span className="row" style={{ gap: 8 }}><IconUserPlus size={15} /> A'zo qo'shish</span>}>
+    <Card title={<span className="row" style={{ gap: 8 }}><IconUserPlus size={15} /> {tx("add_member_box.azo_qoshish")}</span>}>
       <ErrorMsg error={error} />
       <OkMsg text={ok} />
 
@@ -73,8 +74,8 @@ export default function AddMemberBox({
         <UserSearch
           search={search}
           onPick={setPicked}
-          placeholder="Email yoki ism bo'yicha qidiring"
-          emptyText="Mos odam topilmadi"
+          placeholder={tx("common.email_yoki_ism_boyicha_qidiring")}
+          emptyText={tx("add_member_box.mos_odam_topilmadi")}
         />
       ) : (
         <form onSubmit={submit}>
@@ -86,14 +87,14 @@ export default function AddMemberBox({
               <small className="muted mono">{picked.email}</small>
             </div>
             <span className="spacer" />
-            <button type="button" className="btn btn-sm btn-ghost" title="Boshqasini tanlash"
+            <button type="button" className="btn btn-sm btn-ghost" title={tx("add_member_box.boshqasini_tanlash")}
                     onClick={() => setPicked(null)}>
               <IconClose size={14} />
             </button>
           </div>
 
           <div className="field mt">
-            <label htmlFor={`${fid}-0`}>Rol</label>
+            <label htmlFor={`${fid}-0`}>{tx("common.rol")}</label>
             <select id={`${fid}-0`} value={role} onChange={(e) => setRole(e.target.value)}>
               {roles.map((r) => (
                 <option key={String(r.value)} value={String(r.value)}>{r.label}</option>
@@ -102,7 +103,7 @@ export default function AddMemberBox({
           </div>
 
           <button className="btn btn-primary" disabled={busy}>
-            {busy ? "Qo'shilmoqda..." : "Jamoaga qo'shish"}
+            {busy ? tx("add_member_box.qoshilmoqda") : tx("add_member_box.jamoaga_qoshish")}
           </button>
         </form>
       )}

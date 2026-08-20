@@ -7,6 +7,7 @@ import {
   Avatar, Card, Empty, ErrorMsg, Loading, Priority, Stat, StatusBadge, fmtDate, timeAgo,
 } from "@/components/ui";
 import { toProject, toTask, useEntityId } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function DeveloperReport() {
   // Loyiha va odam raqami manzilda emas, sahifa holatida - `src/nav`.
@@ -20,9 +21,9 @@ export default function DeveloperReport() {
   if (!id || !userId) {
     return (
       <div className="content">
-        <Empty title="Hisobot tanlanmagan"
-               text="Dasturchi hisoboti loyiha jamoasidan ochiladi.">
-          <Link className="btn btn-primary" to="/loyihalar">Loyihalarim</Link>
+        <Empty title={tx("developer_report.hisobot_tanlanmagan")}
+               text={tx("developer_report.dasturchi_hisoboti_loyiha_jamoasidan_ochilad")}>
+          <Link className="btn btn-primary" to="/loyihalar">{tx("common.loyihalarim")}</Link>
         </Empty>
       </div>
     );
@@ -38,12 +39,12 @@ export default function DeveloperReport() {
       <PageHead
         title={
           <>
-            <Link className="muted" {...toProject(id, "tarix")}>tarix</Link>
+            <Link className="muted" {...toProject(id, "tarix")}>{tx("developer_report.tarix")}</Link>
             <span className="muted"> / </span>
             <strong>{d.developer.full_name}</strong>
           </>
         }
-        actions={<Link className="btn btn-sm" {...toProject(id, "tarix")}>Loyiha tarixi</Link>}
+        actions={<Link className="btn btn-sm" {...toProject(id, "tarix")}>{tx("developer_report.loyiha_tarixi")}</Link>}
       />
 
       <div className="content">
@@ -58,7 +59,7 @@ export default function DeveloperReport() {
                 </span>
                 <span className="badge">{d.developer.seniority_display}</span>
                 {m && <span className="badge">{m.role_display}</span>}
-                {m && !m.is_active && <span className="badge badge-danger">sobiq aʼzo</span>}
+                {m && !m.is_active && <span className="badge badge-danger">{tx("developer_report.sobiq_azo")}</span>}
               </div>
               <small className="muted">
                 {m?.joined_at && `Qoshilgan: ${fmtDate(m.joined_at)}`}
@@ -68,22 +69,22 @@ export default function DeveloperReport() {
           </div>
           {m?.handover_note && (
             <div className="card-body" style={{ borderTop: "1px solid var(--border)" }}>
-              <strong>Topshiriq eslatmasi</strong>
+              <strong>{tx("developer_report.topshiriq_eslatmasi")}</strong>
               <div className="tl-detail">{m.handover_note}</div>
             </div>
           )}
         </div>
 
         <div className="grid grid-4 mb">
-          <Stat value={d.task_count} label="Jami vazifa" tone="accent" />
-          <Stat value={d.done_count} label="Bajarilgan" tone="ok" />
-          <Stat value={d.total_hours} label="Sarflangan soat" tone="warn" />
-          <Stat value={d.review_map?.CHANGES_REQUESTED || 0} label="Qaytarilgan" tone="danger" />
+          <Stat value={d.task_count} label={tx("developer_report.jami_vazifa")} tone="accent" />
+          <Stat value={d.done_count} label={tx("common.bajarilgan")} tone="ok" />
+          <Stat value={d.total_hours} label={tx("common.sarflangan_soat")} tone="warn" />
+          <Stat value={d.review_map?.CHANGES_REQUESTED || 0} label={tx("developer_report.qaytarilgan")} tone="danger" />
         </div>
 
         <div className="split">
           <div>
-            <Card title="Ish jurnali — nima qilingan va nega"
+            <Card title={tx("developer_report.ish_jurnali_nima_qilingan_va")}
                   badge={<span className="badge">{d.worklogs.length}</span>}>
               <ul className="list-plain">
                 {d.worklogs.map((w) => (
@@ -94,17 +95,17 @@ export default function DeveloperReport() {
                         : <span className="mono muted">{w.task_code}</span>}
                       <span style={{ fontSize: 13 }}>{w.task_title}</span>
                       <span className="spacer" />
-                      <span className="badge">{w.hours} soat</span>
+                      <span className="badge">{w.hours} {tx("common.soat")}</span>
                       <small className="muted">{fmtDate(w.work_date)}</small>
                     </div>
                     <div className="pre-wrap" style={{ marginTop: 6 }}>{w.note}</div>
                   </li>
                 ))}
-                {!d.worklogs.length && <li className="muted">Ish jurnali yozuvi yoq.</li>}
+                {!d.worklogs.length && <li className="muted">{tx("developer_report.ish_jurnali_yozuvi_yoq")}</li>}
               </ul>
             </Card>
 
-            <Card title="Tekshiruv natijalari"
+            <Card title={tx("developer_report.tekshiruv_natijalari")}
                   badge={<span className="badge">{d.reviews.length}</span>}>
               <ul className="list-plain">
                 {d.reviews.map((r) => (
@@ -123,17 +124,17 @@ export default function DeveloperReport() {
                     {r.comment && <div className="tl-detail">{r.comment}</div>}
                   </li>
                 ))}
-                {!d.reviews.length && <li className="muted">Tekshiruv yoq.</li>}
+                {!d.reviews.length && <li className="muted">{tx("developer_report.tekshiruv_yoq")}</li>}
               </ul>
             </Card>
 
-            <Card title="Harakatlar tarixi">
+            <Card title={tx("developer_report.harakatlar_tarixi")}>
               <Timeline items={d.timeline} showProject={false} />
             </Card>
           </div>
 
           <div>
-            <Card title="Bajarilgan vazifalar" padded={false}>
+            <Card title={tx("developer_report.bajarilgan_vazifalar")} padded={false}>
               <div className="table-wrap"><table className="table">
                 <tbody>
                   {d.done_tasks.map((t) => (
@@ -144,13 +145,13 @@ export default function DeveloperReport() {
                     </tr>
                   ))}
                   {!d.done_tasks.length && (
-                    <tr><td><Empty title="Hali bajarilgan vazifa yoq" /></td></tr>
+                    <tr><td><Empty title={tx("developer_report.hali_bajarilgan_vazifa_yoq")} /></td></tr>
                   )}
                 </tbody>
               </table></div>
             </Card>
 
-            <Card title="Ochiq vazifalar" padded={false}>
+            <Card title={tx("developer_report.ochiq_vazifalar")} padded={false}>
               <div className="table-wrap"><table className="table">
                 <tbody>
                   {d.open_tasks.map((t) => (
@@ -162,13 +163,13 @@ export default function DeveloperReport() {
                     </tr>
                   ))}
                   {!d.open_tasks.length && (
-                    <tr><td className="muted center">Ochiq vazifa yoq</td></tr>
+                    <tr><td className="muted center">{tx("developer_report.ochiq_vazifa_yoq")}</td></tr>
                   )}
                 </tbody>
               </table></div>
             </Card>
 
-            <Card title="Holatlar boyicha">
+            <Card title={tx("developer_report.holatlar_boyicha")}>
               <ul className="list-plain" style={{ fontSize: 13 }}>
                 {Object.entries(d.by_status).map(([k, v]) => (
                   <li className="row" key={k}>

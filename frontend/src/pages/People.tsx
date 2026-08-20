@@ -7,6 +7,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { PageHead } from "@/components/Layout";
 import { Avatar, Card, ErrorMsg, Loading, fmtDate } from "@/components/ui";
 import { toUser } from "@/nav";
+import { tx } from "@/i18n";
 
 export default function People() {
   const fid = useId();
@@ -30,7 +31,7 @@ export default function People() {
       await api.patch(`/users/${target.id}/role/`, patch);
       reload();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Ozgartirib bolmadi");
+      setActionError(err instanceof ApiError ? err.message : tx("people.ozgartirib_bolmadi"));
     }
   }
 
@@ -42,39 +43,39 @@ export default function People() {
 
   return (
     <>
-      <PageHead title={<strong>Foydalanuvchilar</strong>}
-                actions={users && <span className="badge">{users.length} ta</span>} />
+      <PageHead title={<strong>{tx("people.foydalanuvchilar")}</strong>}
+                actions={users && <span className="badge">{users.length} {tx("common.ta")}</span>} />
       <div className="content">
         <ErrorMsg error={error} />
 
         <div className="filters">
           <div className="f grow">
-            <label htmlFor={`${fid}-0`}>Qidiruv</label>
+            <label htmlFor={`${fid}-0`}>{tx("common.qidiruv")}</label>
             <input id={`${fid}-0`} value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })}
-                   placeholder="Ism, email yoki konikma" />
+                   placeholder={tx("people.ism_email_yoki_konikma")} />
           </div>
           <div className="f">
-            <label htmlFor={`${fid}-1`}>Mutaxassislik</label>
+            <label htmlFor={`${fid}-1`}>{tx("common.mutaxassislik")}</label>
             <select id={`${fid}-1`} value={f.specialty} onChange={(e) => setF({ ...f, specialty: e.target.value })}>
-              <option value="">Hammasi</option>
+              <option value="">{tx("common.hammasi")}</option>
               {(meta?.specialties || []).map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
           </div>
           <div className="f">
-            <label htmlFor={`${fid}-2`}>Daraja</label>
+            <label htmlFor={`${fid}-2`}>{tx("common.daraja")}</label>
             <select id={`${fid}-2`} value={f.seniority} onChange={(e) => setF({ ...f, seniority: e.target.value })}>
-              <option value="">Hammasi</option>
+              <option value="">{tx("common.hammasi")}</option>
               {(meta?.seniority || []).map((s) => (
                 <option key={s.value} value={String(s.value)}>{s.label}</option>
               ))}
             </select>
           </div>
           <div className="f">
-            <label htmlFor={`${fid}-3`}>Tizim roli</label>
+            <label htmlFor={`${fid}-3`}>{tx("people.tizim_roli")}</label>
             <select id={`${fid}-3`} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
-              <option value="">Hammasi</option>
+              <option value="">{tx("common.hammasi")}</option>
               {(meta?.global_role || []).map((s) => (
                 <option key={s.value} value={String(s.value)}>{s.label}</option>
               ))}
@@ -88,8 +89,8 @@ export default function People() {
               <div className="table-wrap"><table className="table">
                 <thead>
                   <tr>
-                    <th>Foydalanuvchi</th><th>Mutaxassislik</th><th>Tizim roli</th>
-                    <th>Loyihalar</th><th>Ochiq ish</th><th></th>
+                    <th>{tx("people.foydalanuvchi")}</th><th>{tx("common.mutaxassislik")}</th><th>{tx("people.tizim_roli")}</th>
+                    <th>{tx("common.loyihalar")}</th><th>{tx("people.ochiq_ish")}</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -100,7 +101,7 @@ export default function People() {
                           <Avatar user={u} size="sm" />
                           <div>
                             <Link {...toUser(u.id)}>{u.full_name}</Link>
-                            {!u.is_active && <span className="badge badge-danger">bloklangan</span>}
+                            {!u.is_active && <span className="badge badge-danger">{tx("people.bloklangan")}</span>}
                             <br /><small className="muted">{u.email}</small>
                           </div>
                         </div>
@@ -118,7 +119,7 @@ export default function People() {
                             {u.specialty_display}
                           </span>
                         )}
-                        <br /><small className="muted">{u.seniority_display} · {u.years_experience} yil</small>
+                        <br /><small className="muted">{u.seniority_display} · {u.years_experience} {tx("people.yil")}</small>
                       </td>
                       <td>
                         {isAdmin ? (
@@ -136,7 +137,7 @@ export default function People() {
                         {isAdmin && u.id !== user?.id && (
                           <button className={`btn btn-sm ${u.is_active ? "btn-danger" : ""}`}
                                   onClick={() => void change(u, { is_active: !u.is_active })}>
-                            {u.is_active ? "Bloklash" : "Faollashtirish"}
+                            {u.is_active ? tx("people.bloklash") : tx("people.faollashtirish")}
                           </button>
                         )}
                       </td>
@@ -148,7 +149,7 @@ export default function People() {
           </div>
 
           <div>
-            <Card title="Mutaxassisliklar taqsimoti">
+            <Card title={tx("people.mutaxassisliklar_taqsimoti")}>
               <ul className="list-plain" style={{ fontSize: 13 }}>
                 {Object.entries(byspec).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
                   <li className="row" key={k}>

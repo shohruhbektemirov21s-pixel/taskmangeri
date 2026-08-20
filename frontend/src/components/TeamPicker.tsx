@@ -18,6 +18,7 @@ import { MAX_FILE_BYTES, fileSize, uploadFiles } from "./FilePicker";
 import UserSearch from "./UserSearch";
 import { IconCheck, IconClose, IconFile, IconPlus } from "./icons";
 import { Avatar, DateField, fromDateTimeInput, SpecialtyTag } from "./ui";
+import { tx } from "@/i18n";
 
 /** Odamga atab yozilgan, hali yaratilmagan vazifa. */
 export interface PickTask {
@@ -182,8 +183,8 @@ export default function TeamPicker({
           { user: u, role: defaultRole, tasks: [], draft: emptyTask() },
           ...picks,
         ])}
-        placeholder="Email yoki ism-familiya"
-        emptyText="Hech kim topilmadi"
+        placeholder={tx("team_picker.email_yoki_ism_familiya")}
+        emptyText={tx("common.hech_kim_topilmadi")}
         clearOnPick
       />
 
@@ -200,7 +201,7 @@ export default function TeamPicker({
                   <small className="muted">{p.user.email}</small>
                 </div>
                 <span className="spacer" />
-                <button type="button" className="btn btn-sm" title="Royxatdan olib tashlash"
+                <button type="button" className="btn btn-sm" title={tx("team_picker.royxatdan_olib_tashlash")}
                         onClick={() => onChange(picks.filter((_, n) => n !== i))}>
                   <IconClose size={13} />
                 </button>
@@ -253,7 +254,7 @@ export default function TeamPicker({
                           <IconFile size={11} /> {t.files.length}
                         </small>
                       )}
-                      <button type="button" className="chip-x" title="Vazifani olib tashlash"
+                      <button type="button" className="chip-x" title={tx("team_picker.vazifani_olib_tashlash")}
                               onClick={() => patch(i, {
                                 tasks: p.tasks.filter((_, k) => k !== n),
                                 // Qator o'chsa ochiq tahrirning indeksi siljiydi:
@@ -284,8 +285,8 @@ export default function TeamPicker({
           ))}
 
           <div className="muted" style={{ fontSize: 12 }}>
-            {picks.length} ta a'zo
-            {total > 0 && <> · {total} ta vazifa</>}
+            {picks.length} {tx("team_picker.ta_azo")}
+            {total > 0 && <> · {total} {tx("team_picker.ta_vazifa")}</>}
           </div>
         </div>
       )}
@@ -350,7 +351,7 @@ function TaskAdder({ priorities, value, onValue, onSubmit, onCancel }: {
         /* Tahrirda maydon o'zi fokusga tushadi - odam nomni bosgan edi,
            demak birinchi tuzatadigan narsasi ham shu. */
         autoFocus={editing}
-        placeholder="Vazifa: masalan «Login sahifasini yigish»"
+        placeholder={tx("team_picker.vazifa_masalan_login_sahifasini_yigish")}
         onChange={(e) => set({ title: e.target.value })}
         /* Enter forma yuborib yubormasin — u yerda vazifa qoshiladi.
            Escape esa tahrirni yopadi. */
@@ -368,12 +369,12 @@ function TaskAdder({ priorities, value, onValue, onSubmit, onCancel }: {
           bir-birini cheklaydi - teskari oraliq tanlab bo'lmaydi. */}
       <div className="row wrap">
         <label className="pick-date">
-          <small className="muted">Boshlanish</small>
+          <small className="muted">{tx("common.boshlanish")}</small>
           <DateField value={value.start_date} max={value.due_date || undefined}
                      onChange={(v) => set({ start_date: v })} />
         </label>
         <label className="pick-date">
-          <small className="muted">Tugash</small>
+          <small className="muted">{tx("team_picker.tugash")}</small>
           <DateField value={value.due_date} min={value.start_date || undefined}
                      onChange={(v) => set({ due_date: v })} />
         </label>
@@ -386,22 +387,22 @@ function TaskAdder({ priorities, value, onValue, onSubmit, onCancel }: {
             <option key={String(x.value)} value={String(x.value)}>{x.label}</option>
           ))}
         </select>
-        <button type="button" className="btn btn-sm" title="Vazifaga fayl biriktirish"
+        <button type="button" className="btn btn-sm" title={tx("team_picker.vazifaga_fayl_biriktirish")}
                 onClick={() => fileInput.current?.click()}>
-          <IconFile size={13} /> Fayl
+          <IconFile size={13} /> {tx("team_picker.fayl")}
         </button>
         <input ref={fileInput} type="file" multiple style={{ display: "none" }}
                onChange={(e) => addFiles(e.target.files)} />
         {onCancel && (
           <button type="button" className="btn btn-sm" onClick={onCancel}>
-            Bekor qilish
+            {tx("common.bekor_qilish")}
           </button>
         )}
         <button type="button" className={`btn btn-sm${editing ? " btn-primary" : ""}`}
                 disabled={!value.title.trim()} onClick={submit}>
           {editing
-            ? <><IconCheck size={13} /> Saqlash</>
-            : <><IconPlus size={13} /> Qoshish</>}
+            ? <><IconCheck size={13} /> {tx("common.saqlash")}</>
+            : <><IconPlus size={13} /> {tx("team_picker.qoshish")}</>}
         </button>
       </div>
 
@@ -412,7 +413,7 @@ function TaskAdder({ priorities, value, onValue, onSubmit, onCancel }: {
               <IconFile size={11} />
               <span className="pick-file-name">{f.name}</span>
               <small className="muted">{fileSize(f.size)}</small>
-              <button type="button" className="chip-x" title="Faylni olib tashlash"
+              <button type="button" className="chip-x" title={tx("team_picker.faylni_olib_tashlash")}
                       onClick={() => set({ files: value.files.filter((_, n) => n !== i) })}>
                 <IconClose size={9} />
               </button>
@@ -423,7 +424,7 @@ function TaskAdder({ priorities, value, onValue, onSubmit, onCancel }: {
 
       {!!tooBig.length && (
         <small className="err">
-          25 MB dan katta bolgani uchun qoshilmadi: {tooBig.join(", ")}
+          {tx("team_picker.25_mb_dan_katta_bolgani")} {tooBig.join(", ")}
         </small>
       )}
     </div>

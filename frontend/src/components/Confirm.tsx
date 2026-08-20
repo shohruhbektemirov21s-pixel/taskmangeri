@@ -16,6 +16,7 @@
  * funksiyadan ham, hook bo'lmagan joydan ham chaqirish mumkin.
  */
 import { useEffect, useRef, useState } from "react";
+import { tx } from "@/i18n";
 
 interface ConfirmOptions {
   title: string;
@@ -101,12 +102,12 @@ export default function ConfirmHost() {
         {pending.body && <p className="muted">{pending.body}</p>}
         <div className="modal-actions">
           <button type="button" className="btn" onClick={() => done(false)}>
-            {pending.cancelText || "Bekor qilish"}
+            {pending.cancelText || tx("common.bekor_qilish")}
           </button>
           <button ref={confirmBtn} type="button"
                   className={`btn ${pending.danger ? "btn-danger" : "btn-primary"}`}
                   onClick={() => done(true)}>
-            {pending.confirmText || "Davom etish"}
+            {pending.confirmText || tx("confirm.davom_etish")}
           </button>
         </div>
       </div>

@@ -13,6 +13,7 @@ import type { Submission, Task } from "@/api/types";
 import { IconCheck, IconClose, IconFile, IconHistory } from "./icons";
 import { Avatar, Card, DiffView, ErrorMsg, OkMsg, fmtDateTime, timeAgo } from "./ui";
 import { toTask } from "@/nav";
+import { tx } from "@/i18n";
 
 interface Props {
   task: Task;
@@ -46,7 +47,7 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (text.trim().length < 3) {
-      setError("Qilingan ishni qisqacha bo'lsa ham yozing.");
+      setError(tx("task_submission.qilingan_ishni_qisqacha_bolsa_ham"));
       return;
     }
     setBusy(true);
@@ -65,12 +66,14 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       setFiles([]);
       if (fileInput.current) fileInput.current.value = "";
       setOk(saved?.moved_to_review
-        ? "Ish topshirildi — vazifa tekshiruvga o'tdi, menejer tasdiqlashini kuting."
-        : `Ish topshirildi. Vazifa holati: ${saved?.task_status_display || "o'zgarmadi"}.`);
+        ? tx("task_submission.ish_topshirildi_vazifa_tekshiruvga_otdi")
+        : tx("task_submission.ish_topshirildi_holat", {
+            holat: saved?.task_status_display || tx("task_submission.ozgarmadi"),
+          }));
       await load();
       onChange();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Topshirib bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("task_submission.topshirib_bolmadi"));
     } finally {
       setBusy(false);
     }
@@ -84,7 +87,7 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       await load();
       onChange();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Tahrirlab bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("task_submission.tahrirlab_bolmadi"));
     }
   }
 
@@ -95,13 +98,13 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       await load();
       onChange();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "O'chirib bo'lmadi");
+      setError(err instanceof ApiError ? err.message : tx("task_submission.ochirib_bolmadi"));
     }
   }
 
   return (
     <Card
-      title="Topshirilgan ish"
+      title={tx("task_submission.topshirilgan_ish")}
       badge={<span className="badge">{items.length}</span>}
     >
       <ErrorMsg error={error} />
@@ -110,16 +113,16 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       {canWork && (
         <form onSubmit={submit} className="mb">
           <div className="field">
-            <label htmlFor={`${fid}-0`}>Nima qilindi</label>
+            <label htmlFor={`${fid}-0`}>{tx("task_submission.nima_qilindi")}</label>
             <textarea id={`${fid}-0`}
               rows={3}
               value={text}
-              placeholder="Qaysi fayllar o'zgardi, qanday yechim tanlandi, nimaga e'tibor berish kerak"
+              placeholder={tx("task_submission.qaysi_fayllar_ozgardi_qanday_yechim")}
               onChange={(e) => setText(e.target.value)}
             />
           </div>
           <div className="field">
-            <label htmlFor={`${fid}-1`}>Fayl biriktirish (ixtiyoriy)</label>
+            <label htmlFor={`${fid}-1`}>{tx("task_submission.fayl_biriktirish_ixtiyoriy")}</label>
             {/* Xom input yashirin: uning tugmasi brauzer tilida chiqardi
                 (masalan ruscha "Vybrat fayly"). Ochish o'zbekcha tugma
                 orqali - loyihadagi boshqa yuklash joylari bilan bir xil. */}
@@ -132,22 +135,22 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
             />
             <button type="button" className="btn btn-sm"
                     onClick={() => fileInput.current?.click()}>
-              Fayl tanlash
+              {tx("task_submission.fayl_tanlash")}
             </button>
             {!!files.length && (
               <div className="help">{files.map((f) => f.name).join(", ")}</div>
             )}
           </div>
           <button className="btn btn-primary" disabled={busy}>
-            {busy ? "Topshirilmoqda..." : "Ishni topshirish"}
+            {busy ? tx("task_submission.topshirilmoqda") : tx("task_submission.ishni_topshirish")}
           </button>
           <span className="muted" style={{ marginLeft: 10, fontSize: 12.5 }}>
-            Vazifa tekshiruvga o'tadi va menejer tasdiqlamaguncha shunday turadi.
+            {tx("task_submission.vazifa_tekshiruvga_otadi_va_menejer")}
           </span>
         </form>
       )}
 
-      {!items.length && <p className="muted">Hali ish topshirilmagan.</p>}
+      {!items.length && <p className="muted">{tx("task_submission.hali_ish_topshirilmagan")}</p>}
 
       <div className="stack">
         {items.map((s) => (
@@ -156,9 +159,9 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
               <Avatar user={s.author} size="sm" />
               <div style={{ minWidth: 0 }}>
                 <strong>{s.author.full_name}</strong>{" "}
-                <span className="badge">{s.round_no}-aylana</span>{" "}
+                <span className="badge">{s.round_no}{tx("task_submission.aylana")}</span>{" "}
                 {s.is_edited && (
-                  <span className="badge badge-warn">{s.edited_count} marta tahrirlangan</span>
+                  <span className="badge badge-warn">{s.edited_count} {tx("task_submission.marta_tahrirlangan")}</span>
                 )}
                 <br />
                 <small className="muted" title={fmtDateTime(s.created_at)}>
@@ -170,10 +173,10 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
                 <>
                   <button className="btn btn-sm btn-ghost"
                           onClick={() => { setEditing(s.id); setEditText(s.text); }}>
-                    Tahrirlash
+                    {tx("common.tahrirlash")}
                   </button>
                   <button className="btn btn-sm btn-danger" onClick={() => void remove(s.id)}>
-                    <IconClose size={13} /> O'chirish
+                    <IconClose size={13} /> {tx("common.ochirish")}
                   </button>
                 </>
               )}
@@ -184,9 +187,9 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
                 <textarea rows={3} value={editText} onChange={(e) => setEditText(e.target.value)} />
                 <div className="row" style={{ marginTop: 8 }}>
                   <button className="btn btn-sm btn-primary" onClick={() => void saveEdit(s.id)}>
-                    <IconCheck size={13} /> Saqlash
+                    <IconCheck size={13} /> {tx("common.saqlash")}
                   </button>
-                  <button className="btn btn-sm" onClick={() => setEditing(null)}>Bekor qilish</button>
+                  <button className="btn btn-sm" onClick={() => setEditing(null)}>{tx("common.bekor_qilish")}</button>
                 </div>
               </div>
             ) : (
@@ -209,20 +212,20 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
                 <button className="btn btn-sm btn-ghost"
                         onClick={() => setOpenHistory(openHistory === s.id ? null : s.id)}>
                   <IconHistory size={13} />{" "}
-                  {openHistory === s.id ? "Tahrir tarixini yashirish" : "Tahrir tarixi"}
+                  {openHistory === s.id ? tx("task_submission.tahrir_tarixini_yashirish") : tx("task_submission.tahrir_tarixi")}
                 </button>
                 {openHistory === s.id && (
                   <div className="edit-history">
                     {s.edits.map((e) => (
                       <div className="edit-row" key={e.id}>
                         <div className="row" style={{ gap: 6 }}>
-                          <strong>{e.editor?.full_name || "Kimdir"}</strong>
+                          <strong>{e.editor?.full_name || tx("task_submission.kimdir")}</strong>
                           <span className="tl-time">{fmtDateTime(e.edited_at)}</span>
                         </div>
                         {/* Yonma-yon solishtirish: o'zgargan bo'laklar ajratilgan.
                             Bo'laklarni server beradi (`diff`). */}
-                        <DiffView diff={e.diff} oldLabel="Tahrirdan oldin"
-                                  newLabel="Tahrirdan keyin" />
+                        <DiffView diff={e.diff} oldLabel={tx("task_submission.tahrirdan_oldin")}
+                                  newLabel={tx("task_submission.tahrirdan_keyin")} />
                       </div>
                     ))}
                   </div>
@@ -234,7 +237,7 @@ export default function TaskSubmission({ task, canWork, onChange }: Props) {
       </div>
 
       <p className="muted" style={{ fontSize: 12.5, marginTop: 12, marginBottom: 0 }}>
-        Vazifa: <Link {...toTask(task.id)}>{task.code}</Link> · holat: {task.status_display}
+        {tx("task_submission.vazifa")} <Link {...toTask(task.id)}>{task.code}</Link> {tx("task_submission.holat")} {task.status_display}
       </p>
     </Card>
   );

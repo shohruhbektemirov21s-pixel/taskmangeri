@@ -1,0 +1,4426 @@
+{
+ "add_member_box.azo_qoshish": {
+  "value": "A'zo qo'shish",
+  "note": "components/AddMemberBox.tsx"
+ },
+ "add_member_box.boshqasini_tanlash": {
+  "value": "Boshqasini tanlash",
+  "note": "components/AddMemberBox.tsx"
+ },
+ "add_member_box.jamoaga_qoshish": {
+  "value": "Jamoaga qo'shish",
+  "note": "components/AddMemberBox.tsx"
+ },
+ "add_member_box.mos_odam_topilmadi": {
+  "value": "Mos odam topilmadi",
+  "note": "components/AddMemberBox.tsx"
+ },
+ "add_member_box.qoshib_bolmadi": {
+  "value": "Qo'shib bo'lmadi",
+  "note": "components/AddMemberBox.tsx"
+ },
+ "add_member_box.qoshilmoqda": {
+  "value": "Qo'shilmoqda...",
+  "note": "components/AddMemberBox.tsx"
+ },
+ "admin.abdraxmanov": {
+  "value": "Abdraxmanov",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.abdraxmanov_toxir_toxtasinovich": {
+  "value": "Abdraxmanov Toxir Toxtasinovich",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.admin": {
+  "value": "admin",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.azo": {
+  "value": "A'zo",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hali_birorta_loyiha_ochilmagan": {
+  "value": "Hali birorta loyiha ochilmagan.",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hisob_ochib_bolmadi": {
+  "value": "Hisob ochib bo'lmadi",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hisob_ochildi": {
+  "value": "«{ism}» uchun hisob ochildi. Login: {login}",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hisob_ochirildi": {
+  "value": "«{ism}» hisobi o'chirildi.",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hisob_ochish": {
+  "value": "Hisob ochish",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hisob_qayta_yoqildi": {
+  "value": "«{ism}» hisobi qayta yoqildi.",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hisoblar": {
+  "value": "Hisoblar",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.hisoblar_rollar_va_loyihalar_bir": {
+  "value": "Hisoblar, rollar va loyihalar — bir joyda",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ish_maydoni": {
+  "value": "Ish maydoni",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ism_login_yoki_lavozim_boyicha": {
+  "value": "Ism, login yoki lavozim boyicha",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.jarayon": {
+  "value": "Jarayon",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.kamida_8_belgi": {
+  "value": "Kamida 8 belgi",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.login": {
+  "value": "Login",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.loyiha_yoq": {
+  "value": "Loyiha yo'q",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.menejer": {
+  "value": "Menejer",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ochilmoqda": {
+  "value": "Ochilmoqda...",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ochiq_ish": {
+  "value": "Ochiq ish",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ochirilgan": {
+  "value": "o'chirilgan",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ochirilgan_hisoblarni_korsatish": {
+  "value": "O'chirilgan hisoblarni ko'rsatish",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ochirilganlar": {
+  "value": "O'chirilganlar",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.odam": {
+  "value": "Odam",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.oz_rolingizni_ozingiz_ozgartira_olmaysiz": {
+  "value": "O'z rolingizni o'zingiz o'zgartira olmaysiz",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.ozgartirib_bolmadi": {
+  "value": "O'zgartirib bo'lmadi",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.parol_almashtirildi": {
+  "value": "«{ism}» paroli almashtirildi. Yangi parolni unga o'zingiz ayting.",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.parolni_almashtirib_bolmadi": {
+  "value": "Parolni almashtirib bo'lmadi",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.parolni_hisob_egasiga_ozingiz_yetkazasiz": {
+  "value": "Parolni hisob egasiga o'zingiz yetkazasiz — tizim uni hech qayerga\r\n                    yubormaydi va keyin ko'rsatmaydi.",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.qidiruvni_yoki_filtrni_ozgartiring": {
+  "value": "Qidiruvni yoki filtrni o'zgartiring.",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.qoshilgan": {
+  "value": "Qo'shilgan",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.tanlanmagan": {
+  "value": "Tanlanmagan",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.yangi_hisob": {
+  "value": "Yangi hisob",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.yangi_parol_soraladi": {
+  "value": "«{ism}» uchun yangi parol (kamida 8 belgi):",
+  "note": "pages/Admin.tsx"
+ },
+ "admin.yoqish": {
+  "value": "Yoqish",
+  "note": "pages/Admin.tsx"
+ },
+ "admin_gate.bu_bolim_tizim_adminiga_hisoblar": {
+  "value": "Bu bo'lim tizim adminiga — hisoblar, rollar va parollar",
+  "note": "pages/AdminGate.tsx"
+ },
+ "admin_gate.hisobida_tizim_admini_huquqi_yoq": {
+  "value": "hisobida tizim admini huquqi yo'q\r\n            (",
+  "note": "pages/AdminGate.tsx"
+ },
+ "admin_gate.ilovaga_qaytish": {
+  "value": "← Ilovaga qaytish",
+  "note": "pages/AdminGate.tsx"
+ },
+ "admin_gate.kirishda_xatolik": {
+  "value": "Kirishda xatolik",
+  "note": "pages/AdminGate.tsx"
+ },
+ "admin_gate.login": {
+  "value": "Login",
+  "note": "pages/AdminGate.tsx"
+ },
+ "admin_gate.tekshirilmoqda": {
+  "value": "Tekshirilmoqda...",
+  "note": "pages/AdminGate.tsx"
+ },
+ "api_client.serverda_kutilmagan_xatolik_backend_loglarin": {
+  "value": "Serverda kutilmagan xatolik. Backend loglarini tekshiring.",
+  "note": "api/client.ts"
+ },
+ "api_client.serverda_xatolik": {
+  "value": "Serverda xatolik: {sarlavha}",
+  "note": "api/client.ts"
+ },
+ "api_client.xatolik_kodi": {
+  "value": "Xatolik ({kod})",
+  "note": "api/client.ts"
+ },
+ "api_projects.bu_ishlar_loyiha_bilan_birga": {
+  "value": "Bu ishlar loyiha bilan birga ro'yxatlardan, doskadan va taqvimdan ",
+  "note": "api/projects.ts"
+ },
+ "api_projects.ha_ochirilsin": {
+  "value": "Ha, o'chirilsin",
+  "note": "api/projects.ts"
+ },
+ "api_projects.holat_jarayonda": {
+  "value": "jarayonda",
+  "note": "api/projects.ts"
+ },
+ "api_projects.holat_nazoratda": {
+  "value": "nazoratda",
+  "note": "api/projects.ts"
+ },
+ "api_projects.holat_tekshiruvda": {
+  "value": "tekshiruvda",
+  "note": "api/projects.ts"
+ },
+ "api_projects.holat_tuzatishda": {
+  "value": "tuzatishda",
+  "note": "api/projects.ts"
+ },
+ "api_projects.nechta_holatda": {
+  "value": "{n} ta {holat}",
+  "note": "api/projects.ts"
+ },
+ "api_projects.ogohlantirish_royxat": {
+  "value": "{bosh} — {royxat}.",
+  "note": "api/projects.ts"
+ },
+ "api_projects.toxtab_qolgan": {
+  "value": "to'xtab qolgan",
+  "note": "api/projects.ts"
+ },
+ "api_projects.tugallanmagan_ish_bor": {
+  "value": "Diqqat: loyihada {n} ta tugallanmagan ish bor",
+  "note": "api/projects.ts"
+ },
+ "api_projects.yoq_qolsin": {
+  "value": "Yo'q, qolsin",
+  "note": "api/projects.ts"
+ },
+ "api_projects.yoqoladi_tasdiqlasangiz_ochiriladi": {
+  "value": "yo'qoladi. Tasdiqlasangiz — o'chiriladi.",
+  "note": "api/projects.ts"
+ },
+ "api_use_fetch.malumotni_yuklab_bolmadi": {
+  "value": "Ma'lumotni yuklab bo'lmadi.",
+  "note": "api/useFetch.ts"
+ },
+ "app.yuklanmoqda": {
+  "value": "Yuklanmoqda...",
+  "note": "App.tsx"
+ },
+ "calendar.aprel": {
+  "value": "Aprel",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.avgust": {
+  "value": "Avgust",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.biriktirilmagan": {
+  "value": "biriktirilmagan",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.boshqa_kunni_tanlang": {
+  "value": "Boshqa kunni tanlang.",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.boshqa_oyni_koring_yoki_loyiha": {
+  "value": "Boshqa oyni ko'ring yoki loyiha va vazifalarga muddat qo'ying.",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.bu_kuni_hech_narsa_yoq": {
+  "value": "Bu kuni hech narsa yo'q",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.bu_oyda_tugaydigan_ish_yoq": {
+  "value": "Bu oyda tugaydigan ish yo'q",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.dekabr": {
+  "value": "Dekabr",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.faqat_tugash_sanalari_qaysi_kuni": {
+  "value": "Faqat tugash sanalari — qaysi kuni nima topshirilishi kerak",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.fevral": {
+  "value": "Fevral",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.ijrochi_bolgan_loyihalarda_faqat_sizning": {
+  "value": "Ijrochi bo'lgan loyihalarda faqat sizning ishlaringiz",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.iyul": {
+  "value": "Iyul",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.iyun": {
+  "value": "Iyun",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.joriy_oy": {
+  "value": "Joriy oy",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.kechikkan": {
+  "value": "kechikkan",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.keyingi_oy": {
+  "value": "Keyingi oy",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.mart": {
+  "value": "Mart",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.may": {
+  "value": "May",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.muddat_qoyilmagan": {
+  "value": "muddat qo'yilmagan",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.muddat_qoyilmagan_2": {
+  "value": " (muddat qo'yilmagan)",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.muddati_otgan": {
+  "value": "Muddati o'tgan",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.noyabr": {
+  "value": "Noyabr",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.oktabr": {
+  "value": "Oktabr",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.oldingi_oy": {
+  "value": "Oldingi oy",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.sentabr": {
+  "value": "Sentabr",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.taqvim": {
+  "value": "Taqvim",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.taqvimni_yuklab_bolmadi": {
+  "value": "Taqvimni yuklab bo'lmadi",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.vazifa": {
+  "value": "vazifa",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.vazifalarni_ham_korsatish": {
+  "value": "Vazifalarni ham ko'rsatish",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.yana_nechta_ochish": {
+  "value": "Yana {n} ta - kunning to'liq ro'yxatini ochish",
+  "note": "pages/Calendar.tsx"
+ },
+ "calendar.yanvar": {
+  "value": "Yanvar",
+  "note": "pages/Calendar.tsx"
+ },
+ "chat.birinchi_xabarni_siz_yozing": {
+  "value": "Birinchi xabarni siz yozing.",
+  "note": "components/Chat.tsx"
+ },
+ "chat.suhbat_bosh": {
+  "value": "Suhbat bo'sh",
+  "note": "components/Chat.tsx"
+ },
+ "chat.suhbatni_yuklab_bolmadi": {
+  "value": "Suhbatni yuklab bo'lmadi",
+  "note": "components/Chat.tsx"
+ },
+ "chat.xabar_yozing": {
+  "value": "Xabar yozing…",
+  "note": "components/Chat.tsx"
+ },
+ "chat.xabarni_yuborib_bolmadi": {
+  "value": "Xabarni yuborib bo'lmadi",
+  "note": "components/Chat.tsx"
+ },
+ "chat.yuborish": {
+  "value": "Yuborish",
+  "note": "components/Chat.tsx"
+ },
+ "common.admin_panel": {
+  "value": "Admin panel",
+  "note": "umumiy"
+ },
+ "common.amallar": {
+  "value": "Amallar",
+  "note": "umumiy"
+ },
+ "common.amalni_bajarib_bolmadi": {
+  "value": "Amalni bajarib bolmadi",
+  "note": "umumiy"
+ },
+ "common.azo": {
+  "value": "azo",
+  "note": "umumiy"
+ },
+ "common.bajarildi": {
+  "value": "Bajarildi",
+  "note": "umumiy"
+ },
+ "common.bajarilgan": {
+  "value": "Bajarilgan",
+  "note": "umumiy"
+ },
+ "common.bajarilgan_2": {
+  "value": "bajarilgan",
+  "note": "umumiy"
+ },
+ "common.barcha_loyihalar": {
+  "value": "Barcha loyihalar",
+  "note": "umumiy"
+ },
+ "common.bekor_qilish": {
+  "value": "Bekor qilish",
+  "note": "umumiy"
+ },
+ "common.bildirishnomalar": {
+  "value": "Bildirishnomalar",
+  "note": "umumiy"
+ },
+ "common.boshlanish": {
+  "value": "Boshlanish",
+  "note": "umumiy"
+ },
+ "common.bugun": {
+  "value": "Bugun",
+  "note": "umumiy"
+ },
+ "common.chiqish": {
+  "value": "Chiqish",
+  "note": "umumiy"
+ },
+ "common.daraja": {
+  "value": "Daraja",
+  "note": "umumiy"
+ },
+ "common.davr": {
+  "value": "Davr",
+  "note": "umumiy"
+ },
+ "common.email_yoki_ism_boyicha_qidiring": {
+  "value": "Email yoki ism bo'yicha qidiring",
+  "note": "umumiy"
+ },
+ "common.f_i_sh": {
+  "value": "F.I.Sh.",
+  "note": "umumiy"
+ },
+ "common.filtrni_tozalash": {
+  "value": "Filtrni tozalash",
+  "note": "umumiy"
+ },
+ "common.hammasi": {
+  "value": "Hammasi",
+  "note": "umumiy"
+ },
+ "common.hech_kim_topilmadi": {
+  "value": "Hech kim topilmadi",
+  "note": "umumiy"
+ },
+ "common.holat": {
+  "value": "Holat",
+  "note": "umumiy"
+ },
+ "common.hujjatlar": {
+  "value": "Hujjatlar",
+  "note": "umumiy"
+ },
+ "common.ijrochilar": {
+  "value": "Ijrochilar",
+  "note": "umumiy"
+ },
+ "common.jamoa": {
+  "value": "Jamoa",
+  "note": "umumiy"
+ },
+ "common.jarayonda": {
+  "value": "Jarayonda",
+  "note": "umumiy"
+ },
+ "common.kirish": {
+  "value": "Kirish",
+  "note": "umumiy"
+ },
+ "common.kishi": {
+  "value": "kishi",
+  "note": "umumiy"
+ },
+ "common.loyiha": {
+  "value": "Loyiha",
+  "note": "umumiy"
+ },
+ "common.loyiha_haqida": {
+  "value": "Loyiha haqida",
+  "note": "umumiy"
+ },
+ "common.loyiha_tanlanmagan": {
+  "value": "Loyiha tanlanmagan",
+  "note": "umumiy"
+ },
+ "common.loyiha_topilmadi": {
+  "value": "Loyiha topilmadi",
+  "note": "umumiy"
+ },
+ "common.loyihalar": {
+  "value": "Loyihalar",
+  "note": "umumiy"
+ },
+ "common.loyihalarim": {
+  "value": "Loyihalarim",
+  "note": "umumiy"
+ },
+ "common.menejer": {
+  "value": "Menejer:",
+  "note": "umumiy"
+ },
+ "common.muddat": {
+  "value": "Muddat",
+  "note": "umumiy"
+ },
+ "common.muddati_otgan": {
+  "value": "Muddati otgan",
+  "note": "umumiy"
+ },
+ "common.muhimlik": {
+  "value": "Muhimlik",
+  "note": "umumiy"
+ },
+ "common.mutaxassislik": {
+  "value": "Mutaxassislik",
+  "note": "umumiy"
+ },
+ "common.nazoratda": {
+  "value": "Nazoratda",
+  "note": "umumiy"
+ },
+ "common.ochiq": {
+  "value": "ochiq",
+  "note": "umumiy"
+ },
+ "common.ochiq_vazifa": {
+  "value": "ochiq vazifa",
+  "note": "umumiy"
+ },
+ "common.ochiq_vazifa_2": {
+  "value": "Ochiq vazifa",
+  "note": "umumiy"
+ },
+ "common.ochirish": {
+  "value": "O'chirish",
+  "note": "umumiy"
+ },
+ "common.ochirish_2": {
+  "value": "Ochirish",
+  "note": "umumiy"
+ },
+ "common.parol": {
+  "value": "Parol",
+  "note": "umumiy"
+ },
+ "common.pm": {
+  "value": "PM:",
+  "note": "umumiy"
+ },
+ "common.qabul_qilish": {
+  "value": "Qabul qilish",
+  "note": "umumiy"
+ },
+ "common.qidiruv": {
+  "value": "Qidiruv",
+  "note": "umumiy"
+ },
+ "common.qoshilish": {
+  "value": "Qoshilish",
+  "note": "umumiy"
+ },
+ "common.rol": {
+  "value": "Rol",
+  "note": "umumiy"
+ },
+ "common.royxatdan_otish": {
+  "value": "Ro'yxatdan o'tish",
+  "note": "umumiy"
+ },
+ "common.sana": {
+  "value": "Sana",
+  "note": "umumiy"
+ },
+ "common.saqlanmoqda": {
+  "value": "Saqlanmoqda...",
+  "note": "umumiy"
+ },
+ "common.saqlash": {
+  "value": "Saqlash",
+  "note": "umumiy"
+ },
+ "common.saqlashda_xatolik": {
+  "value": "Saqlashda xatolik",
+  "note": "umumiy"
+ },
+ "common.sarflangan_soat": {
+  "value": "Sarflangan soat",
+  "note": "umumiy"
+ },
+ "common.soat": {
+  "value": "soat",
+  "note": "umumiy"
+ },
+ "common.suhbat": {
+  "value": "Suhbat",
+  "note": "umumiy"
+ },
+ "common.ta": {
+  "value": "ta",
+  "note": "umumiy"
+ },
+ "common.tadan": {
+  "value": "tadan",
+  "note": "umumiy"
+ },
+ "common.tahrirlash": {
+  "value": "Tahrirlash",
+  "note": "umumiy"
+ },
+ "common.tasi": {
+  "value": "tasi",
+  "note": "umumiy"
+ },
+ "common.tavsif_kiritilmagan": {
+  "value": "Tavsif kiritilmagan.",
+  "note": "umumiy"
+ },
+ "common.tayyorlik_mezoni": {
+  "value": "Tayyorlik mezoni",
+  "note": "umumiy"
+ },
+ "common.teamflow": {
+  "value": "TeamFlow",
+  "note": "umumiy"
+ },
+ "common.tekshiruv_navbati": {
+  "value": "Tekshiruv navbati",
+  "note": "umumiy"
+ },
+ "common.tekshiruvda": {
+  "value": "Tekshiruvda",
+  "note": "umumiy"
+ },
+ "common.tozalash": {
+  "value": "Tozalash",
+  "note": "umumiy"
+ },
+ "common.turi": {
+  "value": "Turi",
+  "note": "umumiy"
+ },
+ "common.vazifa": {
+  "value": "Vazifa",
+  "note": "umumiy"
+ },
+ "common.vazifalar": {
+  "value": "Vazifalar",
+  "note": "umumiy"
+ },
+ "common.yana": {
+  "value": "yana",
+  "note": "umumiy"
+ },
+ "common.yangi_loyiha": {
+  "value": "Yangi loyiha",
+  "note": "umumiy"
+ },
+ "common.yangi_vazifa": {
+  "value": "Yangi vazifa",
+  "note": "umumiy"
+ },
+ "common.yaratilmoqda": {
+  "value": "Yaratilmoqda...",
+  "note": "umumiy"
+ },
+ "common.yopish": {
+  "value": "Yopish",
+  "note": "umumiy"
+ },
+ "confirm.davom_etish": {
+  "value": "Davom etish",
+  "note": "components/Confirm.tsx"
+ },
+ "dashboard.bajarilganlar": {
+  "value": "Bajarilganlar",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.boshqaruvingizdagi_loyihalar_boyicha": {
+  "value": "Boshqaruvingizdagi loyihalar bo'yicha",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.bu_davrda_ish_yoq": {
+  "value": "Bu davrda ish yo'q",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.bu_katakka_kirgan_vazifa_topilmadi": {
+  "value": "Bu katakka kirgan vazifa topilmadi.",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.bugun": {
+  "value": "— bugun",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.butun_tizim_boyicha": {
+  "value": "Butun tizim bo'yicha",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.davr_kesimi_izohi": {
+  "value": "{davr}: nazoratdagi, muddati o'tgan va bajarilgan ishlar",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.ertaga": {
+  "value": "Ertaga",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.hafta_boshidan": {
+  "value": "Hafta boshidan",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.hali_yopilmagan_va_muddati_otib": {
+  "value": "Hali yopilmagan va muddati o'tib ketgan ishlaringiz",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.ish_yoq": {
+  "value": "Ish yo'q",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.kecha": {
+  "value": "Kecha",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.kod_yoki_sarlavha": {
+  "value": "Kod yoki sarlavha",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.kutilmoqda": {
+  "value": "Kutilmoqda",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.loyiha_nomini_yozing": {
+  "value": "Loyiha nomini yozing",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.muddati_buzib_bajarilgan": {
+  "value": "Muddati buzib bajarilgan",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.muddati_otgan": {
+  "value": "Muddati o'tgan",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.muddati_shu_davrga_tushgan_va": {
+  "value": "Muddati shu davrga tushgan va o'tib ketgan ishlaringiz",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.panel_yuklanmoqda": {
+  "value": "Panel yuklanmoqda...",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.panelni_yuklab_bolmadi": {
+  "value": "Panelni yuklab bo'lmadi.",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.shu_davrda_ochilgan_va_hamon": {
+  "value": "Shu davrda ochilgan va hamon yopilmagan ishlaringiz",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.shu_davrda_yakunlangan_ishlaringiz": {
+  "value": "Shu davrda yakunlangan ishlaringiz",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.shu_hafta": {
+  "value": "Shu hafta",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.shu_oy": {
+  "value": "Shu oy",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.shu_yil": {
+  "value": "Shu yil",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.sizga_biriktirilgan_ishlar_boyicha": {
+  "value": "Sizga biriktirilgan ishlar bo'yicha",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.tanlangan_filtrga_mos_vazifa_topilmadi": {
+  "value": "Tanlangan filtrga mos vazifa topilmadi - filtrni tozalab ko'ring.",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.topilmadi": {
+  "value": "Topilmadi",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.yakunlangan_lekin_muddatidan_keyin_yopilgan": {
+  "value": "Yakunlangan, lekin muddatidan keyin yopilgan ishlaringiz",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.yopilmagan_muddati_hali_kelmagan_yoki": {
+  "value": "Yopilmagan, muddati hali kelmagan yoki qo'yilmagan ishlaringiz",
+  "note": "pages/Dashboard.tsx"
+ },
+ "developer_report.bajarilgan_vazifalar": {
+  "value": "Bajarilgan vazifalar",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.dasturchi_hisoboti_loyiha_jamoasidan_ochilad": {
+  "value": "Dasturchi hisoboti loyiha jamoasidan ochiladi.",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.hali_bajarilgan_vazifa_yoq": {
+  "value": "Hali bajarilgan vazifa yoq",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.harakatlar_tarixi": {
+  "value": "Harakatlar tarixi",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.hisobot_tanlanmagan": {
+  "value": "Hisobot tanlanmagan",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.holatlar_boyicha": {
+  "value": "Holatlar boyicha",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.ish_jurnali_nima_qilingan_va": {
+  "value": "Ish jurnali — nima qilingan va nega",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.ish_jurnali_yozuvi_yoq": {
+  "value": "Ish jurnali yozuvi yoq.",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.jami_vazifa": {
+  "value": "Jami vazifa",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.loyiha_tarixi": {
+  "value": "Loyiha tarixi",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.ochiq_vazifa_yoq": {
+  "value": "Ochiq vazifa yoq",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.ochiq_vazifalar": {
+  "value": "Ochiq vazifalar",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.qaytarilgan": {
+  "value": "Qaytarilgan",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.sobiq_azo": {
+  "value": "sobiq aʼzo",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.tarix": {
+  "value": "tarix",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.tekshiruv_natijalari": {
+  "value": "Tekshiruv natijalari",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.tekshiruv_yoq": {
+  "value": "Tekshiruv yoq.",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "developer_report.topshiriq_eslatmasi": {
+  "value": "Topshiriq eslatmasi",
+  "note": "pages/DeveloperReport.tsx"
+ },
+ "discover.avtomatik_qabul": {
+  "value": "avtomatik qabul",
+  "note": "pages/Discover.tsx"
+ },
+ "discover.hozircha_ochiq_loyiha_yoq_yoki": {
+  "value": "Hozircha ochiq loyiha yoq yoki qidiruvga mos kelmadi.",
+  "note": "pages/Discover.tsx"
+ },
+ "discover.konikmalaringiz": {
+  "value": "Konikmalaringiz",
+  "note": "pages/Discover.tsx"
+ },
+ "discover.loyiha_nomi_yoki_kaliti": {
+  "value": "Loyiha nomi yoki kaliti",
+  "note": "pages/Discover.tsx"
+ },
+ "discover.loyihaga_qoshilish": {
+  "value": "Loyihaga qoshilish",
+  "note": "pages/Discover.tsx"
+ },
+ "discover.qidirish": {
+  "value": "Qidirish",
+  "note": "pages/Discover.tsx"
+ },
+ "discover.sizning_yonalishingiz": {
+  "value": "Sizning yonalishingiz",
+  "note": "pages/Discover.tsx"
+ },
+ "error_boundary.bu_bolimni_korsatib_bolmadi": {
+  "value": "Bu bo'limni ko'rsatib bo'lmadi",
+  "note": "components/ErrorBoundary.tsx"
+ },
+ "error_boundary.kutilmagan_xatolik_yuz_berdi_sahifani": {
+  "value": "Kutilmagan xatolik yuz berdi. Sahifani qayta yuklab ko'ring —\n            takrorlansa, iltimos, nima qilganingizni administratorga ayting.",
+  "note": "components/ErrorBoundary.tsx"
+ },
+ "error_boundary.qayta_urinish": {
+  "value": "Qayta urinish",
+  "note": "components/ErrorBoundary.tsx"
+ },
+ "error_boundary.sahifani_yangilash": {
+  "value": "Sahifani yangilash",
+  "note": "components/ErrorBoundary.tsx"
+ },
+ "feed.butun_tarix": {
+  "value": "Butun tarix",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.filtrni_boshatib_koring": {
+  "value": "Filtrni bo'shatib ko'ring.",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.hali_loyiha_yoq": {
+  "value": "Hali loyiha yo'q.",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.hujjat_yuklanmagan": {
+  "value": "Hujjat yuklanmagan.",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.keyingi": {
+  "value": "Keyingi →",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.loyiha_fayllari": {
+  "value": "Loyiha fayllari",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.loyiha_qidirish": {
+  "value": "Loyiha qidirish",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.loyihani_bosing_osha_loyihaning_tarixi": {
+  "value": "Loyihani bosing — o'sha loyihaning tarixi ochiladi",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.matn_boyicha": {
+  "value": "Matn boyicha",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.nom_kalit_yoki_tavsif_boyicha": {
+  "value": "Nom, kalit yoki tavsif boyicha",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.oldingi": {
+  "value": "← Oldingi",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.qidiruvni_ozgartirib_koring": {
+  "value": "Qidiruvni o'zgartirib ko'ring.",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.songgi_30_kun": {
+  "value": "Songgi 30 kun",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.songgi_7_kun": {
+  "value": "Songgi 7 kun",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.songgi_90_kun": {
+  "value": "Songgi 90 kun",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.songgi_harakat": {
+  "value": "songgi harakat:",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.turkum": {
+  "value": "Turkum",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.umumiy_tarix": {
+  "value": "Umumiy tarix",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.yopiq": {
+  "value": "yopiq",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.yozuv": {
+  "value": "yozuv",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.yozuv_topilmadi": {
+  "value": "Yozuv topilmadi",
+  "note": "pages/Feed.tsx"
+ },
+ "feed.yozuvlar_ichidan_qidirish": {
+  "value": "Yozuvlar ichidan qidirish",
+  "note": "pages/Feed.tsx"
+ },
+ "file_picker.25_mb_dan_katta_bolgani": {
+  "value": "25 MB dan katta bolgani uchun qoshilmadi:",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.avval_hujjat_nomini_yozing_keyin": {
+  "value": "Avval hujjat nomini yozing — keyin fayl tanlanadi",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.faylni_shu_yerga_tashlang_yoki": {
+  "value": "Faylni shu yerga tashlang yoki bosing (25 MB gacha)",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.hujjat_nomi": {
+  "value": "Hujjat nomi",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.hujjat_sanasi_va_vaqti": {
+  "value": "Hujjat sanasi va vaqti",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.masalan_texnik_topshiriq_v2": {
+  "value": "Masalan: texnik topshiriq v2",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.royxatdan_olib_tashlash": {
+  "value": "Royxatdan olib tashlash",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.ta_fayl_tanlandi_saqlangandan_keyin": {
+  "value": "ta fayl tanlandi — saqlangandan keyin yuklanadi.",
+  "note": "components/FilePicker.tsx"
+ },
+ "file_picker.umumiy_sana": {
+  "value": "umumiy sana:",
+  "note": "components/FilePicker.tsx"
+ },
+ "join_project.bu_loyiha_sorovlarni_avtomatik_qabul": {
+  "value": "Bu loyiha sorovlarni avtomatik qabul qiladi.",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.bu_sahifa_loyiha_ichidan_ochiladi": {
+  "value": "Bu sahifa loyiha ichidan ochiladi.",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.istagan_rol": {
+  "value": "Istagan rol",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.loyihani_ochib_bolmadi": {
+  "value": "Loyihani ochib bolmadi",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.qanday_tajribangiz_bor_loyihaga_nima": {
+  "value": "Qanday tajribangiz bor, loyihaga nima qoshasiz?",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.qoshilish": {
+  "value": "Qoshilish /",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.qoshilish_kodi": {
+  "value": "Qoshilish kodi",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.qoshilish_sorovi": {
+  "value": "Qoshilish sorovi",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.sizning_yonalishingiz": {
+  "value": "Sizning yonalishingiz",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.sorov_yuborish": {
+  "value": "Sorov yuborish",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.sorov_yuborishda_xatolik": {
+  "value": "Sorov yuborishda xatolik",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.tavsif_kiritilmagan": {
+  "value": "Tavsif kiritilmagan",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.xabar": {
+  "value": "Xabar",
+  "note": "pages/JoinProject.tsx"
+ },
+ "join_project.yuborilmoqda": {
+  "value": "Yuborilmoqda...",
+  "note": "pages/JoinProject.tsx"
+ },
+ "landing.1_soat_oldin": {
+  "value": "1 soat oldin",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.2_daqiqa_oldin": {
+  "value": "2 daqiqa oldin",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.3_5_soat": {
+  "value": "3.5 soat",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.3_kun_oldin": {
+  "value": "3 kun oldin",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ad": {
+  "value": "AD",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.admin": {
+  "value": "Admin",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.admin_teamflow_uz": {
+  "value": "admin@teamflow.uz",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.admin_tekshiradi": {
+  "value": "Admin tekshiradi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.admin_tekshiruvi": {
+  "value": "Admin tekshiruvi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.admin_yaratildi": {
+  "value": "Admin yaratildi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.akkaunt_yarating_mutaxassisligingizni_tanlan": {
+  "value": "Akkaunt yarating, mutaxassisligingizni tanlang va loyihaga qoshiling.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.api": {
+  "value": "API",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.avvalgi_dasturchilar_nima_qilgani_qanday": {
+  "value": "Avvalgi dasturchilar nima qilgani, qanday qaror qabul qilingani va qayerda\r\n               xato qilingani — hammasi bitta sahifada.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.backend": {
+  "value": "backend",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.bajarilgan_ish_tekshiruv_navbatiga_tushadi": {
+  "value": "Bajarilgan ish tekshiruv navbatiga tushadi. Admin qabul qiladi yoki izoh bilan qaytaradi - izohsiz qaytarish taqiqlangan.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.bajarilgan_vazifa": {
+  "value": "bajarilgan vazifa",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.bepul_boshlash": {
+  "value": "Bepul boshlash",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.bugundan_boshlang": {
+  "value": "Bugundan boshlang",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.dasturchi_hisoboti": {
+  "value": "Dasturchi hisoboti",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.dasturchi_loyihadan_chiqishda_keyingi_odam": {
+  "value": "Dasturchi loyihadan chiqishda keyingi odam uchun izoh qoldiradi —\r\n                 bilim jamoada qoladi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.dasturchi_qoshiladi": {
+  "value": "Dasturchi qoshiladi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.dasturchi_taskni_jarayonda_holatiga_oladi": {
+  "value": "Dasturchi taskni Jarayonda holatiga oladi, ish jurnaliga nima qilganini yozadi va tekshiruvga yuboradi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.db2_tayyor": {
+  "value": "Db2 tayyor",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.django_react_ibm_db2_docker": {
+  "value": "Django · React · IBM Db2 · Docker",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.django_rest_react_typescript_ibm": {
+  "value": "Django REST + React TypeScript + IBM Db2 + Docker",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.docker_compose_up_build": {
+  "value": "docker compose up --build",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.faol": {
+  "value": "Faol",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.har_bir_loyihada_oz_kaliti": {
+  "value": "Har bir loyihada oz kaliti (PAY-12), kanban doskasi, jamoasi va ozgarmas tarixi bor.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.har_bir_odam_boyicha_nechta": {
+  "value": "Har bir odam boyicha: nechta task bajargan, necha soat sarflagan,\r\n                 qaysi tasklari qaytarilgan va nima yozib qoldirgan.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.har_qatorga_bitta_vazifa_yozing": {
+  "value": "Har qatorga bitta vazifa yozing - 20 ta task bir zumda yaratilib, mos mutaxassislar orasida taqsimlanadi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.hisobga_kirish": {
+  "value": "Hisobga kirish",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.http_localhost_5183": {
+  "value": "http://localhost:5183",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.http_localhost_8010_api": {
+  "value": "http://localhost:8010/api",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.idempotentlik_kaliti_qoshildi_redis_emas": {
+  "value": "Idempotentlik kaliti qoshildi, Redis emas DB tanlandi — sabab: tranzaksiya kerak",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.imkoniyatlar": {
+  "value": "Imkoniyatlar",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.interfeys": {
+  "value": "Interfeys",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ish_bajariladi": {
+  "value": "Ish bajariladi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ish_jurnaliga_yozdi": {
+  "value": "ish jurnaliga yozdi:",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ish_oqimi": {
+  "value": "Ish oqimi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ishlaydigan_platforma": {
+  "value": "ishlaydigan platforma",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.jahongir": {
+  "value": "Jahongir",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.jamoangiz_bir_joyda": {
+  "value": "Jamoangiz bir joyda",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.jq": {
+  "value": "JQ",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.kanban_doska": {
+  "value": "Kanban doska",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.kecha": {
+  "value": "Kecha",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.kim_nima_qiladi_aniq_chegaralar": {
+  "value": "Kim nima qiladi — aniq chegaralar",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.kim_qachon_nima_qilgani_yozib": {
+  "value": "Kim, qachon, nima qilgani yozib boriladi. Statuslar, tekshiruvlar, ish jurnallari - hech biri ochirilmaydi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.koplab_vazifa_berish": {
+  "value": "Koplab vazifa berish",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.loyiha_arxitekturasi": {
+  "value": "Loyiha arxitekturasi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.loyiha_oching_jamoani_mutaxassisligi_boyicha": {
+  "value": "Loyiha oching, jamoani mutaxassisligi boyicha qabul qiling, vazifa taqsimlang va\r\n            bajarilganini tekshiring. Har bir harakat tarixda qoladi — yangi dasturchi kelganda\r\n            hech narsa yoqolmaydi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.loyiha_qidirish": {
+  "value": "Loyiha qidirish…",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.loyiha_tarixi": {
+  "value": "Loyiha tarixi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.loyiha_vazifa_tekshiruv_tarix": {
+  "value": "Loyiha · Vazifa · Tekshiruv · Tarix",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.loyihani_boshqarish_uchun_kerak_bolgan": {
+  "value": "Loyihani boshqarish uchun kerak bolgan hamma narsa",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.malika": {
+  "value": "Malika",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.maqsad_texnologiyalar_arxitektura_ishga_tush": {
+  "value": "Maqsad, texnologiyalar, arxitektura, ishga tushirish qadamlari,\r\n                 kelishuvlar va ehtiyot boling royxati.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.menejer_taqsimlaydi": {
+  "value": "Menejer taqsimlaydi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.migratsiyalar_qollandi": {
+  "value": "Migratsiyalar qollandi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.mk": {
+  "value": "MK",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.mutaxassislik_boyicha_qoshilish": {
+  "value": "Mutaxassislik boyicha qoshilish",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.mutaxassislik_yonalishi": {
+  "value": "mutaxassislik yonalishi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ni_tuzatishga_qaytardi": {
+  "value": "ni tuzatishga qaytardi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ochiq_loyiha": {
+  "value": "ochiq loyiha",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.ozgarmas_tarix": {
+  "value": "Ozgarmas tarix",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.pay_11": {
+  "value": "PAY-11",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.pay_13": {
+  "value": "PAY-13",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.pay_14": {
+  "value": "PAY-14",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.qabul_qiladi_yoki_aniq_izoh": {
+  "value": "Qabul qiladi yoki aniq izoh bilan tuzatishga qaytaradi. Har bir aylana tarixda saqlanadi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.rollar_aralashmaydi_shuning_uchun_hech": {
+  "value": "Rollar aralashmaydi, shuning uchun hech kim ortiqcha vaqt sarflamaydi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.royxatdan_otadi_mutaxassisligini_tanlaydi_va": {
+  "value": "Royxatdan otadi, mutaxassisligini tanlaydi va mos loyihaga sorov yuboradi. Qabul qilingach Loyihaga kirish sahifasini oqiydi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.royxatdan_otgan_odam": {
+  "value": "royxatdan otgan odam",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.royxatdan_otish": {
+  "value": "Royxatdan otish",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.royxatdan_otishda_mutaxassislik_tanlanadi_ti": {
+  "value": "Royxatdan otishda mutaxassislik tanlanadi. Tizim sizga mos loyihalarni korsatadi va menejer mos odamni tanlaydi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.sardor": {
+  "value": "Sardor",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.sb": {
+  "value": "SB",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.skrinshot_hujjat_log_yoki_arxivni": {
+  "value": "Skrinshot, hujjat, log yoki arxivni vazifa ostiga sudrab tashlang. Rasmlar darrov korinadi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.sorovni_tasdiqlaydi_rol_beradi_vazifa": {
+  "value": "Sorovni tasdiqlaydi, rol beradi, vazifa yaratadi va mos mutaxassislarni biriktiradi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.teamflow": {
+  "value": "© TeamFlow",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.teamflow_2": {
+  "value": "teamflow /",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.teamflow_docker": {
+  "value": "teamflow — docker",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.tolov_tizimi": {
+  "value": "Tolov tizimi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.topshiriq_eslatmasi": {
+  "value": "Topshiriq eslatmasi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.tuzatish_kerak": {
+  "value": "Tuzatish kerak",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.vazifa_doskasidan_tortib_tekshiruv_navbati": {
+  "value": "Vazifa doskasidan tortib tekshiruv navbati va toliq tarixgacha.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.vazifaga_fayl_biriktirish": {
+  "value": "Vazifaga fayl biriktirish",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.vazifalarni_surib_kochiring_har_bir": {
+  "value": "Vazifalarni surib kochiring. Har bir karta prioritet, muddat va ijrochilarni korsatadi. Ruxsatsiz harakat toxtatiladi.",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.vazifasini_tekshiruvga_yubordi": {
+  "value": "vazifasini tekshiruvga yubordi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.vazifasini_yakunladi": {
+  "value": "vazifasini yakunladi",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.webhook_imzosi_tekshirilmagan_qayta_urinish": {
+  "value": "Webhook imzosi tekshirilmagan — qayta urinish logikasini qoshing",
+  "note": "pages/Landing.tsx"
+ },
+ "landing.yangi_dasturchi_10_daqiqada_kontekstga": {
+  "value": "Yangi dasturchi 10 daqiqada kontekstga kiradi",
+  "note": "pages/Landing.tsx"
+ },
+ "layout.bosh_panel": {
+  "value": "Bosh panel",
+  "note": "components/Layout.tsx"
+ },
+ "layout.boyicha_tarix_va_loyihalarni_qidirish": {
+  "value": "» bo'yicha tarix va loyihalarni qidirish",
+  "note": "components/Layout.tsx"
+ },
+ "layout.bu_ism_boyicha_odam_topilmadi": {
+  "value": "Bu ism bo'yicha odam topilmadi.",
+  "note": "components/Layout.tsx"
+ },
+ "layout.mening_ishim": {
+  "value": "Mening ishim",
+  "note": "components/Layout.tsx"
+ },
+ "layout.menyuni_ochish": {
+  "value": "Menyuni ochish",
+  "note": "components/Layout.tsx"
+ },
+ "layout.menyuni_yopish": {
+  "value": "Menyuni yopish",
+  "note": "components/Layout.tsx"
+ },
+ "layout.odam_tarix_va_loyihalardan_qidirish": {
+  "value": "Odam, tarix va loyihalardan qidirish",
+  "note": "components/Layout.tsx"
+ },
+ "layout.odamlar": {
+  "value": "Odamlar",
+  "note": "components/Layout.tsx"
+ },
+ "layout.orqaga_qaytadigan_sahifa_yoq": {
+  "value": "Orqaga qaytadigan sahifa yo'q",
+  "note": "components/Layout.tsx"
+ },
+ "layout.orqaga_qaytish": {
+  "value": "Orqaga qaytish",
+  "note": "components/Layout.tsx"
+ },
+ "layout.takliflar": {
+  "value": "Takliflar",
+  "note": "components/Layout.tsx"
+ },
+ "layout.taqvim": {
+  "value": "Taqvim",
+  "note": "components/Layout.tsx"
+ },
+ "layout.umumiy_tarix": {
+  "value": "Umumiy tarix",
+  "note": "components/Layout.tsx"
+ },
+ "layout.xabarlar": {
+  "value": "Xabarlar",
+  "note": "components/Layout.tsx"
+ },
+ "login.bosh_sahifa": {
+  "value": "← Bosh sahifa",
+  "note": "pages/Login.tsx"
+ },
+ "login.email": {
+  "value": "Email",
+  "note": "pages/Login.tsx"
+ },
+ "login.hisobingiz_yoqmi": {
+  "value": "Hisobingiz yoqmi?",
+  "note": "pages/Login.tsx"
+ },
+ "login.hisobingizga_kiring": {
+  "value": "Hisobingizga kiring",
+  "note": "pages/Login.tsx"
+ },
+ "login.kirishda_xatolik": {
+  "value": "Kirishda xatolik",
+  "note": "pages/Login.tsx"
+ },
+ "login.royxatdan_oting": {
+  "value": "Royxatdan oting",
+  "note": "pages/Login.tsx"
+ },
+ "login.teamflow_jamoa_vazifalarini_boshqarish_tizim": {
+  "value": "TeamFlow — jamoa vazifalarini boshqarish tizimi",
+  "note": "pages/Login.tsx"
+ },
+ "login.tekshirilmoqda": {
+  "value": "Tekshirilmoqda...",
+  "note": "pages/Login.tsx"
+ },
+ "messages.chapdan_odamni_email_yoki_ism": {
+  "value": "Chapdan odamni email yoki ism bo'yicha toping va yozing.",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.hali_yozishma_yoq": {
+  "value": "Hali yozishma yo'q.",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.kimga_yozamiz": {
+  "value": "Kimga yozamiz",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.loyiha_jamoasi_va_azolari_bilan": {
+  "value": "Loyiha jamoasi va a'zolari bilan real vaqtda muloqot",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.profil": {
+  "value": "Profil",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.siz": {
+  "value": "Siz: ",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.suhbat_tanlanmagan": {
+  "value": "Suhbat tanlanmagan",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.suhbatlar": {
+  "value": "Suhbatlar",
+  "note": "pages/Messages.tsx"
+ },
+ "messages.xabarlar": {
+  "value": "Xabarlar",
+  "note": "pages/Messages.tsx"
+ },
+ "my_work.bu_holatda_ishingiz_yoq": {
+  "value": "Bu holatda ishingiz yoq",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.bu_ustun_bosh": {
+  "value": "Bu ustun bo'sh.",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.faqat": {
+  "value": "Faqat:",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.hammasini_korish": {
+  "value": "Hammasini korish",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.loyihaga_qoshiling_menejer_mutaxassisligingi": {
+  "value": "Loyihaga qoshiling - menejer mutaxassisligingizga mos vazifa beradi.",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.menga_biriktirilgan_barcha_shaxsiy_vazifalar": {
+  "value": "Menga biriktirilgan barcha shaxsiy vazifalar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.mening_ishim": {
+  "value": "Mening ishim",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.sizga_hali_vazifa_biriktirilmagan": {
+  "value": "Sizga hali vazifa biriktirilmagan",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.tanlangan_holat_boyicha_sizga_biriktirilgan": {
+  "value": "Tanlangan holat boyicha sizga biriktirilgan vazifa topilmadi.",
+  "note": "pages/MyWork.tsx"
+ },
+ "notification_bell.bildirishnomalar_ulanish_yoq": {
+  "value": "Bildirishnomalar (ulanish yo'q)",
+  "note": "components/NotificationBell.tsx"
+ },
+ "notification_bell.hammasini_korish": {
+  "value": "Hammasini ko'rish",
+  "note": "components/NotificationBell.tsx"
+ },
+ "notification_bell.hammasini_oqildi": {
+  "value": "Hammasini o'qildi",
+  "note": "components/NotificationBell.tsx"
+ },
+ "notification_bell.hozircha_bildirishnoma_yoq": {
+  "value": "Hozircha bildirishnoma yo'q",
+  "note": "components/NotificationBell.tsx"
+ },
+ "notification_bell.jonli_ulanish_yoq": {
+  "value": "Jonli ulanish yo'q",
+  "note": "components/NotificationBell.tsx"
+ },
+ "notifications.barcha_loyihalar_boyicha_eng_songgi": {
+  "value": "Barcha loyihalar bo'yicha eng so'nggi yangiliklar va eslatmalar",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.barchasi": {
+  "value": "Barchasi",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.bildirishnoma_yoq": {
+  "value": "Bildirishnoma yo'q",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.bu_kesimda_hozircha_hech_narsa": {
+  "value": "Bu kesimda hozircha hech narsa yo'q.",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.hammasini_oqilgan_deb_belgilash": {
+  "value": "Hammasini o'qilgan deb belgilash",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.izohlar": {
+  "value": "Izohlar",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.oqilganlarini_tozalash": {
+  "value": "O'qilganlarini tozalash",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.oqilmaganlar": {
+  "value": "O'qilmaganlar",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.vazifa_suhbat_yoki_qoshilish_soroviga": {
+  "value": "Vazifa, suhbat yoki qo'shilish so'roviga oid yangilik shu yerda paydo bo'ladi.",
+  "note": "pages/Notifications.tsx"
+ },
+ "notifications.yangi": {
+  "value": "Yangi",
+  "note": "pages/Notifications.tsx"
+ },
+ "password_card.almashtirilmoqda": {
+  "value": "Almashtirilmoqda...",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.joriy_parol": {
+  "value": "Joriy parol",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.kamida_8_belgi_faqat_raqamdan": {
+  "value": "Kamida 8 belgi. Faqat raqamdan iborat yoki juda oddiy parol qabul\n            qilinmaydi.",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.parol_yangilandi_boshqa_qurilmalardagi_seans": {
+  "value": "Parol yangilandi. Boshqa qurilmalardagi seanslar yopildi.",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.parolni_almashtirib_bolmadi": {
+  "value": "Parolni almashtirib bo'lmadi",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.parolni_almashtirish": {
+  "value": "Parolni almashtirish",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.parolni_faqat_ozingiz_almashtirasiz_buning": {
+  "value": "Parolni faqat o'zingiz almashtirasiz — buning uchun joriy parol so'raladi.",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.yangi_parol": {
+  "value": "Yangi parol",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.yangi_parollar_mos_kelmadi": {
+  "value": "Yangi parollar mos kelmadi.",
+  "note": "components/PasswordCard.tsx"
+ },
+ "password_card.yangi_parolni_takrorlang": {
+  "value": "Yangi parolni takrorlang",
+  "note": "components/PasswordCard.tsx"
+ },
+ "people.bloklangan": {
+  "value": "bloklangan",
+  "note": "pages/People.tsx"
+ },
+ "people.bloklash": {
+  "value": "Bloklash",
+  "note": "pages/People.tsx"
+ },
+ "people.faollashtirish": {
+  "value": "Faollashtirish",
+  "note": "pages/People.tsx"
+ },
+ "people.foydalanuvchi": {
+  "value": "Foydalanuvchi",
+  "note": "pages/People.tsx"
+ },
+ "people.foydalanuvchilar": {
+  "value": "Foydalanuvchilar",
+  "note": "pages/People.tsx"
+ },
+ "people.ism_email_yoki_konikma": {
+  "value": "Ism, email yoki konikma",
+  "note": "pages/People.tsx"
+ },
+ "people.mutaxassisliklar_taqsimoti": {
+  "value": "Mutaxassisliklar taqsimoti",
+  "note": "pages/People.tsx"
+ },
+ "people.ochiq_ish": {
+  "value": "Ochiq ish",
+  "note": "pages/People.tsx"
+ },
+ "people.ozgartirib_bolmadi": {
+  "value": "Ozgartirib bolmadi",
+  "note": "pages/People.tsx"
+ },
+ "people.tizim_roli": {
+  "value": "Tizim roli",
+  "note": "pages/People.tsx"
+ },
+ "people.yil": {
+  "value": "yil",
+  "note": "pages/People.tsx"
+ },
+ "profile.almashtirish": {
+  "value": "Almashtirish",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.aloqa": {
+  "value": "Aloqa",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.bajarilgan_ishlarni_royxatda_korish": {
+  "value": "Bajarilgan ishlarni royxatda korish",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.bu_kesimda_vazifa_yoq": {
+  "value": "Bu kesimda vazifa yoq",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.email": {
+  "value": "Email:",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.hozircha_yozuv_yoq": {
+  "value": "Hozircha yozuv yo'q",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.konikma_qoshish": {
+  "value": "Konikma qoshish",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.konikmalar": {
+  "value": "Konikmalar",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.lavozim": {
+  "value": "Lavozim",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.loyihalari": {
+  "value": "Loyihalari",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.nima_qilgan": {
+  "value": "Nima qilgan",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.nima_qilganman": {
+  "value": "Nima qilganman",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.ochiq_ishlarni_royxatda_korish": {
+  "value": "Ochiq ishlarni royxatda korish",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.profil": {
+  "value": "profil /",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.profil_rasmi_ochirildi": {
+  "value": "Profil rasmi ochirildi.",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.profil_rasmi_ochirilsinmi": {
+  "value": "Profil rasmi o'chirilsinmi?",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.profil_rasmi_yangilandi": {
+  "value": "Profil rasmi yangilandi.",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.profil_yangilandi": {
+  "value": "Profil yangilandi.",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.profilni_ochib_bolmadi": {
+  "value": "Profilni ochib bolmadi",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.profilni_tahrirlash": {
+  "value": "Profilni tahrirlash",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.qisqacha_malumot": {
+  "value": "Qisqacha maʼlumot",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.rasm_qoyish": {
+  "value": "Rasm qoyish",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.rasmni_ochirib_bolmadi": {
+  "value": "Rasmni ochirib bolmadi",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.rasmni_yuklab_bolmadi": {
+  "value": "Rasmni yuklab bolmadi",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.royxatdan_otgan": {
+  "value": "Royxatdan otgan:",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.songgi_vazifalari": {
+  "value": "Songgi vazifalari",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.songgi_vazifalarim": {
+  "value": "Songgi vazifalarim",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.tajriba_yil": {
+  "value": "Tajriba (yil)",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.tekshiruvdagi_ishlarni_royxatda_korish": {
+  "value": "Tekshiruvdagi ishlarni royxatda korish",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.telegram": {
+  "value": "Telegram:",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.telegram_2": {
+  "value": "Telegram",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.vazifa_yoq": {
+  "value": "Vazifa yoq",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.xabar_yozish": {
+  "value": "Xabar yozish",
+  "note": "pages/Profile.tsx"
+ },
+ "profile.yil_tajriba": {
+  "value": "yil tajriba",
+  "note": "pages/Profile.tsx"
+ },
+ "project_board.bosh": {
+  "value": "bo'sh",
+  "note": "pages/project/Board.tsx"
+ },
+ "project_board.doskani_yuklab_bolmadi": {
+  "value": "Doskani yuklab bo'lmadi.",
+  "note": "pages/project/Board.tsx"
+ },
+ "project_board.faqat_meniki": {
+  "value": "Faqat meniki",
+  "note": "pages/project/Board.tsx"
+ },
+ "project_board.holatni_ozgartirib_bolmadi": {
+  "value": "Holatni ozgartirib bolmadi",
+  "note": "pages/project/Board.tsx"
+ },
+ "project_board.ijrochi": {
+  "value": "Ijrochi",
+  "note": "pages/project/Board.tsx"
+ },
+ "project_board.loyiha_fayllari": {
+  "value": "Loyiha fayllari:",
+  "note": "pages/project/Board.tsx"
+ },
+ "project_board.tekshiruvdagi_ishni_shu_yerga_tashlab": {
+  "value": "Tekshiruvdagi ishni shu yerga tashlab tasdiqlaysiz.",
+  "note": "pages/project/Board.tsx"
+ },
+ "project_brief.arxitektura": {
+  "value": "Arxitektura",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.arxitektura_saqlandi": {
+  "value": "Arxitektura saqlandi.",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.arxitekturani_ochib_bolmadi": {
+  "value": "Arxitekturani ochib bo'lmadi.",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.avval_yol_qoyilgan_xatolar_tuzoqlar": {
+  "value": "Avval yol qoyilgan xatolar, tuzoqlar",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.bir_ikki_gapda_nima_uchun": {
+  "value": "Bir-ikki gapda: nima uchun bu loyiha bor",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.django_5_postgresql_react_docker": {
+  "value": "Django 5, PostgreSQL, React, Docker ...",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.ehtiyot_boling": {
+  "value": "Ehtiyot boling",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.kim_nima_boyicha_javob_beradi": {
+  "value": "Kim nima boyicha javob beradi",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.loyiha_maqsadi": {
+  "value": "Loyiha maqsadi",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.masalan_tolovlar_sardor_ui_malika": {
+  "value": "Masalan: tolovlar - Sardor, UI - Malika",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.oxirgi_yangilash": {
+  "value": "Oxirgi yangilash:",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.papkalar_tuzilishi_asosiy_modullar_integrats": {
+  "value": "Papkalar tuzilishi, asosiy modullar, integratsiyalar",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.texnologiyalar": {
+  "value": "Texnologiyalar",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.toldirilgan": {
+  "value": "% toldirilgan",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_brief.toldirilmagan": {
+  "value": "Toldirilmagan",
+  "note": "pages/project/Brief.tsx"
+ },
+ "project_detail.arxitekturasi": {
+  "value": "Arxitekturasi",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.bajarildi": {
+  "value": "% bajarildi ·",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.bu_loyihani_faqat_jamoa_azolari": {
+  "value": "Bu loyihani faqat jamoa azolari koradi",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.doska": {
+  "value": "Doska",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.koplab_vazifa": {
+  "value": "Koplab vazifa",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.loyihaga_kirish": {
+  "value": "Loyihaga kirish",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.loyihalar": {
+  "value": "loyihalar",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.loyihani_ochib_bolmadi_ruxsat_yoq": {
+  "value": "Loyihani ochib bo'lmadi - ruxsat yo'q yoki topilmadi.",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.manzilda_loyiha_raqami_saqlanmaydi_uni": {
+  "value": "Manzilda loyiha raqami saqlanmaydi - uni ro'yxatdan tanlang.",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.muddatlar": {
+  "value": "Muddatlar",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.ochiq": {
+  "value": "ochiq ·",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.sozlamalar": {
+  "value": "Sozlamalar",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.tarix": {
+  "value": "Tarix",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.umumiy": {
+  "value": "Umumiy",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_detail.yopiq": {
+  "value": "yopiq",
+  "note": "pages/ProjectDetail.tsx"
+ },
+ "project_files.almashtirgan": {
+  "value": "almashtirgan ·",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.avval_hujjat_nomini_va_sanasini": {
+  "value": "Avval hujjat nomini va sanasini yozing.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.avval_nom_va_sanani_yozing": {
+  "value": "Avval nom va sanani yozing — keyin fayl tanlanadi",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.bu_loyihaga_hali_hujjat_yuklanmagan": {
+  "value": "Bu loyihaga hali hujjat yuklanmagan.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.fayl_yuklandi": {
+  "value": "{n} ta fayl yuklandi.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.fayllarni_yuklab_bolmadi": {
+  "value": "Fayllarni yuklab bo'lmadi",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.faylni_shu_yerga_tashlang_yoki": {
+  "value": "Faylni shu yerga tashlang yoki bosing (25 MB gacha)",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_malumoti_yangilandi": {
+  "value": "Hujjat ma'lumoti yangilandi.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_nomi": {
+  "value": "Hujjat nomi",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_nomi_ham_sanasi_ham": {
+  "value": "Hujjat nomi ham, sanasi ham bo'sh qolmasin.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_sanasi_qatori": {
+  "value": " · hujjat sanasi: {sana}",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_sanasi_va_vaqti": {
+  "value": "Hujjat sanasi va vaqti",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_yoq": {
+  "value": "Hujjat yo'q",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_yuklash": {
+  "value": "Hujjat yuklash",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.loyiha_hujjatlari": {
+  "value": "Loyiha hujjatlari",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.loyiha_oraligi": {
+  "value": "Loyiha oralig'i: {boshi} — {oxiri}",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.masalan_texnik_topshiriq_v2": {
+  "value": "Masalan: texnik topshiriq v2",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.nechanchi_nusxa": {
+  "value": "Nechanchi nusxa",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.ochirib_bolmadi": {
+  "value": "O'chirib bo'lmadi",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.sana_boshlanishdan_oldin": {
+  "value": "Hujjat sanasi loyiha boshlanishidan ({sana}) oldin bo'lmasin.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.sana_muddatdan_keyin": {
+  "value": "Hujjat sanasi loyiha muddatidan ({sana}) keyin bo'lmasin.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.saqlab_bolmadi": {
+  "value": "Saqlab bo'lmadi",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.ta_eski_nusxa": {
+  "value": "ta eski nusxa",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.tahrir_tarixi": {
+  "value": "Tahrir tarixi —",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.texnik_topshiriq_dizayn_yoki_hujjatni": {
+  "value": "Texnik topshiriq, dizayn yoki hujjatni yuklang.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.v": {
+  "value": "v",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.yuklab_bolmadi": {
+  "value": "Yuklab bo'lmadi",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.yuklagan": {
+  "value": "yuklagan",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.yuklanmoqda": {
+  "value": "Yuklanmoqda…",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_forecast.bajarilgan_vazifalarni_korish": {
+  "value": "Bajarilgan vazifalarni korish",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.bashoratni_hisoblab_bolmadi": {
+  "value": "Bashoratni hisoblab bo'lmadi",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.kech": {
+  "value": ") kech.",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.kechikkan": {
+  "value": "kechikkan",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.kim_qachon_tugatadi": {
+  "value": "Kim qachon tugatadi",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.loyiha_boshlanish_sanasi": {
+  "value": "Loyiha boshlanish sanasi",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.loyiha_kiritilgan": {
+  "value": "Loyiha (kiritilgan)",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.loyiha_muddatidan": {
+  "value": "—\r\n          loyiha muddatidan (",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.malumot_yoq": {
+  "value": "Ma'lumot yo'q",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.muddati_otgan_vazifalarni_korish": {
+  "value": "Muddati otgan vazifalarni korish",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.ochiq_vazifa_yoq": {
+  "value": "Ochiq vazifa yo'q.",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.ochiq_vazifalarni_korish": {
+  "value": "Ochiq vazifalarni korish",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.sana_qoyilmagan": {
+  "value": "sana qoyilmagan",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.ta_vazifa_hech_kimga_biriktirilmagan": {
+  "value": "ta vazifa hech kimga biriktirilmagan.",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.tekshiruvda": {
+  "value": "tekshiruvda",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.tugatish_sanasi": {
+  "value": "Tugatish sanasi",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.vazifalar_kiritilgan": {
+  "value": "Vazifalar (kiritilgan)",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.vazifalarni_jamoaga_taqsimlang": {
+  "value": "Vazifalarni jamoaga taqsimlang.",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_forecast.vazifalarning_oxirgi_muddati": {
+  "value": "Vazifalarning oxirgi muddati",
+  "note": "pages/project/Forecast.tsx"
+ },
+ "project_form.asosiy_malumot": {
+  "value": "Asosiy maʼlumot",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.boshlangich_fayllar": {
+  "value": "Boshlangich fayllar",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.boshlanish_sanasi": {
+  "value": "Boshlanish sanasi",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.fayllar_uchun_hujjat_nomini_yozing": {
+  "value": "Fayllar uchun hujjat nomini yozing.",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.fayllari_biriktirilmadi": {
+  "value": "fayllari biriktirilmadi: ",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.hujjat_sanasi_korsatilmagan": {
+  "value": "Hujjat sanasi korsatilmagan: ",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.jamoa_va_doska_bolimidan_qayta": {
+  "value": " — «Jamoa» va «Doska» bolimidan qayta urinib koring.",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.jamoa_va_vazifalar": {
+  "value": "Jamoa va vazifalar",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.jamoaga_qoshilmadi": {
+  "value": "jamoaga qo'shilmadi: ",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyiha_holati": {
+  "value": "Loyiha holati",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyiha_nomi": {
+  "value": "Loyiha nomi",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyiha_sozlamalari": {
+  "value": "Loyiha sozlamalari",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyiha_yaratildi_lekin": {
+  "value": "Loyiha yaratildi, lekin ",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyiha_yaratildi_lekin_fayllarni_yuklab": {
+  "value": "Loyiha yaratildi, lekin fayllarni yuklab bolmadi — ",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyiha_yaratish": {
+  "value": "Loyiha yaratish",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyihani_butunlay_ochirish": {
+  "value": "Loyihani butunlay ochirish",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyihani_ochib_bolmadi": {
+  "value": "Loyihani ochib bo'lmadi.",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyihani_ochirib_bolmadi": {
+  "value": "Loyihani ochirib bolmadi",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.loyihani_ochirish": {
+  "value": "Loyihani ochirish",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.masalan_mobil_ilova_v2": {
+  "value": "Masalan: Mobil ilova v2",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.tavsif": {
+  "value": "Tavsif",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.tugash_sanasi_muddat": {
+  "value": "Tugash sanasi (muddat)",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.ularni_fayllar_bolimidan_qayta_yuklang": {
+  "value": "ularni «Fayllar» bolimidan qayta yuklang.",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.vazifa_yaratilmadi": {
+  "value": "vazifa yaratilmadi: ",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.vazifaning_ozi_yaratildi": {
+  "value": " (vazifaning ozi yaratildi)",
+  "note": "pages/ProjectForm.tsx"
+ },
+ "project_history.butun_tarix": {
+  "value": "Butun tarix",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.hamma": {
+  "value": "Hamma",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.keyingi": {
+  "value": "Keyingi →",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.kim": {
+  "value": "Kim",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.loyiha_tarixi_yozuv": {
+  "value": "Loyiha tarixi ({n} yozuv)",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.loyihada_ishlaganlar": {
+  "value": "Loyihada ishlaganlar",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.loyihaga_kirish_qollanmasi": {
+  "value": "Loyihaga kirish qollanmasi",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.matn_boyicha": {
+  "value": "Matn boyicha",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.nima_uchun_bu_kerak": {
+  "value": "Nima uchun bu kerak",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.oldingi": {
+  "value": "← Oldingi",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.sobiq_azo": {
+  "value": " · sobiq aʼzo",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.songgi_30_kun": {
+  "value": "Songgi 30 kun",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.songgi_7_kun": {
+  "value": "Songgi 7 kun",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.songgi_90_kun": {
+  "value": "Songgi 90 kun",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.tarixni_yuklab_bolmadi": {
+  "value": "Tarixni yuklab bo'lmadi.",
+  "note": "pages/project/History.tsx"
+ },
+ "project_history.turkum": {
+  "value": "Turkum",
+  "note": "pages/project/History.tsx"
+ },
+ "project_members.admin_qilish": {
+  "value": "Admin qilish",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.adminlikdan_chiqarilsinmi": {
+  "value": "{ism} adminlikdan chiqarilsinmi?",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.adminlikni_bekor_qilish": {
+  "value": "Adminlikni bekor qilish",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.azo": {
+  "value": "Azo",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.barcha_loyihalar_foydalanuvchilar_va_sozlama": {
+  "value": "barcha loyihalar, foydalanuvchilar va sozlamalar.",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.bu_sizsiz": {
+  "value": "bu sizsiz",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.butun_platformada_hamma_huquqqa_ega": {
+  "value": "Butun platformada hamma huquqqa ega bo'ladi: ",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.chiqarish": {
+  "value": "Chiqarish",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.chiqqan": {
+  "value": "chiqqan:",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.himoyalangan": {
+  "value": "himoyalangan",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.hozircha_orin_yoq": {
+  "value": "Hozircha orin yoq",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.istagan_roli": {
+  "value": "· istagan roli:",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.jamoa_hali_shakllanmagan": {
+  "value": "Jamoa hali shakllanmagan",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.keyingi_dasturchi_uchun_eslatma_qoldiring": {
+  "value": "Keyingi dasturchi uchun eslatma qoldiring:",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.keyingi_dasturchi_uchun_topshiriq_eslatmasi": {
+  "value": "Keyingi dasturchi uchun topshiriq eslatmasi (tarixda saqlanadi):",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.kod_bilan_ozi_qoshilishi_uchun": {
+  "value": "Kod bilan o'zi qo'shilishi uchun:",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.loyiha_menejerligidan_chiqasizmi": {
+  "value": "Loyiha menejerligidan chiqasizmi?",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.loyiha_menejersiz_qoladi_ozingizni_qaytara": {
+  "value": "Loyiha menejersiz qoladi. O'zingizni qaytara olmaysiz - ",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.loyihadagi_roli_ozgarmaydi": {
+  "value": "Loyihadagi roli o'zgarmaydi.",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.loyihadan_chiqish": {
+  "value": "Loyihadan chiqish",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.menejerga_tegib_bolmaydi_u_loyihadan": {
+  "value": "Menejerga tegib bo'lmaydi - u loyihadan faqat o'zi chiqadi",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.ozingizga_bu_yerdan_tega_olmaysiz": {
+  "value": "O'zingizga bu yerdan tega olmaysiz",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.qoshilish_kodi": {
+  "value": "Qoshilish kodi",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.qoshilish_sorovlari": {
+  "value": "Qoshilish sorovlari",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.rad_etish": {
+  "value": "Rad etish",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.siz_loyiha_menejerisiz_chiqsangiz_loyiha": {
+  "value": "Siz loyiha menejerisiz - chiqsangiz loyiha menejersiz qoladi va\n                  yangisini tizim admini tayinlaydi.",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.sobiq_azolar": {
+  "value": "Sobiq aʼzolar",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.sorov_yuborish": {
+  "value": "Sorov yuborish",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.sorovlar_tarixi": {
+  "value": "Sorovlar tarixi",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.tizim_admini": {
+  "value": "tizim admini",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.tizim_admini_bolsinmi": {
+  "value": "{ism} tizim admini bo'lsinmi?",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.tizim_admini_huquqidan_mahrum_boladi": {
+  "value": "Tizim admini huquqidan mahrum bo'ladi. ",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.tizim_admini_huquqini_bekor_qilish": {
+  "value": "Tizim admini huquqini bekor qilish",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.tizim_admini_qilib_tayinlash": {
+  "value": "Tizim admini qilib tayinlash",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.topshiriq_eslatmasi": {
+  "value": "Topshiriq eslatmasi:",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.xush_kelibsiz": {
+  "value": "Xush kelibsiz",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.yangi_menejerni_tizim_admini_tayinlaydi": {
+  "value": "yangi menejerni tizim admini tayinlaydi.",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_members.yuklama": {
+  "value": "Yuklama",
+  "note": "pages/project/Members.tsx"
+ },
+ "project_onboarding.1_loyiha_nima_qiladi": {
+  "value": "1. Loyiha nima qiladi",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.2_loyiha_arxitekturasi": {
+  "value": "2. Loyiha arxitekturasi",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.3_muhim_qarorlar_va_eslatmalar": {
+  "value": "3. Muhim qarorlar va eslatmalar",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.4_takrorlanmasligi_kerak_bolgan_xatolar": {
+  "value": "4. Takrorlanmasligi kerak bolgan xatolar",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.5_loyiha_bosqichlari": {
+  "value": "5. Loyiha bosqichlari",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.arxitektura": {
+  "value": "Arxitektura",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.arxitektura_toldirilmagan": {
+  "value": "Arxitektura toldirilmagan.",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.arxitektura_yozilmagan": {
+  "value": "Arxitektura yozilmagan.",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.bajarildi": {
+  "value": "% bajarildi",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.ehtiyot_boling": {
+  "value": "Ehtiyot boling",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.eslatma": {
+  "value": "Eslatma:",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.hali_bajarilgan_vazifa_yoq": {
+  "value": "Hali bajarilgan vazifa yoq",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.hali_qaytarilgan_ish_yoq": {
+  "value": "Hali qaytarilgan ish yoq.",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.hozir_ochiq_turgan_ishlar": {
+  "value": "Hozir ochiq turgan ishlar",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.hozircha_ish_jurnali_yoq": {
+  "value": "Hozircha ish jurnali yoq.",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.kim_nima_boyicha_javob_beradi": {
+  "value": "Kim nima boyicha javob beradi",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.kim_nima_qilgan": {
+  "value": "Kim nima qilgan",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.kontekst_yigilmoqda": {
+  "value": "Kontekst yigilmoqda...",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.loyiha_maqsadi": {
+  "value": "Loyiha maqsadi",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.ochiq_vazifa_yoq": {
+  "value": "Ochiq vazifa yoq",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.repozitoriy": {
+  "value": "Repozitoriy",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.soat": {
+  "value": "soat ·",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.sobiq": {
+  "value": " · sobiq",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.songgi_bajarilganlar": {
+  "value": "Songgi bajarilganlar",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.texnologiyalar": {
+  "value": "Texnologiyalar",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_onboarding.toldirilgan": {
+  "value": "% toldirilgan",
+  "note": "pages/project/Onboarding.tsx"
+ },
+ "project_overview.bajarilgan_vazifalarni_korish": {
+  "value": "Bajarilgan vazifalarni korish",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.boshqarish": {
+  "value": "Boshqarish",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.jamoa_bosh": {
+  "value": "Jamoa bosh",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.jamoa_tarkibi": {
+  "value": "Jamoa tarkibi",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.jarayondagi_vazifalarni_korish": {
+  "value": "Jarayondagi vazifalarni korish",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.loyihaga_kirish_qollanmasi": {
+  "value": "Loyihaga kirish qollanmasi",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.malumot_yoq": {
+  "value": "Maʼlumot yoq",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.malumotlar": {
+  "value": "Maʼlumotlar",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.muddat": {
+  "value": "Muddat:",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.nazoratdagi_vazifalarni_korish": {
+  "value": "Nazoratdagi vazifalarni korish",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.qoshilish_kodi": {
+  "value": "Qoshilish kodi:",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.repozitoriy": {
+  "value": "Repozitoriy",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.sizning_ochiq_vazifalaringiz": {
+  "value": "Sizning ochiq vazifalaringiz",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.songgi_harakatlar": {
+  "value": "Songgi harakatlar",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.tekshiruvda_turgan_vazifalarni_korish": {
+  "value": "Tekshiruvda turgan vazifalarni korish",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_overview.toliq_tarix": {
+  "value": "Toliq tarix",
+  "note": "pages/project/Overview.tsx"
+ },
+ "project_task_list.bu_loyihada_hali_vazifa_yoq": {
+  "value": "Bu loyihada hali vazifa yoq.",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "project_task_list.faqat_meniki": {
+  "value": "Faqat meniki",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "project_task_list.faqat_ochiqlar": {
+  "value": "Faqat ochiqlar",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "project_task_list.ijrochi": {
+  "value": "Ijrochi",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "project_task_list.kod": {
+  "value": "Kod",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "project_task_list.sarlavha_yoki_tavsif": {
+  "value": "Sarlavha yoki tavsif",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "project_task_list.tanlangan_filtrga_mos_vazifa_yoq": {
+  "value": "Tanlangan filtrga mos vazifa yoq - filtrni tozalab koring.",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "project_task_list.vazifa_topilmadi": {
+  "value": "Vazifa topilmadi",
+  "note": "pages/project/TaskList.tsx"
+ },
+ "projects.azolar": {
+  "value": "A'zolar",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.barcha_holatlar": {
+  "value": "Barcha holatlar",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.barcha_muddatlar": {
+  "value": "Barcha muddatlar",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.bu_davrga_muddati_tushadigan_loyiha": {
+  "value": "Bu davrga muddati tushadigan loyiha yoq. ",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.bu_kesimda_vazifa_yoq": {
+  "value": "Bu kesimda vazifa yoq",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.faol_loyihalar_va_jarayonlar_monitoringi": {
+  "value": "Faol loyihalar va jarayonlar monitoringi",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.jarayon": {
+  "value": "Jarayon",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.loyiha_topish": {
+  "value": "Loyiha topish",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.loyihaga_kirish": {
+  "value": "Loyihaga kirish",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.loyihalar_boyicha_vazifani_bosib_osha": {
+  "value": "Loyihalar boyicha - vazifani bosib osha loyihaga kiring",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.loyihani_ochirib_bolmadi": {
+  "value": "Loyihani ochirib bolmadi",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.menda": {
+  "value": "Menda",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.menejer_vazifa_berganda_u_shu": {
+  "value": "Menejer vazifa berganda u shu yerda loyihasi bilan korinadi.",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.muddati_qoyilmagan_loyihalar_bu_kesimda": {
+  "value": "Muddati qoyilmagan loyihalar bu kesimda korinmaydi.",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.nom_tavsif_yoki_hujjat_nomi": {
+  "value": "Nom, tavsif yoki hujjat nomi boyicha",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.ochiq_loyihaga_qoshiling_yoki_yangi": {
+  "value": "Ochiq loyihaga qoshiling yoki yangi yarating.",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.qidirish": {
+  "value": "Qidirish",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.qidiruv_natijasi_yoq": {
+  "value": "«{soz}» boyicha hech narsa topilmadi - boshqacha yozib koring.",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.sizga_hali_vazifa_biriktirilmagan": {
+  "value": "Sizga hali vazifa biriktirilmagan",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.ta_vazifa": {
+  "value": "ta vazifa",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.tanlangan_kesim_boyicha_sizda_ish": {
+  "value": "Tanlangan kesim boyicha sizda ish yoq - filtrni bo'shatib koring.",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.vazifa_kod_hir_75_yoki": {
+  "value": "Vazifa, kod (HIR-75) yoki loyiha nomi",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.vazifalarim": {
+  "value": "Vazifalarim",
+  "note": "pages/Projects.tsx"
+ },
+ "public_project.azo": {
+  "value": "a'zo",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.bajarilgani": {
+  "value": "Bajarilgani",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.boshqa_loyihalarni_korish": {
+  "value": "Boshqa loyihalarni ko'rish",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.bunday_ochiq_loyiha_topilmadi_u": {
+  "value": "Bunday ochiq loyiha topilmadi — u yopiq bo'lishi mumkin.",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.hisobga_kirish": {
+  "value": "Hisobga kirish",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.hozir_jamoada_yoq_bosh_orin": {
+  "value": "Hozir jamoada yo'q — bo'sh o'rin:",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.jamoa": {
+  "value": "Jamoa:",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.jamoa_tarkibi": {
+  "value": "Jamoa tarkibi",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.jamoaga_qoshilmoqchimisiz": {
+  "value": "Jamoaga qo'shilmoqchimisiz?",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.korsatib_bolmadi": {
+  "value": "Ko'rsatib bo'lmadi",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.loyihani_ochib_bolmadi": {
+  "value": "Loyihani ochib bo'lmadi",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.loyihani_ochish": {
+  "value": "Loyihani ochish",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.malumot": {
+  "value": "Ma'lumot",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.ochilgan": {
+  "value": "Ochilgan:",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.ochiq_loyihalar": {
+  "value": "ochiq loyihalar",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.qanday_mutaxassis_kerak": {
+  "value": "Qanday mutaxassis kerak",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.qoshilish": {
+  "value": "Qo'shilish",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.royxatdan_oting_va_mutaxassisligingizni_tanl": {
+  "value": "Ro'yxatdan o'ting va mutaxassisligingizni tanlang — sizga mos\r\n                    loyihalar birinchi ko'rsatiladi.",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.siz_tizimdasiz_loyihaga_sorov_yuborishingiz": {
+  "value": "Siz tizimdasiz — loyihaga so'rov yuborishingiz mumkin.",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.sorov_yuborish": {
+  "value": "So'rov yuborish",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_project.yopilgan_vazifa": {
+  "value": "Yopilgan vazifa",
+  "note": "pages/PublicProject.tsx"
+ },
+ "public_shell.bosh_sahifa": {
+  "value": "Bosh sahifa",
+  "note": "components/PublicShell.tsx"
+ },
+ "public_shell.loyiha_qidirish": {
+  "value": "Loyiha qidirish…",
+  "note": "components/PublicShell.tsx"
+ },
+ "public_shell.panelga_otish": {
+  "value": "Panelga o'tish",
+  "note": "components/PublicShell.tsx"
+ },
+ "register.akkaunt_yaratish": {
+  "value": "Akkaunt yaratish",
+  "note": "pages/Register.tsx"
+ },
+ "register.akkauntingiz_bormi": {
+  "value": "Akkauntingiz bormi?",
+  "note": "pages/Register.tsx"
+ },
+ "register.bosh_sahifa": {
+  "value": "← Bosh sahifa",
+  "note": "pages/Register.tsx"
+ },
+ "register.email": {
+  "value": "Email",
+  "note": "pages/Register.tsx"
+ },
+ "register.hisob_yarating": {
+  "value": "Hisob yarating",
+  "note": "pages/Register.tsx"
+ },
+ "register.ism_familiya": {
+  "value": "Ism Familiya",
+  "note": "pages/Register.tsx"
+ },
+ "register.kamida_8_belgi": {
+  "value": "kamida 8 belgi",
+  "note": "pages/Register.tsx"
+ },
+ "register.mutaxassisligingizga_mos_vazifalar_shu_boyic": {
+  "value": "Mutaxassisligingizga mos vazifalar shu bo'yicha biriktiriladi",
+  "note": "pages/Register.tsx"
+ },
+ "register.mutaxassisliklar_royxatini_yuklab_bolmadi": {
+  "value": "Mutaxassisliklar royxatini yuklab bolmadi",
+  "note": "pages/Register.tsx"
+ },
+ "register.parolni_tasdiqlang": {
+  "value": "Parolni tasdiqlang",
+  "note": "pages/Register.tsx"
+ },
+ "register.royxatdan_otishda_xatolik": {
+  "value": "Royxatdan otishda xatolik",
+  "note": "pages/Register.tsx"
+ },
+ "register.tanlang": {
+  "value": "Tanlang",
+  "note": "pages/Register.tsx"
+ },
+ "review_queue.aylana": {
+  "value": "-aylana ·",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.fayl": {
+  "value": "fayl",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.hozircha_tekshirishga_yuborilgan_ish_yoq": {
+  "value": "Hozircha tekshirishga yuborilgan ish yoq.",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.izoh": {
+  "value": "Izoh",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.navbat_bosh": {
+  "value": "Navbat bosh",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.nimani_tuzatish_kerak_aniq_yozing": {
+  "value": "Nimani tuzatish kerak - aniq yozing",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.qaror": {
+  "value": "Qaror",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.qarorni_saqlash": {
+  "value": "Qarorni saqlash",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.qaytarish": {
+  "value": "Qaytarish",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.soat_sarflangan": {
+  "value": "soat sarflangan",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.ta_kutmoqda": {
+  "value": "ta kutmoqda",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.tasdiqlanishi_kutilayotgan_loyiha_topshiriql": {
+  "value": "Tasdiqlanishi kutilayotgan loyiha topshiriqlari",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.tekshiruvni_saqlab_bolmadi": {
+  "value": "Tekshiruvni saqlab bolmadi",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.topshirdi": {
+  "value": "Topshirdi",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.vazifa_nomi": {
+  "value": "Vazifa nomi",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "review_queue.vazifani_toliq_korish": {
+  "value": "Vazifani toliq korish",
+  "note": "pages/ReviewQueue.tsx"
+ },
+ "search.azo": {
+  "value": "a'zo",
+  "note": "pages/Search.tsx"
+ },
+ "search.boshqa_soz_bilan_qidirib_koring": {
+  "value": "Boshqa so'z bilan qidirib ko'ring yoki mutaxassislik filtrini olib tashlang.",
+  "note": "pages/Search.tsx"
+ },
+ "search.hozircha_ochiq_loyiha_yoq_ozingiz": {
+  "value": "Hozircha ochiq loyiha yo'q. O'zingiz birinchi bo'lib oching.",
+  "note": "pages/Search.tsx"
+ },
+ "search.jamoaga_qoshiladigan_loyihalar": {
+  "value": "Jamoaga qo'shiladigan loyihalar",
+  "note": "pages/Search.tsx"
+ },
+ "search.kerak": {
+  "value": "Kerak:",
+  "note": "pages/Search.tsx"
+ },
+ "search.mutaxassislik_boyicha": {
+  "value": "Mutaxassislik bo'yicha",
+  "note": "pages/Search.tsx"
+ },
+ "search.ochiq_loyihalar": {
+  "value": "Ochiq loyihalar",
+  "note": "pages/Search.tsx"
+ },
+ "search.royxatdan_otmasdan_ham_korishingiz_mumkin": {
+  "value": "Ro'yxatdan o'tmasdan ham ko'rishingiz mumkin. Qo'shilish uchun hisob kerak.",
+  "note": "pages/Search.tsx"
+ },
+ "search.soz_boyicha_qidiruv": {
+  "value": "«{soz}» bo'yicha qidiruv",
+  "note": "pages/Search.tsx"
+ },
+ "search.ta_loyiha": {
+  "value": "ta loyiha",
+  "note": "pages/Search.tsx"
+ },
+ "skill_editor.masalan_postgresql": {
+  "value": "Masalan: PostgreSQL",
+  "note": "components/SkillEditor.tsx"
+ },
+ "skill_editor.olib_tashlash": {
+  "value": "{nom} ni olib tashlash",
+  "note": "components/SkillEditor.tsx"
+ },
+ "skill_editor.qoshish": {
+  "value": "Qoshish",
+  "note": "components/SkillEditor.tsx"
+ },
+ "suggestions.anonim_fayl_izoh": {
+  "value": "Anonim taklifda faylni kim yuklagani ham ko'rsatilmaydi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.anonim_izoh": {
+  "value": "Ismingiz hech kimga ko'rsatilmaydi — boshliqqa ham.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.anonim_muallif": {
+  "value": "Anonim",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.anonim_yuborish": {
+  "value": "Anonim yuborish",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.betarafman": {
+  "value": "Betarafman",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.bosh_holat": {
+  "value": "Hali taklif yo'q",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.bosh_holat_matn": {
+  "value": "Birinchi taklifni siz yozing — jamoa ovoz beradi, boshliq ko'radi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.boshliq_izohi": {
+  "value": "Boshliq izohi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.fayl_hint": {
+  "value": "Hujjat, chizma yoki rasmni shu yerga tashlang — 25 MB gacha",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.fayl_izoh": {
+  "value": "Taklifga hujjat yoki rasm qo'shsangiz — u kartada ko'rinadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.fayl_ochirilsinmi": {
+  "value": "«{nom}» o'chirilsinmi?",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.fayl_ochirish_izohi": {
+  "value": "Fayl taklifdan butunlay olib tashlanadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.fayl_qoshish": {
+  "value": "Fayl biriktirish",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.fayllar": {
+  "value": "Biriktirilgan fayllar",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.fayllar_yuklanmadi": {
+  "value": "Taklif saqlandi, lekin fayllarni yuklab bo'lmadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.izoh_placeholder": {
+  "value": "Qaroringiz sababini yozing",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.izohni_saqlash": {
+  "value": "Izohni saqlash",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.kim_koradi": {
+  "value": "Kim ko'radi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.matn_placeholder": {
+  "value": "Nima taklif qilyapsiz va nega kerak? Iloji bo'lsa misol keltiring.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.meniki": {
+  "value": "Mening takliflarim",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.meniki_bosh": {
+  "value": "Siz hali taklif yozmagansiz",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.meniki_bosh_matn": {
+  "value": "«Yangi taklif» tugmasi bilan boshlang.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ochiq": {
+  "value": "Ochiq",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ochiq_izoh": {
+  "value": "Ochiq — butun jamoa ko'radi va ovoz beradi, boshliq esa qaror qiladi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ochirildi": {
+  "value": "Taklif o'chirildi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ochirilsinmi": {
+  "value": "«{nom}» o'chirilsinmi?",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ochirish_izohi": {
+  "value": "Taklif va unga berilgan ovozlar butunlay o'chadi. Buni qaytarib bo'lmaydi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ovoz_siri": {
+  "value": "Kim ovoz bergani hech kimga ko'rsatilmaydi — faqat sonlar ko'rinadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.qaror_qildi": {
+  "value": "{ism} qaror qildi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.qoshilaman": {
+  "value": "Qo'shilaman",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.qoshilmayman": {
+  "value": "Qo'shilmayman",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rad_etish": {
+  "value": "Rad etish",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saqlandi": {
+  "value": "Taklif saqlandi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.sarlavha": {
+  "value": "Sarlavha",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.sarlavha_placeholder": {
+  "value": "Qisqa va aniq: nima o'zgarsin",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.sarlavha_sahifa": {
+  "value": "Takliflar",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tahrirdan_keyin_qaytadi": {
+  "value": "Matn o'zgarsa taklif yana boshliq navbatiga tushadi — eski qaror bekor bo'ladi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.taklif_matni": {
+  "value": "Taklif matni",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.taklifni_tahrirlash": {
+  "value": "Taklifni tahrirlash",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tasdiqlash": {
+  "value": "Tasdiqlash",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tavsif": {
+  "value": "Nima o'zgarishini taklif qiling — jamoa ovoz beradi, boshliq qaror qiladi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tavsif_boshliq": {
+  "value": "Jamoaning takliflari. Eng ko'p qo'llab-quvvatlangani yuqorida turadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.yangi_taklif": {
+  "value": "Yangi taklif",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.yopiq": {
+  "value": "Yopiq",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.yopiq_bosh": {
+  "value": "Yopiq taklif yo'q",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.yopiq_bosh_matn": {
+  "value": "Yopiq taklifni faqat siz va boshliq ko'radi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.yopiq_izoh": {
+  "value": "Yopiq — faqat siz va boshliq ko'radi. Jamoa oldida aytilmaydigan gap uchun.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.yuborish": {
+  "value": "Taklifni yuborish",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.yuklagan": {
+  "value": "Yuklagan: {ism}",
+  "note": "pages/Suggestions.tsx"
+ },
+ "task_bulk_form.bu_sahifa_loyiha_ichidan_ochiladi": {
+  "value": "Bu sahifa loyiha ichidan ochiladi.",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.bu_yonalishda_jamoada_azo_yoq": {
+  "value": "Bu yonalishda jamoada aʼzo yoq.",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.faqat_mos_mutaxassislarga_berilsin": {
+  "value": "Faqat mos mutaxassislarga berilsin",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.hamma_vazifaga_bir_xil_qollaniladi": {
+  "value": "Hamma vazifaga bir xil qollaniladi",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.kerakli_mutaxassislik": {
+  "value": "Kerakli mutaxassislik",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.kimga": {
+  "value": "Kimga",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.kimga_beriladi": {
+  "value": "Kimga beriladi",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.koplab_vazifa_berish": {
+  "value": "Koplab vazifa berish",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.login_sahifasini_yasash_api_foydalanuvchi": {
+  "value": "Login sahifasini yasash\nAPI: foydalanuvchi royxati\nDocker konfiguratsiyani sozlash",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.loyihani_ochib_bolmadi": {
+  "value": "Loyihani ochib bo'lmadi.",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.navbat_bilan_taqsimlash_1_task": {
+  "value": "Navbat bilan taqsimlash (1-task 1-odamga)",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.nechta_vazifa_yaratish": {
+  "value": "{n} ta vazifa yaratish",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.ruxsat_yoq": {
+  "value": "Ruxsat yoq",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.talab_qilinmaydi": {
+  "value": "Talab qilinmaydi",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.taqsimot_koinishi_oldindan": {
+  "value": "Taqsimot koinishi (oldindan)",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.umumiy_muddat": {
+  "value": "Umumiy muddat",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.umumiy_tayyorlik_mezoni": {
+  "value": "Umumiy tayyorlik mezoni",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.umumiy_xususiyatlar": {
+  "value": "Umumiy xususiyatlar",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.vazifa_yaratish_va_tahrirlash_faqat": {
+  "value": "Vazifa yaratish va tahrirlash faqat loyiha menejeri va adminda.\r\n            Sizga biriktirilgan ishni «Mening ishim» bolimidan bajarasiz.",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.vazifalar_royxati": {
+  "value": "Vazifalar royxati",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_bulk_form.vazifalarni_yaratib_bolmadi": {
+  "value": "Vazifalarni yaratib bolmadi",
+  "note": "pages/TaskBulkForm.tsx"
+ },
+ "task_detail.aylana": {
+  "value": "-aylana",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.bekor": {
+  "value": "Bekor",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.boshlanish": {
+  "value": "Boshlanish:",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.boshqa_odamga_otkazish": {
+  "value": "Boshqa odamga oʻtkazish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.diqqat": {
+  "value": "Diqqat",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.fayl": {
+  "value": "fayl",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.fayl_biriktirilmagan": {
+  "value": "Fayl biriktirilmagan.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.fayl_qoshish": {
+  "value": "Fayl qoshish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.fayllar": {
+  "value": "Fayllar",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.fayllarni_shu_yerga_tashlang_yoki": {
+  "value": "Fayllarni shu yerga tashlang yoki bosing",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.faylni_yuklab_bolmadi": {
+  "value": "Faylni yuklab bolmadi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.holatni_ozgartirish": {
+  "value": "Holatni ozgartirish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.hozirgi_ijrochi": {
+  "value": " (hozirgi ijrochi)",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.ish_bitta_odamga_otadi_oldingi": {
+  "value": "Ish bitta odamga oʻtadi: oldingi ijrochilar olib tashlanadi va\r\n                    ikkala tomon ham xabar oladi.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.ish_jurnali": {
+  "value": "Ish jurnali",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.izoh": {
+  "value": "Izoh",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.izoh_qoldirish": {
+  "value": "Izoh qoldirish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.izoh_yoq": {
+  "value": "Izoh yoq.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.izoh_yozing": {
+  "value": "Izoh yozing...",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.izohlar": {
+  "value": "Izohlar",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.jamoadan_tanlang": {
+  "value": "Jamoadan tanlang…",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.jurnalga_yozish": {
+  "value": "Jurnalga yozish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.kimga": {
+  "value": "Kimga",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.malumotlar": {
+  "value": "Maʼlumotlar",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.masalan_tatilga_chiqdi": {
+  "value": "Masalan: taʼtilga chiqdi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.menejer": {
+  "value": "Menejer",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.muddat": {
+  "value": "Muddat:",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.muddat_qoyish": {
+  "value": "Muddat qoyish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.muddatni_ozgartirish": {
+  "value": "Muddatni ozgartirish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.nima_qildingiz": {
+  "value": "Nima qildingiz",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.nima_qilganingizni_yozing_keyingi_dasturchi": {
+  "value": "Nima qilganingizni yozing — keyingi dasturchi shuni oqib kontekstga kiradi.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.nima_qilish_kerak": {
+  "value": "Nima qilish kerak",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.nimani_tuzatish_kerak_aniq_yozing": {
+  "value": "Nimani tuzatish kerak - aniq yozing",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.otkazish": {
+  "value": "Oʻtkazish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.qaror": {
+  "value": "Qaror",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.qarorni_saqlash": {
+  "value": "Qarorni saqlash",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.qaysi_yechim_tanlandi_va_nima": {
+  "value": "Qaysi yechim tanlandi va nima uchun?",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.quyidagi_ijrochilar_mutaxassisligi_vazifa_ta": {
+  "value": "Quyidagi ijrochilar mutaxassisligi vazifa talabiga mos emas:",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.sabab_ixtiyoriy": {
+  "value": "Sabab (ixtiyoriy)",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.skrinshot_hujjat_log_arxiv_har": {
+  "value": "Skrinshot, hujjat, log, arxiv — har biri 25 MB gacha",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.tekshiruv": {
+  "value": "Tekshiruv",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.tekshiruv_aylanasi": {
+  "value": "-tekshiruv aylanasi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.tekshiruvchi": {
+  "value": "Tekshiruvchi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.tekshiruvlar_tarixi": {
+  "value": "Tekshiruvlar tarixi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.topshirishdan_oldin_tekshiring": {
+  "value": "Topshirishdan oldin tekshiring",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.toxtab_qolgan": {
+  "value": "Toxtab qolgan:",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.toxtab_qolgan_uchun_sabab": {
+  "value": "«To'xtab qolgan» uchun sabab",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.toxtash_sababi": {
+  "value": "Toxtash sababi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.tuzatish_talab_qilingan": {
+  "value": "Tuzatish talab qilingan:",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.vazifa_ochirilsinmi": {
+  "value": "{kod} o'chirilsinmi?",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.vazifa_ochirish_izohi": {
+  "value": "«{nom}» izohlari, fayllari va tarixi bilan o'chadi.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.vazifa_tarixi": {
+  "value": "Vazifa tarixi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.vazifani_ochib_bolmadi": {
+  "value": "Vazifani ochib bolmadi",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.yakunlangan": {
+  "value": "Yakunlangan",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.yaratgan": {
+  "value": "Yaratgan",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.yaratilgan": {
+  "value": "Yaratilgan",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.yozuv_yoq": {
+  "value": "Yozuv yoq.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_form.boshlangich_holat": {
+  "value": "Boshlangich holat",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.boyicha_hech_kim_topilmadi": {
+  "value": "» boyicha hech kim topilmadi.",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.bu_yonalishda_jamoada_azo_yoq": {
+  "value": "Bu yonalishda jamoada aʼzo yoq. Avval mos mutaxassisni qoshing.",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.fayllar": {
+  "value": "Fayllar",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.ism_familiya_yoki_email_boyicha": {
+  "value": "Ism, familiya yoki email bo'yicha qidiring",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.kerakli_mutaxassislik": {
+  "value": "Kerakli mutaxassislik",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.login_ishlaydi_testlar_otadi_hujjat": {
+  "value": "- Login ishlaydi\n- Testlar otadi\n- Hujjat yangilandi",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.menejer_tekshiradi": {
+  "value": "Menejer tekshiradi",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.mos_emas": {
+  "value": "mos emas",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.nima_qilish_kerak": {
+  "value": "Nima qilish kerak",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.ochiq_ish": {
+  "value": "ochiq ish",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.qayerdan_boshlash_qaysi_fayllar_qanday": {
+  "value": "Qayerdan boshlash, qaysi fayllar, qanday yechim kutilmoqda",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.qisqa_va_aniq_sarlavha": {
+  "value": "Qisqa va aniq sarlavha",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.ruxsat_yoq": {
+  "value": "Ruxsat yoq",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.sarlavha": {
+  "value": "Sarlavha",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.sifat_royxati": {
+  "value": "Sifat royxati",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.ta_tanlangan_azo_qidiruvdan_tashqarida": {
+  "value": "ta tanlangan aʼzo qidiruvdan tashqarida — tanlovi saqlanadi.",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.talab_qilinmaydi": {
+  "value": "Talab qilinmaydi",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.tanlangan": {
+  "value": "tanlangan",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.tekshiruvchi": {
+  "value": "Tekshiruvchi",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.ularni_vazifa_sahifasidan_qayta_yuklang": {
+  "value": "ularni vazifa sahifasidan qayta yuklang.",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.vazifa_mazmuni": {
+  "value": "Vazifa mazmuni",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.vazifa_yaratildi_lekin_fayllarni_biriktirib": {
+  "value": "Vazifa yaratildi, lekin fayllarni biriktirib bolmadi — ",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.vazifa_yaratish": {
+  "value": "Vazifa yaratish",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.vazifa_yaratish_va_tahrirlash_faqat": {
+  "value": "Vazifa yaratish va tahrirlash faqat loyiha menejeri va adminda.\r\n            Sizga biriktirilgan ishni «Mening ishim» bolimidan bajarasiz.",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.vazifani_ochib_bolmadi": {
+  "value": "Vazifani ochib bo'lmadi.",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.vazifani_tahrirlash": {
+  "value": "Vazifani tahrirlash",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.xususiyatlar": {
+  "value": "Xususiyatlar",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_form.yana": {
+  "value": "Yana",
+  "note": "pages/TaskForm.tsx"
+ },
+ "task_submission.aylana": {
+  "value": "-aylana",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.fayl_biriktirish_ixtiyoriy": {
+  "value": "Fayl biriktirish (ixtiyoriy)",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.fayl_tanlash": {
+  "value": "Fayl tanlash",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.hali_ish_topshirilmagan": {
+  "value": "Hali ish topshirilmagan.",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.holat": {
+  "value": "· holat:",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.ish_topshirildi_holat": {
+  "value": "Ish topshirildi. Vazifa holati: {holat}.",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.ish_topshirildi_vazifa_tekshiruvga_otdi": {
+  "value": "Ish topshirildi — vazifa tekshiruvga o'tdi, menejer tasdiqlashini kuting.",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.ishni_topshirish": {
+  "value": "Ishni topshirish",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.kimdir": {
+  "value": "Kimdir",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.marta_tahrirlangan": {
+  "value": "marta tahrirlangan",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.nima_qilindi": {
+  "value": "Nima qilindi",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.ochirib_bolmadi": {
+  "value": "O'chirib bo'lmadi",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.ozgarmadi": {
+  "value": "o'zgarmadi",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.qaysi_fayllar_ozgardi_qanday_yechim": {
+  "value": "Qaysi fayllar o'zgardi, qanday yechim tanlandi, nimaga e'tibor berish kerak",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.qilingan_ishni_qisqacha_bolsa_ham": {
+  "value": "Qilingan ishni qisqacha bo'lsa ham yozing.",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.tahrir_tarixi": {
+  "value": "Tahrir tarixi",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.tahrir_tarixini_yashirish": {
+  "value": "Tahrir tarixini yashirish",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.tahrirdan_keyin": {
+  "value": "Tahrirdan keyin",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.tahrirdan_oldin": {
+  "value": "Tahrirdan oldin",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.tahrirlab_bolmadi": {
+  "value": "Tahrirlab bo'lmadi",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.topshirib_bolmadi": {
+  "value": "Topshirib bo'lmadi",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.topshirilgan_ish": {
+  "value": "Topshirilgan ish",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.topshirilmoqda": {
+  "value": "Topshirilmoqda...",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.vazifa": {
+  "value": "Vazifa:",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "task_submission.vazifa_tekshiruvga_otadi_va_menejer": {
+  "value": "Vazifa tekshiruvga o'tadi va menejer tasdiqlamaguncha shunday turadi.",
+  "note": "components/TaskSubmission.tsx"
+ },
+ "tasks.barcha_muddatlar": {
+  "value": "Barcha muddatlar",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.boshqaruvingizdagi_loyihalarda_hali_ijrochi_": {
+  "value": "Boshqaruvingizdagi loyihalarda hali ijrochi yoq. Loyiha «Jamoa» bolimidan qoshing.",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.bu_holatda_vazifasi_yoq": {
+  "value": "Bu holatda vazifasi yoq.",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.dasturchi_topilmadi": {
+  "value": "Dasturchi topilmadi",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.dasturchilar_va_ular_ustida_ishlayotgan": {
+  "value": "Dasturchilar va ular ustida ishlayotgan vazifalar",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.ism_vazifa_kod_hir_75": {
+  "value": "Ism, vazifa, kod (HIR-75) yoki loyiha nomi",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.ochiq_vazifasi_yoq_ish_berish": {
+  "value": "Ochiq vazifasi yoq - ish berish mumkin.",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.ta_loyiha_ichidagi_royxatda": {
+  "value": "ta - loyiha ichidagi royxatda",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.ta_muddati_otgan": {
+  "value": "ta muddati otgan",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.tanlangan_filtrga_mos_ijrochi_yoq": {
+  "value": "Tanlangan filtrga mos ijrochi yoq - filtrni bo'shatib koring.",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.toxtab_qolgan": {
+  "value": "Toxtab qolgan",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.tugallanmaganlar": {
+  "value": "Tugallanmaganlar",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.tuzatish_kerak": {
+  "value": "Tuzatish kerak",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.vazifa_holati": {
+  "value": "Vazifa holati",
+  "note": "pages/Tasks.tsx"
+ },
+ "team_builder.azo": {
+  "value": "aʼzo)",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.chiqarish": {
+  "value": "Chiqarish",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.himoyalangan": {
+  "value": "himoyalangan",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.hozircha_orin_yoq": {
+  "value": "Hozircha orin yoq",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.jamoa_yigish": {
+  "value": "Jamoa yigish",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.jamoadan_chiqariladi": {
+  "value": "{ism} jamoadan chiqariladi. Keyingi dasturchi uchun ",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.menejerga_tegib_bolmaydi_u_loyihadan": {
+  "value": "Menejerga tegib bo'lmaydi - u loyihadan faqat o'zi chiqadi",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.qaysi_loyihaga": {
+  "value": "Qaysi loyihaga",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.qoshilish_sorovlari": {
+  "value": "Qoshilish sorovlari",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.rad_etish": {
+  "value": "Rad etish",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.sorov": {
+  "value": "sorov",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.toliq_bolim": {
+  "value": "Toliq bolim",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.topshiriq_eslatmasi_tarixda_saqlanadi": {
+  "value": "topshiriq eslatmasi (tarixda saqlanadi):",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_builder.xush_kelibsiz": {
+  "value": "Xush kelibsiz",
+  "note": "components/TeamBuilder.tsx"
+ },
+ "team_picker.25_mb_dan_katta_bolgani": {
+  "value": "25 MB dan katta bolgani uchun qoshilmadi:",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.email_yoki_ism_familiya": {
+  "value": "Email yoki ism-familiya",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.fayl": {
+  "value": "Fayl",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.faylni_olib_tashlash": {
+  "value": "Faylni olib tashlash",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.qoshish": {
+  "value": "Qoshish",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.royxatdan_olib_tashlash": {
+  "value": "Royxatdan olib tashlash",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.ta_azo": {
+  "value": "ta a'zo",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.ta_vazifa": {
+  "value": "ta vazifa",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.tugash": {
+  "value": "Tugash",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.vazifa_masalan_login_sahifasini_yigish": {
+  "value": "Vazifa: masalan «Login sahifasini yigish»",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.vazifaga_fayl_biriktirish": {
+  "value": "Vazifaga fayl biriktirish",
+  "note": "components/TeamPicker.tsx"
+ },
+ "team_picker.vazifani_olib_tashlash": {
+  "value": "Vazifani olib tashlash",
+  "note": "components/TeamPicker.tsx"
+ },
+ "telegram_card.bildirishnomalar_telegramga_ham_keladi_botda": {
+  "value": "Bildirishnomalar Telegramga ham keladi. Botda",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.boglangan": {
+  "value": "Bog'langan",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.boglanmagan": {
+  "value": "Bog'lanmagan",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.bosh": {
+  "value": "bo'sh",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.bosing": {
+  "value": "bosing",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.bosish_shart": {
+  "value": "bosish shart.",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.bot_usernameingizni_profildagi_nom_bilan": {
+  "value": "Bot username'ingizni profildagi nom bilan solishtiradi. Telegram\n            o'zi tanimagan odamga xabar yubora olmaydi — shuning uchun",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.bugun": {
+  "value": "/bugun",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.buyruqlari_bor": {
+  "value": "buyruqlari bor.",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.hozir": {
+  "value": "— hozir",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.maydoniga_usernameingizni_yozing": {
+  "value": "maydoniga username'ingizni yozing",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.ni_oching": {
+  "value": "ni oching",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.oching": {
+  "value": "oching",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.profilingizdagi": {
+  "value": "Profilingizdagi",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.start": {
+  "value": "/start",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.tekshiruv": {
+  "value": "/tekshiruv",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.telegram": {
+  "value": "Telegram",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.telegramda": {
+  "value": "Telegramda",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.turibdi": {
+  "value": "turibdi",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.uzish": {
+  "value": "Uzish",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.va": {
+  "value": "va",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.vazifalarim": {
+  "value": "/vazifalarim",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.xabarlar_ochirilgan": {
+  "value": "Xabarlar o'chirilgan",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.xabarlarni_ochirish": {
+  "value": "Xabarlarni o'chirish",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.xabarlarni_yoqish": {
+  "value": "Xabarlarni yoqish",
+  "note": "components/TelegramCard.tsx"
+ },
+ "theme_toggle.kechki_rejim": {
+  "value": "Kechki rejim",
+  "note": "components/ThemeToggle.tsx"
+ },
+ "theme_toggle.kechki_rejimga_otish": {
+  "value": "Kechki rejimga o'tish",
+  "note": "components/ThemeToggle.tsx"
+ },
+ "theme_toggle.kunduzgi_rejim": {
+  "value": "Kunduzgi rejim",
+  "note": "components/ThemeToggle.tsx"
+ },
+ "theme_toggle.kunduzgi_rejimga_otish": {
+  "value": "Kunduzgi rejimga o'tish",
+  "note": "components/ThemeToggle.tsx"
+ },
+ "timeline.hozircha_yozuv_yoq": {
+  "value": "Hozircha yozuv yoq.",
+  "note": "components/Timeline.tsx"
+ },
+ "ui.bosh_edi": {
+  "value": "bo'sh edi",
+  "note": "components/ui.tsx"
+ },
+ "ui.bosh_qoldirildi": {
+  "value": "bo'sh qoldirildi",
+  "note": "components/ui.tsx"
+ },
+ "ui.boshqa_ustunga_kochirish": {
+  "value": "- boshqa ustunga ko'chirish",
+  "note": "components/ui.tsx"
+ },
+ "ui.daqiqa_oldin": {
+  "value": "{n} daqiqa oldin",
+  "note": "components/ui.tsx"
+ },
+ "ui.eski": {
+  "value": "Eski",
+  "note": "components/ui.tsx"
+ },
+ "ui.faqat_sizga_biriktirilgan_ishlar_qolganini": {
+  "value": "Faqat sizga biriktirilgan ishlar — qolganini loyiha menejeri ko'radi",
+  "note": "components/ui.tsx"
+ },
+ "ui.fayl_biriktirilgan": {
+  "value": "{n} ta fayl biriktirilgan",
+  "note": "components/ui.tsx"
+ },
+ "ui.hozir": {
+  "value": "hozir",
+  "note": "components/ui.tsx"
+ },
+ "ui.keyingi_sahifa": {
+  "value": "Keyingi sahifa",
+  "note": "components/ui.tsx"
+ },
+ "ui.kk_oo_yyyy_soat_daq": {
+  "value": "kk.oo.yyyy soat:daq",
+  "note": "components/ui.tsx"
+ },
+ "ui.kochirish": {
+  "value": "Ko'chirish...",
+  "note": "components/ui.tsx"
+ },
+ "ui.kun_oldin": {
+  "value": "{n} kun oldin",
+  "note": "components/ui.tsx"
+ },
+ "ui.matn_juda_uzun_ozgargan_joylari": {
+  "value": "Matn juda uzun - o'zgargan joylari alohida ajratilmadi.",
+  "note": "components/ui.tsx"
+ },
+ "ui.matn_ozgarmagan": {
+  "value": "Matn o'zgarmagan.",
+  "note": "components/ui.tsx"
+ },
+ "ui.oldingi_sahifa": {
+  "value": "Oldingi sahifa",
+  "note": "components/ui.tsx"
+ },
+ "ui.parolni_korsatish": {
+  "value": "Parolni ko'rsatish",
+  "note": "components/ui.tsx"
+ },
+ "ui.parolni_yashirish": {
+  "value": "Parolni yashirish",
+  "note": "components/ui.tsx"
+ },
+ "ui.profil_rasmi": {
+  "value": "Profil rasmi",
+  "note": "components/ui.tsx"
+ },
+ "ui.rasm": {
+  "value": "Rasm",
+  "note": "components/ui.tsx"
+ },
+ "ui.rasmni_toliq_korish": {
+  "value": "Rasmni to'liq ko'rish",
+  "note": "components/ui.tsx"
+ },
+ "ui.sahifalar": {
+  "value": "Sahifalar",
+  "note": "components/ui.tsx"
+ },
+ "ui.shu_hafta": {
+  "value": "Shu hafta",
+  "note": "components/ui.tsx"
+ },
+ "ui.shu_oy": {
+  "value": "Shu oy",
+  "note": "components/ui.tsx"
+ },
+ "ui.shu_yil": {
+  "value": "Shu yil",
+  "note": "components/ui.tsx"
+ },
+ "ui.soat_oldin": {
+  "value": "{n} soat oldin",
+  "note": "components/ui.tsx"
+ },
+ "ui.taqvimdan_tanlash": {
+  "value": "Taqvimdan tanlash",
+  "note": "components/ui.tsx"
+ },
+ "ui.yangi": {
+  "value": "Yangi",
+  "note": "components/ui.tsx"
+ },
+ "ui.yopish_esc": {
+  "value": "Yopish (Esc)",
+  "note": "components/ui.tsx"
+ },
+ "ui.yuklab_olish": {
+  "value": "Yuklab olish",
+  "note": "components/ui.tsx"
+ },
+ "workspace_chat.ish_maydonini_ochib_bolmadi": {
+  "value": "Ish maydonini ochib bo'lmadi",
+  "note": "pages/WorkspaceChat.tsx"
+ },
+ "workspace_chat.suhbat": {
+  "value": "suhbat",
+  "note": "pages/WorkspaceChat.tsx"
+ },
+ "workspace_detail.azo": {
+  "value": "aʼzo",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.azo_yoq": {
+  "value": "Aʼzo yoq",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.azolar": {
+  "value": "Aʼzolar",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.bu_maydonda_hali_loyiha_yaratilmagan": {
+  "value": "Bu maydonda hali loyiha yaratilmagan.",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.doska": {
+  "value": "Doska",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.egasi": {
+  "value": "Egasi:",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.ish_maydonini_ochib_bolmadi": {
+  "value": "Ish maydonini ochib bolmadi",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.ish_maydonlari": {
+  "value": "ish maydonlari",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.loyiha_yaratish": {
+  "value": "Loyiha yaratish",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.loyiha_yoq": {
+  "value": "Loyiha yoq",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.loyihalar": {
+  "value": "Loyihalar:",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.malumot": {
+  "value": "Maʼlumot",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.maydon_haqida": {
+  "value": "Maydon haqida",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.qoshilish_kodi": {
+  "value": "Qoshilish kodi:",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.sizga_mos": {
+  "value": "sizga mos",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.turi": {
+  "value": "Turi:",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_form.jamoa_nima_bilan_shugullanadi": {
+  "value": "Jamoa nima bilan shugullanadi",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.masalan_aloqa_bank_it": {
+  "value": "Masalan: Aloqa Bank IT",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.maydon_malumotlari": {
+  "value": "Maydon maʼlumotlari",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.nomi": {
+  "value": "Nomi",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.ochiq_qoshilish_kodisiz_qoshilsa_boladi": {
+  "value": "Ochiq — qoshilish kodisiz qoshilsa boladi",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.tavsif": {
+  "value": "Tavsif",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.yangi_ish_maydoni": {
+  "value": "Yangi ish maydoni",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.yaratib_bolmadi": {
+  "value": "Yaratib bolmadi",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspace_form.yaratish": {
+  "value": "Yaratish",
+  "note": "pages/WorkspaceForm.tsx"
+ },
+ "workspaces.azo": {
+  "value": "aʼzo",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.egasi": {
+  "value": "Egasi:",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.ish_maydonlari": {
+  "value": "Ish maydonlari",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.kod": {
+  "value": "Kod",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.kodni_kiritib_quyidagi_royxatdan_kerakli": {
+  "value": "Kodni kiritib, quyidagi royxatdan kerakli maydonga Qoshilish tugmasini bosing.",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.loyiha": {
+  "value": "loyiha",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.mening_maydonlarim": {
+  "value": "Mening maydonlarim",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.ochiq_maydonlar": {
+  "value": "Ochiq maydonlar",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.ochish": {
+  "value": "Ochish",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.qoshilib_bolmadi": {
+  "value": "Qoshilib bolmadi",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.qoshilish_kodi_bilan_qoshilish": {
+  "value": "Qoshilish kodi bilan qoshilish",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.siz_hali_ish_maydonida_emassiz": {
+  "value": "Siz hali ish maydonida emassiz",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.yangi_maydon": {
+  "value": "Yangi maydon",
+  "note": "pages/Workspaces.tsx"
+ },
+ "workspaces.yangi_maydon_yarating_yoki_ochiq": {
+  "value": "Yangi maydon yarating yoki ochiq maydonga qoshiling.",
+  "note": "pages/Workspaces.tsx"
+ }
+}

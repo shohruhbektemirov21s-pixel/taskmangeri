@@ -10,6 +10,7 @@ import {
 } from "@/components/ui";
 import { useLive } from "@/realtime/RealtimeContext";
 import { toTask } from "@/nav";
+import { tx } from "@/i18n";
 
 /** «Qaytarish» uchun qaror kodi - serverdagi ro'yxatdan qidiriladi. */
 const REJECT_HINTS = ["CHANGES_REQUESTED", "REJECTED", "RETURNED"];
@@ -62,7 +63,7 @@ export default function ReviewQueue() {
       setVerdict("APPROVED");
       reload();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Tekshiruvni saqlab bolmadi");
+      setActionError(err instanceof ApiError ? err.message : tx("review_queue.tekshiruvni_saqlab_bolmadi"));
     } finally {
       setBusy(false);
     }
@@ -71,10 +72,10 @@ export default function ReviewQueue() {
   return (
     <>
       <PageHead
-        title={<strong>Tekshiruv navbati</strong>}
-        subtitle="Tasdiqlanishi kutilayotgan loyiha topshiriqlari"
+        title={<strong>{tx("common.tekshiruv_navbati")}</strong>}
+        subtitle={tx("review_queue.tasdiqlanishi_kutilayotgan_loyiha_topshiriql")}
         actions={!!tasks?.length && (
-          <span className="badge badge-danger">{tasks.length} ta kutmoqda</span>
+          <span className="badge badge-danger">{tasks.length} {tx("review_queue.ta_kutmoqda")}</span>
         )}
       />
       <div className="content">
@@ -84,15 +85,15 @@ export default function ReviewQueue() {
             <div className="table-wrap"><table className="table table-review">
               <thead>
                 <tr>
-                  <th>Vazifa nomi</th>
+                  <th>{tx("review_queue.vazifa_nomi")}</th>
                   {/* Dizaynda ustun «Yaratuvchi» deb nomlangan, lekin navbatda
                       tekshiruvchiga kerak bo'ladigan odam - ishni TOPSHIRGAN
                       ijrochi. Vazifani ochgan odam vazifa sahifasida ko'rinadi. */}
-                  <th>Topshirdi</th>
-                  <th>Loyiha</th>
-                  <th>Sana</th>
-                  <th>Holat</th>
-                  <th className="right">Amallar</th>
+                  <th>{tx("review_queue.topshirdi")}</th>
+                  <th>{tx("common.loyiha")}</th>
+                  <th>{tx("common.sana")}</th>
+                  <th>{tx("common.holat")}</th>
+                  <th className="right">{tx("common.amallar")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -108,7 +109,7 @@ export default function ReviewQueue() {
                             <span className="badge badge-brand">{t.specialty_label}</span>
                           )}
                           {!!t.attachment_count && (
-                            <span className="badge">{t.attachment_count} fayl</span>
+                            <span className="badge">{t.attachment_count} {tx("review_queue.fayl")}</span>
                           )}
                         </div>
                       </td>
@@ -119,9 +120,9 @@ export default function ReviewQueue() {
                       <td>
                         <div className="row-actions">
                           <button className="btn btn-sm btn-ok"
-                                  onClick={() => begin(t.id, "APPROVED")}>Qabul qilish</button>
+                                  onClick={() => begin(t.id, "APPROVED")}>{tx("common.qabul_qilish")}</button>
                           <button className="btn btn-sm btn-danger"
-                                  onClick={() => begin(t.id, rejectValue)}>Qaytarish</button>
+                                  onClick={() => begin(t.id, rejectValue)}>{tx("review_queue.qaytarish")}</button>
                         </div>
                       </td>
                     </tr>
@@ -131,16 +132,16 @@ export default function ReviewQueue() {
                         <td colSpan={6}>
                           <div className="review-panel">
                             <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
-                              {t.review_round}-aylana · {t.logged_hours} soat sarflangan
+                              {t.review_round}{tx("review_queue.aylana")} {t.logged_hours} {tx("review_queue.soat_sarflangan")}
                             </div>
                             {t.acceptance_criteria && (
                               <>
-                                <strong style={{ fontSize: 13 }}>Tayyorlik mezoni</strong>
+                                <strong style={{ fontSize: 13 }}>{tx("common.tayyorlik_mezoni")}</strong>
                                 <div className="tl-detail">{t.acceptance_criteria}</div>
                               </>
                             )}
                             <div className="field mt">
-                              <span className="lbl">Qaror</span>
+                              <span className="lbl">{tx("review_queue.qaror")}</span>
                               <div className="check-list">
                                 {verdicts.map((v) => (
                                   <label key={v.value} className={verdict === String(v.value) ? "on" : ""}>
@@ -152,17 +153,17 @@ export default function ReviewQueue() {
                               </div>
                             </div>
                             <div className="field">
-                              <label htmlFor={`${fid}-${t.id}`}>Izoh</label>
+                              <label htmlFor={`${fid}-${t.id}`}>{tx("review_queue.izoh")}</label>
                               <textarea id={`${fid}-${t.id}`} rows={3} value={comment}
                                         onChange={(e) => setComment(e.target.value)}
-                                        placeholder="Nimani tuzatish kerak - aniq yozing" />
+                                        placeholder={tx("review_queue.nimani_tuzatish_kerak_aniq_yozing")} />
                             </div>
                             <div className="row">
                               <button className="btn btn-primary" disabled={busy}
-                                      onClick={() => void submit(t.id)}>Qarorni saqlash</button>
-                              <Link className="btn" {...toTask(t.id)}>Vazifani toliq korish</Link>
+                                      onClick={() => void submit(t.id)}>{tx("review_queue.qarorni_saqlash")}</button>
+                              <Link className="btn" {...toTask(t.id)}>{tx("review_queue.vazifani_toliq_korish")}</Link>
                               <button className="btn btn-ghost" onClick={() => setOpen(null)}>
-                                Bekor qilish
+                                {tx("common.bekor_qilish")}
                               </button>
                             </div>
                           </div>
@@ -176,8 +177,8 @@ export default function ReviewQueue() {
           </div>
         ) : (
           <Card>
-            <Empty icon="✓" title="Navbat bosh"
-                   text="Hozircha tekshirishga yuborilgan ish yoq." />
+            <Empty icon="✓" title={tx("review_queue.navbat_bosh")}
+                   text={tx("review_queue.hozircha_tekshirishga_yuborilgan_ish_yoq")} />
           </Card>
         )}
       </div>

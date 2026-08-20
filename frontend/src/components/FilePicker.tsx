@@ -13,6 +13,7 @@ import { useId, useRef, useState } from "react";
 import { api } from "@/api/client";
 import { DateTimeField, fromDateTimeInput } from "./ui";
 import { IconClose, IconFile } from "./icons";
+import { tx } from "@/i18n";
 
 /** Ikkala endpoint ham 25 MB gacha qabul qiladi (serverda ham tekshiriladi). */
 export const MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -140,8 +141,8 @@ export default function FilePicker({
       {withDescription && (
         <div className="row wrap">
           <div className="field" style={{ flex: 2, minWidth: 220 }}>
-            <label htmlFor={`${fid}-0`}>Hujjat nomi</label>
-            <input id={`${fid}-0`} type="text" value={description} placeholder="Masalan: texnik topshiriq v2"
+            <label htmlFor={`${fid}-0`}>{tx("file_picker.hujjat_nomi")}</label>
+            <input id={`${fid}-0`} type="text" value={description} placeholder={tx("file_picker.masalan_texnik_topshiriq_v2")}
                    onChange={(e) => onDescription?.(e.target.value)} />
           </div>
           {/* Umumiy hujjat sanasi - izoh bilan bir qatorda. Ilgari sana faqat
@@ -149,7 +150,7 @@ export default function FilePicker({
               yozadigan joy ko'rinmasdi. */}
           {withDates && (
             <div className="field" style={{ flex: 1, minWidth: 170 }}>
-              <label htmlFor={`${fid}-1`}>Hujjat sanasi va vaqti</label>
+              <label htmlFor={`${fid}-1`}>{tx("file_picker.hujjat_sanasi_va_vaqti")}</label>
               <DateTimeField id={`${fid}-1`} value={date} onChange={(v) => onDate?.(v)}
                              min={minAt} max={maxAt} />
             </div>
@@ -168,15 +169,15 @@ export default function FilePicker({
         onClick={() => { if (!(withDates && !description.trim())) input.current?.click(); }}
       >
         {hint || (withDates && !description.trim()
-          ? "Avval hujjat nomini yozing — keyin fayl tanlanadi"
-          : "Faylni shu yerga tashlang yoki bosing (25 MB gacha)")}
+          ? tx("file_picker.avval_hujjat_nomini_yozing_keyin")
+          : tx("file_picker.faylni_shu_yerga_tashlang_yoki"))}
       </div>
       <input ref={input} type="file" multiple style={{ display: "none" }}
              onChange={(e) => add(e.target.files)} />
 
       {!!tooBig.length && (
         <div className="msg msg-error" style={{ marginTop: 10 }}>
-          25 MB dan katta bolgani uchun qoshilmadi: {tooBig.join(", ")}
+          {tx("file_picker.25_mb_dan_katta_bolgani")} {tooBig.join(", ")}
         </div>
       )}
 
@@ -193,7 +194,7 @@ export default function FilePicker({
                   <small className="muted">{fileSize(f.size)}</small>
                 </div>
                 <span className="spacer" />
-                <button type="button" className="btn btn-sm" title="Royxatdan olib tashlash"
+                <button type="button" className="btn btn-sm" title={tx("file_picker.royxatdan_olib_tashlash")}
                         onClick={() => drop(i)}>
                   <IconClose size={13} />
                 </button>
@@ -206,7 +207,7 @@ export default function FilePicker({
                 <div className="row wrap" style={{ marginTop: 7, gap: 8 }}>
                   <label htmlFor={`${fid}-d${i}`} className="muted"
                          style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>
-                    Hujjat sanasi va vaqti
+                    {tx("file_picker.hujjat_sanasi_va_vaqti")}
                   </label>
                   <div style={{ maxWidth: 230, flex: 1 }}>
                     <DateTimeField id={`${fid}-d${i}`} value={dates[i] || ""}
@@ -216,14 +217,14 @@ export default function FilePicker({
                   {/* Bo'sh qolsa yuqoridagi umumiy sana ketadi - odam har
                       faylga bir xil sanani qayta yozib chiqmasin. */}
                   {!dates[i] && date && (
-                    <small className="muted">umumiy sana: {isoToUz(date)}</small>
+                    <small className="muted">{tx("file_picker.umumiy_sana")} {isoToUz(date)}</small>
                   )}
                 </div>
               )}
             </div>
           ))}
           <small className="muted">
-            {files.length} ta fayl tanlandi — saqlangandan keyin yuklanadi.
+            {files.length} {tx("file_picker.ta_fayl_tanlandi_saqlangandan_keyin")}
           </small>
         </div>
       )}

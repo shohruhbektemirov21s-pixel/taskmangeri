@@ -21,6 +21,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "./client";
+import { tx } from "@/i18n";
 
 type Params = Record<string, string | number | boolean | undefined | null>;
 
@@ -93,7 +94,7 @@ export function useFetch<T>(path: string | null, params?: Params, opts: Options 
           // Bekor qilingan so'rov xato emas - shunchaki kerak bo'lmay qoldi.
           // Bunda `pending` ni ham o'chirmaymiz: o'rniga yangi so'rov ketgan.
           if (!alive || (e instanceof DOMException && e.name === "AbortError")) return;
-          setError(e instanceof ApiError ? e.message : "Ma'lumotni yuklab bo'lmadi.");
+          setError(e instanceof ApiError ? e.message : tx("api_use_fetch.malumotni_yuklab_bolmadi"));
           setPending(false);
         });
     };

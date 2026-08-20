@@ -6,11 +6,12 @@ import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import ErrorBoundary from "./ErrorBoundary";
 import { Logo } from "./Logo";
-import { IconBack, IconBell, IconBoard, IconCalendar, IconChat, IconClose, IconDashboard, IconHistory, IconInbox, IconLayers, IconLogout, IconMenu, IconPlus, IconReview, IconSearch, IconSettings, IconTasks } from "./icons";
+import { IconBack, IconBell, IconBoard, IconCalendar, IconChat, IconClose, IconDashboard, IconHistory, IconIdea, IconInbox, IconLayers, IconLogout, IconMenu, IconPlus, IconReview, IconSearch, IconSettings, IconTasks } from "./icons";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 import { Avatar, SpecialtyTag } from "./ui";
 import { toFeed, toMessages, toNewProject, toSelfProfile, toUser, type NavTarget, useGo } from "@/nav";
+import { tx } from "@/i18n";
 
 /**
  * Orqaga qaytish tugmasi.
@@ -43,8 +44,8 @@ function BackButton() {
   return (
     <button type="button" className="top-icon top-back" disabled={!canGoBack}
             onClick={() => navigate(-1)}
-            title={canGoBack ? "Orqaga qaytish" : "Orqaga qaytadigan sahifa yo'q"}
-            aria-label="Orqaga qaytish">
+            title={canGoBack ? tx("layout.orqaga_qaytish") : tx("layout.orqaga_qaytadigan_sahifa_yoq")}
+            aria-label={tx("layout.orqaga_qaytish")}>
       <IconBack size={17} />
     </button>
   );
@@ -170,7 +171,7 @@ export default function Layout() {
   const header = (
     <header className="gh-top">
       <button type="button" className="top-icon menu-btn" onClick={() => setMenu((v) => !v)}
-              aria-label={menu ? "Menyuni yopish" : "Menyuni ochish"} aria-expanded={menu}>
+              aria-label={menu ? tx("layout.menyuni_yopish") : tx("layout.menyuni_ochish")} aria-expanded={menu}>
         {menu ? <IconClose size={17} /> : <IconMenu size={17} />}
       </button>
 
@@ -197,7 +198,7 @@ export default function Layout() {
             <IconSearch size={14} />
             <input
               type="search"
-              placeholder="Odam, tarix va loyihalardan qidirish"
+              placeholder={tx("layout.odam_tarix_va_loyihalardan_qidirish")}
               value={q}
               onChange={(e) => { setQ(e.target.value); setOpenHits(true); }}
               onFocus={() => setOpenHits(true)}
@@ -211,7 +212,7 @@ export default function Layout() {
                ro'yxatni yopadi va havola bosilishga ulgurmaydi (mousedown bilan
                mouseup orasida 160 ms dan ko'p vaqt o'tsa - odatiy hol). */
             <div className="top-hits" onMouseDown={(e) => e.preventDefault()}>
-              {people.length > 0 && <div className="top-hits-head">Odamlar</div>}
+              {people.length > 0 && <div className="top-hits-head">{tx("layout.odamlar")}</div>}
               {people.map((u) => (
                 <Link key={u.id} className="top-hit" {...toUser(u.id)}
                       onClick={() => { setOpenHits(false); setQ(""); }}>
@@ -225,12 +226,12 @@ export default function Layout() {
               ))}
               {!people.length && (
                 <div className="muted" style={{ padding: "10px 12px", fontSize: 13 }}>
-                  Bu ism bo'yicha odam topilmadi.
+                  {tx("layout.bu_ism_boyicha_odam_topilmadi")}
                 </div>
               )}
               <button type="button" className="top-hit top-hit-all"
                       onClick={() => { setOpenHits(false); go(toFeed(q)); }}>
-                «{q.trim()}» bo'yicha tarix va loyihalarni qidirish
+                «{q.trim()}{tx("layout.boyicha_tarix_va_loyihalarni_qidirish")}
               </button>
             </div>
           )}
@@ -245,7 +246,7 @@ export default function Layout() {
         <BackButton />
         <ThemeToggle />
         <NotificationBell />
-        <Link className="top-icon hide-sm" {...toMessages()} title="Xabarlar">
+        <Link className="top-icon hide-sm" {...toMessages()} title={tx("layout.xabarlar")}>
           <IconChat size={17} />
         </Link>
         {/* Tekshiruv navbati - faqat ish qabul qiladigan odamga: loyiha
@@ -253,14 +254,14 @@ export default function Layout() {
             (server uni boshqariladigan loyihalar bo'yicha qirqadi), ya'ni
             menyuda doim bo'sh sahifaga olib boradigan yozuv turardi. */}
         {manages && (
-          <Link className="top-icon hide-sm" to="/tekshiruv" title="Tekshiruv navbati">
+          <Link className="top-icon hide-sm" to="/tekshiruv" title={tx("common.tekshiruv_navbati")}>
             <IconInbox size={17} />
             {!!counts.reviews && <span className="dot">{counts.reviews}</span>}
           </Link>
         )}
         {/* Loyiha ochish - faqat menejer va admin */}
         {user?.can_create_project && (
-          <Link className="top-icon hide-sm" {...toNewProject()} title="Yangi loyiha">
+          <Link className="top-icon hide-sm" {...toNewProject()} title={tx("common.yangi_loyiha")}>
             <IconPlus size={17} />
           </Link>
         )}
@@ -273,16 +274,16 @@ export default function Layout() {
   return (
     <>
       <div className="layout">
-        {menu && <button type="button" className="scrim" aria-label="Menyuni yopish"
+        {menu && <button type="button" className="scrim" aria-label={tx("layout.menyuni_yopish")}
                          onClick={() => setMenu(false)} />}
         <aside className={`sidebar ${menu ? "open" : ""}`}>
           <Link to="/panel" className="logo-link">
             <Logo size={28} />
-            <span>TeamFlow</span>
+            <span>{tx("common.teamflow")}</span>
           </Link>
 
           <div className="nav-section">
-            {item("/panel", <IconDashboard />, "Bosh panel")}
+            {item("/panel", <IconDashboard />, tx("layout.bosh_panel"))}
             {/* Loyihalar birma-bir sanalmaydi - hammasi shu sahifada, qidiruv
                 bilan. Jamoa kattalashganda yon panel uzayib ketmasin. Ochiq
                 loyihalar ham o'sha yerdagi «Ochiq» tugmasida. */}
@@ -292,27 +293,30 @@ export default function Layout() {
                 Ijrochida «Loyihalar» degan yozuv turib, ichidan vazifalar
                 chiqishi chalkash edi. */}
             {manages
-              ? item("/loyihalar", <IconBoard />, "Loyihalar")
-              : item("/loyihalar", <IconLayers />, "Vazifalar")}
+              ? item("/loyihalar", <IconBoard />, tx("common.loyihalar"))
+              : item("/loyihalar", <IconLayers />, tx("common.vazifalar"))}
             {/* Jamoaning ishi - kim nima qilayapti. Faqat loyiha
                 boshqaradigan odamga: ijrochiga o'z ishi yetadi. Marshrut ham
                 himoyalangan (`ManagesOnly`), server ham
                 (`managed_projects_q`). */}
-            {manages && item("/vazifalar", <IconLayers />, "Vazifalar")}
-            {item("/mening-ishim", <IconTasks />, "Mening ishim", counts.open)}
+            {manages && item("/vazifalar", <IconLayers />, tx("common.vazifalar"))}
+            {item("/mening-ishim", <IconTasks />, tx("layout.mening_ishim"), counts.open)}
             {/* Tekshiruv navbati - ishni QABUL QILADIGAN odamga (menejer va
                 admin). Marshrut ham himoyalangan (`ManagesOnly`), server
                 ham (`review-queue` boshqariladigan loyihalar bo'yicha). */}
-            {manages && item("/tekshiruv", <IconReview />, "Tekshiruv navbati", counts.reviews, true)}
+            {manages && item("/tekshiruv", <IconReview />, tx("common.tekshiruv_navbati"), counts.reviews, true)}
             {/* Ro'yxat ochilsin: sessiyada qolgan suhbatdosh emas. */}
-            {itemTo(toMessages(), <IconChat />, "Xabarlar")}
-            {item("/bildirishnomalar", <IconBell />, "Bildirishnomalar")}
-            {item("/taqvim", <IconCalendar />, "Taqvim")}
-            {item("/tarix", <IconHistory />, "Umumiy tarix")}
+            {itemTo(toMessages(), <IconChat />, tx("layout.xabarlar"))}
+            {item("/bildirishnomalar", <IconBell />, tx("common.bildirishnomalar"))}
+            {item("/taqvim", <IconCalendar />, tx("layout.taqvim"))}
+            {/* Takliflar - hammaga. Yopiq taklifni faqat muallif va
+                boshliq ko'radi, buni server hal qiladi. */}
+            {item("/takliflar", <IconIdea />, tx("layout.takliflar"))}
+            {item("/tarix", <IconHistory />, tx("layout.umumiy_tarix"))}
             {/* Admin panel - faqat platforma adminida ko'rinadi. Marshrut
                 ham himoyalangan (`AdminOnly`), serverdagi amallar ham
                 (`IsPlatformAdmin`) - bu shunchaki qulay havola. */}
-            {user?.is_platform_admin && item("/admin", <IconSettings />, "Admin panel")}
+            {user?.is_platform_admin && item("/admin", <IconSettings />, tx("common.admin_panel"))}
           </div>
 
           <div className="sidebar-footer">
@@ -331,7 +335,7 @@ export default function Layout() {
                 go("/kirish");
               }}
             >
-              <IconLogout size={14} /> Chiqish
+              <IconLogout size={14} /> {tx("common.chiqish")}
             </button>
           </div>
         </aside>

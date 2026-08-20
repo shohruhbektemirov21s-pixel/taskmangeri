@@ -7,6 +7,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { useRealtime } from "@/realtime/RealtimeContext";
 import { Empty, ErrorMsg, Loading, TaskRow, TaskScopeNote } from "@/components/ui";
 import { toNewTask, useNavParams } from "@/nav";
+import { tx } from "@/i18n";
 
 /**
  * Filtr URL da turadi, komponent ichidagi holatda emas.
@@ -63,51 +64,51 @@ export default function TaskList({ project }: { project: Project }) {
       <TaskScopeNote access={project.access} />
       <div className="filters">
         <div className="f">
-          <label htmlFor={`${fid}-0`}>Holat</label>
+          <label htmlFor={`${fid}-0`}>{tx("common.holat")}</label>
           <select id={`${fid}-0`} value={f.status} onChange={(e) => set("status", e.target.value)}>
-            <option value="">Hammasi</option>
+            <option value="">{tx("common.hammasi")}</option>
             {(meta?.task_status || []).map((s) => (
               <option key={s.value} value={String(s.value)}>{s.label}</option>
             ))}
           </select>
         </div>
         <div className="f">
-          <label htmlFor={`${fid}-1`}>Ijrochi</label>
+          <label htmlFor={`${fid}-1`}>{tx("project_task_list.ijrochi")}</label>
           <select id={`${fid}-1`} value={f.assignee} onChange={(e) => set("assignee", e.target.value)}>
-            <option value="">Hammasi</option>
-            <option value="me">Faqat meniki</option>
+            <option value="">{tx("common.hammasi")}</option>
+            <option value="me">{tx("project_task_list.faqat_meniki")}</option>
             {(project.members || []).map((m) => (
               <option key={m.user.id} value={m.user.id}>{m.user.full_name}</option>
             ))}
           </select>
         </div>
         <div className="f">
-          <label htmlFor={`${fid}-2`}>Turi</label>
+          <label htmlFor={`${fid}-2`}>{tx("common.turi")}</label>
           <select id={`${fid}-2`} value={f.task_type} onChange={(e) => set("task_type", e.target.value)}>
-            <option value="">Hammasi</option>
+            <option value="">{tx("common.hammasi")}</option>
             {(meta?.task_type || []).map((s) => (
               <option key={s.value} value={String(s.value)}>{s.label}</option>
             ))}
           </select>
         </div>
         <div className="f grow">
-          <label htmlFor={`${fid}-3`}>Qidiruv</label>
+          <label htmlFor={`${fid}-3`}>{tx("common.qidiruv")}</label>
           <input id={`${fid}-3`} value={f.search} onChange={(e) => set("search", e.target.value)}
-                 placeholder="Sarlavha yoki tavsif" />
+                 placeholder={tx("project_task_list.sarlavha_yoki_tavsif")} />
         </div>
         <button className={`btn ${f.open ? "btn-accent" : ""}`}
                 onClick={() => set("open", f.open ? "" : "1")}>
-          Faqat ochiqlar
+          {tx("project_task_list.faqat_ochiqlar")}
         </button>
         {/* «Muddatlar» sahifasidagi «Muddati otgan» katagi shu filtr bilan
             keladi - tugma bo'lmasa odam uni o'chira olmasdi. */}
         <button className={`btn ${f.overdue ? "btn-accent" : ""}`}
                 onClick={() => set("overdue", f.overdue ? "" : "1")}>
-          Muddati otgan
+          {tx("common.muddati_otgan")}
         </button>
         {filtered && (
           <button className="btn" onClick={() => setParams(new URLSearchParams(), { replace: true })}>
-            Tozalash
+            {tx("common.tozalash")}
           </button>
         )}
       </div>
@@ -118,8 +119,8 @@ export default function TaskList({ project }: { project: Project }) {
           <div className="table-wrap"><table className="table">
             <thead>
               <tr>
-                <th>Kod</th><th>Vazifa</th><th>Holat</th>
-                <th>Muhimlik</th><th>Ijrochilar</th><th>Muddat</th>
+                <th>{tx("project_task_list.kod")}</th><th>{tx("common.vazifa")}</th><th>{tx("common.holat")}</th>
+                <th>{tx("common.muhimlik")}</th><th>{tx("common.ijrochilar")}</th><th>{tx("common.muddat")}</th>
               </tr>
             </thead>
             <tbody>
@@ -127,18 +128,18 @@ export default function TaskList({ project }: { project: Project }) {
             </tbody>
           </table></div>
         ) : (
-          <Empty icon="☐" title="Vazifa topilmadi"
+          <Empty icon="☐" title={tx("project_task_list.vazifa_topilmadi")}
                  text={filtered
-                   ? "Tanlangan filtrga mos vazifa yoq - filtrni tozalab koring."
-                   : "Bu loyihada hali vazifa yoq."}>
+                   ? tx("project_task_list.tanlangan_filtrga_mos_vazifa_yoq")
+                   : tx("project_task_list.bu_loyihada_hali_vazifa_yoq")}>
             {filtered && (
               <button className="btn" onClick={() => setParams(new URLSearchParams(), { replace: true })}>
-                Filtrni tozalash
+                {tx("common.filtrni_tozalash")}
               </button>
             )}
             {project.access.can_create_task && (
               <Link className="btn btn-primary" {...toNewTask(project.id)}>
-                Yangi vazifa
+                {tx("common.yangi_vazifa")}
               </Link>
             )}
           </Empty>
