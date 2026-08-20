@@ -13,6 +13,7 @@ urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("api/health/", health),
     path("api/auth/", include("apps.accounts.urls")),
+    path("api/", include("apps.accounts.api_urls")),
     path("api/", include("apps.workspaces.urls")),
     path("api/", include("apps.projects.urls")),
     path("api/", include("apps.tasks.urls")),
@@ -22,6 +23,7 @@ urlpatterns = [
     path("api/", include("apps.telegram.urls")),
     path("api/", include("apps.uitexts.urls")),
     path("api/", include("apps.suggestions.urls")),
+    path("api/", include("apps.panel.urls")),
     path("api/", include("apps.core.urls")),
 ]
 

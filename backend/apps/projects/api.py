@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, DecimalField, Exists, OuterRef, Q, Value
+from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
@@ -10,7 +11,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
-from apps.core.permissions import (CanCreateProject, ProjectAccess, check_access,
+from apps.projects.permissions import (CanCreateProject, ProjectAccess, check_access,
                                     task_scope_q, tasks_limited_for, visible_projects_q)
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
@@ -82,6 +83,39 @@ def project_counters(user):
         "my_tasks": related_count(Task, group_by="project",
                                   assignments__user=user, assignments__is_active=True),
     }
+
+
+def progress_expr():
+    """Bajarilish foizi — SO'ROV ichida hisoblanadi, tartiblash uchun.
+
+    `Project.progress()` shu sonni Python tomonda yasaydi va ekranga u
+    chiqadi. Lekin ro'yxatni foiz bo'yicha TARTIBLASH uchun son bazada
+    kerak: tartib butun ro'yxat bo'yicha bo'lishi shart, sahifaga tushgan
+    yuztasi bo'yicha emas. Aks holda ikkinchi sahifada birinchisidan
+    kattaroq foiz chiqib qolardi.
+
+    Hisob `progress()` bilan bir xil manbadan: bekor qilinganlardan tashqari
+    hamma vazifa maxrajda, bajarilgani suratda. Ikkovi ham `related_count`
+    (ichki so'rov) - `annotate(Count(...))` tashqi so'rovga `GROUP BY`
+    qo'shardi, Db2 esa unda CLOB ustunini (`description`) qo'llamaydi.
+
+    VAZIFASI YO'Q LOYIHA. Maxraj nol bo'ladi va Db2 nolga bo'lishda
+    `SQL0801N` bilan yiqiladi. `NullIf` nolni NULL ga aylantiradi (NULL ga
+    bo'lish NULL beradi, xato emas), `Coalesce` esa uni nolga qaytaradi -
+    ya'ni bunday loyiha 0% bo'lib ro'yxatning oxirida turadi.
+
+    O'nlik son: butun sonda bo'linish Db2 da qoldiqni tashlaydi va 7/9 bilan
+    7/10 bir xil «77%» bo'lib, tartib tasodifiy bo'lib qolardi.
+    """
+    pct = DecimalField(max_digits=12, decimal_places=4)
+    done = related_count(Task, group_by="project", status=TaskStatus.DONE)
+    total = related_count(Task, group_by="project",
+                          status__in=[s for s in TaskStatus.values
+                                      if s != TaskStatus.CANCELLED])
+    return Coalesce(
+        Cast(done, pct) * Value(100) / NullIf(total, Value(0)),
+        Value(0), output_field=pct,
+    )
 
 
 def resolve_workspace(user):
@@ -181,11 +215,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # `search_fields` yo'q: qidiruv `get_queryset` da qo'lda bajariladi, chunki
     # unga loyiha HUJJATLARINING nomi ham kiradi - buni DRF `SearchFilter` i
     # `.distinct()` bilan qilardi, Db2 esa CLOB ustunda uni qo'llamaydi.
-    ordering_fields = ["created_at", "updated_at", "name", "due_date"]
-    # Ochilgan sanasi boyicha, yangisi tepada. `-updated_at` da royxat har
-    # tegilganda joyini ozgartirib, odam loyihasini qayerdan qidirishni
-    # bilmay qolardi; ochilish sanasi esa ozgarmaydi - tartib turgun boladi.
-    ordering = ["-created_at"]
+    ordering_fields = ["created_at", "updated_at", "name", "due_date", "progress_pct"]
+    # BAJARILISH FOIZI BO'YICHA, kattasi tepada.
+    #
+    # Ro'yxat menejerga "qaysi loyiha qay ahvolda" degan savolga javob
+    # beradi, ya'ni undagi asosiy raqam - foiz. Sana bo'yicha tartibda esa
+    # 90% bajarilgan loyiha bilan endi ochilgani aralash turardi va
+    # manzarani ko'rish uchun har birini ko'z bilan solishtirishga to'g'ri
+    # kelardi.
+    #
+    # Ikkinchi mezon - OCHILGAN sanasi (`-updated_at` emas): foizi teng
+    # loyihalar joyini almashtirib turmasin. `-updated_at` da ro'yxat har
+    # tegilganda qayta chizilar va odam loyihasini qayerdan qidirishni
+    # bilmay qolardi.
+    ordering = ["-progress_pct", "-created_at"]
 
     # ------------------------------------------------------------ queryset
     def get_queryset(self):
@@ -197,7 +240,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
         qs = (Project.objects
               .select_related("workspace", "manager", "created_by")
               .prefetch_related("specialties", "memberships__user")
-              .annotate(**project_counters(user)))
+              # `progress_pct` faqat TARTIB uchun - javobga chiqmaydi
+              # (seriyalizatorda bunday maydon yo'q). Ekrandagi foizni
+              # oldingidek `progress()` beradi.
+              .annotate(**project_counters(user), progress_pct=progress_expr()))
         scope = self.request.query_params.get("scope", "mine")
 
         # Ko'p-ga-ko'p bog'lanish bo'yicha filtrlash qatorlarni takrorlaydi va
@@ -278,7 +324,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Muddati QO'YILMAGAN loyiha kesimga tushmaydi: `due_date` bo'sh
         # bo'lsa solishtiruv NULL beradi. Interfeys buni yozib qo'yadi -
         # aks holda ro'yxatdan yo'qolgan loyiha xatodek tuyulardi.
-        from apps.core.api import due_date_span
+        from apps.core.periods import due_date_span
 
         span = due_date_span(self.request.query_params.get("due"),
                              self.request.query_params.get("period"))
@@ -472,10 +518,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """Jamoaga qoshish - TOGRIDAN-TOGRI, tasdiqsiz.
 
         Menejer odamni tanlaydi va u ayni shu paytda azo boladi. Qoida
-        `apps.core.team` da - `/api/team/add/` ham oshanga tayanadi, shunda
+        `apps.projects.services` da - `/api/team/add/` ham oshanga tayanadi, shunda
         ikki endpoint ikki xil ishlab ketmaydi.
         """
-        from apps.core.team import add_to_project
+        from .services import add_to_project
 
         project = self._manage_project(pk)
         target = object_or_404(User, pk=request.data.get("user_id"), is_active=True)

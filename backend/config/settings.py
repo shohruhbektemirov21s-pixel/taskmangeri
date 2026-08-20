@@ -66,8 +66,9 @@ INSTALLED_APPS = [
     "django_filters",
     "channels",
     # loyiha ilovalari
-    # `apps.core` da model yo'q - u ruxsatlar, umumiy maydonlar va
-    # `switch_db` buyrug'i uchun. Buyruq topilishi uchun ro'yxatda turadi.
+    # `apps.core` da model YO'Q va domen ilovalariga bog'liqlik ham yo'q -
+    # u eng pastki qatlam: Db2 adapteri, umumiy maydonlar, yumshoq
+    # o'chirish, so'rov yordamchilari, fayl uzatish va o'qish shlyuzi.
     "apps.core",
     "apps.accounts",
     "apps.workspaces",
@@ -84,6 +85,11 @@ INSTALLED_APPS = [
     "apps.uitexts",
     # Takliflar: jamoa taklif beradi va ovoz beradi, boshliq qaror qiladi.
     "apps.suggestions",
+    # Panel va hisobotlar - bir necha domen ustidan o'qiydigan ko'rinishlar
+    # (bosh panel, «Mening ishim», jamoa yuklamasi, ochiq qidiruv).
+    # Modeli yo'q va shu sababdan eng oxirida: u hammani biladi, uni esa
+    # hech kim bilmaydi.
+    "apps.panel",
 ]
 
 MIDDLEWARE = [

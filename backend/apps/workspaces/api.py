@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.activity.services import log
-from apps.core.permissions import CanCreateProject
+from apps.projects.permissions import CanCreateProject
 from apps.core.queries import related_count
 from apps.projects.models import Project
 

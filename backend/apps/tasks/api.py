@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from apps.core.queries import int_param, object_or_404
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
-from apps.core.permissions import (ProjectAccess, check_access, managed_projects_q,
+from apps.projects.permissions import (ProjectAccess, check_access, managed_projects_q,
                                    task_scope_q, visible_projects_q)
 from apps.core.uploads import check_uploads
 from apps.notifications.models import NotificationKind

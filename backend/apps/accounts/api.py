@@ -15,7 +15,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
-from apps.core.permissions import IsPlatformAdmin, visible_projects_q
+from apps.projects.permissions import IsPlatformAdmin, visible_projects_q
 from apps.tasks.models import TaskStatus
 
 from .specialties import Seniority, Specialty, specialty_catalog

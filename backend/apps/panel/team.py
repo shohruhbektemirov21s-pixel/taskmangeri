@@ -25,6 +25,7 @@ from math import ceil
 from apps.core.queries import int_param, object_or_404, task_search_q
 from apps.accounts.serializers import UserBriefSerializer
 from apps.activity.services import log
+from apps.projects.services import add_to_project
 
 User = get_user_model()
 
@@ -56,7 +57,7 @@ def _resolve_scope(request):
 
 
 def _require_manage(user, project, workspace):
-    from apps.core.permissions import ProjectAccess
+    from apps.projects.permissions import ProjectAccess
 
     allowed = (ProjectAccess(user, project).can_manage if project is not None
                else workspace.can_manage(user))
@@ -92,42 +93,6 @@ def candidates(request):
 
     return Response(UserBriefSerializer(qs.order_by("full_name")[:100], many=True).data)
 
-
-@transaction.atomic
-def add_to_project(actor, project, target, role=None):
-    """Odamni loyiha jamoasiga darrov qo'shadi va `ProjectMember` qaytaradi.
-
-    Yagona joy: `/api/team/add/` ham, `/api/projects/:id/members/add/` ham
-    shu funksiyani chaqiradi - qoida ikki joyda ikki xil bo'lib ketmasin.
-    """
-    from apps.core.permissions import ProjectAccess
-    from apps.projects.models import ProjectMember, ProjectRole
-    from apps.workspaces.models import WorkspaceMember, WorkspaceRole
-
-    role = role or ProjectRole.DEVELOPER
-    if role not in ProjectRole.values:
-        raise ValidationError({"role": "Notogri rol."})
-    # Menejer rolini kim bera olishi - umumiy qoida, shu yerda ham amal qiladi.
-    if not ProjectAccess(actor, project).can_grant_role(role):
-        raise PermissionDenied("Menejer rolini faqat amaldagi menejer bera oladi.")
-    if target.pk == actor.pk:
-        raise ValidationError({"user_id": "Ozingizni qosha olmaysiz."})
-    if project.memberships.filter(user=target, is_active=True).exists():
-        raise ValidationError({"user_id": "Bu odam allaqachon jamoada."})
-
-    member, _ = ProjectMember.objects.update_or_create(
-        project=project, user=target,
-        defaults={"role": role, "is_active": True, "left_at": None, "added_by": actor},
-    )
-    # Loyiha ish maydoni ichida - a'zo maydonni ham kora olsin.
-    WorkspaceMember.objects.get_or_create(
-        workspace=project.workspace, user=target,
-        defaults={"role": WorkspaceRole.MEMBER},
-    )
-    log(actor=actor, verb="member.added", project=project, target=target,
-        summary="{} jamoaga qoshildi: {}".format(target.full_name, project.name),
-        detail="Rol: {} | Qoshdi: {}".format(member.get_role_display(), actor.full_name))
-    return member
 
 
 @api_view(["POST"])
@@ -263,7 +228,7 @@ def workload(request):
     bo'lmagan odamga ro'yxat bo'sh qaytadi (xato emas: sahifa buni
     "hali loyiha yo'q" deb ko'rsatadi).
     """
-    from apps.core.permissions import managed_projects_q
+    from apps.projects.permissions import managed_projects_q
     from apps.projects.models import Project, ProjectMember, ProjectRole
     from apps.tasks.models import TaskAssignment, TaskStatus
 
@@ -285,10 +250,10 @@ def workload(request):
     if status and status not in TaskStatus.values:
         raise ValidationError({"status": "Notogri holat."})
 
-    # Muddat kesimi: aniq sana yoki tayyor davr. Hisob `core.api.due_span`
+    # Muddat kesimi: aniq sana yoki tayyor davr. Hisob `core.periods.due_span`
     # da - «Vazifalarim» ro'yxati ham o'shani ishlatadi, ya'ni «shu hafta»
     # ikkala sahifada bir xil hafta bo'ladi.
-    from apps.core.api import due_span
+    from apps.core.periods import due_span
 
     span = due_span(request.query_params.get("due"), request.query_params.get("period"))
 

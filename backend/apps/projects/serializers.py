@@ -125,7 +125,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         return obj.matches_user(request.user)
 
     def get_access(self, obj):
-        from apps.core.permissions import ProjectAccess
+        from apps.projects.permissions import ProjectAccess
 
         request = self.context.get("request")
         if not request:

@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.serializers import UserBriefSerializer
-from apps.core.permissions import check_access, visible_projects_q
+from apps.projects.permissions import check_access, visible_projects_q
 from apps.core.queries import int_param, object_or_404
 from apps.projects.models import Project, ProjectMember
 from apps.projects.serializers import ProjectBriefSerializer, ProjectMemberSerializer
