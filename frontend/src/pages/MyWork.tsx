@@ -6,7 +6,7 @@ import type { DueColumnKey, MyWorkData, Task } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { IconCalendar } from "@/components/icons";
 import {
-  Empty, ErrorMsg, Loading, Pager, Priority, fmtDate,
+  Empty, ErrorMsg, Loading, Pager, StatusBadge, fmtDate,
 } from "@/components/ui";
 import { toTask, useNavParams } from "@/nav";
 import { tx } from "@/i18n";
@@ -254,7 +254,15 @@ export default function MyWork() {
                             <div className="title" style={{ margin: 0 }}>{t.title}</div>
                             <div className="code">{t.project_name}</div>
                             <div className="foot" style={{ marginTop: 9 }}>
-                              <Priority task={t} />
+                              {/* HOLAT, prioritet emas. Bu doskada ustun -
+                                  muddat kesimi, ya'ni ish qaysi bosqichda
+                                  ekani boshqa hech qayerda ko'rinmaydi.
+                                  Prioritet esa ro'yxatning yarmida bir xil
+                                  bo'lib chiqadi va kartalarni ajratmaydi.
+                                  Loyiha doskasida teskarisi: u yerda ustunning
+                                  O'ZI holat, shuning uchun u yerda prioritet
+                                  qoladi. */}
+                              <StatusBadge task={t} />
                               <span className="spacer" />
                               {t.due_date && (
                                 <span className="tcard-due">
