@@ -245,10 +245,19 @@ function DeveloperRow({ row, filtered, open, onToggle }: {
   row: WorkloadRow; filtered: boolean; open: boolean; onToggle: () => void;
 }) {
   const u = row.user;
+  const panelId = useId();
   return (
     <div>
       {/* Butun qator ochish tugmasi - kichik uchburchakni aniq nishonga
-          olish shart emas. Ichidagi havola o'z ishini qiladi. */}
+          olish shart emas. Bu SICHQONCHA uchun qulaylik.
+
+          KLAVIATURA UCHUN ALOHIDA TUGMA. Bu yerda ichki havola boshqa
+          joyga (profilga) olib boradi, ya'ni qatorni ochadigan yagona yo'l
+          `onClick` edi - va u klaviaturaga berilmagan. Ya'ni faqat
+          klaviatura bilan ishlaydigan odam ijrochining vazifalarini
+          UMUMAN ocholmasdi. Uchburchak endi haqiqiy `<button>`:
+          `aria-expanded` holatni aytadi, `aria-controls` esa qaysi
+          bo'limni ochishini. */}
       <div className="repo-item clickable" onClick={onToggle}>
         <div className="row wrap">
           <Avatar user={u} />
@@ -263,9 +272,19 @@ function DeveloperRow({ row, filtered, open, onToggle }: {
           )}
           {/* Ishi yo'qligi ham javob: menejer aynan shu odamga ish beradi. */}
           <span className={`badge ${row.task_count ? "" : "badge-ok"}`}>
-            {row.task_count ? `${row.task_count} ta vazifa` : "ish yoq"}
+            {row.task_count
+              ? tx("tasks.nechta_vazifa", { n: row.task_count })
+              : tx("tasks.ish_yoq")}
           </span>
-          <span className="muted" style={{ fontSize: 18, lineHeight: 1 }}>{open ? "▴" : "▾"}</span>
+          <button type="button" className="wl-toggle muted"
+                  aria-expanded={open} aria-controls={panelId}
+                  aria-label={open
+                    ? tx("tasks.vazifalarni_yigish", { ism: u.full_name })
+                    : tx("tasks.vazifalarni_ochish", { ism: u.full_name })}
+                  /* Qator ham bosiladi - hodisa ikki marta o'tmasin. */
+                  onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+            {open ? "▴" : "▾"}
+          </button>
         </div>
         {/* Odam bir nechta loyihada bo'lishi mumkin - qaysilarida ekani
             yig'ilgan holatda ham ko'rinib tursin. */}
@@ -282,7 +301,7 @@ function DeveloperRow({ row, filtered, open, onToggle }: {
       </div>
 
       {open && (
-        <div className="card-body wl-tasks">
+        <div className="card-body wl-tasks" id={panelId}>
           {!row.tasks.length ? (
             <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
               {filtered ? tx("tasks.bu_holatda_vazifasi_yoq") : tx("tasks.ochiq_vazifasi_yoq_ish_berish")}

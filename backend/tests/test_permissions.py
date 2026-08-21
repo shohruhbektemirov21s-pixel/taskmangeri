@@ -66,11 +66,37 @@ class ProjectVisibilityTest(ApiTestCase):
         c = self.client_for(self.admin)
         self.assertEqual(c.get("/api/projects/{}/".format(self.project.pk)).status_code, 200)
 
-    def test_ochiq_qidiruv_oldingidek_ishlaydi(self):
-        """Bosh sahifadagi tokensiz qidiruv `is_public` ni oldingidek ko'rsatadi."""
+    def test_ochiq_qidiruv_faqat_belgilanganini_korsatadi(self):
+        """Bosh sahifadagi tokensiz qidiruv `is_listed` ga qaraydi.
+
+        `is_public` - «ish maydoni ichida ochiq», ya'ni hamkasblar uchun.
+        Uni platformadan tashqariga chiqarish bilan chalkashtirib bo'lmaydi:
+        ilgari bitta bayroq ikkovini ham hal qilardi va standarti `True`
+        edi - ya'ni har bir yangi loyiha tokensiz ko'rinib turardi.
+        """
+        self.assertTrue(self.other_project.is_public)
+        self.assertFalse(self.other_project.is_listed)
+
         r = self.anon.get("/api/public/projects/")
         self.assertEqual(r.status_code, 200)
+        self.assertNotIn(self.other_project.pk, [p["id"] for p in r.data["results"]])
+
+        # Menejer ataylab belgilagach - ko'rinadi.
+        self.other_project.is_listed = True
+        self.other_project.save(update_fields=["is_listed"])
+        r = self.anon.get("/api/public/projects/")
         self.assertIn(self.other_project.pk, [p["id"] for p in r.data["results"]])
+
+    def test_ochiq_qidiruvdagi_loyihaning_ozi_ham_ochiladi(self):
+        """Ro'yxatdan tushib qolgan loyiha ALOHIDA manzildan ham ochilmaydi."""
+        self.assertEqual(
+            self.anon.get("/api/public/projects/{}/".format(self.other_project.pk)).status_code,
+            404)
+        self.other_project.is_listed = True
+        self.other_project.save(update_fields=["is_listed"])
+        self.assertEqual(
+            self.anon.get("/api/public/projects/{}/".format(self.other_project.pk)).status_code,
+            200)
 
 
 class LabelPermissionTest(ApiTestCase):

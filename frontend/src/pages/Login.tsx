@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -11,6 +11,8 @@ export default function Login() {
   const fid = useId();
   const { login } = useAuth();
   const nav = useNavigate();
+  // `Protected` bu yerga otganda qaysi sahifa so'ralganini holatda qoldiradi.
+  const next = (useLocation().state as { next?: string } | null)?.next;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,11 @@ export default function Login() {
     setError(null);
     try {
       await login(email, password);
-      nav("/panel");
+      // Odam qaysidir sahifaga kirmoqchi bo'lib bu yerga otilgan bo'lsa
+      // (`Protected`), kirgandan keyin o'sha yerga qaytadi - masalan
+      // Telegramdagi «Ochish» tugmasi bosilganda. Aks holda u har safar
+      // «Bosh panel» ga tushib, qidirgan ishini qo'lda topishi kerak edi.
+      nav(next || "/panel", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tx("login.kirishda_xatolik"));
     } finally {

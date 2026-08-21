@@ -208,7 +208,7 @@ class TaskDetailSerializer(TaskSerializer):
         return TaskSerializer(obj.subtasks.all(), many=True, context=self.context).data
 
     def _access(self):
-        from apps.core.permissions import ProjectAccess
+        from apps.projects.permissions import ProjectAccess
 
         request = self.context.get("request")
         return ProjectAccess(request.user, self.instance.project) if request else None
@@ -299,7 +299,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     def get_can_edit(self, obj):
         """Tahrirlash/o'chirish huquqi: muallif yoki loyihani boshqaruvchi."""
-        from apps.core.permissions import ProjectAccess
+        from apps.projects.permissions import ProjectAccess
 
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:

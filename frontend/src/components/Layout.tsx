@@ -71,9 +71,16 @@ function BackButton() {
   const location = useLocation();
 
   // `location` o'zgarganda qayta hisoblanadi - shuning uchun u bog'liqlikda.
+  //
+  // ESLint buni "keraksiz bog'liqlik" deb hisoblaydi va HAQ: hisob ichida
+  // `location` ishlatilmaydi. Lekin `window.history.state` REAKTIV EMAS -
+  // React uning o'zgarganini bilmaydi. `location.key` esa har navigatsiyada
+  // yangilanadi, ya'ni u qiymat emas, TURTKI: "endi qayta o'qi". Usiz tugma
+  // birinchi sahifadagi holatida qotib qolardi.
   const canGoBack = useMemo(() => {
     const idx = (window.history.state as { idx?: number } | null)?.idx;
     return typeof idx === "number" ? idx > 0 : window.history.length > 1;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
 
   return (
@@ -247,8 +254,15 @@ export default function Layout() {
             }}
           >
             <IconSearch size={14} />
+            {/* `name` va `aria-label` SHART. Placeholder yorliq emas: odam
+                yoza boshlagan zahoti u yo'qoladi va ekran o'quvchi maydonni
+                nomsiz deb e'lon qiladi. Brauzer ham nomsiz maydonni eslab
+                qololmaydi - Chrome buni «A form field element should have an
+                id or name attribute» deb ogohlantiradi. */}
             <input
               type="search"
+              name="qidiruv"
+              aria-label={tx("layout.odam_tarix_va_loyihalardan_qidirish")}
               placeholder={tx("layout.odam_tarix_va_loyihalardan_qidirish")}
               value={q}
               onChange={(e) => { setQ(e.target.value); setOpenHits(true); }}
@@ -369,7 +383,17 @@ export default function Layout() {
               <span style={{ minWidth: 0 }}>
                 <span className="name">{user?.full_name}</span>
                 <br />
-                <span className="role">{user?.specialty_display}</span>
+                {/* Ism ostidagi satr - odam KIM ekani.
+                    BOSHLIQ va TIZIM ADMINI uchun bu mutaxassislik emas.
+                    `specialty` hamma hisobda bor va standarti «Backend
+                    dasturchi» - ikkovi ham uni hech qachon tanlamagan,
+                    kartada esa u lavozimdek ko'rinardi. Ularga tizimdagi
+                    roli yoziladi, qolganlarga oldingidek yo'nalishi. */}
+                <span className="role">
+                  {user && (user.is_boss || user.is_platform_admin)
+                    ? user.global_role_display
+                    : user?.specialty_display}
+                </span>
               </span>
             </Link>
             <button

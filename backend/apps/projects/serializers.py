@@ -36,9 +36,21 @@ class JoinRequestSerializer(serializers.ModelSerializer):
                   "decided_at", "decision_note", "created_at"]
         read_only_fields = ["project", "user", "status", "decided_by", "decided_at"]
 
+    # SO'ROVDA BOSHQARUV ROLI SO'RALMAYDI.
+    #
+    # `MANAGER` ilgaridan to'silgan edi, `ADMIN` esa o'tib ketardi - va u
+    # loyihada menejer bilan deyarli teng (`ProjectAccess.can_manage`).
+    # Taklif kodi bilan kelgan so'rov esa DARROV tasdiqlanadi
+    # (`ProjectViewSet.join`), ya'ni odam o'zini loyiha admini qilib
+    # qo'ya olardi: bitta so'rov bilan sozlamalar, a'zolik va tekshiruv
+    # ochilardi. Boshqaruv roli faqat BERILADI (`member_action`), hech
+    # qachon so'ralmaydi.
+    MANAGING_ROLES = (ProjectRole.MANAGER, ProjectRole.ADMIN)
+
     def validate_desired_role(self, value):
-        if value == ProjectRole.MANAGER:
-            raise serializers.ValidationError("Menejer rolini sorab bolmaydi.")
+        if value in self.MANAGING_ROLES:
+            raise serializers.ValidationError(
+                "Boshqaruv rolini so'rab bo'lmaydi - uni loyiha menejeri beradi.")
         return value
 
 
@@ -60,6 +72,18 @@ class ProjectSerializer(serializers.ModelSerializer):
     workspace_slug = serializers.CharField(source="workspace.slug", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
+    # TAKLIF KODI - MENEJERNIKI, ya'ni parol bilan bir og'irlikda.
+    #
+    # Ilgari u model maydoni sifatida javobga shartsiz tushardi: loyihani
+    # KO'RA oladigan har kim kodini ham olardi. Kod bilan kelgan odam esa
+    # so'rovsiz, menejerning qarorisiz a'zo bo'ladi (`ProjectViewSet.join`) -
+    # ya'ni "qo'shilish so'rovi" degan bosqich butunlay ma'nosini yo'qotardi.
+    #
+    # Global menejer va boshliq hamma loyihani ko'radigan bo'lgandan keyin
+    # bu ochiq eshikka aylandi: tizimdagi HAR BIR loyihaning kodi ularga
+    # ro'yxatda kelib turardi.
+    join_code = serializers.SerializerMethodField()
+
     member_count = serializers.IntegerField(read_only=True)
     open_tasks = serializers.IntegerField(read_only=True)
     done_tasks = serializers.IntegerField(read_only=True)
@@ -80,11 +104,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ["id", "workspace", "workspace_name", "workspace_slug", "name", "key",
                   "description", "status", "status_display", "color", "manager", "manager_id",
                   "created_by", "repo_url", "docs_url", "start_date", "due_date",
-                  "is_public", "join_code", "auto_accept", "created_at", "updated_at",
+                  "is_public", "is_listed", "join_code", "auto_accept",
+                  "created_at", "updated_at",
                   "member_count", "open_tasks", "done_tasks", "my_tasks", "progress", "access",
                   "needed_specialties", "needed_specialty_labels", "team_composition",
                   "specialty_gaps", "matches_my_specialty"]
-        read_only_fields = ["join_code", "created_by", "key", "color"]
+        read_only_fields = ["created_by", "key", "color"]
         # Ish maydoni forma orqali so'ralmaydi - yuborilmasa server o'zi tanlaydi
         # (`api.resolve_workspace`). Yuborilsa esa oldingidek ishlaydi.
         extra_kwargs = {"workspace": {"required": False}}
@@ -124,13 +149,37 @@ class ProjectSerializer(serializers.ModelSerializer):
             return False
         return obj.matches_user(request.user)
 
-    def get_access(self, obj):
-        from apps.core.permissions import ProjectAccess
+    def _access(self, obj):
+        """Shu loyiha uchun ruxsat javoblari - qator boshiga BIR MARTA.
+
+        `access` ham, `join_code` ham shu yerdan o'qiydi. Ikkovi alohida
+        `ProjectAccess` yasasa, ro'yxatdagi har loyiha uchun a'zolik ikki
+        marta qaralardi (prefetch bo'lmagan joyda - ikkita so'rov).
+        """
+        from apps.projects.permissions import ProjectAccess
 
         request = self.context.get("request")
         if not request:
-            return {}
-        return ProjectAccess(request.user, obj).as_dict()
+            return None
+        cached = getattr(obj, "_access_cache", None)
+        if cached is None:
+            cached = ProjectAccess(request.user, obj)
+            obj._access_cache = cached
+        return cached
+
+    def get_access(self, obj):
+        access = self._access(obj)
+        return access.as_dict() if access is not None else {}
+
+    def get_join_code(self, obj):
+        """Kodni faqat loyihani BOSHQARADIGAN odam ko'radi.
+
+        Qolganlar uchun `null`: interfeys uni allaqachon `can_manage` ostida
+        chizadi, ya'ni ko'rinishda hech narsa o'zgarmaydi - endi kod javobda
+        ham yo'q.
+        """
+        access = self._access(obj)
+        return obj.join_code if (access is not None and access.can_manage) else None
 
 
 class ProjectDetailSerializer(ProjectSerializer):

@@ -1,0 +1,166 @@
+# Har push va pull request da avtomatik tekshiruv.
+#
+# NEGA KERAK. Loyihada 459 ta backend va 33 ta frontend testi bor va
+# hammasi o'tadi — lekin ularni hech nima o'zi yugurtirmasdi. Test faqat
+# kimdir qo'lda chaqirganda ishlaydigan bo'lsa, u ertami-kechmi unutiladi
+# va buzilgan kod branchda jimgina yotib qoladi.
+#
+# NIMA YUGURADI VA NIMA YO'Q. Oddiy runnerda Db2 ga TEGMAYDIGAN hamma
+# narsa tekshiriladi: tiplar, lint, frontend testlari, produksiya
+# yig'ilmasi, Django sozlamalari va migratsiyalarning modelga mosligi.
+# To'liq backend to'plami Db2 talab qiladi — u 3 GB, `privileged` rejim
+# va bir necha daqiqalik ishga tushish vaqtini so'raydi. Uni yoqish
+# uchun pastdagi `db2-tests` ishiga qarang: self-hosted runner va bitta
+# repo o'zgaruvchisi yetadi, kodni tahrirlash shart emas.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  # Qo'lda ishga tushirish - «Actions» sahifasidagi «Run workflow» tugmasi.
+  # Db2 testlarini runner tayyor bo'lganda sinab ko'rish uchun kerak.
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------------- frontend
+  frontend:
+    name: Frontend — tiplar va yig'ilma
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci` — aynan `package-lock.json` dagi versiyalar. `npm install`
+      # har safar yangi mos versiyani izlaydi va CI mahalliy yig'ilmadan
+      # boshqa natija berishi mumkin edi.
+      - run: npm ci
+
+      - name: Tiplar (tsc --noEmit)
+        run: npm run typecheck
+
+      # ESLint — `tsc` ko'rmaydigan xatolar uchun: effekt bog'liqliklari va
+      # shartli hook chaqiruvlari (`react-hooks`). Ular ishlab chiqishda
+      # emas, foydalanuvchida — eski ma'lumot ko'rinishida chiqadi.
+      #
+      # `--max-warnings 35` — bugungi holat. Ogohlantirishlar (`any`,
+      # ishlatilmagan o'zgaruvchi) mavjud qarz, ular yo'lni to'smaydi;
+      # lekin YANGISI qo'shilsa CI qizaradi. Qarz kamaygan sari bu sonni
+      # ham tushirib boring.
+      - name: Lint (eslint)
+        run: npm run lint:ci
+
+      # Eng nozik mantiq shu yerda: identifikatorsiz navigatsiya, 401 da
+      # tokenni bir marta yangilash, Toshkent mintaqasidagi sana hisobi.
+      # Ular buzilsa `tsc` hech narsa demaydi.
+      - name: Testlar (vitest)
+        run: npm test
+
+      # Produksiya yig'ilmasi haqiqatan qurilishini tekshiramiz: `tsc -b`
+      # dan keyin `vite build`. Bu yerda yiqilsa serverga chiqarishda ham
+      # yiqilardi.
+      - name: Yig'ilma (vite build)
+        run: npm run build
+
+  # ---------------------------------------------------------------- backend
+  backend:
+    name: Backend — sozlama va migratsiyalar
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      # `DEBUG=0` — produksiya yo'lini tekshiramiz. Shu sababdan haqiqiy
+      # uzunlikdagi kalit kerak: `config/settings.py` zaif kalit bilan
+      # `DEBUG` o'chirilgan holda ishga tushishni ataylab taqiqlaydi.
+      DEBUG: "0"
+      SECRET_KEY: "ci-only-not-a-real-secret-key-0123456789abcdef"
+      ALLOWED_HOSTS: "localhost"
+      # Db2 ga ulanilmaydi, lekin sozlamalar o'qilishi kerak.
+      DB2_HOST: "127.0.0.1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      # Sozlamalar, ilovalar, marshrutlar va modellar bir-biriga mos keladimi.
+      - name: Django tekshiruvi
+        run: python manage.py check
+
+      # Modelda o'zgarish bor-u, migratsiya yozilmaganmi. Bu eng ko'p
+      # unutiladigan qadam va u faqat serverda, `migrate` paytida bilinadi.
+      # Bazaga ulanmaydi: Django baza yo'q bo'lsa tarix tekshiruvini
+      # jimgina o'tkazib yuboradi.
+      - name: Yozilmagan migratsiya bormi
+        run: python manage.py makemigrations --check --dry-run
+
+  # ------------------------------------------------------------ to'liq testlar
+  # 459 ta backend testi shu yerda yuguradi. GitHub ning oddiy runneri uni
+  # ko'tarmaydi: Db2 obrazi 3 GB, `privileged` rejim va bir necha daqiqalik
+  # ishga tushish vaqtini so'raydi. Shuning uchun `self-hosted` runner kerak.
+  #
+  # YOQISH — KOD TAHRIRSIZ. Ilgari bu yerda `if: false` turardi, ya'ni
+  # yoqish uchun workflow faylini o'zgartirish kerak edi (va uni keyin
+  # har merge da qaytadan tekshirish). Endi shart REPO O'ZGARUVCHISIDA:
+  #
+  #   Settings -> Secrets and variables -> Actions -> Variables
+  #   RUN_DB2_TESTS = 1
+  #
+  # O'zgaruvchi qo'yilmagan bo'lsa ish o'tkazib yuboriladi (qizarmaydi).
+  # Runner tayyor bo'lgunicha testlarni qo'lda yugurtirish:
+  #
+  #   docker compose up -d db2 redis
+  #   docker compose exec -T -e DB2_TEST_DB=TFTEST backend python manage.py test --noinput
+  db2-tests:
+    name: Backend — to'liq testlar (Db2 kerak)
+    # `workflow_dispatch` bilan qo'lda ham ishga tushiriladi - o'zgaruvchi
+    # qo'yilmagan bo'lsa ham. Runnerni birinchi marta sinab ko'rish uchun.
+    if: vars.RUN_DB2_TESTS == '1' || github.event_name == 'workflow_dispatch'
+    runs-on: self-hosted
+    # Db2 ning ko'tarilishi + 459 test ~6 daqiqa. Osilib qolsa runner band
+    # bo'lib turmasin.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Db2 va Redis
+        run: docker compose up -d db2 redis
+
+      # `depends_on` sog'lomlikni kutadi, lekin backend konteyneri kerak
+      # bo'lgani uchun uni ham ko'taramiz.
+      - name: Backend
+        run: docker compose up -d backend
+
+      # `DB2_TEST_DB` ni berish SHART: `ibm_db_django` bazani qayta
+      # yaratishdan oldin interaktiv savol beradi va `--noinput` uni
+      # chetlab o'tmaydi - jarayon `EOFError` bilan qotib qoladi.
+      #
+      # Nom har yugurishda boshqacha: bir vaqtda ikkita ish ketsa ular
+      # bitta sinov bazasini talashib qolmasin.
+      - name: Testlar
+        run: |
+          docker compose exec -T -e DB2_TEST_DB="TF${GITHUB_RUN_NUMBER}" backend python manage.py test --noinput
+
+      # Test yiqilsa ham konteynerlar o'zidan keyin qolmasin - runner
+      # o'ziniki, keyingi yugurish toza muhitdan boshlansin.
+      - name: Tozalash
+        if: always()
+        run: docker compose down -v

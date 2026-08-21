@@ -93,8 +93,8 @@ export default function Chat({
     }
     if (nearBottom()) scrollDown();
     // `nearBottom` - o'lchov, bog'liqlik emas: uni ro'yxatga qo'shsak
-    // effekt har renderda qayta ishga tushardi.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // effekt har renderda qayta ishga tushardi. (U `useCallback` ichida
+    // barqaror, shuning uchun ESLint ham talab qilmaydi.)
   }, [messages, scrollDown]);
 
   useEffect(() => {
@@ -204,7 +204,10 @@ export default function Chat({
         <div className="row" style={{ alignItems: "flex-end" }}>
           <textarea
             rows={1}
+            name="xabar"
             value={text}
+            /* Yorliq placeholder da emas - u birinchi harfdayoq yo'qoladi. */
+            aria-label={tx("chat.xabar_yozing")}
             placeholder={tx("chat.xabar_yozing")}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}

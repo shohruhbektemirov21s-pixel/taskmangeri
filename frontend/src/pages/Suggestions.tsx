@@ -10,13 +10,14 @@
  * odam bosgan karta shu zahoti boshqa joyga uchib ketardi va u nimani
  * bosganini yo'qotardi. Yangi tartib keyingi yuklashda ko'rinadi.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { api, listOf } from "@/api/client";
 import type {
   Suggestion, SuggestionFile, SuggestionScopeValue, VoteChoiceValue,
 } from "@/api/types";
 import { useFetch } from "@/api/useFetch";
+import { useAuth } from "@/auth/AuthContext";
 import { confirmDialog } from "@/components/Confirm";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { PageHead } from "@/components/Layout";
@@ -24,11 +25,32 @@ import {
   IconCheck, IconClose, IconFile, IconIdea, IconNeutral, IconThumbDown, IconThumbUp,
 } from "@/components/icons";
 import {
-  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, Pager, timeAgo,
+  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, Pager, PhotoView, timeAgo,
 } from "@/components/ui";
 import { tx } from "@/i18n";
 
-type Tab = "OPEN" | "CLOSED" | "MINE";
+/**
+ * Sahifaning bo'limlari.
+ *
+ * «Ochiq» va «Yopiq» OLIB TASHLANDI. Ular takliflarni turi bo'yicha
+ * ikkiga bo'lib turardi, odam esa ro'yxatga turi uchun emas, MAZMUNI
+ * uchun kiradi: nima taklif qilingan va u qabul qilinganmi. Endi asosiy
+ * ro'yxat bitta - «Barchasi». Turning o'zi yo'qolmadi: yopiq taklif
+ * kartada «Yopiq» belgisi bilan turadi.
+ *
+ * «Barchasi» hamma uchun xavfsiz: server baribir har kimga o'zi ko'ra
+ * oladiganini beradi (`get_queryset`) - ochiq takliflar va O'ZINING
+ * yopiqlari. Boshliq esa hammasini ko'radi.
+ *
+ * Qaror kesimlari FAQAT BOSHLIQDA chiziladi - u nimani tasdiqlagani va
+ * nimani rad etganini bir joyda ko'rishi kerak. Yashirish QULAYLIK,
+ * himoya emas: chegara serverda, `status` filtri kimga nima
+ * ko'rinishini o'zgartirmaydi, faqat ko'rinadiganini qisqartiradi.
+ *
+ * «Mening takliflarim» ataylab OXIRGI: u shaxsiy kesim, jamoanikidan
+ * keyin turadi.
+ */
+type Tab = "ALL" | "APPROVED" | "REJECTED" | "MINE";
 
 /** Bir sahifada nechta taklif. Serverda ham shu son so'raladi. */
 const PER_PAGE = 10;
@@ -175,7 +197,11 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
             <div className="stack" style={{ marginBottom: 10 }}>
               {kept.map((file) => (
                 <div key={file.id} className="row sg-file">
-                  <span className="file-ico"><IconFile size={15} /></span>
+                  {/* Tahrirda ham rasm ko'rinib tursin: muallif qaysi
+                      birini o'chirayotganini nomdan emas, ko'rib biladi. */}
+                  {file.is_image && file.url
+                    ? <img src={file.url} alt={file.original_name} className="sg-thumb" />
+                    : <span className="file-ico"><IconFile size={15} /></span>}
                   <a href={file.url} target="_blank" rel="noreferrer" className="sg-file-name">
                     {file.original_name}
                   </a>
@@ -295,6 +321,11 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
   onDelete: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  // Kattalashtirib ko'rilayotgan rasm (yoki `null`).
+  const [shot, setShot] = useState<SuggestionFile | null>(null);
+  // Rasm va qolgan fayl ikki xil chiziladi - sababi pastda, chizilgan joyda.
+  const images = useMemo(() => item.files.filter((f) => f.is_image && f.url), [item.files]);
+  const docs = useMemo(() => item.files.filter((f) => !(f.is_image && f.url)), [item.files]);
 
   async function vote(choice: VoteChoiceValue) {
     setBusy(true);
@@ -341,10 +372,32 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
       <p className="sg-body">{item.body}</p>
 
       {/* Biriktirilgan fayl - kim yuklagani bilan. Anonim taklifda
-          `uploaded_by` serverdan `null` keladi. */}
-      {!!item.files.length && (
+          `uploaded_by` serverdan `null` keladi.
+
+          RASM ALOHIDA CHIZILADI. Ilgari hamma fayl bir xil qatorda,
+          umumiy nishoncha bilan turardi: chizma yoki skrinshot
+          «shartnoma.pdf» dan farq qilmasdi va uni ko'rish uchun har
+          birini navbat bilan ochib chiqishga to'g'ri kelardi. Taklifga
+          esa aynan rasm ko'p qo'shiladi - «hozir shunday, shunday
+          bo'lsin». Endi rasmlar tepada, ko'rinadigan holda; qolgan
+          fayllar oldingidek ro'yxat bo'lib pastda qoladi. Qoida
+          «Vazifa» va «Hujjatlar» sahifalaridagi bilan bir xil
+          (`is_image` serverdan keladi). */}
+      {!!images.length && (
+        <div className="sg-shots">
+          {images.map((file) => (
+            <button key={file.id} type="button" className="sg-shot"
+                    onClick={() => setShot(file)}
+                    title={tx("suggestions.rasmni_kattalashtirish")}>
+              <img src={file.url} alt={file.original_name} loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!!docs.length && (
         <div className="stack sg-files">
-          {item.files.map((file) => (
+          {docs.map((file) => (
             <div key={file.id} className="row sg-file">
               <span className="file-ico"><IconFile size={15} /></span>
               <a href={file.url} target="_blank" rel="noreferrer" className="sg-file-name">
@@ -360,6 +413,20 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Rasm to'liq holda - «Vazifa» sahifasidagi ko'ruvchining o'zi.
+          Anonim taklifda «kim yuklagani» yozilmaydi. */}
+      {shot && (
+        <PhotoView
+          src={shot.url}
+          alt={shot.original_name}
+          title={shot.original_name}
+          subtitle={shot.uploaded_by
+            ? tx("suggestions.yuklagan", { ism: shot.uploaded_by.full_name })
+            : tx("suggestions.anonim_muallif")}
+          onClose={() => setShot(null)}
+        />
       )}
 
       {item.can_vote && (
@@ -401,7 +468,9 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
 /* -------------------------------------------------------------- sahifa */
 
 export default function Suggestions() {
-  const [tab, setTab] = useState<Tab>("OPEN");
+  const { user } = useAuth();
+  const isBoss = Boolean(user?.is_boss);
+  const [tab, setTab] = useState<Tab>("ALL");
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Suggestion[]>([]);
   /* Serverdagi UMUMIY son - sahifa raqamlari shundan hisoblanadi. */
@@ -415,9 +484,16 @@ export default function Suggestions() {
   /* Saralash SERVERDA: eng ko'p qo'llab-quvvatlangani birinchi sahifada
      turadi. Shuning uchun kesish ham serverda - mijozda kesilsa, "1-o'rin"
      faqat kelgan o'ttiztaning ichida bo'lardi. */
+  /* Har bo'lim serverga O'Z filtri bilan boradi. «Barchasi» da filtr
+     umuman yo'q - qolganini server ko'rinish qoidasi bo'yicha o'zi
+     qirqadi. Qaror kesimlari `status` bo'yicha: ular ham ochiq, ham
+     yopiq takliflarni qamraydi, chunki qaror turdan qat'i nazar
+     qilinadi. */
   const params = tab === "MINE"
     ? { mine: 1, page, page_size: PER_PAGE }
-    : { scope: tab, page, page_size: PER_PAGE };
+    : tab === "ALL"
+      ? { page, page_size: PER_PAGE }
+      : { status: tab, page, page_size: PER_PAGE };
   const { data, error, loading, reload } = useFetch<unknown>("/suggestions/", params);
 
   useEffect(() => {
@@ -468,16 +544,29 @@ export default function Suggestions() {
   }
 
   const TABS: [Tab, string][] = [
-    ["OPEN", tx("suggestions.ochiq")],
-    ["CLOSED", tx("suggestions.yopiq")],
+    ["ALL", tx("suggestions.barcha_takliflar")],
+    ...(isBoss
+      ? ([
+          ["APPROVED", tx("suggestions.tasdiqlangan_takliflar")],
+          ["REJECTED", tx("suggestions.rad_etilgan_takliflar")],
+        ] as [Tab, string][])
+      : []),
     ["MINE", tx("suggestions.meniki")],
   ];
 
-  const empty = tab === "CLOSED"
-    ? { title: tx("suggestions.yopiq_bosh"), text: tx("suggestions.yopiq_bosh_matn") }
-    : tab === "MINE"
-      ? { title: tx("suggestions.meniki_bosh"), text: tx("suggestions.meniki_bosh_matn") }
-      : { title: tx("suggestions.bosh_holat"), text: tx("suggestions.bosh_holat_matn") };
+  const EMPTY_STATES: Record<Tab, { title: string; text: string }> = {
+    ALL: { title: tx("suggestions.bosh_holat"), text: tx("suggestions.bosh_holat_matn") },
+    MINE: { title: tx("suggestions.meniki_bosh"), text: tx("suggestions.meniki_bosh_matn") },
+    APPROVED: {
+      title: tx("suggestions.tasdiqlangan_bosh"),
+      text: tx("suggestions.tasdiqlangan_bosh_matn"),
+    },
+    REJECTED: {
+      title: tx("suggestions.rad_etilgan_bosh"),
+      text: tx("suggestions.rad_etilgan_bosh_matn"),
+    },
+  };
+  const empty = EMPTY_STATES[tab];
 
   return (
     <>
@@ -530,7 +619,7 @@ export default function Suggestions() {
                    qo'yilmaydi, ya'ni ular orasida "birinchi o'rin" yo'q.
                    Raqam sahifadan sahifaga DAVOM etadi: ikkinchi sahifa
                    11 dan boshlanadi, yana 1 dan emas. */
-                rank={tab === "OPEN" ? (page - 1) * PER_PAGE + i + 1 : null}
+                rank={tab === "ALL" ? (page - 1) * PER_PAGE + i + 1 : null}
                 onChange={patch}
                 onEdit={() => { setEditing(item); setCreating(false); }}
                 onDelete={() => void remove(item)}

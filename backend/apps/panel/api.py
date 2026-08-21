@@ -15,9 +15,10 @@ from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
-from apps.core.permissions import managed_projects_q
+from apps.projects.permissions import managed_projects_q, runs_everything
+from apps.core.periods import DUE_RANGES, PERIODS, _period_start, due_span
 from apps.core.queries import int_param, task_search_q
-from apps.projects.api import project_counters
+from apps.projects.services import project_counters
 from apps.projects.serializers import JoinRequestSerializer, ProjectSerializer
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 from apps.accounts.serializers import UserBriefSerializer
@@ -25,181 +26,10 @@ from apps.tasks.serializers import TaskSerializer
 
 logger = logging.getLogger(__name__)
 
-
-def _tick_deadline_reminders():
-    """Muddat eslatmalarini kuniga bir marta ishga tushiradi.
-
-    Loyihada rejalashtiruvchi (Celery beat, cron) yo'q, qo'shish esa butun
-    bir xizmat qo'shish demakdir. Buning o'rniga tekshiruv panel ochilganda
-    bo'ladi, lekin kuniga BIR MARTA: qulf Redis keshida turadi, ya'ni bir
-    nechta backend jarayoni bo'lsa ham eslatma takrorlanmaydi.
-
-    Ikki qavatli himoya: bu yerdagi kalit ortiqcha ishni to'xtatadi,
-    `ProjectDeadlineNotice` esa xabarning o'zi takrorlanmasligini kafolatlaydi.
-    Panel sekinlashmasin uchun xato bo'lsa jim o'tib ketamiz.
-    """
-    from django.core.cache import cache
-
-    from apps.projects.deadlines import send_due_reminders
-
-    key = "deadline-reminders:{}".format(timezone.localdate())
-    try:
-        # `add` - kalit yo'q bo'lsagina qo'yadi, ya'ni kunning birinchi so'rovi.
-        if not cache.add(key, 1, 60 * 60 * 26):
-            return
-        send_due_reminders()
-    except Exception:
-        logger.exception("Muddat eslatmalarini yuborib bo'lmadi")
-
-
-# Bosh paneldagi uchta taxta: «yil boshidan», «oy boshidan», «hafta
-# boshidan». Tartib shu yerda belgilanadi - javobdagi ro'yxat ham shu
-# ketma-ketlikda keladi.
-PERIODS = ("year", "month", "week")
-
-
-def _period_start(period):
-    """Tanlangan davr boshlanadigan lahza.
-
-    Chegara TOSHKENT vaqtida hisoblanadi va aniq lahza bo'lib qaytadi
-    (`__date` emas): Db2 da sanani ustundan ajratib olish mintaqani
-    hisobga olmaydi va tunda son noto'g'ri chiqardi - `dashboard` dagi
-    «bugun» kesimida ham shu sabab bor.
-    """
-    today = timezone.localdate()
-    if period == "week":
-        start = today - timezone.timedelta(days=today.weekday())   # dushanba
-    elif period == "month":
-        start = today.replace(day=1)
-    else:
-        start = today.replace(month=1, day=1)
-    return timezone.make_aware(datetime.combine(start, dtime.min))
-
-
-# Ro'yxat ustidagi «Muddat» tanlagichi. Ro'yxat ochilganda hamma ish
-# ko'rinadi, bu esa uni bir kunga yoki bir kalendar davriga qisqartiradi.
-DUE_RANGES = ("today", "yesterday", "tomorrow", "week", "month", "year")
-
 # Panel ro'yxatining bitta sahifasi. O'n beshta qator ekranga sig'adi va
 # ostidagi sahifa raqamlari ko'rinib turadi - odam ro'yxat davom etishini
 # skrollamasdan biladi.
 PANEL_PAGE_SIZE = 15
-
-
-def _due_range_dates(key):
-    """«Muddat» davri - KALENDAR SANALARI `[boshi, oxiri)` yoki `None`.
-
-    Hafta, oy va yil - kalendar davri (dushanbadan yakshanbagacha, oy
-    boshidan oxirigacha), «oxirgi 7 kun» emas: paneldagi taxtalar ham shu
-    mantiqda sanaydi va ikkovi bir xil gapirsin.
-
-    NEGA SANA. Ikki xil ustun bor: `Task.due_date` - lahza (`DateTimeField`),
-    `Project.due_date` esa - sana (`DateField`). Kun chegarasini ikki joyda
-    ikki xil hisoblamaslik uchun MATEMATIKA shu yerda bir marta bajariladi,
-    ustun turiga moslash esa quyidagi ikki o'ramning ishi.
-    """
-    day = timezone.timedelta(days=1)
-    today = timezone.localdate()
-
-    if key == "today":
-        start, end = today, today + day
-    elif key == "yesterday":
-        start, end = today - day, today
-    elif key == "tomorrow":
-        start = today + day
-        end = start + day
-    elif key == "week":
-        start = today - timezone.timedelta(days=today.weekday())   # dushanba
-        end = start + timezone.timedelta(days=7)
-    elif key == "month":
-        start = today.replace(day=1)
-        # Oyning uzunligi turlicha: 32 kun qo'shib, keyingi oyning
-        # birinchi kuniga tushamiz - qaysi oy bo'lishidan qat'i nazar.
-        end = (start + timezone.timedelta(days=32)).replace(day=1)
-    elif key == "year":
-        start = today.replace(month=1, day=1)
-        end = start.replace(year=start.year + 1)
-    else:
-        return None
-
-    return start, end
-
-
-def _due_range(key):
-    """`_due_range_dates` ning LAHZA ko'rinishi - `Task.due_date` uchun.
-
-    Chegara `_period_start` dagidek Toshkent kunidan yasaladi va aniq lahza
-    bo'lib qaytadi, `__date` emas: Db2 da sanani ustundan ajratib olish
-    mintaqani hisobga olmaydi va tunda kun chegarasi bir kunga siljib
-    ketardi.
-    """
-    span = _due_range_dates(key)
-    if span is None:
-        return None
-
-    def midnight(d):
-        return timezone.make_aware(datetime.combine(d, dtime.min))
-
-    return midnight(span[0]), midnight(span[1])
-
-
-def due_span(due_raw="", period=""):
-    """«Muddat» kesimi: aniq SANA yoki tayyor DAVR -> `[boshi, oxiri)`.
-
-    Ikkovi ham bir xil natijaga keladi, shuning uchun bitta joyda. Birga
-    berilsa aniq sana ustun turadi - u aniqroq so'rov. Hech biri berilmasa
-    `None` qaytadi, ya'ni kesim yo'q.
-
-    Muddati QO'YILMAGAN ish bu kesimga hech qachon tushmaydi: `due_date`
-    bo'sh bo'lsa ikkala solishtiruv ham NULL beradi.
-    """
-    due_raw = (due_raw or "").strip()
-    period = (period or "").strip()
-
-    if due_raw:
-        day = parse_date(due_raw)
-        if day is None:
-            raise DrfValidationError({"due": "Sana YYYY-MM-DD korinishida bolsin."})
-        # Kun chegarasi TOSHKENT vaqtidan yasaladi va aniq lahza bo'lib
-        # qaytadi: Db2 da `__date` mintaqani hisobga olmaydi va tungi
-        # ishlar qo'shni kunga tushib qolardi.
-        start = timezone.make_aware(datetime.combine(day, dtime.min))
-        return start, start + timezone.timedelta(days=1)
-
-    if period:
-        span = _due_range(period)
-        if span is None:
-            raise DrfValidationError(
-                {"period": "Faqat {}.".format(", ".join(DUE_RANGES))})
-        return span
-
-    return None
-
-
-def due_date_span(due_raw="", period=""):
-    """`due_span` ning SANA ko'rinishi - `Project.due_date` (`DateField`) uchun.
-
-    Qoida `due_span` bilan bir xil: aniq sana ustun turadi, hech biri
-    berilmasa `None`. Muddati QO'YILMAGAN loyiha bu kesimga hech qachon
-    tushmaydi - `due_date` bo'sh bo'lsa solishtiruv NULL beradi.
-    """
-    due_raw = (due_raw or "").strip()
-    period = (period or "").strip()
-
-    if due_raw:
-        day = parse_date(due_raw)
-        if day is None:
-            raise DrfValidationError({"due": "Sana YYYY-MM-DD korinishida bolsin."})
-        return day, day + timezone.timedelta(days=1)
-
-    if period:
-        span = _due_range_dates(period)
-        if span is None:
-            raise DrfValidationError(
-                {"period": "Faqat {}.".format(", ".join(DUE_RANGES))})
-        return span
-
-    return None
 
 
 # «Yopilmagan» - DONE dan boshqa hamma holat, TEKSHIRUVDAGISI HAM.
@@ -255,6 +85,7 @@ def panel_queryset(user):
     """Panel qaysi ishlarni sanashi - rolga qarab. `(queryset, qamrov)`.
 
     admin    - tirik loyihalardagi hamma ish;
+    boshliq  - shuningdek hamma ish: u butun tashkilotni boshqaradi;
     menejer  - boshqaradigan loyihalari + o'ziga biriktirilgani;
     dasturchi- faqat o'ziga biriktirilgani.
     """
@@ -264,7 +95,7 @@ def panel_queryset(user):
     mine = Exists(TaskAssignment.objects.filter(
         task=OuterRef("pk"), user=user, is_active=True))
 
-    if user.is_platform_admin:
+    if runs_everything(user):
         return live, "all"
 
     managed = Project.objects.filter(
@@ -284,7 +115,10 @@ def dashboard(request):
     now = timezone.now()
     ctx = {"request": request}
 
-    _tick_deadline_reminders()
+    # Muddat eslatmalari endi shu ko'rinishga bog'lanmagan - ular har
+    # qanday so'rovda tekshiriladi (`apps/panel/middleware.py`). Ilgari
+    # shu yerda turgani uchun, jamoa bosh panelni ochmagan kuni eslatma
+    # umuman yuborilmasdi.
 
     # `Exists()` - `.distinct()` o'rniga. Db2 DISTINCT da CLOB ustunini
     # qo'llamaydi (`description` kabi matn maydonlari), shuning uchun takrorni
@@ -293,9 +127,20 @@ def dashboard(request):
         task=OuterRef("pk"), user=user, is_active=True))
 
     # O'chirilgan loyihaning vazifalari panelga ham chiqmaydi.
-    my_tasks = (Task.objects.filter(mine, project__deleted_at__isnull=True)
-                .select_related("project", "created_by")
-                .prefetch_related("assignments__user"))
+    # `for_display()` - RO'YXAT uchun tayyor queryset (`tasks/models.py`).
+    #
+    # Ilgari bu yerda select/prefetch qo'lda yozilgan edi va uchta narsa
+    # tushib qolgandi: `labels` prefetch, `logged_hours_sum` va
+    # `attachments_total` annotatsiyalari. Ular yo'q bo'lsa `TaskSerializer`
+    # har vazifa uchun bazaga ALOHIDA boradi - yorliqlar uchun bittadan,
+    # sarflangan soat uchun `SUM`, fayllar uchun `COUNT`. Ya'ni panelda
+    # ko'rsatiladigan har bir ish uchun uchta qo'shimcha so'rov.
+    #
+    # Panel bir necha ro'yxatni birga chizadi (fokus navbati, qaytarilgan,
+    # to'xtagan, tekshiruvdagi - jami 60 tagacha yozuv), demak bu 180 ta
+    # so'rovgacha yetishi mumkin edi. Kichik bazada bilinmasdi.
+    my_tasks = Task.objects.for_display().filter(
+        mine, project__deleted_at__isnull=True)
 
     focus_queue = my_tasks.filter(
         status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS]
@@ -315,19 +160,47 @@ def dashboard(request):
     day_start = timezone.make_aware(datetime.combine(today, dtime.min))
     day_end = day_start + timezone.timedelta(days=1)
 
-    # "Bugun bajarish kerak": muddati bugun yoki allaqachon o'tgan, hali
-    # yopilmagan ishlar - kechikkani ham bugungi ish hisoblanadi.
-    today_todo = my_tasks.filter(
-        status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS,
-                    TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED],
-        due_date__lt=day_end).count()
-    today_done = my_tasks.filter(status=TaskStatus.DONE,
-                                 completed_at__gte=day_start,
-                                 completed_at__lt=day_end).count()
-    # Bugun topshirilgan va hamon javob kutayotgan ishlar.
-    today_review = my_tasks.filter(status=TaskStatus.IN_REVIEW,
-                                   submitted_at__gte=day_start,
-                                   submitted_at__lt=day_end).count()
+    # ----------------------------------------- SHAXSIY RAQAMLAR: BITTA SO'ROV
+    #
+    # Bu yerda to'qqizta alohida `.count()` turardi - oltitasi `stats` uchun
+    # (ochiq, tekshiruvda, tuzatishda, to'xtagan, kechikkan, haftada
+    # bajarilgan), uchtasi «bugun» katagi uchun. Hammasi AYNI BIR jadvalni,
+    # ayni bir shart bilan (`mine` + tirik loyiha) o'qir, faqat holat
+    # filtri boshqacha edi - ya'ni Db2 ga to'qqizta borib-kelish, har
+    # safar o'sha ichki `EXISTS` qayta hisoblanib.
+    #
+    # Endi bittasi: shartli `Count(filter=...)`. Bu texnika shu faylda
+    # allaqachon ishlatiladi (pastdagi `periods` va `deadlines`) - o'sha
+    # yerdagi izoh sababini ham aytadi: `GROUP BY` yo'q, ya'ni Db2 ning
+    # CLOB cheklovi qo'zg'almaydi.
+    #
+    # Ro'yxatlarning o'zi (`focus_queue`, `returned`, ...) o'z joyida
+    # qoladi - ular seriyalizatsiya uchun kerak va kesib olinadi.
+    open_today = [TaskStatus.TODO, TaskStatus.IN_PROGRESS,
+                  TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED]
+    active = [TaskStatus.TODO, TaskStatus.IN_PROGRESS]
+    week_ago = now - timezone.timedelta(days=7)
+
+    n = my_tasks.aggregate(
+        open=Count("id", filter=Q(status__in=active)),
+        review=Count("id", filter=Q(status=TaskStatus.IN_REVIEW)),
+        returned=Count("id", filter=Q(status=TaskStatus.CHANGES_REQUESTED)),
+        # Ro'yxat kesilgani uchun son alohida kerak.
+        blocked=Count("id", filter=Q(status=TaskStatus.BLOCKED)),
+        overdue=Count("id", filter=Q(status__in=active, due_date__lt=now)),
+        done_week=Count("id", filter=Q(status=TaskStatus.DONE,
+                                       completed_at__gte=week_ago)),
+        # "Bugun bajarish kerak": muddati bugun yoki allaqachon o'tgan, hali
+        # yopilmagan ishlar - kechikkani ham bugungi ish hisoblanadi.
+        today_todo=Count("id", filter=Q(status__in=open_today, due_date__lt=day_end)),
+        today_done=Count("id", filter=Q(status=TaskStatus.DONE,
+                                        completed_at__gte=day_start,
+                                        completed_at__lt=day_end)),
+        # Bugun topshirilgan va hamon javob kutayotgan ishlar.
+        today_review=Count("id", filter=Q(status=TaskStatus.IN_REVIEW,
+                                          submitted_at__gte=day_start,
+                                          submitted_at__lt=day_end)),
+    )
 
 
     member_of = Exists(ProjectMember.objects.filter(
@@ -335,13 +208,29 @@ def dashboard(request):
 
     # `specialties` va `memberships` seriyalizatorda har loyiha uchun
     # o'qiladi - oldindan yuklanmasa har biri alohida so'rov bo'lardi.
+    # RO'YXATLAR CHEKLANADI. Panel javobi bitta so'rovda o'nlab ro'yxatni
+    # olib keladi va ularning har biri to'liq seriyalizatordan o'tadi
+    # (`ProjectSerializer` da jamoa tarkibi, yetishmayotgan yo'nalishlar va
+    # ruxsatlar ham bor). Chegara qo'yilmagan joyda javobning hajmi
+    # foydalanuvchining loyihalari soniga qarab o'sib ketardi: ellik
+    # loyihali menejerda panel eng og'ir sahifaga aylanardi.
+    #
+    # Sanoqlar bundan zarar ko'rmaydi - ular ALOHIDA `count()` bilan
+    # olinadi (`stats`, `team`), ya'ni raqamlar to'liq qoladi va faqat
+    # ko'rsatiladigan ro'yxat qisqaradi.
+    PANEL_LIST = 20
+
     my_projects = (Project.objects.filter(member_of)
                    .select_related("workspace", "manager", "created_by")
                    .prefetch_related("specialties", "memberships__user")
                    .annotate(**project_counters(user))
-                   .order_by("-updated_at"))
+                   .order_by("-updated_at")[:PANEL_LIST])
 
-    if user.is_platform_admin:
+    # Boshliq ham admin bilan bir shoxda: uning tekshiruv navbati, qo'shilish
+    # so'rovlari va tarix lentasi butun tizim bo'yicha bo'ladi - u hamma
+    # loyihada amal qila oladi (`managed_projects_q`), demak navbati ham
+    # o'shancha bo'lishi kerak.
+    if runs_everything(user):
         managed = Project.objects.select_related("manager").order_by("-updated_at")
         review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
                                         project__deleted_at__isnull=True)
@@ -426,8 +315,9 @@ def dashboard(request):
         "overdue": nums["overdue_now"],
         "waiting": nums["waiting"],
     }
-    review_qs = (review_qs.select_related("project")
-                 .prefetch_related("assignments__user").order_by("submitted_at")[:10])
+    # Tekshiruv navbati ham `TaskSerializer` dan o'tadi - unga ham o'sha
+    # annotatsiyalar kerak (yuqoridagi izohga qarang).
+    review_qs = (review_qs.for_display().order_by("submitted_at")[:10])
     join_qs = join_qs.select_related("user", "project").order_by("created_at")[:10]
 
     # `managed` yuqorida ichki so'rov sifatida ham ishlatiladi (`project__in`),
@@ -489,14 +379,14 @@ def dashboard(request):
                                   r["user"]["full_name"]))
 
     return Response({
+        # Oltovi ham yuqoridagi BITTA `aggregate` dan keladi.
         "stats": {
-            "open": focus_queue.count(),
-            "review": waiting_review.count(),
-            "returned": returned.count(),
-            "overdue": overdue.count(),
-            "done_week": my_tasks.filter(
-                status=TaskStatus.DONE,
-                completed_at__gte=now - timezone.timedelta(days=7)).count(),
+            "open": n["open"],
+            "review": n["review"],
+            "returned": n["returned"],
+            "blocked": n["blocked"],
+            "overdue": n["overdue"],
+            "done_week": n["done_week"],
             "pending_reviews": review_total,
             "pending_joins": join_total,
         },
@@ -510,15 +400,17 @@ def dashboard(request):
         # Bugungi kesim - panelning yuqorisidagi uchta katak.
         "today": {
             "date": today,
-            "todo": today_todo,
-            "done": today_done,
-            "review": today_review,
+            "todo": n["today_todo"],
+            "done": n["today_done"],
+            "review": n["today_review"],
         },
         "next_task": TaskSerializer(next_task, context=ctx).data if next_task else None,
         "focus_queue": TaskSerializer(focus_queue[:8], many=True, context=ctx).data,
-        "returned": TaskSerializer(returned, many=True, context=ctx).data,
-        "blocked": TaskSerializer(blocked, many=True, context=ctx).data,
-        "waiting_review": TaskSerializer(waiting_review, many=True, context=ctx).data,
+        # Uchovi ham kesiladi - sonlari yuqorida `stats` da to'liq turadi.
+        "returned": TaskSerializer(returned[:PANEL_LIST], many=True, context=ctx).data,
+        "blocked": TaskSerializer(blocked[:PANEL_LIST], many=True, context=ctx).data,
+        "waiting_review": TaskSerializer(waiting_review[:PANEL_LIST], many=True,
+                                         context=ctx).data,
         "my_projects": ProjectSerializer(my_projects, many=True, context=ctx).data,
         "managed_projects": ProjectSerializer(managed_page, many=True, context=ctx).data,
         "review_queue": TaskSerializer(review_qs, many=True, context=ctx).data,
@@ -623,8 +515,7 @@ def panel_tasks(request):
     if p.get("project"):
         tasks = tasks.filter(project_id=int_param(p["project"], "project"))
 
-    tasks = (tasks.select_related("project", "created_by")
-             .prefetch_related("assignments__user")
+    tasks = (tasks.for_display()
              .order_by("-priority", "due_date", "-id"))
 
     # ------------------------------------------------------------ sahifalash

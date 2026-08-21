@@ -1,12 +1,12 @@
 import { useId, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
-import { ApiError, listOf } from "@/api/client";
+import { ApiError, listOf, pagesOf, totalOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
 import type { MyWorkData, Project, Task } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { IconCalendar, IconPlus } from "@/components/icons";
-import { DUE_PERIODS, DateField, Empty, ErrorMsg, Loading, Progress, RowMenu, fmtDate } from "@/components/ui";
+import { DUE_PERIODS, DateField, Empty, ErrorMsg, Loading, Pager, Progress, RowMenu, fmtDate } from "@/components/ui";
 import { deleteProject } from "@/api/projects";
 import { toNewProject, toProject, toProjectEdit, toTask, useGo } from "@/nav";
 import { tx } from "@/i18n";
@@ -48,6 +48,9 @@ export default function Projects() {
  * Endi ro'yxat bitta va u odam OCHA OLADIGAN hamma loyihani ko'rsatadi
  * (serverdagi `scope=visible`). Kerakli loyiha qidiruv orqali topiladi.
  */
+/** Bir sahifada nechta loyiha kartasi. */
+const PER_PAGE = 30;
+
 function ManagerProjects() {
   const fid = useId();
   const go = useGo();
@@ -62,18 +65,32 @@ function ManagerProjects() {
   // bosilganda: matn har harfda so'rov yubormasin, tanlov esa bitta
   // harakat va uni yana tasdiqlatish ortiqcha bosish bo'lardi.
   const [period, setPeriod] = useState("");
+  const [page, setPage] = useState(1);
 
   // Ilgari bu yerda `catch` yo'q edi: server xato bersa va'da rad etilib,
   // ro'yxat `null` bo'lib qolardi va sahifa abadiy «Yuklanmoqda» da turardi.
+  // SAHIFALASH. Ilgari `page_size: 100` so'ralardi va ro'yxat yuzinchi
+  // loyihada JIMGINA kesilardi - 101-loyiha hech qanday belgisiz
+  // yo'qolardi. Endi sahifa raqamlari bor va jami son serverdan keladi.
   const { data, error: loadError, loading, reload } =
     useFetch<any>("/projects/", { scope: "visible", search: applied, period,
-                                  page_size: 100 });
+                                  page, page_size: PER_PAGE });
   const projects = useMemo(() => (data ? listOf<Project>(data) : null), [data]);
+  const total = totalOf(data);
+  const pages = pagesOf(data, PER_PAGE);
   const error = actionError || loadError;
 
-  /** Loyihani boshqara oladimi - menejeri yoki tizim admini. */
-  const canManage = (p: Project) =>
-    p.manager?.id === user?.id || Boolean(user?.is_platform_admin);
+  /** Loyihani boshqara oladimi - javobni SERVER beradi.
+   *
+   * Ilgari bu yerda qoida qayta yozilgan edi («menejeri yoki tizim
+   * admini») va serverdagi `ProjectAccess.can_manage` dan uzilib qoldi:
+   * boshliqqa hamma loyihada boshqaruv berilganda API amalni bajarardi,
+   * ro'yxatdagi «...» menyusi esa chizilmasdi - ya'ni imkoniyat bor edi,
+   * lekin unga yetib bo'lmasdi.
+   *
+   * Endi bayroq javob bilan keladi (`access.can_manage`). Rol qoidasi
+   * o'zgarsa bu sahifani tuzatish kerak emas. */
+  const canManage = (p: Project) => Boolean(p.access?.can_manage);
 
   /** Loyihani o'chirish - jarayondagi ish bo'lsa qo'shimcha tasdiq so'raladi. */
   async function removeProject(id: number, name: string) {
@@ -89,13 +106,15 @@ function ManagerProjects() {
     <>
       <PageHead
         title={<strong>{tx("common.loyihalar")}</strong>}
-        actions={
+        actions={<>
+          {!!data && <span className="badge">{total} {tx("common.ta")}</span>}
+          {
           user?.can_create_project && (
             <Link className="btn btn-primary" {...toNewProject()}>
               <IconPlus size={15} /> {tx("common.yangi_loyiha")}
             </Link>
-          )
-        }
+          )}
+        </>}
       />
       <div className="content">
         <ErrorMsg error={error} />
@@ -103,7 +122,8 @@ function ManagerProjects() {
         {/* Nom, kalit va tavsif bo'yicha - qidiruv serverda
             (`ProjectViewSet.search_fields`), ya'ni yuklanmagan
             loyihalar ham topiladi. */}
-        <form className="filters" onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); }}>
+        <form className="filters"
+              onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); setPage(1); }}>
           <div className="f grow">
             <label htmlFor={`${fid}-0`}>{tx("common.qidiruv")}</label>
             <input id={`${fid}-0`} value={q} onChange={(e) => setQ(e.target.value)}
@@ -115,7 +135,7 @@ function ManagerProjects() {
           <div className="f">
             <label htmlFor={`${fid}-r`}>{tx("common.muddat")}</label>
             <select id={`${fid}-r`} value={period}
-                    onChange={(e) => setPeriod(e.target.value)}>
+                    onChange={(e) => { setPeriod(e.target.value); setPage(1); }}>
               <option value="">{tx("projects.barcha_muddatlar")}</option>
               {DUE_PERIODS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -125,7 +145,7 @@ function ManagerProjects() {
           <button className="btn">{tx("projects.qidirish")}</button>
           {(!!applied || !!period) && (
             <button type="button" className="btn btn-ghost"
-                    onClick={() => { setQ(""); setApplied(""); setPeriod(""); }}>
+                    onClick={() => { setQ(""); setApplied(""); setPeriod(""); setPage(1); }}>
               {tx("common.tozalash")}
             </button>
           )}
@@ -148,7 +168,7 @@ function ManagerProjects() {
               <div className="row" style={{ justifyContent: "center" }}>
                 {applied || period ? (
                   <button className="btn"
-                          onClick={() => { setQ(""); setApplied(""); setPeriod(""); }}>
+                          onClick={() => { setQ(""); setApplied(""); setPeriod(""); setPage(1); }}>
                     {tx("common.filtrni_tozalash")}
                   </button>
                 ) : (
@@ -163,10 +183,10 @@ function ManagerProjects() {
             </Empty>
           </div>
         ) : (
-          /* Ro'yxat emas, kartalar setkasi: bir qatorda UCHTA karta -
-             har loyihaning jarayoni va uchta asosiy raqami bir qarashda
-             ko'rinadi. Ikkilamchi havolalar («Doska», «Tarix»,
-             tahrirlash) kartaning o'ng yuqorisidagi menyuda. */
+          /* Har loyiha - butun kenglikka cho'zilgan BITTA qator: chapda
+             nomi, o'rtada jarayoni, o'ngda uchta asosiy raqami. Ikkilamchi
+             amallar (tahrirlash, o'chirish) qatorning eng chetidagi «⋯»
+             menyusida. */
           <div className="grid grid-projects">
             {projects.map((p) => (
               /* Kartaning istalgan yeriga bosilsa loyiha ochiladi - nomni
@@ -182,32 +202,17 @@ function ManagerProjects() {
                   {p.status !== "ACTIVE" && (
                     <span className="badge">{p.status_display}</span>
                   )}
-                  <span className="spacer" />
-                  {/* «⋯» menyusi FAQAT loyihani boshqaradigan odamga -
-                      ichida boshqaruv amallari turadi.
-
-                      Bu faqat KO'RINISH: tahrirlash va o'chirish ruxsati
-                      serverda ham tekshiriladi (`ProjectAccess`). */}
-                  {canManage(p) && (
-                    <span onClick={(e) => e.stopPropagation()}>
-                      <RowMenu>
-                        {/* «Doska» va «Tarix» bu yerdan olib tashlandi:
-                            ikkovi ham loyiha ochilgandan keyin yuqorida
-                            bo'lim bo'lib turadi, menyuda esa faqat
-                            takrorlanardi. Bu yerda o'sha yerda yo'q
-                            amallar qoladi. */}
-                        <Link {...toProjectEdit(p.id)}>{tx("common.tahrirlash")}</Link>
-                        <button type="button" className="danger"
-                                onClick={() => void removeProject(p.id, p.name)}>
-                          {tx("common.ochirish_2")}
-                        </button>
-                      </RowMenu>
-                    </span>
-                  )}
                 </div>
 
+                {/* Nom ostida ish maydoni emas, MENEJER turadi: «kim
+                    javobgar» degan savol «qaysi papkada» dan ko'ra tez-tez
+                    beriladi. Ism serverdan keladi (`ProjectSerializer.manager`),
+                    yorliq esa - bazadagi interfeys matnlaridan. */}
                 <div className="pcard-sub">
-                  {p.workspace_name} · <span className="mono">{p.key}</span>
+                  {p.manager
+                    ? <>{p.manager.full_name} · {tx("projects.loyiha_menejeri")}</>
+                    : tx("projects.menejer_tayinlanmagan")}
+                  {" · "}<span className="mono">{p.key}</span>
                 </div>
 
                 <div className="pcard-prog">
@@ -231,10 +236,47 @@ function ManagerProjects() {
                     <strong>{p.my_tasks} {tx("common.ta")}</strong>
                   </span>
                 </div>
+
+                {/* «⋯» menyusi FAQAT loyihani boshqaradigan odamga -
+                    ichida boshqaruv amallari turadi.
+
+                    Qatorning eng o'ng chetida turadi, nom bilan jarayon
+                    chizig'ining ORASIDA emas: o'rtada turganida u
+                    ikkalasini ajratib, ko'z qatorni ikki marta kesib
+                    o'tishiga to'g'ri kelardi. Chetda esa u boshqa
+                    ro'yxatlardagi «⋯» bilan bir tekisda qoladi.
+
+                    Bu faqat KO'RINISH: tahrirlash va o'chirish ruxsati
+                    serverda ham tekshiriladi (`ProjectAccess`). */}
+                {canManage(p) && (
+                  <span className="pcard-menu" onClick={(e) => e.stopPropagation()}>
+                    <RowMenu>
+                      {/* «Doska» va «Tarix» bu yerdan olib tashlandi:
+                          ikkovi ham loyiha ochilgandan keyin yuqorida
+                          bo'lim bo'lib turadi, menyuda esa faqat
+                          takrorlanardi. Bu yerda o'sha yerda yo'q
+                          amallar qoladi. */}
+                      <Link {...toProjectEdit(p.id)}>{tx("common.tahrirlash")}</Link>
+                      {/* O'chirish TAHRIRLASHDAN tor: loyiha admini
+                          sozlamalarni o'zgartiradi, lekin butun loyihani
+                          yo'q qila olmaydi. Ilgari ikkovi bitta shartda
+                          edi va menyu unga 403 beradigan tugmani
+                          ko'rsatib turardi. */}
+                      {p.access?.can_delete_project && (
+                        <button type="button" className="danger"
+                                onClick={() => void removeProject(p.id, p.name)}>
+                          {tx("common.ochirish_2")}
+                        </button>
+                      )}
+                    </RowMenu>
+                  </span>
+                )}
               </div>
             ))}
           </div>
         )}
+
+        {pages > 1 && <Pager page={page} pages={pages} onPick={setPage} />}
       </div>
     </>
   );

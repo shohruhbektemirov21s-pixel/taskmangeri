@@ -15,7 +15,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
-from apps.core.permissions import IsPlatformAdmin, visible_projects_q
+from apps.projects.permissions import (IsPlatformAdmin, sees_all_projects,
+                                       visible_projects_q)
 from apps.tasks.models import TaskStatus
 
 from .specialties import Seniority, Specialty, specialty_catalog
@@ -263,6 +264,40 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(seniority=seniority)
         return qs
 
+    @action(detail=False, methods=["get"], url_path="specialty-stats")
+    def specialty_stats(self, request):
+        """Mutaxassisliklar bo'yicha taqsimot - JORIY FILTR bo'yicha.
+
+        NEGA ALOHIDA ENDPOINT. «Jamoa» sahifasida yon tomonda «qaysi
+        yo'nalishdan nechta odam bor» kartasi turadi. Ilgari u ekrandagi
+        ro'yxatdan sanalardi va bu faqat butun ro'yxat bir sahifada
+        kelgani uchun to'g'ri edi (`page_size=200`). Sahifalash qo'shilgach
+        u JIMGINA yolg'on ko'rsatib qolardi: birinchi sahifadagi o'ttiz
+        kishining taqsimoti butun jamoaniki bo'lib ko'rinardi.
+
+        Sanoq shu yerda, bazada bajariladi va sahifadan qat'i nazar
+        to'g'ri qoladi. Filtrlar (`?search=`, `?role=`, ...) esa o'z
+        kuchida: qidiruv natijasining taqsimoti ko'rsatiladi.
+
+        `get_queryset()` dan foydalanadi, ya'ni ro'yxat bilan bir xil
+        shartdan o'tadi - ikkovi ajralib ketmaydi.
+        """
+        from django.db.models import Count
+
+        from apps.accounts.specialties import Specialty
+
+        names = dict(Specialty.choices)
+        # `values(...).annotate(Count)` - GROUP BY faqat bitta qisqa
+        # ustun bo'yicha, ya'ni Db2 ning CLOB cheklovi qo'zg'almaydi.
+        rows = (self.filter_queryset(self.get_queryset())
+                .values("specialty").annotate(n=Count("id")).order_by("-n"))
+        return Response({"items": [
+            {"value": r["specialty"],
+             "label": names.get(r["specialty"], r["specialty"]),
+             "count": r["n"]}
+            for r in rows if r["specialty"]
+        ]})
+
     @action(detail=True, methods=["get"], url_path="work")
     def work(self, request, pk=None):
         """Foydalanuvchi nima qilgani: loyihalari, vazifalari, tarixi, sarflagan soati.
@@ -281,7 +316,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         target = self.get_object()
         me = request.user
         ctx = {"request": request}
-        wide = bool(me.is_platform_admin or me.pk == target.pk)
+        # Chegarasiz ko'rinish: o'z sahifasi va hamma loyihani
+        # ko'radiganlar (admin, boshliq, global menejer). Ilgari bu yerda
+        # faqat `is_platform_admin` turardi va natijada boshliq begona
+        # odamning sahifasida to'g'ri ma'lumotni ko'rardi-yu, javobda
+        # «ro'yxat qirqilgan» degan bayroq (`limited`) yonib turardi -
+        # interfeys esa shunga qarab ogohlantirish yozardi.
+        wide = bool(sees_all_projects(me) or me.pk == target.pk)
 
         # So'rovchi ko'ra oladigan loyihalar doirasi. Qoida `ProjectAccess.can_view`
         # dan keladi (`visible_projects_q`) - ya'ni boshqa odamning sahifasida

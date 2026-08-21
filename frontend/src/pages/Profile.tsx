@@ -8,11 +8,11 @@ import SkillEditor from "@/components/SkillEditor";
 import { IconChat } from "@/components/icons";
 import Timeline from "@/components/Timeline";
 import {
-  AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Pager, Priority, Stat, StatusBadge,
-  fmtDate,
+  AvatarStack, AvatarViewable, Card, ErrorMsg, Loading, OkMsg, Pager, Priority, Stat,
+  StatusBadge, fmtDate,
 } from "@/components/ui";
 import { confirmDialog } from "@/components/Confirm";
-import { toMessages, toMyWork, toProject, toTask, useEntityId } from "@/nav";
+import { toMessages, toProject, toTask, useEntityId, useGo } from "@/nav";
 import PasswordCard from "@/components/PasswordCard";
 import TelegramCard from "@/components/TelegramCard";
 import { tx } from "@/i18n";
@@ -22,6 +22,7 @@ const TASKS_PER_PAGE = 10;
 
 export default function Profile() {
   const fid = useId();
+  const go = useGo();
   // Kimning profili - sahifa holatidan. Bo'sh bo'lsa - o'ziniki.
   const userId = useEntityId("user");
   const { user: me, meta, refreshUser } = useAuth();
@@ -95,7 +96,7 @@ export default function Profile() {
   async function removePhoto() {
     const ok = await confirmDialog({
       title: tx("profile.profil_rasmi_ochirilsinmi"),
-      body: "O'rniga ism harflaridan tuzilgan belgi ko'rinadi. Keyin yangisini yuklashingiz mumkin.",
+      body: tx("profile.rasm_ornida_harflar"),
       confirmText: tx("common.ochirish"),
       danger: true,
     });
@@ -309,18 +310,27 @@ export default function Profile() {
               <div className="table-wrap"><table className="table">
                 <tbody>
                   {pageTasks.map((t) => (
-                    <tr key={t.id}>
+                    /* Bosh paneldagi ro'yxat bilan bir xil: qatorning
+                       istalgan yeri vazifani ochadi. */
+                    <tr className="clickable" key={t.id} onClick={() => go(toTask(t.id))}>
                       <td className="mono muted nowrap">{t.code}</td>
                       <td>
-                        <Link {...toTask(t.id)}>{t.title}</Link>
+                        {/* Hodisa qatorga o'tmasin - vazifa ikki marta
+                            ochilib ketmasin. */}
+                        <Link {...toTask(t.id)} onClick={(e) => e.stopPropagation()}>{t.title}</Link>
                         <br /><small className="muted">{t.project_name}</small>
                       </td>
                       <td><StatusBadge task={t} /></td>
                       <td><Priority task={t} /></td>
+                      {/* Vazifa YOLG'IZ emas: profil egasidan tashqari yana
+                          kim ishlayotgani shu yerda ko'rinadi. */}
+                      <td className="nowrap"><AvatarStack users={t.assignees} /></td>
                     </tr>
                   ))}
                   {!tasks.length && (
-                    <tr><td className="muted center">
+                    /* `colSpan` - xabar jadval kengligi bo'ylab o'rtada tursin,
+                       birinchi ustunga siqilib qolmasin. */
+                    <tr><td className="muted center" colSpan={5}>
                       {pickedStat ? tx("profile.bu_kesimda_vazifa_yoq") : tx("profile.vazifa_yoq")}
                     </td></tr>
                   )}

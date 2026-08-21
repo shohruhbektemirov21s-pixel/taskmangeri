@@ -103,7 +103,7 @@ class MeSerializer(UserSerializer):
         fields = UserSerializer.Meta.fields + ["manages_projects"]
 
     def get_manages_projects(self, obj):
-        from apps.core.permissions import managed_projects_q
+        from apps.projects.permissions import managed_projects_q
         from apps.projects.models import Project
 
         if obj.is_platform_admin:

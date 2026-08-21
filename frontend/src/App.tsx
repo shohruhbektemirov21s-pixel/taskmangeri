@@ -6,10 +6,11 @@
  * `:id` ham, `:taskId` ham, `:slug` ham yo'q.
  */
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Loading } from "@/components/ui";
 import { useAuth } from "@/auth/AuthContext";
+import Resolve from "@/nav/Resolve";
 
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
@@ -54,8 +55,16 @@ const Suggestions = lazy(() => import("@/pages/Suggestions"));
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const here = useLocation();
   if (loading) return <Loading text={tx("app.yuklanmoqda")} />;
-  if (!user) return <Navigate to="/kirish" replace />;
+  if (!user) {
+    // QAYERGA KELGANINI ESLAB QOLAMIZ. Telegramdagi tugma yoki
+    // bildirishnoma havolasi tizimga kirmagan odamda ham ochilishi mumkin -
+    // ilgari u kirgandan keyin «Bosh panel» ga tushar va o'zi qidirgan
+    // vazifani qo'lda topishi kerak edi. Endi kirish sahifasi uni o'sha
+    // manzilga qaytaradi (`pages/Login.tsx`).
+    return <Navigate to="/kirish" replace state={{ next: here.pathname }} />;
+  }
   return <>{children}</>;
 }
 
@@ -134,6 +143,20 @@ export default function App() {
         <Route path="/loyiha/:tab?" element={<ProjectDetail />} />
         <Route path="/vazifa/tahrir" element={<TaskForm />} />
         <Route path="/vazifa" element={<TaskDetail />} />
+
+        {/* TASHQARIDAN KELGAN HAVOLALAR - identifikatorli manzil.
+            Bildirishnoma yozuvida manzil bazada saqlangan (`/vazifa/75`),
+            Telegramdagi tugma esa umuman boshqa ilovadan keladi - ikkovida
+            ham holat bo'lishi mumkin emas. `Resolve` ularni o'qib, holat
+            asosidagi manzilga `replace` bilan almashtiradi, ya'ni manzil
+            qatorida identifikator turmaydi. Tafsiloti `nav/Resolve.tsx` da.
+
+            Aniq nomli marshrutlar («/vazifa/tahrir», «/loyiha/yangi»)
+            yuqorida turadi va bu yerga tushmaydi. */}
+        <Route path="/vazifa/:id" element={<Resolve kind="task" />} />
+        <Route path="/loyiha/:id/:tab" element={<Resolve kind="project" />} />
+        <Route path="/xabarlar/:id" element={<Resolve kind="messages" />} />
+        <Route path="/ish-maydoni/:slug/chat" element={<Resolve kind="workspace-chat" />} />
         <Route path="/tekshiruv" element={<ManagesOnly><ReviewQueue /></ManagesOnly>} />
         <Route path="/tarix" element={<Feed />} />
         <Route path="/taqvim" element={<CalendarPage />} />

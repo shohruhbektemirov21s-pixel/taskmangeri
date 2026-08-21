@@ -65,10 +65,26 @@ export interface Access {
   role: ProjectRoleValue | null;
   role_label: string;
   is_admin: boolean;
+  /**
+   * Boshliqmi. Loyihalarda u admin bilan TENG: har bir loyihani ochadi va
+   * hamma amalni bajaradi (`can_manage`, `can_work`, `can_review` - hammasi
+   * `true`). Ikki chegara bor: loyiha menejeriga tegmaydi
+   * (`can_change_member`) va tizim rolini bera olmaydi
+   * (`can_appoint_admin` - u faqat tizim adminida).
+   *
+   * Sahifa buni rolni yozib qo'yish uchun ishlatadi, huquq tekshiruvi
+   * uchun emas - har bir amalning o'z bayrog'i bor.
+   */
+  is_boss: boolean;
   is_project_admin: boolean;
   /** Ijrochimi (dasturchi yoki QA) - ro'yxatlar shunga qarab qirqiladi. */
   is_developer: boolean;
   can_delete_task: boolean;
+  /**
+   * TIZIM admini tayinlash (yoki bekor qilish) - loyiha roli EMAS: u
+   * odamning `global_role` ini `ADMIN` ga o'tkazadi. Shuning uchun faqat
+   * tizim adminida: menejer ham, boshliq ham qila olmaydi.
+   */
   can_appoint_admin: boolean;
   can_grant_manager: boolean;
   is_manager: boolean;
@@ -78,6 +94,11 @@ export interface Access {
   can_create_task: boolean;
   can_review: boolean;
   can_work: boolean;
+  /**
+   * BUTUN loyihani o'chirish - `can_manage` dan tor: loyiha admini
+   * o'chira olmaydi. Menyudagi «O'chirish» aynan shunga qaraydi.
+   */
+  can_delete_project: boolean;
 }
 
 export interface Workspace {
@@ -87,7 +108,8 @@ export interface Workspace {
   description: string;
   color: string;
   owner: UserBrief;
-  join_code: string;
+  /** Taklif kodi. Faqat maydonni boshqaradigan odamga keladi, qolganga `null`. */
+  join_code: string | null;
   is_open: boolean;
   created_at: string;
   member_count: number;
@@ -123,7 +145,14 @@ export interface Project {
   start_date: string | null;
   due_date: string | null;
   is_public: boolean;
-  join_code: string;
+  /** Bosh sahifadagi TOKENSIZ qidiruvda ko'rinsinmi - `is_public` dan alohida. */
+  is_listed: boolean;
+  /**
+   * Qo'shilish kodi. Kod bilan kelgan odam menejerning qarorisiz a'zo
+   * bo'ladi, shuning uchun server uni faqat `access.can_manage` bo'lganda
+   * beradi - qolganga `null`.
+   */
+  join_code: string | null;
   auto_accept: boolean;
   created_at: string;
   updated_at: string;
@@ -365,6 +394,8 @@ export interface DashboardData {
   };
   stats: {
     open: number; review: number; returned: number;
+    /** To'xtab qolganlar soni - ro'yxat (`blocked`) kesilgan bo'lishi mumkin. */
+    blocked: number;
     overdue: number; done_week: number;
     pending_reviews: number; pending_joins: number;
   };
@@ -378,6 +409,8 @@ export interface DashboardData {
     people: TeamPerson[];
   };
   next_task: Task | null;
+  /* Pastdagi ro'yxatlar SERVERDA kesiladi (panelga o'ntadan-yigirmatadan).
+     To'liq son har doim `stats` da: ro'yxat uzunligidan raqam olinmasin. */
   focus_queue: Task[];
   returned: Task[];
   blocked: Task[];

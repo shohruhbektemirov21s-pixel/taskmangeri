@@ -19,8 +19,32 @@ def env_list(key, default=""):
 
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
-DEBUG = env_bool("DEBUG", True)
+# STANDARTI `False`. Ilgari `True` edi va bu xavfli standart: `.env` unutilsa
+# yoki o'zgaruvchi nomida xato bo'lsa, server produksiyada jimgina debug
+# rejimida ko'tarilardi - har bir xato to'liq traceback bilan, ichidagi
+# sozlamalar va so'rov matnlari bilan birga ko'rinardi. `SECRET_KEY` uchun
+# bunday himoya allaqachon bor (pastda), `DEBUG` esa himoyasiz qolgan edi.
+# Ishlab chiqishda `backend/.env` da `DEBUG=1` turadi - hech narsa o'zgarmaydi.
+DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*") or ["*"]
+
+# `ALLOWED_HOSTS = ["*"]` bilan produksiyaga chiqib ketish - `SECRET_KEY`
+# bilan bir xil jimgina xato, faqat oqibati boshqa joyda ko'rinadi.
+#
+# Gap Host sarlavhasida emas: WebSocket qatlami aynan shu ro'yxatga
+# tayanadi (`config/asgi.py` dagi `AllowedHostsOriginValidator`). Ro'yxat
+# `*` bo'lsa u HAR QANDAY `Origin` ni qabul qiladi, ya'ni begona saytdan
+# ochilgan ulanishga qarshi himoya butunlay o'chadi. Bundan tashqari
+# Django ning `Host` bo'yicha tekshiruvi ham yo'qoladi - parol tiklash
+# kabi absolyut havolalar begona domen bilan yasalishi mumkin bo'ladi.
+#
+# Ishlab chiqishda hech narsa o'zgarmaydi: `DEBUG=1` da bu shart
+# umuman qaralmaydi.
+if not DEBUG and ALLOWED_HOSTS == ["*"]:
+    raise ImproperlyConfigured(
+        "ALLOWED_HOSTS ko'rsatilmagan. Produksiya uchun domenlarni sanang: "
+        "ALLOWED_HOSTS=teamflow.uz,www.teamflow.uz"
+    )
 
 # Ishlab chiqish uchun standart kalit qulay, lekin u bilan serverga chiqib
 # ketish - eng jimgina va eng qimmat xato: kalit ochiq bo'lsa har kim o'zi
@@ -66,8 +90,9 @@ INSTALLED_APPS = [
     "django_filters",
     "channels",
     # loyiha ilovalari
-    # `apps.core` da model yo'q - u ruxsatlar, umumiy maydonlar va
-    # `switch_db` buyrug'i uchun. Buyruq topilishi uchun ro'yxatda turadi.
+    # `apps.core` da model YO'Q va domen ilovalariga bog'liqlik ham yo'q -
+    # u eng pastki qatlam: Db2 adapteri, umumiy maydonlar, yumshoq
+    # o'chirish, so'rov yordamchilari, fayl uzatish va o'qish shlyuzi.
     "apps.core",
     "apps.accounts",
     "apps.workspaces",
@@ -84,6 +109,11 @@ INSTALLED_APPS = [
     "apps.uitexts",
     # Takliflar: jamoa taklif beradi va ovoz beradi, boshliq qaror qiladi.
     "apps.suggestions",
+    # Panel va hisobotlar - bir necha domen ustidan o'qiydigan ko'rinishlar
+    # (bosh panel, «Mening ishim», jamoa yuklamasi, ochiq qidiruv).
+    # Modeli yo'q va shu sababdan eng oxirida: u hammani biladi, uni esa
+    # hech kim bilmaydi.
+    "apps.panel",
 ]
 
 MIDDLEWARE = [
@@ -96,6 +126,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Ikkovi ham JAVOB tomonida ishlaydi, shuning uchun eng oxirida:
+    # `last_seen` DRF foydalanuvchini aniqlab bo'lgach yoziladi, muddat
+    # eslatmasi esa javob tayyor bo'lgach yuboriladi - hech biri so'rovni
+    # kutdirmaydi.
+    "apps.accounts.middleware.LastSeenMiddleware",
+    "apps.panel.middleware.DeadlineReminderMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -215,6 +251,10 @@ SIMPLE_JWT = {
     # marta ishlatiladi. Aks holda o'g'irlangan eski token muddati
     # tugagunga qadar (14 kun) yangi access token olib turardi.
     "BLACKLIST_AFTER_ROTATION": True,
+    # Kirish paytida `last_login` yozilsin. Standarti `False` va shu sabab
+    # maydon 37 hisobdan bittasida to'lgan edi: sessiya bilan kirgan yagona
+    # odamniki. Endi JWT bilan kirgan har bir odamnikiga ham yoziladi.
+    "UPDATE_LAST_LOGIN": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
@@ -263,8 +303,16 @@ CACHES = {
 # testlardagi so'rov sanog'i o'zgarib turardi (test_panel ba'zan yiqilardi),
 # dev server esa o'sha kungi eslatmalarini yubormay qolardi. Throttle
 # hisoblagichlari ham shu keshda - ular ham izolyatsiyada bo'lgani ma'qul.
-if len(sys.argv) > 1 and sys.argv[1] == "test":
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+if TESTING:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+# ---------------------------------------------------------------- Fon oqimi
+# Tashqi tarmoqqa boradigan ishlar (hozircha - Telegram) foydalanuvchi
+# so'rovining ichida emas, kichik oqimlar to'plamida bajariladi:
+# `apps/core/background.py`. Testlarda o'chiriladi - u yerda chaqiruv
+# joyida bajarilishi va natijasi darrov ko'rinishi kerak.
+BACKGROUND_TASKS = env_bool("BACKGROUND_TASKS", True) and not TESTING
 
 LOGGING = {
     "version": 1,

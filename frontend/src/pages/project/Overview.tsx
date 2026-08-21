@@ -3,11 +3,13 @@ import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { Activity, Project, Task, UserBrief } from "@/api/types";
 import Timeline from "@/components/Timeline";
-import { Avatar, Card, Empty, Priority, SpecialtyTag, Stat, StatusBadge, fmtDate } from "@/components/ui";
+import { Avatar, Card, Empty, Priority, Stat, StatusBadge, fmtDate } from "@/components/ui";
 import { toDeveloper, toProject, toTask } from "@/nav";
 import { tx } from "@/i18n";
 
-export default function Overview({ project, onChange }: { project: Project; onChange: () => void }) {
+// `onChange` propi ataylab OLINMAYDI: bu ko'rinish faqat o'qiydi.
+// Turi qoldirildi - ota komponent uni baribir uzatadi.
+export default function Overview({ project }: { project: Project; onChange: () => void }) {
   const [feed, setFeed] = useState<Activity[]>([]);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   // Ochilgan mutaxassislik: «Frontend dasturchi» bosilsa - kimligi ko'rinsin.

@@ -17,13 +17,30 @@ def members_of(*, project=None, workspace=None):
 
 
 def can_read(user, *, project=None, workspace=None, partner=None):
+    """Shu suhbatni o'qiy oladimi.
+
+    Loyiha va ish maydoni suhbati - JAMOA ichida. Istisno faqat hamma
+    loyihada hamma amalni bajaradiganlarda (`runs_everything`: tizim
+    admini va boshliq).
+
+    Boshliq ilgari bu yerdan o'tmasdi: loyihani ochar, sozlamasini
+    o'zgartirar, ishni tekshira olar edi-yu, o'sha loyihaning suhbati unga
+    403 berardi - interfeys esa yorliqni chizib turardi. Global menejer
+    ataylab TASHQARIDA qoladi: u begona loyihada kuzatuvchi
+    (`sees_all_projects` izohi), jamoaning yozishmasi esa kuzatiladigan
+    ma'lumot emas.
+
+    Shaxsiy yozishma bu qoidadan tashqarida - u loyihaga bog'liq emas.
+    """
+    from apps.projects.permissions import runs_everything
+
     if not user or not user.is_authenticated:
         return False
     if partner is not None:
         # Shaxsiy yozishma: har bir ro'yxatdan o'tgan xodim bilan yozishish mumkin,
         # lekin o'ziga o'zi emas.
         return partner.is_active and partner.pk != user.pk
-    if getattr(user, "is_platform_admin", False):
+    if runs_everything(user):
         return True
     if project is not None:
         return project.memberships.filter(user=user, is_active=True).exists()

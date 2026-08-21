@@ -292,8 +292,8 @@ export default function TaskDetail() {
                             <button className="btn btn-sm btn-ghost" title={tx("common.ochirish_2")}
                                     onClick={() => void (async () => {
                                       const ok = await confirmDialog({
-                                        title: `«${a.original_name}» o'chirilsinmi?`,
-                                        body: "Fayl vazifadan butunlay olib tashlanadi.",
+                                        title: tx("task_detail.fayl_ochirilsinmi", { nom: a.original_name }),
+                                        body: tx("task_detail.fayl_butunlay_olinadi"),
                                         confirmText: tx("common.ochirish"),
                                         danger: true,
                                       });

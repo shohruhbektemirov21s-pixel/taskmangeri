@@ -201,3 +201,30 @@ export function listOf<T>(data: any): T[] {
   if (data && Array.isArray(data.results)) return data.results as T[];
   return [];
 }
+
+/**
+ * Jami yozuvlar soni - sahifalangan javobdan.
+ *
+ * Ro'yxatning UZUNLIGI emas: u faqat joriy sahifani sanaydi. Sarlavhada
+ * «37 ta» deb yozilganda gap butun ro'yxat haqida bo'lishi kerak.
+ */
+export function totalOf(data: unknown): number {
+  if (Array.isArray(data)) return data.length;
+  const n = Number((data as { count?: unknown } | null)?.count);
+  return Number.isFinite(n) ? n : listOf(data).length;
+}
+
+/**
+ * Nechta sahifa bor.
+ *
+ * NEGA MIJOZDA HISOBLANADI. `StandardPagination` (DRF) javobda `count`,
+ * `next` va `previous` beradi - sahifa RAQAMLARI yo'q. `Pager` esa
+ * jami sonni kutadi. Bo'linma shu yerda bir marta yozilgan, aks holda
+ * har bir sahifada takrorlanardi.
+ *
+ * Kamida 1: bo'sh ro'yxatda ham «1-sahifa» mavjud deb hisoblanadi,
+ * shunda `Pager` manfiy yoki nol bilan ishlashga urinmaydi.
+ */
+export function pagesOf(data: unknown, pageSize: number): number {
+  return Math.max(1, Math.ceil(totalOf(data) / Math.max(1, pageSize)));
+}

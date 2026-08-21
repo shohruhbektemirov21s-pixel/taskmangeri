@@ -166,8 +166,9 @@ export default function Files({ project }: { project: Project }) {
     // Hujjatni endi uni yuklagan odam ham o'chira oladi - shuning uchun
     // bir savol: bosib yuborilgan tugma butun hujjatni olib ketmasin.
     const ok = await confirmDialog({
-      title: `«${item.description || item.original_name}» ochirilsinmi?`,
-      body: "Hujjat royxatdan yoqoladi. Eski nusxalari ham u bilan ketadi.",
+      title: tx("project_files.hujjat_ochirilsinmi",
+                       { nom: item.description || item.original_name }),
+      body: tx("project_files.eski_nusxalari_ham"),
       confirmText: tx("common.ochirish"),
       danger: true,
     });

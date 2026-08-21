@@ -2,20 +2,93 @@
 
 Rollar ierarxiyasi:
   ADMIN (tizim)   -> hamma loyihada hamma narsa
-  MANAGER         -> oz loyihasini boshqaradi, azo qabul qiladi, task beradi/tekshiradi
+  BOSS (boshliq)  -> hamma loyihada hamma narsa (tizim boshqaruvidan tashqari)
+  MANAGER (global)-> hamma loyihani KO'RADI, o'zinikini BOSHQARADI
   ADMIN (loyiha)  -> loyihada menejer bilan teng, lekin MENEJERGA tegmaydi
   DEVELOPER / QA  -> oziga biriktirilgan tasklarni bajaradi
   VIEWER          -> faqat oqiydi
+
+KO'RISH VA BOSHQARISH IKKI XIL SAVOL - pastdagi ikki yordamchi ham shu
+uchun ajratilgan (`sees_all_projects` va `runs_everything`). Ularni
+aralashtirish bu fayldagi eng qimmat xato bo'ladi: ko'rish shartiga
+qo'shilgan rol jimgina boshqaruvni ham olib qo'yadi.
 
 MENEJER himoyalangan: unga HECH KIM tegmaydi - na loyiha admini, na tizim
 admini, na boshqa menejer. Menejer loyihadan faqat OZI chiqadi (`/leave/`),
 shundan keyin loyiha menejersiz qoladi va tizim admini yangisini tayinlay
 oladi.
+
+BOSHLIQ LOYIHALARDA ADMIN BILAN TENG. Ochilgan har bir loyiha - eskisi
+ham, yangisi ham - unga o'zi ko'rinadi (a'zolik ham, taklif ham kerak
+emas) va u o'sha loyihada hamma amalni bajara oladi: sozlamalar, a'zo
+qabul qilish, vazifa berish, tekshirish.
+
+Ikki chegara ataylab QOLDIRILDI:
+
+  * MENEJERGA baribir tegilmaydi (`can_change_member`). Bu qoida rolga
+    emas, menejerlikning o'ziga bog'langan: uni na tizim admini, na
+    boshliq buza oladi.
+  * Boshliq TIZIM ADMINI EMAS. `django-admin/`, foydalanuvchi rollarini
+    o'zgartirish va shunga o'xshash texnik boshqaruv `is_platform_admin`
+    da qoladi. Rollar ataylab ajratilgan (`GlobalRole` izohiga qarang):
+    admin tizimni ushlab turadi, boshliq ishni boshqaradi.
+
+TIZIM ROLI LOYIHA ICHIDAN BERILMAYDI. `can_appoint_admin` nomi loyiha
+roliday tuyuladi, aslida u odamning `global_role` ini `ADMIN` ga
+o'tkazadi - ya'ni butun platformani ochadi. Shuning uchun u
+`is_platform_admin` da qoladi va `runs_everything` ga QO'SHILMAYDI: aks
+holda `/api/users/:id/role/` dagi qulfning ma'nosi qolmasdi - loyiha
+sahifasidan turib ayni o'sha narsa qilinardi.
 """
 from django.db.models import Exists, OuterRef, Q
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 from apps.core.queries import object_or_404
+
+
+def runs_everything(user):
+    """Hamma loyihada hamma narsani QILA oladigan odammi.
+
+    Tizim admini va boshliq. Ikkovi ham loyihalar tomonida cheklanmaydi:
+    ko'rish ham, boshqarish ham ochiq. Farqi loyihalardan TASHQARIDA -
+    `django-admin/` va foydalanuvchi rollari faqat `is_platform_admin` da
+    qoladi, takliflar bo'yicha qaror esa faqat `is_boss` da (loyiha
+    menejeri ham, tizim admini ham taklifni tasdiqlay olmaydi).
+
+    Bitta yordamchi qilib qo'yilgani muhim: ilgari bu shart o'nlab joyda
+    `if not user.is_platform_admin` ko'rinishida qo'lda yozilgan edi va
+    yangi rol qo'shish uchun har birini topib chiqish kerak bo'ldi.
+    Bittasi esdan chiqsa, odam ro'yxatning yarmini ko'rib, yarmini
+    ko'rmaydigan holatga tushardi.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    return bool(user.is_platform_admin or getattr(user, "is_boss", False))
+
+
+def sees_all_projects(user):
+    """Tizimdagi hamma loyihani KO'RA oladigan odammi.
+
+    `runs_everything` dan kengroq: unga LOYIHA MENEJERI (global rol)
+    ham kiradi. Menejer yangi loyiha ochilishini kutib o'tirmaydi -
+    ro'yxatda hammasi turadi va u istalganiga kirib ishni ko'radi.
+
+    LEKIN BOSHQARUV KENGAYMAYDI. Menejer faqat O'ZI menejer yoki loyiha
+    admini bo'lgan joyda sozlamaga, a'zolikka va tekshiruvga tegadi -
+    buni `runs_everything` va `managed_projects_q` hal qiladi. Ya'ni
+    begona loyihada u kuzatuvchi: ochadi, o'qiydi, o'zgartirmaydi.
+
+    Shu sabab bu funksiya faqat KO'RINISH shartlarida chaqiriladi.
+    Boshqarish tekshiruviga qo'shib yuborilsa, tizimdagi har bir menejer
+    har bir loyihani o'zgartira oladigan bo'lib qoladi va loyiha ichidagi
+    rollar ma'nosini yo'qotadi.
+    """
+    from apps.accounts.models import GlobalRole
+
+    if not user or not user.is_authenticated:
+        return False
+    return bool(runs_everything(user)
+                or getattr(user, "global_role", None) == GlobalRole.MANAGER)
 
 
 class IsPlatformAdmin(permissions.BasePermission):
@@ -104,8 +177,15 @@ def visible_projects_q(user, path=""):
 
     if not user or not user.is_authenticated:
         # Hech narsa ko'rinmaydi. Ochiq (tokensiz) ko'rinish alohida joyda -
-        # `apps/core/public.py`.
+        # `apps/panel/public.py`.
         return Q(pk__in=[])
+
+    # Admin, boshliq va LOYIHA MENEJERI - hamma loyiha. Chegarasiz shart
+    # (`Q()`) qaytariladi, ya'ni so'rovga umuman filtr qo'shilmaydi.
+    # O'chirilgan loyihalar baribir chiqmaydi: ularni standart menejer
+    # (`AliveProjectManager`) allaqachon olib tashlagan.
+    if sees_all_projects(user):
+        return Q()
 
     project_ref = "pk" if not path else "project_id"
     member_of = Exists(ProjectMember.objects.filter(
@@ -156,7 +236,12 @@ def task_scope_q(user):
 
     if not user or not user.is_authenticated:
         return Q(pk__in=[])
-    if user.is_platform_admin:
+    # Hamma loyihani ko'radiganlar (admin, boshliq, loyiha menejeri) bu
+    # yerda ham cheklanmaydi: ro'yxatda hammaning ishi turishi kerak.
+    # Ular ijrochi (`DEVELOPER`/`QA`) sifatida a'zo bo'lmasa shartsiz ham
+    # hammasini ko'rardi - lekin bo'lib qolsa, ro'yxati jimgina o'z
+    # vazifalarigacha qisqarardi va butun manzara yo'qolardi.
+    if sees_all_projects(user):
         return Q()
 
     executor = Exists(ProjectMember.objects.filter(
@@ -183,7 +268,11 @@ def managed_projects_q(user):
 
     if not user or not user.is_authenticated:
         return Q(pk__in=[])
-    if user.is_platform_admin:
+    # Boshliq ham hammasini boshqaradi - `ProjectAccess.can_manage` bilan
+    # bir xil javob. Ikkovi ajralib qolsa, boshliq loyihani ochib
+    # tugmalarni bosa olardi-yu, tekshiruv navbati va jamoa yuklamasi
+    # («qaysi loyiha uchun javobgar» degan ro'yxatlar) bo'sh chiqardi.
+    if runs_everything(user):
         return Q()
     # Loyiha admini ham boshqaradi (`ProjectAccess.can_manage` bilan bir xil),
     # menejer esa a'zolik yozuvisiz ham menejer bo'lishi mumkin.
@@ -207,7 +296,7 @@ def tasks_limited_for(user):
     """
     from apps.projects.models import ProjectMember, ProjectRole
 
-    if not user or not user.is_authenticated or user.is_platform_admin:
+    if not user or not user.is_authenticated or sees_all_projects(user):
         return False
     return ProjectMember.objects.filter(
         user=user, is_active=True,
@@ -226,6 +315,15 @@ class ProjectAccess:
         self.membership = get_membership(user, project)
         self.role = self.membership.role if self.membership else None
         self.is_admin = bool(user and user.is_authenticated and user.is_platform_admin)
+        # Boshliq: ko'radi, tegmaydi. Ataylab `is_admin` dan alohida maydon -
+        # aks holda u `can_manage` ga ham oqib o'tardi.
+        self.is_boss = bool(user and user.is_authenticated
+                            and getattr(user, "is_boss", False))
+        # Hamma loyihani ko'radigan rol (admin, boshliq, global menejer).
+        # `can_view` shu bayroqqa qaraydi va u `visible_projects_q` bilan
+        # BIR MANBADAN keladi: ro'yxat loyihani ko'rsatib, ochilganda 403
+        # bergan holat aynan shu ikkovi ajralganda paydo bo'ladi.
+        self.sees_all = sees_all_projects(user)
         self.is_manager = (self.role == ProjectRole.MANAGER
                            or project.manager_id == getattr(user, "id", None))
         self.is_project_admin = self.role == ProjectRole.ADMIN
@@ -244,12 +342,16 @@ class ProjectAccess:
         ro'yxatdan o'tgan har qanday odam begona jamoaning loyihasini,
         vazifalarini, brifini va hujjatlar ro'yxatini o'qiy olardi.
 
-        Bosh sahifadagi ochiq qidiruv bundan ALOHIDA: u `apps/core/public.py`
+        Bosh sahifadagi ochiq qidiruv bundan ALOHIDA: u `apps/panel/public.py`
         da va faqat xavfsiz maydonlarni beradi (a'zolar, vazifalar, fayllar
         chiqmaydi). Ya'ni "platformada nima bor" ko'rinib turadi, ichiga esa
         maydon a'zosi kiradi.
+
+        Boshliq va loyiha menejeri bu yerda admin bilan bir qatorda turadi
+        (`sees_all`). `visible_projects_q` ham xuddi shu shartga tayanadi,
+        ya'ni ro'yxat va bitta loyiha sahifasi bir xil javob beradi.
         """
-        if self.is_admin or self.is_member:
+        if self.sees_all or self.is_member:
             return True
         if not self.project.is_public:
             return False
@@ -259,8 +361,15 @@ class ProjectAccess:
 
     @property
     def can_manage(self):
-        """Azolarni qabul qilish/chiqarish, loyiha sozlamalari, fayl ochirish."""
-        return self.is_admin or self.is_manager or self.is_project_admin
+        """Azolarni qabul qilish/chiqarish, loyiha sozlamalari, fayl ochirish.
+
+        Boshliq bu yerda ham admin bilan teng: ochilgan har qanday loyihada
+        u hamma amalni bajara oladi. Faqat MENEJERGA tegish alohida
+        tekshiriladi (`can_change_member`) - u qoida rolga emas,
+        menejerlikning o'ziga bog'langan.
+        """
+        return (self.is_admin or self.is_boss
+                or self.is_manager or self.is_project_admin)
 
     @property
     def can_create_task(self):
@@ -277,8 +386,41 @@ class ProjectAccess:
 
     @property
     def can_appoint_admin(self):
-        """Azoni tizim admini qilib tayinlash - faqat menejer (va tizim admini)."""
-        return self.is_admin or self.is_manager
+        """A'zoga TIZIM ADMINI huquqini berish (yoki qaytarib olish).
+
+        NOMI ALDAMASIN: bu loyiha ichidagi rol emas - `member_action`
+        o'sha odamning `global_role` ini `ADMIN` ga o'tkazadi, ya'ni
+        butun platforma ochiladi. Loyiha admini esa oddiy a'zolik roli
+        va u `can_grant_role` orqali beriladi.
+
+        SHUNING UCHUN FAQAT TIZIM ADMINI. Ilgari bu yerda menejer ham,
+        boshliq ham turardi va natijada `/api/users/:id/role/` dagi
+        `IsPlatformAdmin` qulfi amalda ma'nosiz edi: bitta loyihaning
+        menejeri istalgan odamga platforma huquqini bera olardi (u esa
+        keyin menejerning o'ziga ham bera olardi).
+
+        Bu qoida hujjatda ilgaridan yozilgan: `django-admin/` va
+        foydalanuvchi rollari `is_platform_admin` da qoladi - boshliqqa
+        ham ochilmaydi (`GlobalRole` izohiga qarang). Endi kod ham shunday.
+        """
+        return self.is_admin
+
+    @property
+    def can_delete_project(self):
+        """BUTUN loyihani o'chirish.
+
+        `can_manage` dan ATAYLAB tor: loyiha admini o'chira olmaydi - u
+        kundalik boshqaruv uchun, butun loyihani yo'q qilish esa boshqa
+        og'irlikdagi qaror. Menejer, tizim admini va boshliq o'chiradi.
+
+        Alohida xossa qilib chiqarilgani bejiz emas: qoida ilgari
+        `destroy` va `perform_destroy` ichida ikki marta qo'lda yozilgan
+        edi (`access.is_admin or access.is_manager`) va shu sababdan
+        `ProjectAccess` dan uzilib qolgandi - boshliqqa boshqaruv
+        berilganda o'chirish jimgina 403 berib turaverdi, interfeys esa
+        menyuda «O'chirish» ni ko'rsatardi.
+        """
+        return self.is_admin or self.is_boss or self.is_manager
 
     @property
     def can_work(self):
@@ -313,19 +455,26 @@ class ProjectAccess:
     def can_grant_role(self, role):
         """MENEJER rolini faqat menejer bera oladi.
 
-        Istisno: loyiha menejersiz qolgan bolsa, tizim admini yangi menejer
-        tayinlaydi - aks holda loyiha boshqaruvsiz muzlab qoladi.
+        Istisno: loyiha menejersiz qolgan bolsa, tizim admini yoki boshliq
+        yangi menejer tayinlaydi - aks holda loyiha boshqaruvsiz muzlab
+        qoladi. Istisno ATAYLAB tor: menejer o'rnida turgan odam bo'lsa,
+        uni chetlab yangisini qo'yib bo'lmaydi.
         """
         if role == ProjectRole_value("MANAGER"):
-            return self.is_manager or (self.is_admin and not self.project.has_active_manager)
+            return self.is_manager or ((self.is_admin or self.is_boss)
+                                       and not self.project.has_active_manager)
         return self.can_manage
 
     @property
     def label(self):
         if self.is_admin:
             return "Tizim admini"
+        # A'zolik roli boshliqlikdan ustun: boshliq biror loyihada
+        # dasturchi bo'lsa, o'sha loyihada u dasturchi deb ko'rsatiladi.
         if self.membership:
             return self.membership.get_role_display()
+        if self.is_boss:
+            return "Boshliq"
         return "Mehmon"
 
     def as_dict(self):
@@ -333,6 +482,10 @@ class ProjectAccess:
             "role": self.role,
             "role_label": self.label,
             "is_admin": self.is_admin,
+            # Interfeys shunga qarab «kuzatuv rejimi» deb yozib qo'yadi:
+            # boshliq loyihani ochadi-yu, birorta tugma ishlamaydi -
+            # sababini aytmasak, buzuq sahifadek ko'rinadi.
+            "is_boss": self.is_boss,
             "is_manager": self.is_manager,
             "is_project_admin": self.is_project_admin,
             # Ijrochimi - ro'yxatlar shunga qarab qirqiladi (`task_scope_q`)
@@ -345,7 +498,12 @@ class ProjectAccess:
             "can_delete_task": self.can_delete_task,
             "can_review": self.can_review,
             "can_work": self.can_work,
+            # TIZIM admini tayinlash - loyiha roli emas. Faqat tizim
+            # adminida, boshliqda ham yo'q.
             "can_appoint_admin": self.can_appoint_admin,
+            # `can_manage` dan tor - loyiha admini o'chira olmaydi.
+            # Interfeys menyuda «O'chirish» ni shunga qarab chizadi.
+            "can_delete_project": self.can_delete_project,
             "can_grant_manager": self.can_grant_role(ProjectRole_value("MANAGER")),
         }
 

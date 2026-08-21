@@ -231,6 +231,10 @@
   "value": "{bosh} — {royxat}.",
   "note": "api/projects.ts"
  },
+ "api_projects.rostdan_ochirilsinmi": {
+  "value": "«{nom}» rostdan o'chirilsinmi?",
+  "note": "api/projects.ts"
+ },
  "api_projects.toxtab_qolgan": {
   "value": "to'xtab qolgan",
   "note": "api/projects.ts"
@@ -731,8 +735,16 @@
   "value": "Butun tizim bo'yicha",
   "note": "pages/Dashboard.tsx"
  },
+ "dashboard.davr_hammasi": {
+  "value": "{davr} — hammasi",
+  "note": "pages/Dashboard.tsx"
+ },
  "dashboard.davr_kesimi_izohi": {
   "value": "{davr}: nazoratdagi, muddati o'tgan va bajarilgan ishlar",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.davr_ustun": {
+  "value": "{davr} — {ustun}",
   "note": "pages/Dashboard.tsx"
  },
  "dashboard.ertaga": {
@@ -779,6 +791,10 @@
   "value": "Muddati shu davrga tushgan va o'tib ketgan ishlaringiz",
   "note": "pages/Dashboard.tsx"
  },
+ "dashboard.oy_boshidan": {
+  "value": "Oy boshidan",
+  "note": "pages/Dashboard.tsx"
+ },
  "dashboard.panel_yuklanmoqda": {
   "value": "Panel yuklanmoqda...",
   "note": "pages/Dashboard.tsx"
@@ -821,6 +837,10 @@
  },
  "dashboard.yakunlangan_lekin_muddatidan_keyin_yopilgan": {
   "value": "Yakunlangan, lekin muddatidan keyin yopilgan ishlaringiz",
+  "note": "pages/Dashboard.tsx"
+ },
+ "dashboard.yil_boshidan": {
+  "value": "Yil boshidan",
   "note": "pages/Dashboard.tsx"
  },
  "dashboard.yopilmagan_muddati_hali_kelmagan_yoki": {
@@ -1859,6 +1879,10 @@
   "value": "Qisqacha maʼlumot",
   "note": "pages/Profile.tsx"
  },
+ "profile.rasm_ornida_harflar": {
+  "value": "O'rniga ism harflaridan tuzilgan belgi ko'rinadi. Keyin yangisini yuklashingiz mumkin.",
+  "note": "pages/Profile.tsx"
+ },
  "profile.rasm_qoyish": {
   "value": "Rasm qoyish",
   "note": "pages/Profile.tsx"
@@ -2075,6 +2099,10 @@
   "value": "Bu loyihaga hali hujjat yuklanmagan.",
   "note": "pages/project/Files.tsx"
  },
+ "project_files.eski_nusxalari_ham": {
+  "value": "Hujjat ro'yxatdan yo'qoladi. Eski nusxalari ham u bilan ketadi.",
+  "note": "pages/project/Files.tsx"
+ },
  "project_files.fayl_yuklandi": {
   "value": "{n} ta fayl yuklandi.",
   "note": "pages/project/Files.tsx"
@@ -2097,6 +2125,10 @@
  },
  "project_files.hujjat_nomi_ham_sanasi_ham": {
   "value": "Hujjat nomi ham, sanasi ham bo'sh qolmasin.",
+  "note": "pages/project/Files.tsx"
+ },
+ "project_files.hujjat_ochirilsinmi": {
+  "value": "«{nom}» o'chirilsinmi?",
   "note": "pages/project/Files.tsx"
  },
  "project_files.hujjat_sanasi_qatori": {
@@ -2275,6 +2307,10 @@
   "value": "Hujjat sanasi korsatilmagan: ",
   "note": "pages/ProjectForm.tsx"
  },
+ "project_form.ish_maydoni_ichida_ochiq": {
+  "value": "Ish maydoni ichida ochiq",
+  "note": "pages/ProjectForm.tsx — maydondagi hamkasblar ko'radi va qo'shilish so'rovi yubora oladi"
+ },
  "project_form.jamoa_va_doska_bolimidan_qayta": {
   "value": " — «Jamoa» va «Doska» bolimidan qayta urinib koring.",
   "note": "pages/ProjectForm.tsx"
@@ -2286,6 +2322,14 @@
  "project_form.jamoaga_qoshilmadi": {
   "value": "jamoaga qo'shilmadi: ",
   "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.korinish": {
+  "value": "Ko'rinish",
+  "note": "pages/ProjectForm.tsx — kim loyihani ko'ra oladi degan bo'lim sarlavhasi"
+ },
+ "project_form.korinish_izoh": {
+  "value": "Loyiha ish maydonidan tashqariga chiqmaydi. Uni ochiq qidiruvda ko'rsatish uchun ikkinchi katakni belgilang.",
+  "note": "pages/ProjectForm.tsx — ochiq qidiruv o'chirilgan holatdagi izoh"
  },
  "project_form.loyiha_holati": {
   "value": "Loyiha holati",
@@ -2330,6 +2374,14 @@
  "project_form.masalan_mobil_ilova_v2": {
   "value": "Masalan: Mobil ilova v2",
   "note": "pages/ProjectForm.tsx"
+ },
+ "project_form.ochiq_qidiruv_yoqilgan_izoh": {
+  "value": "Loyihaning nomi, tavsifi va menejerning ismi ro'yxatdan o'tmagan odamlarga ham ko'rinadi. A'zolar, vazifalar va fayllar hech qachon chiqmaydi.",
+  "note": "pages/ProjectForm.tsx — ochiq qidiruv yoqilgan holatdagi ogohlantirish"
+ },
+ "project_form.ochiq_qidiruvda_korinsin": {
+  "value": "Bosh sahifadagi ochiq qidiruvda ko'rinsin",
+  "note": "pages/ProjectForm.tsx — ro'yxatdan o'tmagan odamlarga ham ko'rinadi"
  },
  "project_form.tavsif": {
   "value": "Tavsif",
@@ -2791,6 +2843,10 @@
   "value": "Jarayon",
   "note": "pages/Projects.tsx"
  },
+ "projects.loyiha_menejeri": {
+  "value": "Loyiha menejeri",
+  "note": "pages/Projects.tsx"
+ },
  "projects.loyiha_topish": {
   "value": "Loyiha topish",
   "note": "pages/Projects.tsx"
@@ -2805,6 +2861,10 @@
  },
  "projects.menda": {
   "value": "Menda",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.menejer_tayinlanmagan": {
+  "value": "Menejer tayinlanmagan",
   "note": "pages/Projects.tsx"
  },
  "projects.menejer_vazifa_berganda_u_shu": {
@@ -3123,6 +3183,10 @@
   "value": "Anonim yuborish",
   "note": "pages/Suggestions.tsx"
  },
+ "suggestions.barcha_takliflar": {
+  "value": "Barcha takliflar",
+  "note": "pages/Suggestions.tsx"
+ },
  "suggestions.betarafman": {
   "value": "Betarafman",
   "note": "pages/Suggestions.tsx"
@@ -3231,9 +3295,25 @@
   "value": "Qo'shilmayman",
   "note": "pages/Suggestions.tsx"
  },
+ "suggestions.rad_etilgan_bosh": {
+  "value": "Rad etilgan taklif yo'q",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rad_etilgan_bosh_matn": {
+  "value": "Siz rad etgan takliflar shu yerda to'planadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rad_etilgan_takliflar": {
+  "value": "Rad etilgan takliflar",
+  "note": "pages/Suggestions.tsx"
+ },
  "suggestions.rad_etish": {
   "value": "Rad etish",
   "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.rasmni_kattalashtirish": {
+  "value": "Rasmni kattalashtirish",
+  "note": "pages/Suggestions.tsx — biriktirilgan rasm ustidagi izoh"
  },
  "suggestions.saqlandi": {
   "value": "Taklif saqlandi.",
@@ -3263,6 +3343,18 @@
   "value": "Taklifni tahrirlash",
   "note": "pages/Suggestions.tsx"
  },
+ "suggestions.tasdiqlangan_bosh": {
+  "value": "Tasdiqlangan taklif yo'q",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tasdiqlangan_bosh_matn": {
+  "value": "Siz tasdiqlagan takliflar shu yerda to'planadi.",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.tasdiqlangan_takliflar": {
+  "value": "Tasdiqlangan takliflar",
+  "note": "pages/Suggestions.tsx"
+ },
  "suggestions.tasdiqlash": {
   "value": "Tasdiqlash",
   "note": "pages/Suggestions.tsx"
@@ -3273,14 +3365,6 @@
  },
  "suggestions.yopiq": {
   "value": "Yopiq",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.yopiq_bosh": {
-  "value": "Yopiq taklif yo'q",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.yopiq_bosh_matn": {
-  "value": "Yopiq taklifni faqat siz va boshliq ko'radi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.yopiq_izoh": {
@@ -3405,6 +3489,14 @@
  },
  "task_detail.fayl_biriktirilmagan": {
   "value": "Fayl biriktirilmagan.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.fayl_butunlay_olinadi": {
+  "value": "Fayl vazifadan butunlay olib tashlanadi.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.fayl_ochirilsinmi": {
+  "value": "«{nom}» o'chirilsinmi?",
   "note": "pages/TaskDetail.tsx"
  },
  "task_detail.fayl_qoshish": {
@@ -3606,6 +3698,18 @@
  "task_detail.yozuv_yoq": {
   "value": "Yozuv yoq.",
   "note": "pages/TaskDetail.tsx"
+ },
+ "task_drawer.muddat_qoyilmagan": {
+  "value": "Muddat qo'yilmagan",
+  "note": "components/TaskDrawer.tsx"
+ },
+ "task_drawer.toliq_ochish": {
+  "value": "To'liq ochish",
+  "note": "components/TaskDrawer.tsx"
+ },
+ "task_drawer.vazifa_paneli": {
+  "value": "Vazifa paneli",
+  "note": "components/TaskDrawer.tsx"
  },
  "task_form.boshlangich_holat": {
   "value": "Boshlangich holat",
@@ -3839,8 +3943,16 @@
   "value": "Dasturchi topilmadi",
   "note": "pages/Tasks.tsx"
  },
+ "tasks.ish_yoq": {
+  "value": "ish yo'q",
+  "note": "pages/Tasks.tsx"
+ },
  "tasks.ism_vazifa_kod_hir_75": {
   "value": "Ism, vazifa, kod (HIR-75) yoki loyiha nomi",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.nechta_vazifa": {
+  "value": "{n} ta vazifa",
   "note": "pages/Tasks.tsx"
  },
  "tasks.ochiq_vazifasi_yoq_ish_berish": {
@@ -3873,6 +3985,14 @@
  },
  "tasks.vazifa_holati": {
   "value": "Vazifa holati",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.vazifalarni_ochish": {
+  "value": "{ism} vazifalarini ochish",
+  "note": "pages/Tasks.tsx"
+ },
+ "tasks.vazifalarni_yigish": {
+  "value": "{ism} vazifalarini yig'ish",
   "note": "pages/Tasks.tsx"
  },
  "team_builder.azo": {
@@ -4147,12 +4267,24 @@
   "value": "{n} kun oldin",
   "note": "components/ui.tsx"
  },
+ "ui.loyiha_butunlay_ochadi": {
+  "value": "Loyiha vazifalari, fayllari va tarixi bilan butunlay o'chadi. Buni qaytarib bo'lmaydi.",
+  "note": "components/ui.tsx"
+ },
  "ui.matn_juda_uzun_ozgargan_joylari": {
   "value": "Matn juda uzun - o'zgargan joylari alohida ajratilmadi.",
   "note": "components/ui.tsx"
  },
  "ui.matn_ozgarmagan": {
   "value": "Matn o'zgarmagan.",
+  "note": "components/ui.tsx"
+ },
+ "ui.nechta_fayl": {
+  "value": "{n} ta fayl",
+  "note": "components/ui.tsx"
+ },
+ "ui.ochirilsinmi": {
+  "value": "«{nom}» o'chirilsinmi?",
   "note": "components/ui.tsx"
  },
  "ui.oldingi_sahifa": {

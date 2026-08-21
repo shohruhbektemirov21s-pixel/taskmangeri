@@ -69,7 +69,6 @@ export default function UserSearch({
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(timer.current);
     // `search` identifikatori o'zgarsa (masalan a'zo qo'shilgach) ro'yxat yangilanadi.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needle, active, search]);
 
   return (
@@ -78,8 +77,12 @@ export default function UserSearch({
         <IconSearch size={14} />
         <input
           type="search"
+          name="odam-qidiruv"
           value={q}
           autoFocus={autoFocus}
+          /* Yorliq placeholder da EMAS: u yozila boshlaganda yo'qoladi va
+             ekran o'quvchi uchun maydon nomsiz qoladi. */
+          aria-label={placeholder}
           placeholder={placeholder}
           onChange={(e) => setQ(e.target.value)}
         />

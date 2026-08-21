@@ -25,16 +25,17 @@ import { useAuth } from "@/auth/AuthContext";
 import { useLive } from "@/realtime/RealtimeContext";
 import { PageHead } from "@/components/Layout";
 import {
-  Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
+  AvatarStack, Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
+import TaskDrawer from "@/components/TaskDrawer";
 import { toTask } from "@/nav";
 import { tx } from "@/i18n";
 
 // Davr sarlavhalari. Kalitlar serverdagi `PERIODS` bilan bir xil, tartibni
 // esa server beradi - bu yerda faqat o'zbekcha nomi turadi.
 const LABELS: Record<DashboardPeriod, string> = {
-  year: "Yil boshidan",
-  month: "Oy boshidan",
+  year: tx("dashboard.yil_boshidan"),
+  month: tx("dashboard.oy_boshidan"),
   week: tx("dashboard.hafta_boshidan"),
 };
 
@@ -106,7 +107,7 @@ function Band({ p, onPick, picked }: {
   const pickBand = () => {
     if (!hasAny) return;
     onPick({ period: p.key, metric: "period",
-             title: `${LABELS[p.key]} — hammasi` });
+             title: tx("dashboard.davr_hammasi", { davr: LABELS[p.key] }) });
   };
 
   return (
@@ -148,7 +149,7 @@ function Band({ p, onPick, picked }: {
                     disabled={!p[col.key]}
                     onClick={() => onPick({
                       period: p.key, metric: col.key,
-                      title: `${LABELS[p.key]} — ${col.label}`,
+                      title: tx("dashboard.davr_ustun", { davr: LABELS[p.key], ustun: col.label }),
                     })}>
               {/* Nol - so'ngan rangda: bo'sh katak ko'zni tortmasin,
                   haqiqiy son esa darrov ajralib tursin. */}
@@ -317,6 +318,10 @@ function Combo({ id, label, options, value, onChange, placeholder }: {
 function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void }) {
   const fid = useId();
   const { meta } = useAuth();
+  // Tortmada ochiq turgan vazifa. Yozuvning O'ZI saqlanadi, `id` emas:
+  // ro'yxat allaqachon to'liq javobni olgan, ya'ni tortma uchun bazaga
+  // qaytadan borish shart emas.
+  const [open, setOpen] = useState<Task | null>(null);
   const [f, setF] = useState<Filters>(EMPTY_FILTERS);
   // Sahifa filtrdan ALOHIDA holatda: filtr o'zgarganda u birinchi sahifaga
   // qaytadi (`set` da), aks holda odam beshinchi sahifada turib qidiruv
@@ -345,6 +350,11 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
   const clear = () => { setPage(1); setF(EMPTY_FILTERS); };
 
   return (
+    /* Ro'yxat va vazifa paneli yonma-yon: keng ekranda panel ro'yxatning
+       o'ng yonida ochiladi va uni yopib qo'ymaydi (`app.css`,
+       `.panel-split`). Shuning uchun `TaskDrawer` kartaning ICHIDA emas,
+       yonida turadi. */
+    <div className="panel-split">
     <Card title={picked.title} padded={false}
           badge={data ? <span className="badge">{data.count}</span> : undefined}
           action={<button type="button" className="btn btn-sm" onClick={onClose}>{tx("common.yopish")}</button>}>
@@ -406,14 +416,32 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
         <div className="table-wrap"><table className="table">
           <tbody>
             {tasks.map((t) => (
-              <tr key={t.id}>
+              /* Qator bosilganda SAHIFA ALMASHMAYDI - o'ng chetdan tortma
+                 chiqadi (`components/TaskDrawer.tsx`). Sabab: bu ro'yxat
+                 kesim, filtr va sahifa raqami bilan yig'ilgan; boshqa
+                 sahifaga o'tib qaytilsa, hammasi qaytadan tanlanardi. */
+              <tr className="clickable" key={t.id} onClick={() => setOpen(t)}>
                 <td className="nowrap mono muted">{t.code}</td>
                 <td>
-                  <Link {...toTask(t.id)}>{t.title}</Link>
+                  {/* Havola `<a>` bo'lib qoladi: klaviatura yo'li ham,
+                      «yangi oynada ochish» ham shu yerdan o'tadi. Oddiy
+                      bosishda esa o'tish to'xtatiladi va tortma ochiladi -
+                      modifikator bosilgan bosish brauzerga tegilmaydi. */}
+                  <Link {...toTask(t.id)}
+                        onClick={(e) => {
+                          if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpen(t);
+                        }}>{t.title}</Link>
                   <br /><small className="muted">{t.project_name}</small>
                 </td>
                 <td className="nowrap"><StatusBadge task={t} /></td>
                 <td className="nowrap"><Priority task={t} /></td>
+                {/* Kim qilayotgani ro'yxatning o'zida ko'rinsin: ilgari buni
+                    bilish uchun har bir vazifani birma-bir ochish kerak edi.
+                    Ijrochisi yo'q bo'lsa `AvatarStack` chiziqcha qo'yadi. */}
+                <td className="nowrap"><AvatarStack users={t.assignees} /></td>
                 <td className="nowrap muted right">{fmtDate(t.due_date)}</td>
               </tr>
             ))}
@@ -431,6 +459,8 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
         </div>
       )}
     </Card>
+    <TaskDrawer task={open} onClose={() => setOpen(null)} />
+    </div>
   );
 }
 

@@ -63,7 +63,7 @@ export async function deleteProject(id: number | string, name: string): Promise<
     if (!(err instanceof ApiError) || err.status !== 409 || !err.data?.needs_confirm) throw err;
 
     const ok = await confirmDialog({
-      title: `«${name}» rostdan o'chirilsinmi?`,
+      title: tx("api_projects.rostdan_ochirilsinmi", { nom: name }),
       warning: workText(err.data as LiveWork),
       body: tx("api_projects.bu_ishlar_loyiha_bilan_birga")
             + tx("api_projects.yoqoladi_tasdiqlasangiz_ochiriladi"),

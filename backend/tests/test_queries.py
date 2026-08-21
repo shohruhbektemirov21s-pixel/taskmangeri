@@ -59,6 +59,14 @@ class QueryCountTest(ApiTestCase):
             after, base,
             "%s: qator ko'paygach so'rov %d dan %d ga chiqdi (N+1)" % (url, base, after))
 
+    def make_workspaces(self, n):
+        from apps.workspaces.models import Workspace, WorkspaceMember
+
+        for i in range(n):
+            ws = Workspace.objects.create(name="Maydon %d" % i, owner=self.admin,
+                                          is_open=True)
+            WorkspaceMember.objects.create(workspace=ws, user=self.manager)
+
     def test_loyihalar_royxati(self):
         self.assert_flat("/api/projects/?page_size=100", self.make_projects)
 
@@ -70,6 +78,14 @@ class QueryCountTest(ApiTestCase):
 
     def test_mening_ishim(self):
         self.assert_flat("/api/my-work/", self.make_tasks)
+
+    def test_ish_maydonlari_royxati(self):
+        """`my_role` va `can_manage` har qator uchun bazaga bormasin.
+
+        Ikkovi ham a'zolikni so'raydi va ilgari ikkovi ham alohida so'rov
+        yuborardi - ya'ni o'nta maydon yigirmata qo'shimcha so'rov edi.
+        """
+        self.assert_flat("/api/workspaces/?page_size=100", self.make_workspaces)
 
     def test_tarix(self):
         def grow(n):

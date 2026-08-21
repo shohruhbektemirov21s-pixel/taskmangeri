@@ -8,14 +8,16 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    replaces = [('activity', '0001_initial'), ('activity', '0002_alter_activity_meta')]
+    # `replaces` olib tashlandi: almashtirilgan migratsiyalar hamma muhitda
+    # qo'llanib bo'lgan va fayllari o'chirilgan (Django hujjatidagi tartib).
+    # Endi bu oddiy boshlang'ich migratsiya - papkada bitta chiziq qoladi.
 
     initial = True
 
     dependencies = [
-        ('projects', '0001_initial'),
-        ('tasks', '0001_initial'),
-        ('workspaces', '0001_initial'),
+        ('projects', '0001_squashed'),
+        ('tasks', '0001_squashed'),
+        ('workspaces', '0001_squashed'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

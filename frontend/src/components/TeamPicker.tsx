@@ -391,7 +391,10 @@ function TaskAdder({ priorities, value, onValue, onSubmit, onCancel }: {
                 onClick={() => fileInput.current?.click()}>
           <IconFile size={13} /> {tx("team_picker.fayl")}
         </button>
-        <input ref={fileInput} type="file" multiple style={{ display: "none" }}
+        {/* Yashirin: tugma bosilganda dasturiy ravishda ochiladi. `name`
+            bo'lmasa brauzer uni nomsiz maydon deb ogohlantiradi. */}
+        <input ref={fileInput} type="file" name="fayllar" multiple
+               tabIndex={-1} aria-hidden="true" style={{ display: "none" }}
                onChange={(e) => addFiles(e.target.files)} />
         {onCancel && (
           <button type="button" className="btn btn-sm" onClick={onCancel}>

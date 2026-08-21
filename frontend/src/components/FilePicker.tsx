@@ -172,7 +172,10 @@ export default function FilePicker({
           ? tx("file_picker.avval_hujjat_nomini_yozing_keyin")
           : tx("file_picker.faylni_shu_yerga_tashlang_yoki"))}
       </div>
-      <input ref={input} type="file" multiple style={{ display: "none" }}
+      {/* Yashirin: tugma bosilganda dasturiy ravishda ochiladi. `name`
+          bo'lmasa brauzer uni nomsiz maydon deb ogohlantiradi. */}
+      <input ref={input} type="file" name="fayllar" multiple
+             tabIndex={-1} aria-hidden="true" style={{ display: "none" }}
              onChange={(e) => add(e.target.files)} />
 
       {!!tooBig.length && (

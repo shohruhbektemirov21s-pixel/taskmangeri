@@ -87,8 +87,14 @@ services:
     networks: [teamflow]
 
   # ---------------------------------------------------------- Frontend: React + TypeScript
+  # Ishlab chiqish rejimi: Vite serveri, kod o'zgarishi darrov ko'rinadi.
+  # Serverga chiqarish uchun boshqa bosqich bor - `frontend/Dockerfile`
+  # dagi `prod` (nginx + yig'ilgan statik fayllar):
+  #   docker build --target prod -t teamflow-web ./frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: dev
     container_name: teamflow_frontend
     environment:
       VITE_API_URL: /api

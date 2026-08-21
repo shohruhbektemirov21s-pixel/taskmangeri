@@ -10,8 +10,8 @@ from rest_framework.response import Response
 from apps.core.queries import int_param, object_or_404
 from apps.activity.models import Activity
 from apps.activity.services import log, log_field_changes
-from apps.core.permissions import (ProjectAccess, check_access, managed_projects_q,
-                                   task_scope_q, visible_projects_q)
+from apps.projects.permissions import (ProjectAccess, check_access, managed_projects_q,
+                                   sees_all_projects, task_scope_q, visible_projects_q)
 from apps.core.uploads import check_uploads
 from apps.notifications.models import NotificationKind
 from apps.notifications.services import notify, notify_many, send_to_users
@@ -255,10 +255,13 @@ class TaskViewSet(viewsets.ModelViewSet):
               # (yozuvlar bazada qoladi).
               .filter(project__deleted_at__isnull=True))
 
-        if not user.is_platform_admin:
-            # Ko'rish doirasi `ProjectAccess.can_view` bilan bir xil qoidadan
-            # keladi: a'zo bo'lgan loyihalar + o'z ish maydonidagi ochiqlar.
-            qs = qs.filter(visible_projects_q(user, "project__"))
+        # Ko'rish doirasi `ProjectAccess.can_view` bilan bir xil qoidadan
+        # keladi: a'zo bo'lgan loyihalar + o'z ish maydonidagi ochiqlar.
+        # Hamma loyihani ko'radiganlar uchun shart o'zi bo'sh `Q()` bo'ladi -
+        # rolni bu yerda IKKINCHI marta sanash kerak emas va aynan shunday
+        # takror qoldirilgan joyda ro'yxatlar bir-biridan uzoqlashardi
+        # (bittasida boshliq qo'shildi, ikkinchisida esdan chiqdi).
+        qs = qs.filter(visible_projects_q(user, "project__"))
 
         # Loyiha ichida esa - kimning ishi ko'rinishi. Menejerga hammasi,
         # qolganga o'ziniki (`task_scope_q`). Doska ham shu yerdan o'tadi.
@@ -946,9 +949,9 @@ class LabelViewSet(viewsets.ModelViewSet):
         user = self.request.user
         qs = Label.objects.select_related("project").filter(
             project__deleted_at__isnull=True)
-        # Ko'rish doirasi vazifalar bilan bir xil: admin hammasini, qolganlar
-        # o'zi a'zo bo'lgan loyihalarni.
-        if not user.is_platform_admin:
+        # Ko'rish doirasi vazifalar bilan bir xil: admin va boshliq
+        # hammasini, qolganlar o'zi a'zo bo'lgan loyihalarni.
+        if not sees_all_projects(user):
             from apps.projects.models import ProjectMember
 
             qs = qs.filter(Exists(ProjectMember.objects.filter(

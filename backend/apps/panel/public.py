@@ -3,10 +3,17 @@
 Ro'yxatdan o'tmagan odam ham ochiq loyihalarni qidirib, ko'ra olishi kerak:
 platformada nima borligini ko'rmasdan turib odam ro'yxatdan o'tmaydi.
 
-XAVFSIZLIK. Bu yerdan faqat `is_public=True` loyihalar va faqat **xavfsiz
+XAVFSIZLIK. Bu yerdan faqat `is_listed=True` loyihalar va faqat **xavfsiz
 maydonlar** chiqadi. Chiqmaydigan narsalar: qo'shilish kodi (`join_code`),
 a'zolar ro'yxati va ularning emaillari, vazifalar matni, fayllar, tarix.
 Menejerning faqat ismi ko'rsatiladi — email emas.
+
+NEGA `is_listed`, `is_public` EMAS. Ilgari bu yerda `is_public` turardi,
+lekin u boshqa savolning javobi: «ish maydonidagi hamkasb ko'ra oladimi?».
+Uning standarti `True` va u formada umuman ko'rsatilmasdi, ya'ni har bir
+yangi loyiha shu endpoint orqali internetga chiqib turardi va buni menejer
+tanlamagan edi. Endi tashqariga chiqarish alohida, standarti `False` bo'lgan
+maydon bilan - ya'ni ATAYLAB bajariladigan amal (`projects.Project`).
 """
 from django.db.models import Count, Q
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -38,7 +45,7 @@ def visible_projects():
     from apps.projects.models import ProjectMember
     from apps.tasks.models import Task
 
-    return (Project.objects.filter(is_public=True)
+    return (Project.objects.filter(is_listed=True)
             .exclude(status="ARCHIVED")
             .select_related("workspace", "manager")
             .prefetch_related("specialties")
@@ -147,7 +154,7 @@ def public_stats(request):
     from apps.workspaces.models import Workspace
 
     return Response({
-        "projects": Project.objects.filter(is_public=True).count(),
+        "projects": Project.objects.filter(is_listed=True).count(),
         "workspaces": Workspace.objects.count(),
         "people": get_user_model().objects.filter(is_active=True).count(),
         "tasks_done": Task.objects.filter(status=TaskStatus.DONE).count(),
