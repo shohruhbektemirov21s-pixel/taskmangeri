@@ -139,7 +139,10 @@ export default function Board({ project }: { project: Project }) {
         </div>
       )}
 
-      <div className="board">
+      {/* `deep`: bu doskaning tepasida tablar, progress va filtr turadi -
+          ustunlar shunga qarab pastroq bo'ladi, aks holda gorizontal
+          surish yo'lakchasi ekrandan chiqib ketardi. */}
+      <div className="board deep">
         {columns.map((col) => (
           <div
             key={col.status}
