@@ -3371,6 +3371,58 @@
   "value": "Yuklagan: {ism}",
   "note": "pages/Suggestions.tsx"
  },
+ "suggestions.pill_all": {
+  "value": "Barchasi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.pill_pending": {
+  "value": "Ko'rib chiqilmoqda",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.pill_approved": {
+  "value": "Tasdiqlangan",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.pill_rejected": {
+  "value": "Rad etilgan",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.pill_mine": {
+  "value": "Mening takliflarim",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash": {
+  "value": "Saralash",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash_top": {
+  "value": "Eng ko'p qo'llab-quvvatlangan",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash_new": {
+  "value": "Eng yangi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash_old": {
+  "value": "Eng eski",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.boshliq_korib_chiqmoqda": {
+  "value": "Boshliq ko'rib chiqmoqda",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.royxat_qamrovi": {
+  "value": "{jami} ta taklifdan {dan}–{gacha} tasi ko'rsatilmoqda",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.kutilayotgan_bosh": {
+  "value": "Javob kutayotgan taklif yo'q",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.kutilayotgan_bosh_matn": {
+  "value": "Hamma taklif bo'yicha qaror chiqqan — navbatda hech nima qolmadi.",
+  "note": "pages/Suggestions.tsx"
+ },
  "task_bulk_form.bu_sahifa_loyiha_ichidan_ochiladi": {
   "value": "Bu sahifa loyiha ichidan ochiladi.",
   "note": "pages/TaskBulkForm.tsx"

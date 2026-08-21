@@ -51,7 +51,26 @@ import { tx } from "@/i18n";
  * «Mening takliflarim» ataylab OXIRGI: u shaxsiy kesim, jamoanikidan
  * keyin turadi.
  */
-type Tab = "ALL" | "APPROVED" | "REJECTED" | "MINE";
+type Tab = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "MINE";
+
+/**
+ * Filtr nishonlari. Son SERVERDAN keladi (`/suggestions/counts/`) -
+ * ekrandagi qatorlarni sanab bo'lmaydi, chunki ro'yxat sahifalangan va
+ * birinchi sahifada o'ntasi turadi.
+ *
+ * `key` - sanoq javobidagi nom, `tone` - nishon rangi.
+ */
+const PILLS: { tab: Tab; key: string; tone: string; boss?: boolean }[] = [
+  { tab: "ALL", key: "all", tone: "" },
+  { tab: "PENDING", key: "PENDING", tone: "warn" },
+  { tab: "APPROVED", key: "APPROVED", tone: "ok", boss: true },
+  { tab: "REJECTED", key: "REJECTED", tone: "danger", boss: true },
+  { tab: "MINE", key: "mine", tone: "" },
+];
+
+/** Saralash - qiymatlar server tushunadigan kalitlar (`SuggestionViewSet.SORTS`). */
+const SORTS = ["top", "new", "old"] as const;
+type Sort = typeof SORTS[number];
 
 /** Bir sahifada nechta taklif. Serverda ham shu son so'raladi. */
 const PER_PAGE = 10;
@@ -384,6 +403,14 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
         )}
       </div>
 
+      {/* IKKI USTUN: chapda taklifning o'zi, o'ngda uning HOLATI.
+          Qaror ilgari matnning ostida, ovoz tugmalaridan keyin turardi -
+          uzun taklifda uni ko'rish uchun pastga surish kerak edi va
+          «bu tasdiqlanganmi?» degan savol ko'z bilan javob olmasdi.
+          Tor ekranda ustunlar ustma-ust tushadi. */}
+      <div className="sg-cols">
+        <div className="sg-main">
+
       <p className="sg-body">{item.body}</p>
 
       {/* Biriktirilgan fayl - kim yuklagani bilan. Anonim taklifda
@@ -460,25 +487,36 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
         </>
       )}
 
-      {/* Qaror - hammaga ko'rinadi: taklif nima bo'lganini jamoa bilsin. */}
-      {item.status !== "PENDING" && (
-        <div className={`sg-decision ${item.status === "APPROVED" ? "ok" : "no"}`}>
-          <strong>{item.status_display}</strong>
-          {item.decision_note && <p>{item.decision_note}</p>}
-          {item.decided_by && (
-            <span className="muted">
-              {tx("suggestions.qaror_qildi", { ism: item.decided_by.full_name })}
-              {item.decided_at ? ` · ${timeAgo(item.decided_at)}` : ""}
-            </span>
+          {item.can_decide && (item.status === "PENDING" || redeciding) && (
+            <BossPanel item={item}
+                       onDone={(saved) => { setRedeciding(false); onChange(saved); }}
+                       onCancel={redeciding ? () => setRedeciding(false) : undefined} />
           )}
         </div>
-      )}
 
-      {item.can_decide && (item.status === "PENDING" || redeciding) && (
-        <BossPanel item={item}
-                   onDone={(saved) => { setRedeciding(false); onChange(saved); }}
-                   onCancel={redeciding ? () => setRedeciding(false) : undefined} />
-      )}
+        {/* Qaror - hammaga ko'rinadi: taklif nima bo'lganini jamoa bilsin.
+            KUTAYOTGANI ham yoziladi: muallif taklifi yo'qolib qolmaganini,
+            navbatda turganini ko'rib tursin. */}
+        <div className="sg-side">
+          <div className={`sg-decision ${item.status === "APPROVED" ? "ok"
+                                       : item.status === "REJECTED" ? "no" : "wait"}`}>
+            <strong>{item.status_display}</strong>
+            {item.decision_note && <p>{item.decision_note}</p>}
+            <span className="muted">
+              {item.status === "PENDING"
+                ? tx("suggestions.boshliq_korib_chiqmoqda")
+                : item.decided_by
+                  ? tx("suggestions.qaror_qildi", { ism: item.decided_by.full_name })
+                  : ""}
+            </span>
+            <span className="muted">
+              {timeAgo(item.status === "PENDING"
+                ? item.created_at
+                : item.decided_at || item.created_at)}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -489,6 +527,7 @@ export default function Suggestions() {
   const { user } = useAuth();
   const isBoss = Boolean(user?.is_boss);
   const [tab, setTab] = useState<Tab>("ALL");
+  const [sort, setSort] = useState<Sort>("top");
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Suggestion[]>([]);
   /* Serverdagi UMUMIY son - sahifa raqamlari shundan hisoblanadi. */
@@ -519,11 +558,18 @@ export default function Suggestions() {
      yopiq takliflarni qamraydi, chunki qaror turdan qat'i nazar
      qilinadi. */
   const params = tab === "MINE"
-    ? { mine: 1, page, page_size: PER_PAGE }
+    ? { mine: 1, sort, page, page_size: PER_PAGE }
     : tab === "ALL"
-      ? { page, page_size: PER_PAGE }
-      : { status: tab, page, page_size: PER_PAGE };
+      ? { sort, page, page_size: PER_PAGE }
+      : { status: tab, sort, page, page_size: PER_PAGE };
   const { data, error, loading, reload } = useFetch<unknown>("/suggestions/", params);
+
+  /* Nishonlardagi sonlar - alohida so'rov, chunki ro'yxat javobida faqat
+     TANLANGAN kesimning soni bo'ladi. `reload` bilan birga yangilanadi:
+     qaror chiqqanda «Ko'rib chiqilmoqda» kamayib, «Tasdiqlangan» ko'payadi. */
+  const { data: countData, reload: reloadCounts } =
+    useFetch<Record<string, number>>("/suggestions/counts/");
+  const counts = countData || {};
 
   useEffect(() => {
     if (data === null) return;
@@ -538,7 +584,10 @@ export default function Suggestions() {
   useLive((d) => {
     if (d.event !== "notification") return;
     const kind = d.notification?.kind;
-    if (kind === "suggestion.new" || kind === "suggestion.decided") reload();
+    if (kind === "suggestion.new" || kind === "suggestion.decided") {
+      reload();
+      reloadCounts();
+    }
   });
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
@@ -582,20 +631,21 @@ export default function Suggestions() {
     patch(saved);
   }
 
-  const TABS: [Tab, string][] = [
-    ["ALL", tx("suggestions.barcha_takliflar")],
-    ...(isBoss
-      ? ([
-          ["APPROVED", tx("suggestions.tasdiqlangan_takliflar")],
-          ["REJECTED", tx("suggestions.rad_etilgan_takliflar")],
-        ] as [Tab, string][])
-      : []),
-    ["MINE", tx("suggestions.meniki")],
-  ];
+  /* Qaror kesimlari faqat boshliqqa - qoida o'zgarmadi, faqat nishon
+     ko'rinishiga o'tdi. Yorliqlar bazadan (`tx`), son esa serverdan. */
+  const pills = PILLS.filter((p) => !p.boss || isBoss).map((p) => ({
+    ...p,
+    label: tx(`suggestions.pill_${p.key.toLowerCase()}`),
+    n: counts[p.key],
+  }));
 
   const EMPTY_STATES: Record<Tab, { title: string; text: string }> = {
     ALL: { title: tx("suggestions.bosh_holat"), text: tx("suggestions.bosh_holat_matn") },
     MINE: { title: tx("suggestions.meniki_bosh"), text: tx("suggestions.meniki_bosh_matn") },
+    PENDING: {
+      title: tx("suggestions.kutilayotgan_bosh"),
+      text: tx("suggestions.kutilayotgan_bosh_matn"),
+    },
     APPROVED: {
       title: tx("suggestions.tasdiqlangan_bosh"),
       text: tx("suggestions.tasdiqlangan_bosh_matn"),
@@ -618,10 +668,14 @@ export default function Suggestions() {
             </button>
           )
         }
-        tabs={TABS.map(([v, l]) => (
-          <button key={v} type="button" className={`tab ${tab === v ? "active" : ""}`}
-                  onClick={() => pick(v)}>
-            {l}
+        tabs={pills.map((p) => (
+          <button key={p.tab} type="button"
+                  className={`sg-pill ${p.tone} ${tab === p.tab ? "on" : ""}`}
+                  onClick={() => pick(p.tab)}>
+            {p.label}
+            {/* Son kelmagan bo'lsa nishon sonsiz chiziladi - nolni
+                ko'rsatib qo'yish yolg'on bo'lardi. */}
+            {p.n !== undefined && <span className="n">{p.n}</span>}
           </button>
         ))}
       />
@@ -641,6 +695,23 @@ export default function Suggestions() {
             onCancel={() => { setCreating(false); setEditing(null); }}
             onSaved={afterSave}
           />
+        )}
+
+        {/* Saralash: ro'yxat STANDARTDA ovoz bo'yicha keladi - jamoa eng
+            ko'p kutayotgan o'zgarish tepada turadi. «Eng yangi» boshqa
+            savolga javob beradi («bugun nima taklif qilindi»), shuning
+            uchun u tanlov, standart emas. Tartibni server hal qiladi. */}
+        {!!rows.length && (
+          <div className="sg-toolbar">
+            <span className="spacer" />
+            <label className="sr-only" htmlFor="sg-sort">{tx("suggestions.saralash")}</label>
+            <select id="sg-sort" value={sort}
+                    onChange={(e) => { setSort(e.target.value as Sort); setPage(1); }}>
+              {SORTS.map((v) => (
+                <option key={v} value={v}>{tx(`suggestions.saralash_${v}`)}</option>
+              ))}
+            </select>
+          </div>
         )}
 
         {error && <ErrorMsg error={error} />}
@@ -668,16 +739,22 @@ export default function Suggestions() {
             {/* Sahifa raqamlari - bo'linadigan narsa bo'lsagina. Yangi
                 sahifaga o'tilganda tahrir formasi yopiladi: u boshqa
                 sahifada qolgan taklifniki edi. */}
-            {pages > 1 && (
-              <div className="pager-bar">
-                <span className="muted">
-                  {total} {tx("common.tadan")} {(page - 1) * PER_PAGE + 1}—
-                  {Math.min(page * PER_PAGE, total)} {tx("common.tasi")}
-                </span>
+            {/* Qamrov yozuvi HAR DOIM turadi - bitta sahifada ham «nechtadan
+                nechtasi» degan savol bor. Sahifa raqamlari esa bo'linadigan
+                narsa bo'lgandagina. */}
+            <div className="pager-bar">
+              <span className="muted">
+                {tx("suggestions.royxat_qamrovi", {
+                  jami: total,
+                  dan: (page - 1) * PER_PAGE + 1,
+                  gacha: Math.min(page * PER_PAGE, total),
+                })}
+              </span>
+              {pages > 1 && (
                 <Pager page={page} pages={pages}
                        onPick={(n) => { setPage(n); setEditing(null); }} />
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>

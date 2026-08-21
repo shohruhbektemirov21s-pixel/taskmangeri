@@ -2691,7 +2691,51 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    Karta ro'yxati: chapda o'rin raqami, o'ngda tahrir tugmalari, ostida
    uchta ovoz tugmasi. O'rin raqami faqat OCHIQ kesimda chiziladi -
    yopiq takliflar jamoa ovoziga qo'yilmaydi. */
+/* ---- Filtr nishonlari ----
+   Oddiy tabdan farqi: har birida SON turadi va rang holatni aytadi -
+   ko'z ro'yxatni ochmasdan «uchtasi javob kutyapti» ni ko'radi. Son
+   serverdan keladi (`/suggestions/counts/`). */
+.sg-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 13px; border-radius: 999px; font-size: 13px; font-weight: 550;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); cursor: pointer;
+  transition: border-color .16s, color .16s, background .16s;
+}
+.sg-pill:hover { color: var(--text); border-color: var(--veil-strong); }
+.sg-pill .n {
+  min-width: 20px; padding: 0 6px; border-radius: 999px; text-align: center;
+  font-size: 12px; background: var(--surface-3); color: inherit;
+}
+/* Tanlangani rangi bilan ajraladi; rang esa holatning o'zi bilan bog'liq -
+   yashil tasdiqlangan, qizil rad etilgan, sariq javob kutayotgan. */
+.sg-pill.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.sg-pill.on .n { background: var(--surface); }
+.sg-pill.warn.on { color: var(--attention); border-color: var(--attention); background: var(--attention-soft); }
+.sg-pill.ok.on { color: var(--success); border-color: var(--success); background: var(--success-soft); }
+.sg-pill.danger.on { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+
+.sg-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+/* Tanlagich mazmuniga qarab tor bo'ladi: `select` ilovada butun kenglikka
+   cho'ziladi (forma maydonlari uchun to'g'ri), lekin bu yerda u ro'yxat
+   ustidagi kichik boshqaruv - cho'zilsa qidiruv maydoniga o'xshab
+   qolardi. */
+.sg-toolbar select {
+  flex: 0 0 auto; width: auto; min-width: 210px;
+  height: 34px; font-size: 13px;
+}
+
 .sg-list { display: flex; flex-direction: column; gap: 14px; }
+
+/* Taklif va uning HOLATI yonma-yon: o'ng ustun tor va yopishib turadi,
+   ya'ni uzun taklifda ham qaror ko'z oldida qoladi. Tor ekranda ustunlar
+   ustma-ust tushadi - 300px li qaror qutisi telefonda joy qoldirmasdi. */
+.sg-cols { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; }
+.sg-main { min-width: 0; }
+.sg-side { min-width: 0; }
+@media (max-width: 900px) {
+  .sg-cols { grid-template-columns: 1fr; }
+}
 
 .sg-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -2794,8 +2838,13 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 }
 .sg-decision.ok { border-left-color: var(--success); background: var(--success-soft); }
 .sg-decision.no { border-left-color: var(--danger); background: var(--danger-soft); }
+.sg-decision.wait { border-left-color: var(--attention); background: var(--attention-soft); }
 .sg-decision p { margin: 6px 0; white-space: pre-wrap; }
-.sg-decision .muted { font-size: 12.5px; }
+/* Qutidagi ikki qator - kim qaror qildi va qachon - ustma-ust turadi. */
+.sg-decision .muted { display: block; font-size: 12.5px; }
+/* O'ng ustunda quti tepadan boshlanadi: matnning yonida turishi kerak,
+   uning ostida emas. */
+.sg-side .sg-decision { margin-top: 0; }
 
 .sg-boss {
   margin-top: 14px; padding-top: 14px;
