@@ -118,25 +118,34 @@ export default function MyWork() {
   /**
    * Kartani SHU ustunga tashlab bo'ladimi.
    *
-   * Muddat ustunlari (bugun, shu haftalik) vazifaning MUDDATINI
-   * o'zgartiradi, muddatni esa faqat loyiha menejeri va loyiha admini
-   * qo'ya oladi - ijrochi ishni bajaradi, topshiriqni qayta yozmaydi
-   * (`ProjectAccess.can_create_task`). Ruxsat kartadan kartaga farq
-   * qiladi: har biri o'z loyihasidan keladi.
+   * KO'CHIRISH IKKI TOMONLAMA. «Bugun» va «Shu haftalik» muddatni qo'yadi,
+   * «Barchasi» esa uni OLIB TASHLAYDI - ya'ni ish rejadan chiqib, muddatsiz
+   * ro'yxatda qoladi. Shu sababdan «Barchasi» faqat muddati BOR kartani
+   * qabul qiladi: muddatsiz ishni unga tashlash hech nimani o'zgartirmasdi.
+   *
+   * Muddatni ODDIY IJROCHI ham suradi - u o'z ishini rejalashtiradi. Buning
+   * uchun tor eshik bor (`/tasks/<id>/due/`): u faqat `due_date` ni
+   * o'zgartiradi va loyiha a'zosiga ochiq. Vazifani TAHRIRLASH esa
+   * avvalgidek menejer va adminda qoladi - sarlavha, ijrochi, prioritet
+   * shu bilan birga ochilib ketmasin.
    *
    * «Bajarilganlar» esa MUDDAT emas, HOLAT: «Bajarildi» ni qo'lda qo'yib
    * bo'lmaydi, u faqat TEKSHIRUVDAGI ishni tekshiruvchi tasdiqlaganda
    * qo'yiladi (qoida serverda - `DEVELOPER_TRANSITIONS` va `move_status`).
-   * Shuning uchun ustun faqat shu shart bajarilganda ochiladi.
+   * Shuning uchun u yagona ustun bo'lib, boshqaruv huquqini talab qiladi.
    *
-   * «Barchasi» hech qachon qabul qilmaydi: u kesim emas, hamma ish
-   * allaqachon uning ichida - unga tashlashning ma'nosi yo'q.
+   * Yopilgan ish umuman sudralmaydi: uning muddati endi hech nimani
+   * anglatmaydi va muddat ustunlari faqat OCHIQ ishni oladi - karta o'z
+   * joyidan qimirlamasdi.
    */
   function accepts(key: string, task?: Task) {
-    if (!task || !managed.includes(task.project)) return false;
-    if (key === "WEEK" || key === "TODAY") return true;
-    if (key === "DONE") return task.status === "IN_REVIEW";
-    return false;
+    if (!task) return false;
+    if (key === "DONE") {
+      return managed.includes(task.project) && task.status === "IN_REVIEW";
+    }
+    if (task.status === "DONE" || task.status === "CANCELLED") return false;
+    if (key === "ALL") return Boolean(task.due_date);
+    return key === "WEEK" || key === "TODAY";
   }
 
   /** Ayni damda sudralayotgan vazifa. FUNKSIYA, o'zgaruvchi emas: ref
@@ -154,8 +163,10 @@ export default function MyWork() {
       } else {
         // Sana SERVERDAN kelgan (`due_target`): «hafta oxiri» qaysi kun
         // ekanini mijoz qayta hisoblamaydi, aks holda karta o'zi tushgan
-        // ustunda turmay qolishi mumkin edi.
-        await api.patch(`/tasks/${task.id}/`, { due_date: column?.due_target });
+        // ustunda turmay qolishi mumkin edi. «Barchasi» da nishon yo'q -
+        // u muddatni bo'shatadi.
+        await api.post(`/tasks/${task.id}/due/`,
+                       { due_date: key === "ALL" ? null : column?.due_target });
       }
       reload();
     } catch (err) {
@@ -202,9 +213,9 @@ export default function MyWork() {
             </div>
 
             {hasAny ? (
-              /* `plain`: ustunlarning ramkasi yo'q - dizaynda sarlavha
-                 to'g'ridan-to'g'ri tuvalda turadi, kartalar esa oq. */
-              <div className="board plain">
+              /* `fit`: ko'rinish loyiha doskasi bilan bir xil (ustun o'z
+                 qutisida), faqat to'rt ustun ekranga bo'linib sig'adi. */
+              <div className="board fit">
                 {groups.map((g) => (
                   <div
                     key={g.status}

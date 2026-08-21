@@ -11,9 +11,15 @@ Uchta qoida qulflanadi:
     «barchasi» da ham turadi. Bu Kanban emas, kesimlar to'plami.
   * Har ustun O'ZI sahifalanadi (15 tadan) va `count` ustundagi JAMI ishni
     aytadi — kelgan kartalar sonini emas.
-  * Sudrash uchun kerakli ikki ma'lumot ham serverdan keladi: qaysi sana
-    qo'yilishi (`due_target`) va kim qo'ya olishi (`managed_projects`).
-    Ikkovi mijozda hisoblansa, muddat qoidasi ikki joyda yashardi.
+  * Sudrash uchun kerakli ma'lumot serverdan keladi: qaysi sana qo'yilishi
+    (`due_target`). Mijozda hisoblansa «hafta oxiri» ikki joyda yashardi va
+    karta o'zi tushgan ustunda turmay qolishi mumkin edi.
+
+MUDDATNI IJROCHI HAM SURADI - doskada odam o'z ishini rejalashtiradi.
+Buning uchun TOR eshik bor (`/tasks/<id>/due/`): faqat `due_date` va faqat
+loyiha a'zosiga. Vazifani TAHRIRLASH avvalgidek menejer va adminda qoladi.
+`managed_projects` esa endi bitta narsani hal qiladi - «Bajarilganlar»
+ustuni, ya'ni tekshirib tasdiqlash.
 """
 from datetime import timedelta
 
@@ -145,7 +151,7 @@ class MyWorkDueBoardTest(ApiTestCase):
                          today - timedelta(days=today.weekday()) + timedelta(days=6))
 
     def test_dasturchi_boshqaradigan_loyiha_yoq(self):
-        """Muddatni ijrochi qo'ymaydi - ustun unga ochilmaydi."""
+        """Ro'yxat «Bajarilganlar» ustuni uchun: ijrochi ishni tasdiqlamaydi."""
         _, data = self.board(self.dev)
         self.assertEqual(data["managed_projects"], [])
 
@@ -155,8 +161,12 @@ class MyWorkDueBoardTest(ApiTestCase):
         _, data = self.board(self.manager)
         self.assertEqual(data["managed_projects"], [self.project.id])
 
-    def test_muddatni_faqat_boshqaruvchi_ozgartiradi(self):
-        """Ro'yxat KO'RINISH uchun - haqiqiy qulf `/tasks/<id>/` da turadi."""
+    def test_vazifani_tahrirlash_avvalgidek_menejerda_qoladi(self):
+        """Muddat eshigi ochilgani bilan TAHRIRLASH ochilmaydi.
+
+        Aks holda kartani surish uchun berilgan huquq bilan birga sarlavha,
+        prioritet va ijrochi ham ochilib ketardi.
+        """
         cols, _ = self.board()
         target = cols["TODAY"]["due_target"]
 
@@ -167,3 +177,60 @@ class MyWorkDueBoardTest(ApiTestCase):
         allowed = self.client_for(self.manager).patch(
             "/api/tasks/{}/".format(self.week_task.id), {"due_date": target}, format="json")
         self.assertEqual(allowed.status_code, 200)
+
+    # -------------------------------------------------------- muddat eshigi
+
+    def test_ijrochi_ozi_muddatni_suradi(self):
+        """Doskada odam O'Z ishini rejalashtiradi - tor eshik shu uchun."""
+        cols, _ = self.board()
+        target = cols["TODAY"]["due_target"]
+
+        r = self.client_for(self.dev).post(
+            "/api/tasks/{}/due/".format(self.week_task.id),
+            {"due_date": target.isoformat()}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+        self.week_task.refresh_from_db()
+        self.assertEqual(self.week_task.due_date.date(), timezone.localdate())
+
+        # Endi u «bugun» ustunida turadi - kesim ham shu sanadan chiqadi.
+        cols, _ = self.board()
+        self.assertIn(self.week_task.id, [t["id"] for t in cols["TODAY"]["tasks"]])
+
+    def test_barchasiga_tashlash_muddatni_bosh_qiladi(self):
+        """«Barchasi» - rejadan chiqarish: ish qoladi, muddati ketadi."""
+        r = self.client_for(self.dev).post(
+            "/api/tasks/{}/due/".format(self.today_task.id), {"due_date": None}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+        self.today_task.refresh_from_db()
+        self.assertIsNone(self.today_task.due_date)
+
+        cols, _ = self.board()
+        self.assertIn(self.today_task.id, [t["id"] for t in cols["ALL"]["tasks"]])
+        self.assertNotIn(self.today_task.id, [t["id"] for t in cols["TODAY"]["tasks"]])
+
+    def test_muddat_eshigi_begonaga_yopiq(self):
+        """Loyihaga aloqasi yo'q odam hech nimani surmaydi."""
+        r = self.client_for(self.outsider).post(
+            "/api/tasks/{}/due/".format(self.week_task.id), {"due_date": None}, format="json")
+        self.assertIn(r.status_code, (403, 404))
+
+    def test_muddat_eshigi_faqat_muddatga_tegadi(self):
+        """Boshqa maydon yuborilsa ham o'zgarmaydi - eshik ataylab tor."""
+        before = self.week_task.title
+        r = self.client_for(self.dev).post(
+            "/api/tasks/{}/due/".format(self.week_task.id),
+            {"due_date": None, "title": "O'zgartirilgan sarlavha", "priority": 4},
+            format="json")
+        self.assertEqual(r.status_code, 200)
+
+        self.week_task.refresh_from_db()
+        self.assertEqual(self.week_task.title, before)
+        self.assertIsNone(self.week_task.due_date)
+
+    def test_yaroqsiz_sana_400_beradi(self):
+        r = self.client_for(self.dev).post(
+            "/api/tasks/{}/due/".format(self.week_task.id),
+            {"due_date": "kecha"}, format="json")
+        self.assertEqual(r.status_code, 400)

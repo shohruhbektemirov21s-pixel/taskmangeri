@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -547,6 +549,51 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         return Response(TaskDetailSerializer(task,
                                              context=self.get_serializer_context()).data)
+
+    # ------------------------------------------------------------ muddat
+    @action(detail=True, methods=["post"], url_path="due")
+    def change_due(self, request, pk=None):
+        """Vazifa MUDDATINI qo'yish yoki olib tashlash - «Mening ishim» doskasi.
+
+        NEGA ALOHIDA ESHIK. Vazifani tahrirlash (`PATCH`) faqat menejer va
+        adminga ochiq: ijrochi ishni bajaradi, topshiriqning o'zini qayta
+        yozmaydi. Doskada esa odam O'Z ishini rejalashtiradi - kartani
+        «bugun» ga tortadi yoki «barchasi» ga qaytarib muddatni oladi. Shu
+        bitta amal uchun butun tahrirlashni ochib bo'lmasdi: u bilan birga
+        sarlavha, tavsif, prioritet va IJROCHI ham ochilib ketardi.
+
+        Shuning uchun eshik TOR: bu yerdan faqat `due_date` o'zgaradi va
+        faqat ishning O'ZIDA ishlay oladigan odam (`work`) - ya'ni loyiha
+        a'zosi. Boshqa maydonlarga baribir tegib bo'lmaydi.
+
+        O'zgarish TARIXGA tushadi (`log_field_changes`) - muddat kim
+        tomonidan surilgani ko'rinib tursin.
+        """
+        task = self.get_object()
+        check_access(request.user, task.project, "work")
+
+        raw = request.data.get("due_date", None)
+        if raw in ("", None):
+            due = None
+        else:
+            due = parse_datetime(raw) if isinstance(raw, str) else None
+            if due is None:
+                raise ValidationError({"due_date": "Muddat ISO korinishida bolsin."})
+            if timezone.is_naive(due):
+                due = timezone.make_aware(due)
+
+        if due == task.due_date:
+            return Response(TaskDetailSerializer(
+                task, context=self.get_serializer_context()).data)
+
+        before = task.due_date
+        task.due_date = due
+        task.save(update_fields=["due_date", "updated_at"])
+        log_field_changes(request.user, task,
+                          {str(task._meta.get_field("due_date").verbose_name): (before, due)})
+        live_task(task, "updated", request.user, title=task.title[:120])
+        return Response(TaskDetailSerializer(
+            task, context=self.get_serializer_context()).data)
 
     # ------------------------------------------------------------ boshqa odamga otkazish
     @action(detail=True, methods=["post"], url_path="reassign")
