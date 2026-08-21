@@ -457,7 +457,6 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
                         label={tx("suggestions.betarafman")} icon={<IconNeutral size={14} />}
                         disabled={busy} onClick={() => void vote("NEUTRAL")} />
           </div>
-          <div className="sg-secret">{tx("suggestions.ovoz_siri")}</div>
         </>
       )}
 

@@ -3263,10 +3263,6 @@
   "value": "Taklif va unga berilgan ovozlar butunlay o'chadi. Buni qaytarib bo'lmaydi.",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.ovoz_siri": {
-  "value": "Kim ovoz bergani hech kimga ko'rsatilmaydi — faqat sonlar ko'rinadi.",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.qaror_qildi": {
   "value": "{ism} qaror qildi",
   "note": "pages/Suggestions.tsx"

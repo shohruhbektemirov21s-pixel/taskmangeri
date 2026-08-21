@@ -2725,8 +2725,6 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 }
 .sg-vote.on .sg-vote-n { border-left-color: currentColor; }
 
-.sg-secret { margin-top: 8px; font-size: 12px; color: var(--muted); }
-
 /* Biriktirilgan fayl - bitta qator: ikonka, nom, hajm va kim yuklagani.
    Uzun nom qatorni cho'zmasin, aks holda «yuklagan» yozuvi kartadan
    chiqib ketardi. */
