@@ -2199,6 +2199,20 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 
 /* Qator chekkasidagi «⋯» menyusi */
 .row-menu { position: relative; display: inline-flex; }
+/* OCHIQ MENYU HECH NARSANING OSTIDA QOLMAYDI.
+   `z-index: 70` menyuning o'zida bor, lekin u faqat O'Z qatlamida
+   ishlaydi: ro'yxatdagi keyingi karta ham joylashtirilgan element
+   (`position: relative`) va o'z foni bilan menyuning pastki qismini
+   yopib qo'yardi - «Tahrirlash» ko'rinib, «O'chirish» keyingi qator
+   ostida qolardi.
+   Shuning uchun menyuni USHLAB TURGAN qator ko'tariladi: `:has()`
+   faqat menyu ochilganda ishlaydi, ya'ni qolgan vaqtda tartib
+   o'zgarmaydi. */
+.row-menu:has(.row-menu-list) { z-index: 80; }
+.pcard:has(.row-menu-list),
+.sg-card:has(.row-menu-list) { z-index: 20; }
+/* `.sg-card` da `position` yo'q edi - `z-index` ishlashi uchun kerak. */
+.sg-card:has(.row-menu-list) { position: relative; }
 .row-menu > .btn { padding: 4px 10px; font-size: 16px; line-height: 1; }
 .row-menu-list {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 70;
