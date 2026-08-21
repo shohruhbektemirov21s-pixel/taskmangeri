@@ -33,6 +33,7 @@ from .models import (Suggestion, SuggestionFile, SuggestionScope, SuggestionStat
                      SuggestionVote, VoteChoice)
 from .serializers import (DecisionSerializer, SuggestionFileSerializer,
                           SuggestionSerializer, VoteSerializer)
+from .services import notify_decision, notify_new
 
 
 class SuggestionViewSet(viewsets.ModelViewSet):
@@ -85,7 +86,10 @@ class SuggestionViewSet(viewsets.ModelViewSet):
     # --------------------------------------------------------------- yozish
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        obj = serializer.save(author=self.request.user)
+        # Taklif javob kutib turadi - boshliq uni ro'yxatni ochib
+        # tekshirmasdan, qo'ng'iroq orqali bilsin.
+        notify_new(obj)
 
     def _mine_or_403(self, obj):
         if obj.author_id != self.request.user.id:
@@ -160,6 +164,11 @@ class SuggestionViewSet(viewsets.ModelViewSet):
             obj.decision_note = note
         obj.save(update_fields=["status", "decided_by", "decided_at",
                                 "decision_note", "updated_at"])
+
+        # Qarorni muallif kutib turadi. Bo'sh so'rov (na holat, na izoh)
+        # hech narsani o'zgartirmagan - unga xabar ham kerak emas.
+        if new_status or note:
+            notify_decision(obj, actor=request.user, status_changed=bool(new_status))
 
         return Response(self.get_serializer(self.get_queryset().get(pk=obj.pk)).data)
 

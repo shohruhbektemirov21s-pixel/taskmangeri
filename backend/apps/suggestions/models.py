@@ -8,9 +8,16 @@ IKKI XIL TAKLIF:
   * **Yopiq** — faqat muallif va boshliq ko'radi. Jamoa oldida aytilmaydigan
     gap uchun: shikoyat, maosh, shaxsiy holat.
 
-IKKI XIL MUALLIF. Ochiq taklif nomi bilan ham, anonim ham bo'ladi. Anonim
-tanlangan bo'lsa muallif HECH KIMGA ko'rsatilmaydi — boshliqqa ham. Aks
-holda anonimlik va'da bo'lib qolardi-yu, himoya bo'lmasdi.
+IKKI XIL MUALLIF. Taklif nomi bilan ham, anonim ham bo'ladi — TURIDAN
+QAT'I NAZAR. Anonim tanlangan bo'lsa muallif HECH KIMGA ko'rsatilmaydi —
+boshliqqa ham. Aks holda anonimlik va'da bo'lib qolardi-yu, himoya
+bo'lmasdi.
+
+Ilgari yopiq taklif anonim bo'lolmasdi («boshliq savol bera olsin» deb).
+Natijasi teskari edi: eng og'ir mavzular — maosh, shikoyat, shaxsiy
+holat — aynan yopiq taklifda yoziladi va o'sha yerda ism majburiy bo'lib
+turardi. Ismini yashirmoqchi bo'lgan odamning yagona yo'li taklifni
+OCHIQ qilish, ya'ni butun jamoa oldida aytish edi. Endi tanlov muallifda.
 
 OVOZ BERGAN KIM — SIR. Jadvalda `user` bor (bir odam bir marta ovoz
 bersin), lekin u hech qayerda ko'rsatilmaydi: na API da, na `django-admin/`

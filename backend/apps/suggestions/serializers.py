@@ -148,19 +148,15 @@ class SuggestionSerializer(serializers.ModelSerializer):
                 "Taklif matni juda qisqa - nima taklif qilayotganingizni yozing.")
         return value
 
-    def validate(self, attrs):
-        """Yopiq taklif anonim bo'lmaydi.
-
-        Yopiqni faqat muallif va boshliq ko'radi, ya'ni boshliq baribir
-        kim yozganini bilishi kerak - aks holda savol berib bo'lmaydi.
-        Anonimlik OCHIQ taklif uchun: jamoa oldida nomini aytmaslik uchun.
-        """
-        scope = attrs.get("scope", getattr(self.instance, "scope", SuggestionScope.OPEN))
-        anon = attrs.get("is_anonymous", getattr(self.instance, "is_anonymous", False))
-        if scope == SuggestionScope.CLOSED and anon:
-            raise serializers.ValidationError(
-                {"is_anonymous": "Yopiq taklif anonim bo'lmaydi - uni faqat boshliq ko'radi."})
-        return attrs
+    # ANONIMLIK IKKALA TURDA HAM ISHLAYDI.
+    #
+    # Ilgari bu yerda tekshiruv turardi: yopiq taklif anonim bo'lolmasdi.
+    # Sababi «boshliq savol bera olsin» edi, lekin narxi teskari chiqdi -
+    # aynan yopiq taklif eng og'ir mavzular uchun (maosh, shikoyat,
+    # shaxsiy holat) va o'sha yerda ism majburiy bo'lib turardi. Ya'ni
+    # ismini yashirmoqchi bo'lgan odamning yagona yo'li taklifni OCHIQ
+    # qilish edi - butun jamoa oldida. Endi tanlov muallifda: turini ham,
+    # ismini ko'rsatish-ko'rsatmaslikni ham o'zi hal qiladi.
 
 
 class DecisionSerializer(serializers.Serializer):

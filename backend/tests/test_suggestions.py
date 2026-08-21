@@ -16,6 +16,7 @@ import os
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from apps.notifications.models import Notification, NotificationKind
 from apps.suggestions.models import (Suggestion, SuggestionFile, SuggestionScope,
                                      SuggestionStatus, SuggestionVote, VoteChoice)
 
@@ -93,13 +94,24 @@ class AnonymityTest(SuggestionTestCase):
         self.assertTrue(row["can_edit"])
         self.assertIsNone(row["author"])
 
-    def test_yopiq_taklif_anonim_bolmaydi(self):
+    def test_yopiq_taklif_ham_anonim_bola_oladi(self):
+        """Eng og'ir mavzu aynan yopiqda yoziladi - ism majburiy bo'lmasin.
+
+        Ilgari bu 400 qaytarardi va ismini yashirmoqchi bo'lgan odamning
+        yagona yo'li taklifni OCHIQ qilish - butun jamoa oldida aytish edi.
+        """
         response = self.dev_api.post(URL, {
             "title": "Maosh haqida gap bor",
             "body": "Buni jamoa oldida emas, yakkama-yakka aytmoqchiman.",
             "scope": "CLOSED", "is_anonymous": True}, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("is_anonymous", response.json())
+        self.assertEqual(response.status_code, 201)
+
+        # Boshliq ko'radi, lekin kim yozganini BILMAYDI.
+        row = self.boss_api.get("%s%d/" % (URL, response.json()["id"])).json()
+        self.assertEqual(row["scope"], "CLOSED")
+        self.assertTrue(row["is_anonymous"])
+        self.assertIsNone(row["author"])
+        self.assertNotIn(self.dev.full_name, str(row))
 
 
 class VoteTest(SuggestionTestCase):
@@ -332,3 +344,94 @@ class ChoiceTest(SuggestionTestCase):
                                              choice=VoteChoice.FOR)
         self.assertNotIn(self.dev.full_name, str(vote))
         self.assertNotIn(self.dev.email, str(vote))
+
+
+class NotificationTest(SuggestionTestCase):
+    """Taklif qo'ng'iroqqa tushadi — anonimlikni buzmasdan.
+
+    Ikki nuqta: yangi taklif boshliqqa, qaror esa muallifga boradi.
+    Uchinchi va eng nozik va'da — anonim taklifda bildirishnoma ham
+    muallifni aytmasligi: `actor` foydalanuvchini to'liq ochadigan
+    maydon, ya'ni u yerga muallifni qo'yish sahifadagi yashirishni
+    ma'nosiz qilardi.
+    """
+
+    def notes(self, user, kind=None):
+        qs = Notification.objects.filter(recipient=user)
+        return list(qs.filter(kind=kind) if kind else qs)
+
+    def post_suggestion(self, **extra):
+        data = {"title": "Ish vaqtini moslashuvchan qilaylik",
+                "body": "Ertalab 9 emas, 8 dan 11 gacha boshlash imkoni bo'lsin."}
+        data.update(extra)
+        response = self.dev_api.post(URL, data, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        return response.json()
+
+    def test_yangi_taklif_boshliqqa_boradi(self):
+        row = self.post_suggestion()
+        got = self.notes(self.boss, NotificationKind.SUGGESTION_NEW)
+        self.assertEqual(len(got), 1)
+        self.assertIn(row["title"], got[0].title)
+        self.assertEqual(got[0].url, "/takliflar")
+        self.assertEqual(got[0].meta.get("suggestion"), row["id"])
+        # Nomi bilan yuborilgan taklifda muallif ko'rinadi.
+        self.assertEqual(got[0].actor_id, self.dev.id)
+        self.assertIn(self.dev.full_name, got[0].body)
+
+    def test_anonim_taklifda_muallif_bildirishnomada_ham_yoq(self):
+        self.post_suggestion(is_anonymous=True)
+        got = self.notes(self.boss, NotificationKind.SUGGESTION_NEW)
+        self.assertEqual(len(got), 1)
+        self.assertIsNone(got[0].actor_id)
+        self.assertNotIn(self.dev.full_name, got[0].body)
+        self.assertNotIn(self.dev.full_name, got[0].title)
+
+    def test_boshqa_odamga_xabar_ketmaydi(self):
+        """Taklif — boshliqning ishi. Jamoa qo'ng'irog'i chalinmaydi."""
+        self.post_suggestion()
+        self.assertEqual(self.notes(self.manager, NotificationKind.SUGGESTION_NEW), [])
+        self.assertEqual(self.notes(self.dev, NotificationKind.SUGGESTION_NEW), [])
+
+    def test_ozining_taklifi_uchun_ozi_xabar_olmaydi(self):
+        """Boshliq o'zi taklif yozsa, o'ziga «yangi taklif» kelmaydi."""
+        response = self.boss_api.post(URL, {
+            "title": "Dam olish kunini ko'chiraylik",
+            "body": "Bayramdan keyingi dushanbani dam olish qilsak."}, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(self.notes(self.boss, NotificationKind.SUGGESTION_NEW), [])
+
+    def test_qaror_muallifga_boradi(self):
+        item = self.make()
+        self.boss_api.post("%s%d/decide/" % (URL, item.id),
+                           {"status": "APPROVED", "note": "Kelishdik."}, format="json")
+        got = self.notes(self.dev, NotificationKind.SUGGESTION_DECIDED)
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0].title, "Taklifingiz tasdiqlandi")
+        self.assertIn("Kelishdik.", got[0].body)
+        self.assertEqual(got[0].url, "/takliflar")
+
+    def test_rad_etilganda_ham_boradi(self):
+        item = self.make()
+        self.boss_api.post("%s%d/decide/" % (URL, item.id),
+                           {"status": "REJECTED", "note": "Hozircha imkon yo'q."},
+                           format="json")
+        got = self.notes(self.dev, NotificationKind.SUGGESTION_DECIDED)
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0].title, "Taklifingiz rad etildi")
+
+    def test_faqat_izoh_qoldirilsa_ham_muallif_biladi(self):
+        item = self.make()
+        self.boss_api.post("%s%d/decide/" % (URL, item.id),
+                           {"note": "Bir savolim bor edi."}, format="json")
+        got = self.notes(self.dev, NotificationKind.SUGGESTION_DECIDED)
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0].title, "Taklifingizga izoh qoldirildi")
+
+    def test_anonim_taklif_qarori_ham_muallifga_yetadi(self):
+        """Anonimlik boshliqdan yashiradi — muallifning O'ZIDAN emas."""
+        row = self.post_suggestion(is_anonymous=True)
+        self.boss_api.post("%s%d/decide/" % (URL, row["id"]),
+                           {"status": "APPROVED", "note": "Yaxshi fikr."}, format="json")
+        got = self.notes(self.dev, NotificationKind.SUGGESTION_DECIDED)
+        self.assertEqual(len(got), 1)
