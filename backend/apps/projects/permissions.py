@@ -91,6 +91,32 @@ def sees_all_projects(user):
                 or getattr(user, "global_role", None) == GlobalRole.MANAGER)
 
 
+def manages_all_projects(user):
+    """Har bir LOYIHADA boshqaruvchi bo'lgan odam.
+
+    Tizim admini, boshliq va GLOBAL MENEJER. Uchovi ham loyihaning ichida
+    loyiha menejeri bilan teng: sozlama, a'zolik, vazifa yaratish va
+    o'chirish, tekshirib tasdiqlash.
+
+    NEGA `runs_everything` DAN ALOHIDA. U ish maydonlariga ham ulangan
+    (`Workspace.can_manage`, maydonni o'chirish, `join_code`) - o'sha
+    yerga global menejerni qo'shish uni loyihadan tashqariga chiqarib
+    yuborardi: butun ish maydonini qayta nomlash va o'chirish ham unga
+    ochilardi. Loyiha menejerining o'zida bunday huquq yo'q, ya'ni «loyiha
+    menejeri bilan teng» degani buzilardi.
+
+    Shu sababdan bu yordamchi FAQAT loyiha ruxsatlarida ishlatiladi -
+    `ProjectAccess.can_manage`, `can_delete_project`, `managed_projects_q`
+    va ular bilan bir manbadan chiqishi shart bo'lgan panel ro'yxatlari.
+    """
+    from apps.accounts.models import GlobalRole
+
+    if not user or not user.is_authenticated:
+        return False
+    return bool(runs_everything(user)
+                or getattr(user, "global_role", None) == GlobalRole.MANAGER)
+
+
 class IsPlatformAdmin(permissions.BasePermission):
     message = "Bu amal faqat admin uchun."
 
@@ -272,7 +298,7 @@ def managed_projects_q(user):
     # bir xil javob. Ikkovi ajralib qolsa, boshliq loyihani ochib
     # tugmalarni bosa olardi-yu, tekshiruv navbati va jamoa yuklamasi
     # («qaysi loyiha uchun javobgar» degan ro'yxatlar) bo'sh chiqardi.
-    if runs_everything(user):
+    if manages_all_projects(user):
         return Q()
     # Loyiha admini ham boshqaradi (`ProjectAccess.can_manage` bilan bir xil),
     # menejer esa a'zolik yozuvisiz ham menejer bo'lishi mumkin.
@@ -324,6 +350,12 @@ class ProjectAccess:
         # BIR MANBADAN keladi: ro'yxat loyihani ko'rsatib, ochilganda 403
         # bergan holat aynan shu ikkovi ajralganda paydo bo'ladi.
         self.sees_all = sees_all_projects(user)
+        # Hamma loyihani BOSHQARADIGAN rol (admin, boshliq, global menejer).
+        # `sees_all` dan farqi tarixiy: ilgari global menejer hamma
+        # loyihani ko'rar, faqat o'zinikini boshqarardi. Endi ikkovi bir
+        # xil ro'yxat - lekin savol baribir ikkita bo'lib qoladi va
+        # `managed_projects_q` shu bayroqning queryset ko'rinishi.
+        self.manages_all = manages_all_projects(user)
         self.is_manager = (self.role == ProjectRole.MANAGER
                            or project.manager_id == getattr(user, "id", None))
         self.is_project_admin = self.role == ProjectRole.ADMIN
@@ -364,12 +396,12 @@ class ProjectAccess:
         """Azolarni qabul qilish/chiqarish, loyiha sozlamalari, fayl ochirish.
 
         Boshliq bu yerda ham admin bilan teng: ochilgan har qanday loyihada
-        u hamma amalni bajara oladi. Faqat MENEJERGA tegish alohida
-        tekshiriladi (`can_change_member`) - u qoida rolga emas,
-        menejerlikning o'ziga bog'langan.
+        u hamma amalni bajara oladi. GLOBAL MENEJER ham shu qatorda -
+        ilgari u begona loyihani faqat ko'rardi va «Mehmon» bo'lib turardi.
+        Faqat MENEJERGA tegish alohida tekshiriladi (`can_change_member`) -
+        u qoida rolga emas, menejerlikning o'ziga bog'langan.
         """
-        return (self.is_admin or self.is_boss
-                or self.is_manager or self.is_project_admin)
+        return (self.manages_all or self.is_manager or self.is_project_admin)
 
     @property
     def can_create_task(self):
@@ -420,7 +452,7 @@ class ProjectAccess:
         berilganda o'chirish jimgina 403 berib turaverdi, interfeys esa
         menyuda «O'chirish» ni ko'rsatardi.
         """
-        return self.is_admin or self.is_boss or self.is_manager
+        return self.manages_all or self.is_manager
 
     @property
     def can_work(self):
@@ -475,6 +507,12 @@ class ProjectAccess:
             return self.membership.get_role_display()
         if self.is_boss:
             return "Boshliq"
+        # Global menejer a'zo bo'lmagan loyihada ham boshqaradi - unga
+        # «Mehmon» deb yozib qo'yish yolg'on bo'lardi: interfeys shu
+        # yorliqqa qarab «kuzatuv rejimi» deydi va odam ishlaydigan
+        # tugmalarni izlab qolardi.
+        if self.manages_all:
+            return "Loyiha menejeri"
         return "Mehmon"
 
     def as_dict(self):

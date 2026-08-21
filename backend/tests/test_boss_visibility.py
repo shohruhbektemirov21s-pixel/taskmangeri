@@ -408,10 +408,16 @@ class SuggestionDecisionIsBossOnlyTest(ApiTestCase):
 
 
 class GlobalManagerSeesAllProjectsTest(ApiTestCase):
-    """Loyiha menejeri (global rol) hamma loyihani KO'RADI, boshqarmaydi.
+    """Global menejer hamma loyihani ko'radi VA boshqaradi.
 
-    Talab: menejer yangi loyiha ochilishini kutmasin - ro'yxatda hammasi
-    tursin. Chegara esa saqlanadi: begona loyihada u kuzatuvchi.
+    Ilgari chegara bor edi: ko'rish ochiq, boshqaruv yopiq - begona
+    loyihada u kuzatuvchi bo'lib turardi va sahifada «Mehmon» deb
+    yozilardi. Endi u har bir loyihada loyiha menejeri bilan TENG:
+    sozlama, vazifa, tekshiruv - hammasi.
+
+    Chegara loyihadan TASHQARIDA qoldi: ish maydonini qayta nomlash va
+    o'chirish, `join_code`, `django-admin/` va foydalanuvchi rollari unga
+    ochilmaydi (`runs_everything` va `is_platform_admin`).
     """
 
     @classmethod
@@ -446,21 +452,39 @@ class GlobalManagerSeesAllProjectsTest(ApiTestCase):
         ids = [t["id"] for t in self.mgr.get("/api/tasks/").data["results"]]
         self.assertIn(self.other_task.pk, ids)
 
-    def test_menejer_begona_loyihani_boshqara_olmaydi(self):
-        """Ko'rish ochildi, BOSHQARUV ochilmadi - eng muhim chegara."""
+    def test_menejer_begona_loyihani_ham_boshqaradi(self):
+        """A'zolik yozuvisiz ham to'liq boshqaruv - yangi qoida."""
         acc = self.mgr.get(
             "/api/projects/{}/".format(self.other_project.pk)).data["access"]
-        self.assertFalse(acc["can_manage"])
-        self.assertFalse(acc["can_create_task"])
-        self.assertFalse(acc["can_review"])
+        self.assertTrue(acc["can_manage"])
+        self.assertTrue(acc["can_create_task"])
+        self.assertTrue(acc["can_review"])
+        # Sahifa yorlig'i ham to'g'ri bo'lsin: «Mehmon» deb yozilsa
+        # interfeys «kuzatuv rejimi» deydi va odam ishlaydigan tugmalarni
+        # izlab qolardi.
+        self.assertEqual(acc["role_label"], "Loyiha menejeri")
 
         r = self.mgr.patch("/api/projects/{}/".format(self.other_project.pk),
                            {"name": "Menejer qo'ygan nom"}, format="json")
-        self.assertEqual(r.status_code, 403)
+        self.assertEqual(r.status_code, 200)
 
         r = self.mgr.post("/api/tasks/", {"project": self.other_project.pk,
                                           "title": "Begona ish"}, format="json")
-        self.assertEqual(r.status_code, 403)
+        self.assertEqual(r.status_code, 201)
+
+    def test_ish_maydoni_menejerga_ochilmadi(self):
+        """Chegara loyihadan TASHQARIDA: maydon egasiniki bo'lib qoladi.
+
+        Loyiha menejerining o'zida ham ish maydonini qayta nomlash huquqi
+        yo'q - «loyiha menejeri bilan teng» degani shu yerda tugaydi.
+        """
+        r = self.mgr.patch("/api/workspaces/{}/".format(self.other_ws.pk),
+                           {"name": "Menejer qo'ygan maydon"}, format="json")
+        # 404 ham to'g'ri javob: yopiq maydon unga ro'yxatda ham ko'rinmaydi.
+        # Muhimi - nom o'zgarmasin.
+        self.assertIn(r.status_code, (403, 404))
+        self.other_ws.refresh_from_db()
+        self.assertEqual(self.other_ws.name, "Begona maydon")
 
     def test_menejer_oz_loyihasini_oldingidek_boshqaradi(self):
         acc = self.mgr.get("/api/projects/{}/".format(self.project.pk)).data["access"]

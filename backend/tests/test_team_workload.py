@@ -5,6 +5,11 @@ ya'ni u BOSHQA odamlarning ishini ko'rsatadi. Shu sabab chegarasi
 ro'yxatning o'zidan muhimroq: quyidagi testlar qamrovni qulflab qo'yadi -
 odam faqat O'ZI BOSHQARADIGAN loyihalar bo'yicha ko'radi, ijrochiga esa
 bo'lim umuman bo'sh qaytadi.
+
+CHEGARA KIMDA QOLDI. Global menejer endi har bir loyihani boshqaradi
+(`manages_all_projects`), ya'ni unga bo'lim butun tizim bo'yicha ochiq.
+Shuning uchun chegara LOYIHA MENEJERI ustida sinaladi - `local_manager`:
+global roli oddiy, lekin bitta loyihada menejer.
 """
 
 from datetime import datetime, time as dt_time
@@ -33,7 +38,14 @@ class TeamWorkloadTest(ApiTestCase):
         TaskAssignment.objects.create(task=cls.open_task, user=cls.dev)
         TaskAssignment.objects.create(task=cls.done_task, user=cls.dev)
 
-        # Begona loyiha - menejerimizning boshqaruvida emas.
+        # Loyiha menejeri: global roli oddiy, boshqaruvi bitta loyihada.
+        # Qamrov chegarasi endi shu odamda sinaladi - global menejerga
+        # hamma loyiha ochiq.
+        cls.local_manager = make_user("loyiha-menejeri@sinov.uz", "Loyiha Boshqaruvchisi")
+        ProjectMember.objects.create(project=cls.project, user=cls.local_manager,
+                                     role=ProjectRole.MANAGER)
+
+        # Begona loyiha - `local_manager` ning boshqaruvida emas.
         cls.other_manager = make_user("boshqa@sinov.uz", "Boshqa Menejer", role="MANAGER")
         cls.other = Project.objects.create(workspace=cls.workspace, name="Begona loyiha",
                                            manager=cls.other_manager,
@@ -51,9 +63,16 @@ class TeamWorkloadTest(ApiTestCase):
         return next(r for r in data["developers"] if r["user"]["id"] == user.pk)
 
     def test_menejer_oz_loyihasidagi_ijrochilarni_koradi(self):
-        d = self.workload(self.manager)
+        d = self.workload(self.local_manager)
         self.assertEqual(self.names(d), ["Dasturchi Ali", "Tester Vali"])
         self.assertEqual([p["name"] for p in d["projects"]], ["Sinov loyihasi"])
+
+    def test_global_menejer_hamma_loyihani_koradi(self):
+        """Yangi qoida: u har bir loyihada boshqaruvchi, demak qamrovi ham to'liq."""
+        d = self.workload(self.manager)
+        self.assertIn("Chetdagi Odam", self.names(d))
+        self.assertEqual(sorted(p["name"] for p in d["projects"]),
+                         ["Begona loyiha", "Sinov loyihasi"])
 
     def test_menejer_ozi_va_kuzatuvchi_royxatda_yoq(self):
         """Bo'lim ISHNI BAJARADIGANLAR haqida - boshqaruvchi bu yerda emas."""
@@ -61,7 +80,8 @@ class TeamWorkloadTest(ApiTestCase):
         self.assertNotIn("Loyiha Menejeri", self.names(d))
 
     def test_begona_loyiha_qamrovga_tushmaydi(self):
-        d = self.workload(self.manager)
+        """Loyiha menejerining chegarasi - o'z loyihasi bilan tugaydi."""
+        d = self.workload(self.local_manager)
         self.assertNotIn("Chetdagi Odam", self.names(d))
 
     def test_standart_royxatda_faqat_tugallanmagan_ish(self):
@@ -136,7 +156,8 @@ class TeamWorkloadTest(ApiTestCase):
 
     def test_begona_odam_ismi_qamrovni_kengaytirmaydi(self):
         """Chegara o'sha: boshqaruvdagi loyihalardagi ijrochilar."""
-        self.assertEqual(self.workload(self.manager, search="Chetdagi")["developers"], [])
+        self.assertEqual(
+            self.workload(self.local_manager, search="Chetdagi")["developers"], [])
 
     def test_davr_filtri_kalendar_boyicha(self):
         """«Bugun» - shu kun, «shu yil» - yil boshidan oxirigacha."""
@@ -164,7 +185,7 @@ class TeamWorkloadTest(ApiTestCase):
 
     def test_loyiha_filtri_begona_loyihani_ochmaydi(self):
         """Boshqa odamning loyihasi raqami yozilsa ham qamrov kengaymasin."""
-        d = self.workload(self.manager, project=self.other.pk)
+        d = self.workload(self.local_manager, project=self.other.pk)
         self.assertEqual(d["developers"], [])
 
     def test_muddat_filtri_aynan_shu_kun(self):
@@ -219,7 +240,7 @@ class TeamWorkloadTest(ApiTestCase):
 
     def test_ochirilgan_loyiha_royxatda_qolmaydi(self):
         self.project.soft_delete(actor=self.manager)
-        d = self.workload(self.manager)
+        d = self.workload(self.local_manager)
         self.assertEqual(d["developers"], [])
         self.assertEqual(d["projects"], [])
 

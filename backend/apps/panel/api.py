@@ -15,7 +15,8 @@ from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
-from apps.projects.permissions import managed_projects_q, runs_everything
+from apps.projects.permissions import (managed_projects_q, manages_all_projects,
+                                       runs_everything)
 from apps.core.periods import DUE_RANGES, PERIODS, _period_start, due_span
 from apps.core.queries import int_param, task_search_q
 from apps.projects.services import project_counters
@@ -95,7 +96,10 @@ def panel_queryset(user):
     mine = Exists(TaskAssignment.objects.filter(
         task=OuterRef("pk"), user=user, is_active=True))
 
-    if runs_everything(user):
+    # Qamrov `ProjectAccess.can_manage` bilan bir manbadan: global menejer
+    # endi hamma loyihada boshqaruvchi, demak paneli ham o'shancha bo'lsin -
+    # aks holda u loyihani ochib amal qila olardi-yu, panelda «0» ko'rardi.
+    if manages_all_projects(user):
         return live, "all"
 
     managed = Project.objects.filter(
@@ -230,7 +234,7 @@ def dashboard(request):
     # so'rovlari va tarix lentasi butun tizim bo'yicha bo'ladi - u hamma
     # loyihada amal qila oladi (`managed_projects_q`), demak navbati ham
     # o'shancha bo'lishi kerak.
-    if runs_everything(user):
+    if manages_all_projects(user):
         managed = Project.objects.select_related("manager").order_by("-updated_at")
         review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
                                         project__deleted_at__isnull=True)

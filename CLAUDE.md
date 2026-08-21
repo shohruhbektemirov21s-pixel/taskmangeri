@@ -106,20 +106,31 @@ panel  →  projects · tasks · activity · accounts · workspaces  →  core
 
 ### Global rollar: ko'rish va boshqarish — ikki xil savol
 
-`permissions.py` da ikkita yordamchi bor va ularni **aralashtirma**:
+`permissions.py` da **uchta** yordamchi bor va ularni **aralashtirma**:
 
 | Yordamchi | Kim | Nima uchun ishlatiladi |
 | --- | --- | --- |
-| `sees_all_projects` | admin, boshliq, **global menejer** | faqat KO'RINISH shartlari |
-| `runs_everything` | admin, boshliq | BOSHQARISH tekshiruvlari |
+| `sees_all_projects` | admin, boshliq, global menejer | faqat KO'RINISH shartlari |
+| `manages_all_projects` | admin, boshliq, global menejer | LOYIHA boshqaruvi |
+| `runs_everything` | admin, boshliq | loyihadan TASHQARI (ish maydoni) |
 
 - **Boshliq (`BOSS`)** — loyihalarda admin bilan teng: hamma loyihani
   ko'radi va hamma amalni bajaradi. Lekin `django-admin/` va foydalanuvchi
   rollari unga ochilmaydi — u yer `is_platform_admin` da qoladi.
-- **Global menejer (`MANAGER`)** — hamma loyihani **ko'radi**, faqat o'zi
-  menejer/loyiha admini bo'lgan joyda **boshqaradi**.
+- **Global menejer (`MANAGER`)** — har bir loyihada loyiha menejeri bilan
+  **teng**: sozlama, a'zolik, vazifa yaratish/o'chirish, tekshirib
+  tasdiqlash va loyihani o'chirish. A'zolik yozuvi shart emas.
+- **Ish maydoni bundan tashqarida.** Maydonni qayta nomlash, o'chirish va
+  `join_code` ni ko'rish `runs_everything` da qoladi — global menejerga
+  ochilmaydi. Sababi oddiy: loyiha menejerining o'zida ham bunday huquq
+  yo'q, ya'ni «loyiha menejeri bilan teng» degani buzilardi.
 - **Menejerga hech kim tegmaydi** (`can_change_member`) — boshliq ham.
   Qoida rolga emas, menejerlikning o'ziga bog'langan.
+
+`manages_all_projects` uch joyda bir vaqtda ishlatiladi va ular
+**ajralmasin**: `ProjectAccess.can_manage`, `managed_projects_q` va
+paneldagi qamrov (`apps/panel/api.py`). Ajralib qolsa odam loyihani ochib
+amal bajara oladi-yu, panelda va tekshiruv navbatida «0» ko'radi.
 
 Ko'rish shartiga rol qo'shsang, `visible_projects_q` bilan
 `ProjectAccess.can_view` ni **birga** yangila: ajralib qolsa loyiha
