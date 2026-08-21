@@ -422,9 +422,30 @@ export interface DashboardData {
   feed: Activity[];
 }
 
+/**
+ * «Mening ishim» doskasining ustun kaliti - MUDDAT kesimi (`?board=due`).
+ * Holat emas: `DONE` ikkovida ham bor, qolgani faqat shu doskada.
+ */
+export type DueColumnKey = "ALL" | "WEEK" | "TODAY" | "DONE";
+
 export interface MyWorkData {
-  groups: { status: TaskStatusValue; label: string; count: number; tasks: Task[] }[];
+  /* `status` ikki xil bo'ladi: standart javobda HOLAT, `?board=due` da esa
+     muddat ustunining kaliti. Ikkovi bir maydonda - javobning shakli bitta. */
+  /* `page`/`pages` faqat `?board=due` da keladi: har ustun o'zi sahifalanadi
+     va `count` JAMI ishni aytadi, kelgan kartalar sonini emas. */
+  groups: {
+    status: TaskStatusValue | DueColumnKey; label: string; count: number;
+    page?: number; pages?: number;
+    /* Kartani shu ustunga tashlaganda qo'yiladigan muddat - SERVER
+       hisoblaydi (`due_span`), mijoz «hafta oxiri» ni o'zi topmaydi. */
+    due_target?: string | null;
+    tasks: Task[];
+  }[];
   projects: { id: number; name: string; key: string; color: string }[];
+  /* Doskadagi vazifalar ichida odam BOSHQARADIGAN loyihalar. Muddatni
+     faqat shular ustida o'zgartirsa bo'ladi - qolgan ustun sudrashni
+     qabul qilmaydi. Haqiqiy tekshiruv serverda. */
+  managed_projects?: number[];
 }
 
 /* ---- Jamoaning ish yuki (`/team/workload/`) ---- */

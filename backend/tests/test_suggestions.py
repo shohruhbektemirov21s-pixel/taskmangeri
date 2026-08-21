@@ -254,6 +254,51 @@ class DecisionTest(SuggestionTestCase):
         self.assertEqual((counts["open"], counts["closed"], counts["pending"]), (1, 0, 0))
 
 
+    def test_filtr_nishonlaridagi_sonlar(self):
+        """Nishondagi son ro'yxat bilan BIR XIL ko'rinish shartidan chiqadi.
+
+        Ajralib qolsa «Tasdiqlangan 6» deb yozilib, ichida to'rttasi
+        turardi - son ro'yxat sahifalangani uchun ekrandan sanalmaydi.
+        """
+        self.make()                                     # ochiq, javob kutyapti
+        approved = self.make()
+        self.boss_api.post("%s%d/decide/" % (URL, approved.id),
+                           {"status": "APPROVED"}, format="json")
+        self.make(scope=SuggestionScope.CLOSED)         # yopiq - begonaga ko'rinmaydi
+
+        boss = self.boss_api.get(URL + "counts/").json()
+        self.assertEqual(boss["all"], 3)
+        self.assertEqual(boss[SuggestionStatus.PENDING], 2)
+        self.assertEqual(boss[SuggestionStatus.APPROVED], 1)
+        self.assertEqual(boss[SuggestionStatus.REJECTED], 0)
+
+        # Begona odam yopiq taklifni sanamaydi - ro'yxatda ham ko'rmaydi.
+        seen = self.api.get(URL + "counts/").json()
+        self.assertEqual(seen["all"], 2)
+        self.assertEqual(seen["all"], self.api.get(URL).json()["count"])
+
+    def test_ozimniki_soni(self):
+        self.make()
+        self.assertEqual(self.api.get(URL + "counts/").json()["mine"], 0)
+        self.assertEqual(self.boss_api.get(URL + "counts/").json()["mine"], 0)
+
+    def test_saralash_tanlovi(self):
+        """Standart tartib - OVOZ bo'yicha; «eng yangi» esa tanlov."""
+        eski = self.make(title="Eski taklif")
+        yangi = self.make(title="Yangi taklif")
+        # Eskisiga ovoz beramiz: standart tartibda u tepaga chiqadi.
+        self.dev_api.post("%s%d/vote/" % (URL, eski.id), {"choice": "FOR"}, format="json")
+
+        def titles(params=""):
+            return [r["title"] for r in self.api.get(URL + params).json()["results"]]
+
+        self.assertEqual(titles()[0], "Eski taklif")
+        self.assertEqual(titles("?sort=new")[0], "Yangi taklif")
+        self.assertEqual(titles("?sort=old")[0], "Eski taklif")
+        # Notanish qiymat standartga qaytadi - 400 emas.
+        self.assertEqual(titles("?sort=allaqanday")[0], "Eski taklif")
+
+
 class FileTest(SuggestionTestCase):
     """Taklifga fayl biriktirish: kim yuklaydi, kim ko'radi."""
 

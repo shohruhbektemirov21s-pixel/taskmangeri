@@ -39,18 +39,27 @@ from .services import notify_decision, notify_new
 class SuggestionViewSet(viewsets.ModelViewSet):
     serializer_class = SuggestionSerializer
 
+    def visible(self, me):
+        """Odam KO'RA oladigan takliflar - filtrlarsiz, sanoqlarsiz.
+
+        Ro'yxat ham, `counts` ham shu yerdan boshlanadi. Ajralib qolsa
+        nishondagi son bilan ochilgan ro'yxat bir-biriga to'g'ri kelmasdi:
+        «Tasdiqlangan 6» deb yozilib, ichida to'rttasi turardi.
+        """
+        qs = Suggestion.objects.all()
+        if not me.is_boss:
+            # Yopiq taklif - faqat egasiga. Boshliq bu shartdan tashqarida.
+            qs = qs.filter(Q(scope=SuggestionScope.OPEN) | Q(author=me))
+        return qs
+
     def get_queryset(self):
         me = self.request.user
 
-        qs = Suggestion.objects.select_related("author", "decided_by").prefetch_related(
+        qs = self.visible(me).select_related("author", "decided_by").prefetch_related(
             # `suggestion` ham qo'shildi: fayl serializeri anonimlikni
             # taklifdan o'qiydi va busiz har fayl uchun alohida so'rov ketardi.
             Prefetch("files", queryset=SuggestionFile.objects
                      .select_related("uploaded_by", "suggestion")))
-
-        if not me.is_boss:
-            # Yopiq taklif - faqat egasiga. Boshliq bu shartdan tashqarida.
-            qs = qs.filter(Q(scope=SuggestionScope.OPEN) | Q(author=me))
 
         qs = qs.annotate(
             for_count=related_count(SuggestionVote, group_by="suggestion",
@@ -81,7 +90,73 @@ class SuggestionViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get("mine") in ("1", "true"):
             qs = qs.filter(author=me)
 
-        return qs.order_by("-score", "-for_count", "-created_at")
+        return qs.order_by(*self.ordering_for(self.request.query_params.get("sort")))
+
+    #: Ro'yxat tartibi. STANDARTI - ovoz bo'yicha: boshliq ro'yxatning
+    #: boshiga qarasa jamoa eng ko'p kutayotgan o'zgarishni ko'radi (modul
+    #: izohiga qarang). «Eng yangi» esa boshqa savolga javob beradi -
+    #: «bugun nima taklif qilindi», shuning uchun u tanlov bo'lib qoladi,
+    #: standart bo'lib emas.
+    SORTS = {
+        "top": ("-score", "-for_count", "-created_at"),
+        "new": ("-created_at",),
+        "old": ("created_at",),
+    }
+
+    def ordering_for(self, key):
+        return self.SORTS.get((key or "").strip(), self.SORTS["top"])
+
+    #: Doskaning bitta ustuniga bir marta nechta taklif tushadi.
+    BOARD_PAGE = 10
+
+    #: Doska ustunlari. «Barchasi» - qolgan uchtasining yig'indisi, ya'ni
+    #: ustunlar bir-birini INKOR QILMAYDI: tasdiqlangan taklif «barchasi»
+    #: da ham turadi. Bu Kanban emas - bitta ro'yxatning kesimlari.
+    BOARD_COLUMNS = ("ALL", SuggestionStatus.PENDING,
+                     SuggestionStatus.APPROVED, SuggestionStatus.REJECTED)
+
+    @action(detail=False, methods=["get"])
+    def board(self, request):
+        """Doska ko'rinishi: barchasi, ko'rilmoqda, tasdiqlandi, rad etildi.
+
+        Ro'yxat ko'rinishi (`list`) O'Z JOYIDA qoladi - `?status=` bilan
+        bitta kesim so'raladi. Doska esa to'rttasini bir javobda beradi,
+        aks holda sahifa to'rtta alohida so'rov yuborardi va ular
+        bir-biridan ajralib ketishi mumkin edi (biri eski, biri yangi).
+
+        HAR USTUN O'ZI SAHIFALANADI - `?page_all=2`, `?page_approved=3`.
+        Bitta umumiy raqam yaramaydi: ustunlar uzunligi har xil va
+        «tasdiqlangan» ning uchinchi sahifasi bo'lganda «rad etilgan»
+        niki allaqachon tugagan bo'lardi.
+
+        Tartib va `?mine=1` butun doskaga qo'llanadi - ular
+        `get_queryset` dan keladi.
+        """
+        base = self.get_queryset()
+        ctx = self.get_serializer_context()
+
+        columns = []
+        for key in self.BOARD_COLUMNS:
+            qs = base if key == "ALL" else base.filter(status=key)
+            total = qs.count()
+            pages = max(1, -(-total // self.BOARD_PAGE))
+            asked = request.query_params.get("page_{}".format(key.lower())) or 1
+            try:
+                page = min(max(1, int(asked)), pages)
+            except (TypeError, ValueError):
+                raise ValidationError({"page": "Sahifa raqami butun son bolsin."})
+            start = (page - 1) * self.BOARD_PAGE
+            columns.append({
+                "key": key,
+                # Sarlavhadagi son - ustundagi JAMI taklif, kelgan
+                # kartalar soni emas: u sahifadan sahifaga o'zgarmasin.
+                "count": total,
+                "page": page,
+                "pages": pages,
+                "items": SuggestionSerializer(
+                    qs[start:start + self.BOARD_PAGE], many=True, context=ctx).data,
+            })
+        return Response({"columns": columns})
 
     # --------------------------------------------------------------- yozish
 
@@ -218,12 +293,29 @@ class SuggestionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="counts")
     def counts(self, request):
-        """Yon paneldagi raqam va bo'limlar uchun qisqa sanoq."""
-        qs = self.get_queryset()
-        return Response({
-            "open": qs.filter(scope=SuggestionScope.OPEN).count(),
-            "closed": qs.filter(scope=SuggestionScope.CLOSED).count(),
-            # Boshliq uchun: navbatda nechta qaror kutyapti.
-            "pending": (qs.filter(status=SuggestionStatus.PENDING).count()
-                        if request.user.is_boss else 0),
-        })
+        """Yon paneldagi raqam, bo'limlar va FILTR NISHONLARI uchun sanoq.
+
+        Nishondagi son ekrandagi qatorlardan chiqmaydi: ro'yxat
+        sahifalangan va birinchi sahifada o'ntasi turadi. Shuning uchun u
+        ham shu yerdan - ro'yxat bilan BIR XIL ko'rinish shartidan
+        (`visible`). Ajralib qolsa «Tasdiqlangan 6» deb yozilib, ichida
+        to'rttasi turardi.
+
+        Har holat alohida `count()` bilan olinadi, bitta `GROUP BY` bilan
+        emas: Db2 guruhlash ichida CLOB ustunini (`Suggestion.body`)
+        qo'llamaydi - modul izohiga qarang.
+        """
+        base = self.visible(request.user)
+        data = {
+            "open": base.filter(scope=SuggestionScope.OPEN).count(),
+            "closed": base.filter(scope=SuggestionScope.CLOSED).count(),
+            # Filtr nishonlari: «Barchasi», «Ko'rib chiqilmoqda», ...
+            "all": base.count(),
+            "mine": base.filter(author=request.user).count(),
+        }
+        for value in SuggestionStatus.values:
+            data[value] = base.filter(status=value).count()
+        # Boshliq uchun: navbatda nechta qaror kutyapti. Yon paneldagi
+        # nishon shunga qaraydi, shuning uchun u faqat boshliqda to'ladi.
+        data["pending"] = data[SuggestionStatus.PENDING] if request.user.is_boss else 0
+        return Response(data)

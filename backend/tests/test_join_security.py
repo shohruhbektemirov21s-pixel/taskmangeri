@@ -63,28 +63,32 @@ class JoinCodeVisibilityTest(ApiTestCase):
         # Lekin kod yo'q: aks holda so'rovsiz a'zo bo'lib olardi.
         self.assertIsNone(r.data["join_code"])
 
-    def test_global_menejer_begona_loyihaning_kodini_olmaydi(self):
-        """Asosiy regressiya.
+    def test_global_menejer_kodni_oladi(self):
+        """Global menejer endi har bir loyihani BOSHQARADI, demak kodni ham oladi.
 
-        Global menejer hamma loyihani ko'radi (`sees_all_projects`), lekin
-        begonasini boshqarmaydi. Kod javobda qolsa, u ko'rish huquqini
-        bitta so'rov bilan boshqaruvga aylantira olardi.
+        Ilgari bu teskari edi: u ko'rardi-yu boshqarmasdi, va kod javobda
+        qolsa ko'rish huquqini bitta so'rov bilan boshqaruvga aylantira
+        olardi. Endi bunday zina yo'q - u allaqachon boshqaruvchi, kod
+        unga hech qanday yangi huquq bermaydi.
+
+        Qoidaning O'ZI o'zgarmagan: kod `can_manage` bilan keladi
+        (`ProjectSerializer.get_join_code`). O'zgargani - kim boshqaruvchi
+        ekani.
         """
         api = self.client_for(self.roaming)
         r = api.get("/api/projects/{}/".format(self.project.pk))
         self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.data["access"]["can_view"])
-        self.assertFalse(r.data["access"]["can_manage"])
-        self.assertIsNone(r.data["join_code"])
+        self.assertTrue(r.data["access"]["can_manage"])
+        self.assertEqual(r.data["join_code"], self.project.join_code)
 
-    def test_royxatda_ham_kod_chiqmaydi(self):
+    def test_royxatda_ham_bir_xil_javob(self):
         """Bitta loyiha sahifasi bilan RO'YXAT bir xil javob berishi kerak."""
         api = self.client_for(self.roaming)
         r = api.get("/api/projects/", {"scope": "visible"})
         self.assertEqual(r.status_code, 200)
         row = project_row(r.data, self.project.pk)
         self.assertIsNotNone(row, "global menejer loyihani ro'yxatda ko'rishi kerak")
-        self.assertIsNone(row["join_code"])
+        self.assertEqual(row["join_code"], self.project.join_code)
 
     def test_dasturchi_oz_loyihasida_ham_kodni_olmaydi(self):
         """A'zolik yetarli emas - kod BOSHQARUV bilan keladi."""

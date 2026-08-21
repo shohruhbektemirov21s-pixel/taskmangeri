@@ -15,7 +15,8 @@ from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
-from apps.projects.permissions import managed_projects_q, runs_everything
+from apps.projects.permissions import (managed_projects_q, manages_all_projects,
+                                       runs_everything)
 from apps.core.periods import DUE_RANGES, PERIODS, _period_start, due_span
 from apps.core.queries import int_param, task_search_q
 from apps.projects.services import project_counters
@@ -95,7 +96,10 @@ def panel_queryset(user):
     mine = Exists(TaskAssignment.objects.filter(
         task=OuterRef("pk"), user=user, is_active=True))
 
-    if runs_everything(user):
+    # Qamrov `ProjectAccess.can_manage` bilan bir manbadan: global menejer
+    # endi hamma loyihada boshqaruvchi, demak paneli ham o'shancha bo'lsin -
+    # aks holda u loyihani ochib amal qila olardi-yu, panelda «0» ko'rardi.
+    if manages_all_projects(user):
         return live, "all"
 
     managed = Project.objects.filter(
@@ -230,7 +234,7 @@ def dashboard(request):
     # so'rovlari va tarix lentasi butun tizim bo'yicha bo'ladi - u hamma
     # loyihada amal qila oladi (`managed_projects_q`), demak navbati ham
     # o'shancha bo'lishi kerak.
-    if runs_everything(user):
+    if manages_all_projects(user):
         managed = Project.objects.select_related("manager").order_by("-updated_at")
         review_qs = Task.objects.filter(status=TaskStatus.IN_REVIEW,
                                         project__deleted_at__isnull=True)
@@ -592,6 +596,97 @@ def sidebar_counts(request):
     })
 
 
+def status_board(qs, ctx):
+    """Doska ustunlari - HOLAT bo'yicha. Bo'sh holat umuman qaytmaydi."""
+    groups = []
+    for status in [TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED, TaskStatus.IN_PROGRESS,
+                   TaskStatus.TODO, TaskStatus.IN_REVIEW, TaskStatus.DONE]:
+        items = qs.filter(status=status).order_by("-priority", "due_date")[:100]
+        if items:
+            groups.append({
+                "status": status,
+                "label": TaskStatus(status).label,
+                "count": len(items),
+                "tasks": TaskSerializer(items, many=True, context=ctx).data,
+            })
+    return groups
+
+
+#: Doskadagi bitta ustunga bir marta nechta karta tushadi.
+DUE_PAGE = 15
+
+
+def due_board(qs, ctx, params):
+    """Doska ustunlari - MUDDAT bo'yicha: hammasi, shu hafta, bugun, bajarilgan.
+
+    USTUNLAR BIR-BIRINI INKOR QILMAYDI. Bugungi ish ayni paytda shu
+    haftalik ham, «barchasi» ichida ham turadi - doska chapdan o'ngga
+    torayib boradi, ya'ni bu Kanban emas, kesimlar to'plami. Odam
+    «hammasi» dan boshlab «bugun nima» gacha ko'zini yugurtiradi.
+
+    BO'SH USTUN HAM QAYTADI - to'rttasi doimo turadi. Holat guruhlaridan
+    farqi shu: u yerda bo'sh holat tushib qolardi, bu yerda esa ustun
+    yo'qolsa doskaning shakli har kuni o'zgarib turardi.
+
+    Muddati QO'YILMAGAN ish faqat «barchasi» da bo'ladi: `due_span`
+    chegarasiga NULL hech qachon tushmaydi.
+
+    HAR USTUN O'ZI SAHIFALANADI - `?page_all=2`, `?page_done=3`. Bitta
+    umumiy raqam ishlamasdi: ustunlar uzunligi har xil va «bajarilganlar»
+    ning uchinchi sahifasi bo'lganda «bugun» niki allaqachon tugagan
+    bo'lardi. Kesish SERVERDA: ilgari ustun 100 tada jimgina qirqilardi
+    va yuz birinchi ish hech qanday belgisiz yo'qolardi.
+
+    `count` - ustundagi JAMI ish (kelgan kartalar soni emas): sarlavhadagi
+    son sahifadan sahifaga o'zgarmasin.
+    """
+    open_only = qs.exclude(status__in=[TaskStatus.DONE, TaskStatus.CANCELLED])
+    week = due_span("", "week")
+    today = due_span("", "today")
+
+    # `due_target` - kartani SHU USTUNGA tashlaganda qo'yiladigan muddat.
+    # Sanani frontend hisoblamaydi: «hafta oxiri» qaysi kun ekani shu
+    # yerda, `due_span` chegarasidan chiqadi va ustunning o'zi bilan bir
+    # xil qoidadan keladi. Mijozda hisoblansa ikkinchi kalendar paydo
+    # bo'lardi va karta o'zi tushgan ustunda turmay qolishi mumkin edi.
+    #
+    # Oxirgi LAHZA olinadi (chegara - 1 soniya): `due_span` yarim ochiq
+    # oraliq qaytaradi va `week[1]` allaqachon KEYINGI hafta.
+    second = timezone.timedelta(seconds=1)
+    columns = [
+        ("ALL", open_only, None),
+        ("WEEK", open_only.filter(due_date__gte=week[0], due_date__lt=week[1]), week[1] - second),
+        ("TODAY", open_only.filter(due_date__gte=today[0], due_date__lt=today[1]), today[1] - second),
+        ("DONE", qs.filter(status=TaskStatus.DONE), None),
+    ]
+
+    groups = []
+    for key, column, due_target in columns:
+        total = column.count()
+        pages = max(1, ceil(total / DUE_PAGE))
+        # Yaroqsiz raqam 500 emas, 400 beradi (`int_param`), chegaradan
+        # chiqqani esa oxirgi mavjud sahifaga qisiladi: ro'yxat qisqarib
+        # qolsa odam bo'sh ustunga tushib qolmasin.
+        asked = params.get("page_{}".format(key.lower())) or 1
+        page = min(max(1, int_param(asked, "page_{}".format(key.lower()))), pages)
+        start = (page - 1) * DUE_PAGE
+        items = column.order_by("-priority", "due_date")[start:start + DUE_PAGE]
+        groups.append({
+            "status": key,
+            # Yorliq bu yerdan KETMAYDI: ustun nomlari holat nomlari emas,
+            # ya'ni `TaskStatus` dan chiqmaydi. Sayt matni bazada turadi
+            # (`apps.uitexts`), shuning uchun frontend kalit bo'yicha
+            # o'zi oladi.
+            "label": "",
+            "count": total,
+            "page": page,
+            "pages": pages,
+            "due_target": due_target,
+            "tasks": TaskSerializer(items, many=True, context=ctx).data,
+        })
+    return groups
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_work(request):
@@ -618,25 +713,45 @@ def my_work(request):
     if span:
         qs = qs.filter(due_date__gte=span[0], due_date__lt=span[1])
 
-    groups = []
-    for status in [TaskStatus.CHANGES_REQUESTED, TaskStatus.BLOCKED, TaskStatus.IN_PROGRESS,
-                   TaskStatus.TODO, TaskStatus.IN_REVIEW, TaskStatus.DONE]:
-        items = qs.filter(status=status).order_by("-priority", "due_date")[:100]
-        if items:
-            groups.append({
-                "status": status,
-                "label": TaskStatus(status).label,
-                "count": len(items),
-                "tasks": TaskSerializer(items, many=True, context=ctx).data,
-            })
+    # DOSKA IKKI XIL YIG'ILADI - so'rov `board` bilan tanlaydi.
+    #
+    # Standarti HOLAT bo'yicha: «Vazifalarim» ro'yxati (`pages/Projects.tsx`)
+    # shu guruhlarni loyihalarga qayta taqsimlaydi va unga aynan holat
+    # kerak. Shuning uchun standart o'zgarmaydi.
+    #
+    # `board=due` esa MUDDAT bo'yicha yig'adi. Hafta va kun chegarasi bu
+    # yerda hisoblanmaydi - `due_span` dan keladi: «shu hafta» doskada
+    # ham, «Vazifalar» ro'yxatida ham, bosh panelda ham BIR XIL hafta
+    # bo'lsin (dushanbadan yakshanbagacha, «oxirgi 7 kun» emas).
+    if (request.query_params.get("board") or "").strip() == "due":
+        groups = due_board(qs, ctx, request.query_params)
+    else:
+        groups = status_board(qs, ctx)
 
     projects = (Project.objects.filter(Exists(ProjectMember.objects.filter(
                     project=OuterRef("pk"), user=user, is_active=True)))
                 .order_by("name"))
+    # Qaysi loyihada odam BOSHQARUVCHI. Doskada karta sudralganda muddat
+    # o'zgaradi, muddatni esa faqat loyiha menejeri va loyiha admini qo'ya
+    # oladi (`ProjectAccess.can_create_task`) - ya'ni ruxsat kartadan
+    # kartaga farq qiladi, chunki har biri o'z loyihasidan.
+    #
+    # Sanoq DOSKADAGI loyihalar bo'yicha, hammasi bo'yicha emas: boshliq
+    # va admin butun tizimni boshqaradi va ro'yxat minglab raqamga
+    # aylanib ketardi. Yuqoridagi `projects` ham yaramaydi - u faqat
+    # A'ZOLIKDAGI loyihalar, boshliq esa hech qayerda a'zo emas.
+    #
+    # Bu KO'RINISH uchun: haqiqiy tekshiruv baribir `/tasks/<id>/` da
+    # bo'ladi. Frontend faqat tashlab bo'lmaydigan ustunni ochiq
+    # ko'rsatmaydi - odam kartani tortib borib, keyin xato o'qimasin.
+    on_board = {t["project"] for g in groups for t in g["tasks"]}
+    managed = (Project.objects.filter(managed_projects_q(user), id__in=on_board)
+               .values_list("id", flat=True) if on_board else [])
     return Response({
         "groups": groups,
         "projects": [{"id": p.id, "name": p.name, "key": p.key, "color": p.color}
                      for p in projects],
+        "managed_projects": sorted(managed),
     })
 
 

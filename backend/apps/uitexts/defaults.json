@@ -1623,20 +1623,8 @@
   "value": "Xabarlar",
   "note": "pages/Messages.tsx"
  },
- "my_work.bu_holatda_ishingiz_yoq": {
-  "value": "Bu holatda ishingiz yoq",
-  "note": "pages/MyWork.tsx"
- },
  "my_work.bu_ustun_bosh": {
   "value": "Bu ustun bo'sh.",
-  "note": "pages/MyWork.tsx"
- },
- "my_work.faqat": {
-  "value": "Faqat:",
-  "note": "pages/MyWork.tsx"
- },
- "my_work.hammasini_korish": {
-  "value": "Hammasini korish",
   "note": "pages/MyWork.tsx"
  },
  "my_work.loyihaga_qoshiling_menejer_mutaxassisligingi": {
@@ -1651,8 +1639,40 @@
   "value": "Sizga hali vazifa biriktirilmagan",
   "note": "pages/MyWork.tsx"
  },
- "my_work.tanlangan_holat_boyicha_sizga_biriktirilgan": {
-  "value": "Tanlangan holat boyicha sizga biriktirilgan vazifa topilmadi.",
+ "my_work.ustun_barchasi": {
+  "value": "Barchasi",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.ustun_shu_haftalik": {
+  "value": "Shu haftalik ishlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.ustun_bugun": {
+  "value": "Bugun qilayotgan ishlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.ustun_bajarilganlar": {
+  "value": "Bajarilganlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.barcha_muddatlar": {
+  "value": "Barcha muddatlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.muddat_1_haftalik": {
+  "value": "1 haftalik",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.muddat_1_oylik": {
+  "value": "1 oylik",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.muddat_1_yillik": {
+  "value": "1 yillik",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.kochirib_bolmadi": {
+  "value": "Vazifani ko'chirib bo'lmadi.",
   "note": "pages/MyWork.tsx"
  },
  "notification_bell.bildirishnomalar_ulanish_yoq": {
@@ -3167,20 +3187,8 @@
   "value": "Qoshish",
   "note": "components/SkillEditor.tsx"
  },
- "suggestions.anonim_fayl_izoh": {
-  "value": "Anonim taklifda faylni kim yuklagani ham ko'rsatilmaydi.",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.anonim_izoh": {
-  "value": "Ismingiz hech kimga ko'rsatilmaydi — boshliqqa ham.",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.anonim_muallif": {
   "value": "Anonim",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.anonim_yopiq_izoh": {
-  "value": "Yopiq taklifni faqat boshliq o'qiydi. Anonim tanlansangiz u ham kim yozganini bilmaydi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.anonim_yuborish": {
@@ -3209,10 +3217,6 @@
  },
  "suggestions.fayl_hint": {
   "value": "Hujjat, chizma yoki rasmni shu yerga tashlang — 25 MB gacha",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.fayl_izoh": {
-  "value": "Taklifga hujjat yoki rasm qo'shsangiz — u kartada ko'rinadi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.fayl_ochirilsinmi": {
@@ -3267,10 +3271,6 @@
   "value": "Ochiq",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.ochiq_izoh": {
-  "value": "Ochiq — butun jamoa ko'radi va ovoz beradi, boshliq esa qaror qiladi.",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.ochirildi": {
   "value": "Taklif o'chirildi.",
   "note": "pages/Suggestions.tsx"
@@ -3281,10 +3281,6 @@
  },
  "suggestions.ochirish_izohi": {
   "value": "Taklif va unga berilgan ovozlar butunlay o'chadi. Buni qaytarib bo'lmaydi.",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.ovoz_siri": {
-  "value": "Kim ovoz bergani hech kimga ko'rsatilmaydi — faqat sonlar ko'rinadi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.qaror_qildi": {
@@ -3335,10 +3331,6 @@
   "value": "Takliflar",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.tahrirdan_keyin_qaytadi": {
-  "value": "Matn o'zgarsa taklif yana boshliq navbatiga tushadi — eski qaror bekor bo'ladi.",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.taklif_matni": {
   "value": "Taklif matni",
   "note": "pages/Suggestions.tsx"
@@ -3371,16 +3363,56 @@
   "value": "Yopiq",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.yopiq_izoh": {
-  "value": "Yopiq — faqat siz va boshliq ko'radi. Jamoa oldida aytilmaydigan gap uchun.",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.yuborish": {
   "value": "Taklifni yuborish",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.yuklagan": {
   "value": "Yuklagan: {ism}",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.pill_mine": {
+  "value": "Mening takliflarim",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash": {
+  "value": "Saralash",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash_top": {
+  "value": "Eng ko'p qo'llab-quvvatlangan",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash_new": {
+  "value": "Eng yangi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.saralash_old": {
+  "value": "Eng eski",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.boshliq_korib_chiqmoqda": {
+  "value": "Boshliq ko'rib chiqmoqda",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ustun_all": {
+  "value": "Barchasi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ustun_pending": {
+  "value": "Ko'rilmoqda",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ustun_approved": {
+  "value": "Tasdiqlandi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ustun_rejected": {
+  "value": "Rad etildi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ustun_bosh": {
+  "value": "Bu ustun bo'sh.",
   "note": "pages/Suggestions.tsx"
  },
  "task_bulk_form.bu_sahifa_loyiha_ichidan_ochiladi": {
@@ -3595,10 +3627,6 @@
   "value": "Nima qildingiz",
   "note": "pages/TaskDetail.tsx"
  },
- "task_detail.nima_qilganingizni_yozing_keyingi_dasturchi": {
-  "value": "Nima qilganingizni yozing — keyingi dasturchi shuni oqib kontekstga kiradi.",
-  "note": "pages/TaskDetail.tsx"
- },
  "task_detail.nima_qilish_kerak": {
   "value": "Nima qilish kerak",
   "note": "pages/TaskDetail.tsx"
@@ -3701,6 +3729,14 @@
  },
  "task_detail.yozuv_yoq": {
   "value": "Yozuv yoq.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.tekshiruvdan_qaytarib_olish": {
+  "value": "Tekshiruvdan qaytarib olish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.qaytarib_olish": {
+  "value": "Qaytarib olish",
   "note": "pages/TaskDetail.tsx"
  },
  "task_drawer.muddat_qoyilmagan": {

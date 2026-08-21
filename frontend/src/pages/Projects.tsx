@@ -3,7 +3,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
 import { ApiError, listOf, pagesOf, totalOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
-import type { MyWorkData, Project, Task } from "@/api/types";
+import type { Choice, MyWorkData, Project, Task } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { IconCalendar, IconPlus } from "@/components/icons";
 import { DUE_PERIODS, DateField, Empty, ErrorMsg, Loading, Pager, Progress, RowMenu, fmtDate } from "@/components/ui";
@@ -50,6 +50,9 @@ export default function Projects() {
  */
 /** Bir sahifada nechta loyiha kartasi. */
 const PER_PAGE = 30;
+
+/** Ijrochining ro'yxatida bir sahifada nechta VAZIFA (karta emas). */
+const TASKS_PER_PAGE = 15;
 
 function ManagerProjects() {
   const fid = useId();
@@ -285,6 +288,31 @@ function ManagerProjects() {
 /* ------------------------------------------------------------- ijrochiga */
 
 /**
+ * Guruhdagi ishlarni HOLAT bo'yicha sanaydi.
+ *
+ * Loyiha sarlavhasida faqat umumiy son turardi («3 ta») va u eng kerakli
+ * savolga javob bermasdi: uchtasining qanchasi bitgan, qanchasi hali
+ * qo'lda. Endi son yonida holatlar ham turadi.
+ *
+ * Yorliqni O'ZIMIZ yasamaymiz - vazifadan kelgan `status_display` ni
+ * olamiz (u bazadagi matndan chiqadi). Tartib esa `meta.task_status`
+ * bo'yicha: ish oqimi qanday bo'lsa, sanoq ham shunday tursin - aks holda
+ * u loyihadan loyihaga o'zgarib ketardi.
+ */
+function statusCounts(tasks: Task[], order: Choice[] | undefined) {
+  const seen = new Map<string, { label: string; n: number }>();
+  tasks.forEach((t) => {
+    const row = seen.get(t.status) || { label: t.status_display, n: 0 };
+    row.n += 1;
+    seen.set(t.status, row);
+  });
+  const rank = new Map((order || []).map((s, i) => [String(s.value), i]));
+  return [...seen.entries()].sort(
+    (a, b) => (rank.get(a[0]) ?? 99) - (rank.get(b[0]) ?? 99));
+}
+
+
+/**
  * Ijrochining «Loyihalar» bo'limi - loyiha kartalari EMAS, o'z vazifalari.
  *
  * «Mening ishim» bilan takrorlanmaydi: u yerda ish HOLAT bo'yicha ustunlarga
@@ -296,8 +324,13 @@ function MyProjectTasks() {
   const fid = useId();
   const { meta } = useAuth();
   const [f, setF] = useState({ search: "", period: "", due: "", status: "" });
+  const [page, setPage] = useState(1);
 
-  const set = (k: keyof typeof f, v: string) =>
+  const set = (k: keyof typeof f, v: string) => {
+    // Filtr o'zgardi - ro'yxat ham boshqacha bo'ladi va uchinchi sahifada
+    // turishning ma'nosi qolmaydi (u yerda endi hech nima bo'lmasligi ham
+    // mumkin). Shuning uchun har kesimda ro'yxat boshidan boshlanadi.
+    setPage(1);
     // Davr va aniq sana bir-birini almashtiradi - ikkovi birga turgan
     // ekranda "qaysi biri ishlayapti?" degan savol tug'ilardi.
     setF((prev) => ({
@@ -306,6 +339,13 @@ function MyProjectTasks() {
       ...(k === "period" ? { due: "" } : {}),
       ...(k === "due" ? { period: "" } : {}),
     }));
+  };
+
+  /** Filtrni tozalash - sahifa raqami bilan birga. */
+  const clear = () => {
+    setPage(1);
+    setF({ search: "", period: "", due: "", status: "" });
+  };
 
   // Qidiruv va muddat kesimi serverda (`/my-work/`), holat esa shu yerda:
   // javob allaqachon holatlarga bo'lingan holda keladi. Loyiha bo'yicha
@@ -330,6 +370,35 @@ function MyProjectTasks() {
   }, [data, f.status]);
 
   const total = (groups || []).reduce((n, [, g]) => n + g.tasks.length, 0);
+  const pages = Math.max(1, Math.ceil(total / TASKS_PER_PAGE));
+  // Raqam chegaraga QISILADI: filtrga tegilmasa ham ro'yxat qisqarishi
+  // mumkin (vazifa bajarildi, biriktiruv olindi). Aks holda odam mavjud
+  // bo'lmagan sahifada, bo'sh ekranda qolib ketardi.
+  const safePage = Math.min(page, pages);
+
+  // SAHIFALASH shu yerda, serverda emas: `/my-work/` javobni bo'lak-bo'lak
+  // bermaydi, hammasini bir marta beradi (`pages/Profile.tsx` dagi vazifalar
+  // ro'yxati ham shunday kesiladi).
+  //
+  // Vazifalar GURUHLAR ichidan KETMA-KET sanaladi, ya'ni bitta loyiha ikki
+  // sahifaga bo'linishi mumkin: sahifada 15 ta VAZIFA turadi, 15 ta loyiha
+  // emas. Kartadagi nishonlar esa TO'LIQ guruhdan hisoblanadi - «3 ta ·
+  // 1 Jarayonda» loyihaning holati, ochilib turgan sahifaning emas.
+  const paged = useMemo(() => {
+    if (!groups) return null;
+    const from = (safePage - 1) * TASKS_PER_PAGE;
+    const to = from + TASKS_PER_PAGE;
+    const out: [number, { name: string; color: string; tasks: Task[]; shown: Task[] }][] = [];
+    let seen = 0;
+    groups.forEach(([id, g]) => {
+      const start = Math.max(from - seen, 0);
+      const end = Math.min(to - seen, g.tasks.length);
+      if (end > start) out.push([id, { ...g, shown: g.tasks.slice(start, end) }]);
+      seen += g.tasks.length;
+    });
+    return out;
+  }, [groups, safePage]);
+
   const dirty = Boolean(f.search || f.period || f.due || f.status);
 
   return (
@@ -381,7 +450,7 @@ function MyProjectTasks() {
             </div>
             {dirty && (
               <button type="button" className="btn btn-ghost"
-                      onClick={() => setF({ search: "", period: "", due: "", status: "" })}>
+                      onClick={clear}>
                 {tx("common.tozalash")}
               </button>
             )}
@@ -397,7 +466,7 @@ function MyProjectTasks() {
                      : tx("projects.menejer_vazifa_berganda_u_shu")}>
               {dirty ? (
                 <button className="btn"
-                        onClick={() => setF({ search: "", period: "", due: "", status: "" })}>
+                        onClick={clear}>
                   {tx("common.filtrni_tozalash")}
                 </button>
               ) : (
@@ -406,7 +475,7 @@ function MyProjectTasks() {
             </Empty>
           </div>
         ) : (
-          groups.map(([id, g]) => (
+          (paged || []).map(([id, g]) => (
             <div className="card mb" key={id}>
               <div className="card-head">
                 <span className="lang-dot" style={{ background: g.color }} />
@@ -414,11 +483,17 @@ function MyProjectTasks() {
                     o'ziga kirish yo'li ochiq qolsin. */}
                 <h3><Link {...toProject(id)} className="wl-name">{g.name}</Link></h3>
                 <span className="badge">{g.tasks.length} {tx("common.ta")}</span>
+                {/* Holat kesimi: «nechtasi bitdi, nechtasi jarayonda».
+                    Nol bo'lgan holat umuman chizilmaydi - bo'sh nishon
+                    faqat qatorni uzaytirardi. */}
+                {statusCounts(g.tasks, meta?.task_status).map(([status, c]) => (
+                  <span key={status} className={`badge st-${status}`}>{c.n} {c.label}</span>
+                ))}
                 <span className="spacer" />
                 <Link className="btn btn-sm" {...toProject(id)}>{tx("projects.loyihaga_kirish")}</Link>
               </div>
               <div className="card-body wl-tasks">
-                {g.tasks.map((t) => (
+                {g.shown.map((t) => (
                   <Link className={`tline ${t.is_overdue ? "overdue" : ""}`} {...toTask(t.id)} key={t.id}>
                     <span className="tline-code mono muted">{t.code}</span>
                     <span className="tline-title">{t.title}</span>
@@ -434,6 +509,8 @@ function MyProjectTasks() {
             </div>
           ))
         )}
+
+        {pages > 1 && <Pager page={safePage} pages={pages} onPick={setPage} />}
       </div>
     </>
   );

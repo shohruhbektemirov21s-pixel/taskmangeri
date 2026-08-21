@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -86,12 +88,27 @@ def move_status(task, new_status, access, actor, blocked_reason=""):
             "Siz bu vazifani '{}' holatiga ota olmaysiz.".format(TaskStatus(new_status).label))
 
     old_label = task.get_status_display()
+    old_status = task.status
     task.apply_status(new_status)
     if new_status == TaskStatus.BLOCKED:
         task.blocked_reason = (blocked_reason or "")[:250]
     if new_status == TaskStatus.IN_REVIEW:
         task.review_round += 1
     task.save()
+
+    # TEKSHIRUVDAN QAYTARIB OLINDI. Navbatda turgan ish g'oyib bo'ldi -
+    # buni tekshiruvchi bilishi kerak, aks holda u ochib ko'rgan ishini
+    # qidirib qolardi yoki allaqachon o'qib chiqqanini bekorga tekshirardi.
+    # Xabar topshirilganidagi bilan juft: biri navbatga qo'yadi, ikkinchisi
+    # oladi.
+    if old_status == TaskStatus.IN_REVIEW and new_status == TaskStatus.IN_PROGRESS:
+        reviewers = [m.user for m in task.project.memberships.filter(
+            is_active=True, role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN])
+            .select_related("user")]
+        notify_many(reviewers, NotificationKind.TASK_REVIEW,
+                    title="{} tekshiruvdan qaytarib olindi".format(task.code),
+                    body="{}: {}".format(getattr(actor, "full_name", ""), task.title[:100]),
+                    url="/vazifa/{}".format(task.pk), actor=actor)
 
     verb = "task.status"
     if new_status == TaskStatus.IN_REVIEW:
@@ -547,6 +564,51 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         return Response(TaskDetailSerializer(task,
                                              context=self.get_serializer_context()).data)
+
+    # ------------------------------------------------------------ muddat
+    @action(detail=True, methods=["post"], url_path="due")
+    def change_due(self, request, pk=None):
+        """Vazifa MUDDATINI qo'yish yoki olib tashlash - «Mening ishim» doskasi.
+
+        NEGA ALOHIDA ESHIK. Vazifani tahrirlash (`PATCH`) faqat menejer va
+        adminga ochiq: ijrochi ishni bajaradi, topshiriqning o'zini qayta
+        yozmaydi. Doskada esa odam O'Z ishini rejalashtiradi - kartani
+        «bugun» ga tortadi yoki «barchasi» ga qaytarib muddatni oladi. Shu
+        bitta amal uchun butun tahrirlashni ochib bo'lmasdi: u bilan birga
+        sarlavha, tavsif, prioritet va IJROCHI ham ochilib ketardi.
+
+        Shuning uchun eshik TOR: bu yerdan faqat `due_date` o'zgaradi va
+        faqat ishning O'ZIDA ishlay oladigan odam (`work`) - ya'ni loyiha
+        a'zosi. Boshqa maydonlarga baribir tegib bo'lmaydi.
+
+        O'zgarish TARIXGA tushadi (`log_field_changes`) - muddat kim
+        tomonidan surilgani ko'rinib tursin.
+        """
+        task = self.get_object()
+        check_access(request.user, task.project, "work")
+
+        raw = request.data.get("due_date", None)
+        if raw in ("", None):
+            due = None
+        else:
+            due = parse_datetime(raw) if isinstance(raw, str) else None
+            if due is None:
+                raise ValidationError({"due_date": "Muddat ISO korinishida bolsin."})
+            if timezone.is_naive(due):
+                due = timezone.make_aware(due)
+
+        if due == task.due_date:
+            return Response(TaskDetailSerializer(
+                task, context=self.get_serializer_context()).data)
+
+        before = task.due_date
+        task.due_date = due
+        task.save(update_fields=["due_date", "updated_at"])
+        log_field_changes(request.user, task,
+                          {str(task._meta.get_field("due_date").verbose_name): (before, due)})
+        live_task(task, "updated", request.user, title=task.title[:120])
+        return Response(TaskDetailSerializer(
+            task, context=self.get_serializer_context()).data)
 
     # ------------------------------------------------------------ boshqa odamga otkazish
     @action(detail=True, methods=["post"], url_path="reassign")

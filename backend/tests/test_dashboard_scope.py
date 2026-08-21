@@ -26,9 +26,14 @@ class DashboardScopeTest(ApiTestCase):
         return next(p for p in data["periods"] if p["key"] == "year")
 
     def test_menejer_biriktirilmagan_ishni_ham_koradi(self):
-        """Asosiy tuzatish: menejer uchun panel «0» demasin."""
+        """Asosiy tuzatish: menejer uchun panel «0» demasin.
+
+        Qamrov `all`: global menejer endi har bir loyihada boshqaruvchi
+        (`manages_all_projects`), demak paneli ham o'shancha. Ilgari
+        `managed` edi - faqat o'zi menejer bo'lgan loyihalar.
+        """
         d = self.panel(self.manager)
-        self.assertEqual(d["scope"], "managed")
+        self.assertEqual(d["scope"], "all")
         self.assertGreaterEqual(self.year(d)["todo"], 1)
         self.assertGreaterEqual(d["deadlines"]["waiting"], 1)
 

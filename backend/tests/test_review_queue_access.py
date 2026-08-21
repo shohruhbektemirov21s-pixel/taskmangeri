@@ -62,19 +62,31 @@ class ReviewQueueAccessTest(ApiTestCase):
     def test_chetdagi_odamga_ham_yopiq(self):
         self.assertEqual(self.queue(self.outsider).status_code, 403)
 
-    def test_loyihasiz_menejer_bosh_royxat_oladi(self):
-        """Hali loyihasi yo'q menejerga «ruxsat yo'q» emas - shunchaki bo'sh."""
-        fresh = make_user("yangi-menejer@sinov.uz", "Yangi Menejer", role="MANAGER")
-        r = self.queue(fresh)
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(list(r.data), [])
+    def test_ijrochiga_navbat_ochilmaydi(self):
+        """Navbat - TEKSHIRUVCHILAR uchun, ijrochiga umuman ochilmaydi.
 
-    def test_begona_loyihaning_ishi_kormaydi(self):
+        Ilgari bu test «hali loyihasi yo'q menejer bo'sh ro'yxat oladi»
+        ni tekshirardi. Endi bunday holat yo'q: global menejer har bir
+        loyihani boshqaradi, ya'ni loyihasiz menejer degani qolmadi.
+        Chegara esa o'z joyida - ijrochi navbatga kira olmaydi.
+        """
+        fresh = make_user("yangi-dasturchi@sinov.uz", "Yangi Dasturchi")
+        self.assertEqual(self.queue(fresh).status_code, 403)
+
+    def test_boshqa_menejerning_ishi_ham_navbatga_tushadi(self):
+        """Global menejer har bir loyihada tekshiruvchi - navbat ham shunday.
+
+        Ilgari begona loyihaning ishi navbatga tushmasdi. Endi tushadi:
+        u o'sha loyihada ham `can_review`, ya'ni navbat bilan huquq bir
+        joydan chiqadi. Ajralib qolsa odam ishni tasdiqlay olardi-yu,
+        navbatida uni ko'rmasdi.
+        """
         other_manager = make_user("boshqa@sinov.uz", "Boshqa Menejer", role="MANAGER")
         other = Project.objects.create(workspace=self.workspace, name="Begona loyiha",
                                        manager=other_manager, created_by=other_manager)
         Task.objects.create(project=other, title="Begona ish", created_by=other_manager,
                             status=TaskStatus.IN_REVIEW)
         r = self.queue(self.manager)
-        self.assertEqual([t["title"] for t in r.data], ["Tekshiruvdagi ish"])
-        self.assertEqual(self.counts(self.manager)["reviews"], 1)
+        self.assertEqual(sorted(t["title"] for t in r.data),
+                         ["Begona ish", "Tekshiruvdagi ish"])
+        self.assertEqual(self.counts(self.manager)["reviews"], 2)

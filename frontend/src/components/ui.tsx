@@ -427,10 +427,18 @@ export function confirmDelete(name: string, warning?: string) {
   });
 }
 
-export function TaskCard({ task, draggable = false, onDragStart, onMove }: {
+export function TaskCard({
+  task, draggable = false, dragging = false, onDragStart, onDragEnd, onMove,
+}: {
   task: Task;
   draggable?: boolean;
+  /** Ayni damda sudralayaptimi - karta xiralashadi (`.tcard.dragging`).
+      Belgisiz odam kartani ushlaganini ko'rmasdi: u joyida turaverardi. */
+  dragging?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
+  /** Sudrash tugadi - tashlangan joyidan qat'i nazar. Doska shu yerda
+      belgini tozalaydi: aks holda ustun yonib qolardi. */
+  onDragEnd?: (e: React.DragEvent) => void;
   /**
    * Kartani boshqa ustunga ko'chirish. Berilsa kartaning ostida tanlash
    * maydoni paydo bo'ladi.
@@ -452,9 +460,10 @@ export function TaskCard({ task, draggable = false, onDragStart, onMove }: {
   const card = (
     <Link
       {...toTask(task.id)}
-      className={`tcard ${task.is_overdue ? "overdue" : ""}`}
+      className={`tcard ${task.is_overdue ? "overdue" : ""} ${dragging ? "dragging" : ""}`}
       draggable={draggable}
       onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
     >
       <div className="row">
         <span className="code">{task.code}</span>

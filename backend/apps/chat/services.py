@@ -32,7 +32,7 @@ def can_read(user, *, project=None, workspace=None, partner=None):
 
     Shaxsiy yozishma bu qoidadan tashqarida - u loyihaga bog'liq emas.
     """
-    from apps.projects.permissions import runs_everything
+    from apps.projects.permissions import manages_all_projects, runs_everything
 
     if not user or not user.is_authenticated:
         return False
@@ -43,7 +43,11 @@ def can_read(user, *, project=None, workspace=None, partner=None):
     if runs_everything(user):
         return True
     if project is not None:
-        return project.memberships.filter(user=user, is_active=True).exists()
+        # Loyihani boshqaradigan odam uning yozishmasida ham bo'ladi.
+        # ISH MAYDONI yozishmasi (pastda) tegilmaydi: u maydon a'zolariniki
+        # va loyiha boshqaruvi u yerga yetib bormaydi.
+        return (manages_all_projects(user)
+                or project.memberships.filter(user=user, is_active=True).exists())
     if workspace is not None:
         return workspace.memberships.filter(user=user).exists()
     return False

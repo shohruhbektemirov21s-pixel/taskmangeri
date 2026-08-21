@@ -47,7 +47,12 @@ DEVELOPER_TRANSITIONS = {
     TaskStatus.IN_PROGRESS: [TaskStatus.IN_REVIEW, TaskStatus.BLOCKED, TaskStatus.TODO],
     TaskStatus.CHANGES_REQUESTED: [TaskStatus.IN_PROGRESS],
     TaskStatus.BLOCKED: [TaskStatus.IN_PROGRESS, TaskStatus.TODO],
-    TaskStatus.IN_REVIEW: [],          # faqat tekshiruvchi harakat qiladi
+    # Tekshiruvdan ijrochi FAQAT ortga qaytara oladi - «qaytarib olish».
+    # Tugmani adashib bosish oson, keyin esa ish tekshiruvchining navbatida
+    # osilib qolardi va uni faqat menejer qaytara olardi. Oldinga yo'l
+    # ochilmaydi: «Bajarildi» ni qo'lda qo'yib bo'lmaydi, uni tekshiruvchi
+    # tasdiqlaydi (`allowed_transitions` va `apply_review`).
+    TaskStatus.IN_REVIEW: [TaskStatus.IN_PROGRESS],
     TaskStatus.DONE: [],
     TaskStatus.CANCELLED: [],
 }
