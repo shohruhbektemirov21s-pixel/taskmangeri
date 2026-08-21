@@ -25,9 +25,9 @@ import { useAuth } from "@/auth/AuthContext";
 import { useLive } from "@/realtime/RealtimeContext";
 import { PageHead } from "@/components/Layout";
 import {
-  Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
+  AvatarStack, Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
-import { toTask } from "@/nav";
+import { toTask, useGo } from "@/nav";
 import { tx } from "@/i18n";
 
 // Davr sarlavhalari. Kalitlar serverdagi `PERIODS` bilan bir xil, tartibni
@@ -316,6 +316,7 @@ function Combo({ id, label, options, value, onChange, placeholder }: {
 /** Bosilgan katakdagi ishlar - panelning ostida. */
 function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void }) {
   const fid = useId();
+  const go = useGo();
   const { meta } = useAuth();
   const [f, setF] = useState<Filters>(EMPTY_FILTERS);
   // Sahifa filtrdan ALOHIDA holatda: filtr o'zgarganda u birinchi sahifaga
@@ -406,14 +407,24 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
         <div className="table-wrap"><table className="table">
           <tbody>
             {tasks.map((t) => (
-              <tr key={t.id}>
+              /* Qatorning istalgan yeriga bosilsa vazifa ochiladi -
+                 sarlavhaning o'zini nishonga olish shart emas. Loyiha
+                 ichidagi ro'yxat ham shunday ishlaydi (`ui.tsx`, `TaskRow`). */
+              <tr className="clickable" key={t.id} onClick={() => go(toTask(t.id))}>
                 <td className="nowrap mono muted">{t.code}</td>
                 <td>
-                  <Link {...toTask(t.id)}>{t.title}</Link>
+                  {/* Havola joyida qoladi: klaviatura yo'li va «yangi oynada
+                      ochish» shu yerdan o'tadi. Hodisa qatorga o'tmasin -
+                      aks holda o'tish ikki marta bajarilardi. */}
+                  <Link {...toTask(t.id)} onClick={(e) => e.stopPropagation()}>{t.title}</Link>
                   <br /><small className="muted">{t.project_name}</small>
                 </td>
                 <td className="nowrap"><StatusBadge task={t} /></td>
                 <td className="nowrap"><Priority task={t} /></td>
+                {/* Kim qilayotgani ro'yxatning o'zida ko'rinsin: ilgari buni
+                    bilish uchun har bir vazifani birma-bir ochish kerak edi.
+                    Ijrochisi yo'q bo'lsa `AvatarStack` chiziqcha qo'yadi. */}
+                <td className="nowrap"><AvatarStack users={t.assignees} /></td>
                 <td className="nowrap muted right">{fmtDate(t.due_date)}</td>
               </tr>
             ))}
