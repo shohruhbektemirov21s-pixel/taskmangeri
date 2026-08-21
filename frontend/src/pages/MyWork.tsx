@@ -58,7 +58,6 @@ const TERMS = [
  */
 export default function MyWork() {
   const fid = useId();
-  const moveId = useId();
   // Sudralayotgan karta va ustidagi ustun. Ko'chirish xatosi yuklash
   // xatosidan alohida turadi - biri ikkinchisini o'chirib yubormasin.
   const [dragId, setDragId] = useState<number | null>(null);
@@ -240,14 +239,14 @@ export default function MyWork() {
                     </div>
                     <div className="column-body">
                       {g.tasks.map((t) => {
-                        // Qaysi ustunlarga ko'chirsa bo'ladi. Bo'sh bo'lsa
-                        // menyu ham, sudrash ham chizilmaydi.
-                        const moves = COLUMNS.filter(
+                        // Boshqa ustunga o'tkazsa bo'ladimi. Bo'lmasa karta
+                        // umuman sudralmaydi - qo'l bejiz tortmasin.
+                        const movable = COLUMNS.some(
                           (c) => c.key !== g.status && accepts(c.key, t));
-                        const card = (
+                        return (
                           <Link className={`tcard ${t.is_overdue ? "overdue" : ""} ${dragId === t.id ? "dragging" : ""}`}
                                 {...toTask(t.id)} key={t.id}
-                                draggable={moves.length > 0}
+                                draggable={movable}
                                 onDragStart={() => { dragRef.current = t.id; setDragId(t.id); }}
                                 onDragEnd={() => {
                                   dragRef.current = null; setDragId(null); setOver(null);
@@ -264,31 +263,6 @@ export default function MyWork() {
                               )}
                             </div>
                           </Link>
-                        );
-                        if (!moves.length) return card;
-                        /* Sudrash faqat sichqoncha bilan ishlaydi: sensorli
-                           ekran ham, klaviatura ham `dragstart` ni
-                           tug'dirmaydi. Shuning uchun kartaning ostida
-                           tanlash maydoni turadi - loyiha doskasidagi
-                           bilan bir xil tizim. */
-                        return (
-                          <div className="tcard-wrap" key={t.id}>
-                            {card}
-                            <div className="tcard-move">
-                              <label className="sr-only" htmlFor={`${moveId}-${t.id}`}>
-                                {t.code} {tx("ui.boshqa_ustunga_kochirish")}
-                              </label>
-                              <select id={`${moveId}-${t.id}`} value=""
-                                      onChange={(e) => {
-                                        if (e.target.value) void move(t, e.target.value);
-                                      }}>
-                                <option value="">{tx("ui.kochirish")}</option>
-                                {moves.map((m) => (
-                                  <option key={m.key} value={m.key}>{m.label}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
                         );
                       })}
                       {!g.tasks.length && (
