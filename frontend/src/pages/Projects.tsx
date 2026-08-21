@@ -3,7 +3,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
 import { ApiError, listOf, pagesOf, totalOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
-import type { MyWorkData, Project, Task } from "@/api/types";
+import type { Choice, MyWorkData, Project, Task } from "@/api/types";
 import { PageHead } from "@/components/Layout";
 import { IconCalendar, IconPlus } from "@/components/icons";
 import { DUE_PERIODS, DateField, Empty, ErrorMsg, Loading, Pager, Progress, RowMenu, fmtDate } from "@/components/ui";
@@ -285,6 +285,31 @@ function ManagerProjects() {
 /* ------------------------------------------------------------- ijrochiga */
 
 /**
+ * Guruhdagi ishlarni HOLAT bo'yicha sanaydi.
+ *
+ * Loyiha sarlavhasida faqat umumiy son turardi («3 ta») va u eng kerakli
+ * savolga javob bermasdi: uchtasining qanchasi bitgan, qanchasi hali
+ * qo'lda. Endi son yonida holatlar ham turadi.
+ *
+ * Yorliqni O'ZIMIZ yasamaymiz - vazifadan kelgan `status_display` ni
+ * olamiz (u bazadagi matndan chiqadi). Tartib esa `meta.task_status`
+ * bo'yicha: ish oqimi qanday bo'lsa, sanoq ham shunday tursin - aks holda
+ * u loyihadan loyihaga o'zgarib ketardi.
+ */
+function statusCounts(tasks: Task[], order: Choice[] | undefined) {
+  const seen = new Map<string, { label: string; n: number }>();
+  tasks.forEach((t) => {
+    const row = seen.get(t.status) || { label: t.status_display, n: 0 };
+    row.n += 1;
+    seen.set(t.status, row);
+  });
+  const rank = new Map((order || []).map((s, i) => [String(s.value), i]));
+  return [...seen.entries()].sort(
+    (a, b) => (rank.get(a[0]) ?? 99) - (rank.get(b[0]) ?? 99));
+}
+
+
+/**
  * Ijrochining «Loyihalar» bo'limi - loyiha kartalari EMAS, o'z vazifalari.
  *
  * «Mening ishim» bilan takrorlanmaydi: u yerda ish HOLAT bo'yicha ustunlarga
@@ -414,6 +439,12 @@ function MyProjectTasks() {
                     o'ziga kirish yo'li ochiq qolsin. */}
                 <h3><Link {...toProject(id)} className="wl-name">{g.name}</Link></h3>
                 <span className="badge">{g.tasks.length} {tx("common.ta")}</span>
+                {/* Holat kesimi: «nechtasi bitdi, nechtasi jarayonda».
+                    Nol bo'lgan holat umuman chizilmaydi - bo'sh nishon
+                    faqat qatorni uzaytirardi. */}
+                {statusCounts(g.tasks, meta?.task_status).map(([status, c]) => (
+                  <span key={status} className={`badge st-${status}`}>{c.n} {c.label}</span>
+                ))}
                 <span className="spacer" />
                 <Link className="btn btn-sm" {...toProject(id)}>{tx("projects.loyihaga_kirish")}</Link>
               </div>

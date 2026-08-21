@@ -516,12 +516,16 @@ html, body { transition: background-color .18s ease, color .18s ease; }
 .card[id] { scroll-margin-top: calc(var(--header-h) + 16px); }
 /* Karta sarlavhasi dizaynda kulrang tasma emas - oq sathda qolib, faqat
    nozik chiziq bilan ajraladi. */
+/* `flex-wrap` - sarlavhada nom, nishonlar va tugma birga turadi va tor
+   ekranda ular bir qatorga sig'maydi. Ilgari o'ralmasdi: oxirgi nishon
+   bilan tugma kartadan chiqib, qirqilib qolardi. `h3` ga `min-width: 0` -
+   uzun loyiha nomi qo'shnilarini chetga surib yubormasin. */
 .card-head {
   padding: 16px 20px; border-bottom: 1px solid var(--border-muted);
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   background: transparent;
 }
-.card-head h3 { margin: 0; font-size: 15px; font-weight: 700; }
+.card-head h3 { margin: 0; font-size: 15px; font-weight: 700; min-width: 0; }
 .card-body { padding: 20px; }
 .card-body.tight { padding: 12px 20px; }
 .card-list > * { border-bottom: 1px solid var(--border-muted); }
