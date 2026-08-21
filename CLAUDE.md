@@ -40,6 +40,33 @@ docker compose exec -T frontend npm run <script>
 
 > Db2 konteyneri og'ir: birinchi ishga tushishi bir necha daqiqa (healthcheck `start_period: 480s`). `depends_on` sog'lomlikni kutadi, shuning uchun `backend` darrov ko'tarilmasligi normal.
 
+### Db2 sozlamasi — `docker/db2/10-teamflow-tuning.sh`
+
+Standart Db2 katta ma'lumotga **tayyor emas**, ikkita joyda:
+
+- **Tranzaksiya jurnali** standartda ~100 MB (`13+12` ta fayl × 1024 × 4KB).
+  Bitta yirik amal shunga urilib `SQL0964C The transaction log for the
+  database is full` bilan yiqiladi va butun amal orqaga qaytadi —
+  40 000 ta vazifa yuklashda aynan shu bo'lgan. Endi 32 MB × (16+48) ≈ 2 GB.
+- **`INSTANCE_MEMORY = AUTOMATIC`** konteynerda ham XOST xotirasidan
+  hisoblanadi (~6.3 GB). Yonida boshqa konteynerlar tursa OOM qotili
+  birinchi bo'lib Db2 ni o'ldiradi. Endi qat'iy 2.5 GB, `mem_limit: 3g`
+  dan past: Db2 cgroup chegarasiga yetmasdan o'zini tiyadi.
+
+Skript `/var/custom` ga ulanadi va instans **birinchi marta** yaratilganda
+o'zi yuguradi. Mavjud bazaga qo'lda:
+
+```bash
+docker exec teamflow_db2 bash /var/custom/10-teamflow-tuning.sh
+```
+
+`AUTO_REORG` ham yoqilgan — usiz jadval va indekslar vaqt o'tib
+parchalanadi va bir xil so'rov sekinlashib boraveradi.
+
+> Konteyner jurnallari `max-size: 10m, max-file: 3` bilan cheklangan
+> (`x-logging` langari). Usiz `json-file` cheksiz o'sadi va diskni
+> to'ldirib qo'yadi — shundan keyin Db2 yozolmay qoladi.
+
 ## Buyruqlar
 
 ```bash

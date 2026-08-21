@@ -1,3 +1,13 @@
+# Konteyner jurnallari STANDARTDA cheksiz o'sadi: `json-file` drayveri
+# hech qachon kesmaydi va bir necha oy ishlagan dev muhitida diskni
+# to'ldirib qo'yadi - shundan keyin Db2 yozolmay qoladi va "docker
+# ishlamayapti" bo'ladi. Har servisga bir xil chegara: 3 x 10 MB.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # ---------------------------------------------------------- IBM Db2
   # Db2 konteyneri "og'ir": ~3 GB, privileged rejim va yadro sozlamalarini
@@ -19,8 +29,21 @@ services:
       AUTOCONFIG: "false"
     volumes:
       - db2data:/database
+      # Instans BIRINCHI marta yaratilganda obraz shu papkadagi hamma
+      # skriptni yuguradi. Jurnal hajmi va xotira chegarasi shu yerda -
+      # `docker/db2/10-teamflow-tuning.sh` ga qara.
+      - ./docker/db2:/var/custom:ro
     ports:
       - "50000:50000"
+    # Db2 ga umumiy xotira (shared memory) kerak; standart 64 MB unga kam.
+    shm_size: 1gb
+    # Db2 ko'p fayl ochadi: har jadval va indeks uchun alohida.
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    # Chegara Db2 ning O'Z chegarasidan (INSTANCE_MEMORY = 2.5 GB) yuqori:
+    # Db2 avval o'zini tiyadi, cgroup qotiliga yetib bormaydi. Tartib
+    # muhim - teskarisi bo'lsa Db2 xotira so'rayverib OOM da o'ldirilardi.
+    mem_limit: 3g
     healthcheck:
       # Baza haqiqatan ulanishga tayyor bo'lgandagina "healthy" bo'ladi.
       test: ["CMD-SHELL", "su - db2inst1 -c 'db2 connect to ${DB2_DB:-TEAMFLOW}' >/dev/null 2>&1"]
@@ -29,19 +52,24 @@ services:
       retries: 40
       start_period: 480s
     restart: unless-stopped
+    logging: *logging
     networks: [teamflow]
 
   # ---------------------------------------------------------- Kanal qatlami (real-time)
   redis:
     image: redis:7-alpine
     container_name: teamflow_redis
-    command: redis-server --save "" --appendonly no
+    command: >
+      redis-server --save "" --appendonly no
+      --maxmemory 256mb --maxmemory-policy allkeys-lru
+    mem_limit: 384m
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 20
     restart: unless-stopped
+    logging: *logging
     networks: [teamflow]
 
   # ---------------------------------------------------------- Backend: Django REST API
@@ -61,7 +89,23 @@ services:
       - backend_media:/app/media
     ports:
       - "8010:8000"
+    # Frontend `depends_on: backend` bilan kutadi - lekin "ishga tushdi"
+    # degani "javob bermoqda" degani emas: entrypoint avval migratsiya va
+    # `collectstatic` ni bajaradi, bu esa bir necha o'n soniya. Healthcheck
+    # bo'lmasa Vite proxy shu vaqt ichida 502 qaytarardi.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/ui-texts/ -o /dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    # 1 GB KAM edi: shu konteynerda `manage.py test` va migratsiyalar ham
+    # yuguradi va katta hajmli sinovda jarayon OOM bilan o'ldirilgan
+    # (exit 137). Chegaralar SHIFT, ya'ni band qilinadigan xotira emas -
+    # odatdagi ishda backend baribir ~200 MB da turadi.
+    mem_limit: 2g
     restart: unless-stopped
+    logging: *logging
     networks: [teamflow]
 
   # ---------------------------------------------------------- Telegram boti
@@ -83,7 +127,9 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+    mem_limit: 512m
     restart: on-failure:3
+    logging: *logging
     networks: [teamflow]
 
   # ---------------------------------------------------------- Frontend: React + TypeScript
@@ -100,13 +146,16 @@ services:
       VITE_API_URL: /api
       VITE_PROXY_TARGET: http://backend:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     volumes:
       - ./frontend:/app
       - /app/node_modules
     ports:
       - "5183:5173"
+    mem_limit: 1g
     restart: unless-stopped
+    logging: *logging
     networks: [teamflow]
 
 volumes:
