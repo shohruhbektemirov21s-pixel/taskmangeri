@@ -3583,10 +3583,6 @@
   "value": "Nima qildingiz",
   "note": "pages/TaskDetail.tsx"
  },
- "task_detail.nima_qilganingizni_yozing_keyingi_dasturchi": {
-  "value": "Nima qilganingizni yozing — keyingi dasturchi shuni oqib kontekstga kiradi.",
-  "note": "pages/TaskDetail.tsx"
- },
  "task_detail.nima_qilish_kerak": {
   "value": "Nima qilish kerak",
   "note": "pages/TaskDetail.tsx"
@@ -3689,6 +3685,14 @@
  },
  "task_detail.yozuv_yoq": {
   "value": "Yozuv yoq.",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.tekshiruvdan_qaytarib_olish": {
+  "value": "Tekshiruvdan qaytarib olish",
+  "note": "pages/TaskDetail.tsx"
+ },
+ "task_detail.qaytarib_olish": {
+  "value": "Qaytarib olish",
   "note": "pages/TaskDetail.tsx"
  },
  "task_drawer.muddat_qoyilmagan": {

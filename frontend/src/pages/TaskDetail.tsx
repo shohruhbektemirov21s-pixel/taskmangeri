@@ -118,6 +118,25 @@ export default function TaskDetail() {
   // Vazifa mazmunini faqat menejer va admin o'zgartiradi (serverda ham shunday).
   const canEdit = acc.can_create_task;
   const transitions = task.allowed_transitions || [];
+
+  /**
+   * TEKSHIRUVDAN QAYTARIB OLISH.
+   *
+   * Tekshiruvga topshirish tugmasini adashib bosish oson, keyin esa ish
+   * tekshiruvchining navbatida osilib qolardi va uni faqat menejer
+   * qaytara olardi.
+   *
+   * Server tomonda bu oddiy holat o'zgarishi (`IN_REVIEW -> IN_PROGRESS`),
+   * lekin holatlar ro'yxatidagi «Jarayonda» degan tugma «men adashdim»
+   * degan ma'noni bermaydi. Shuning uchun u ro'yxatdan olinib, o'z nomi
+   * bilan alohida turadi - ikkita bir xil ish qiladigan tugma qolmasin.
+   */
+  const withdraw = task.status === "IN_REVIEW"
+    ? transitions.find((t) => t.value === "IN_PROGRESS")
+    : undefined;
+  const picks = withdraw
+    ? transitions.filter((t) => t.value !== "IN_PROGRESS")
+    : transitions;
   const attachments = task.attachments || [];
 
   return (
@@ -353,9 +372,6 @@ export default function TaskDetail() {
             {/* ------------------------------------------------ ISH JURNALI */}
             {acc.can_work && (
               <Card title={tx("task_detail.ish_jurnali")} badge={<span className="badge">{task.logged_hours} {tx("common.soat")}</span>}>
-                <p className="muted" style={{ fontSize: 13 }}>
-                  {tx("task_detail.nima_qilganingizni_yozing_keyingi_dasturchi")}
-                </p>
                 <ul className="list-plain">
                   {(task.worklogs || []).map((w) => (
                     <li key={w.id}>
@@ -409,13 +425,23 @@ export default function TaskDetail() {
 
           {/* ------------------------------------------------ ONG USTUN */}
           <div>
-            {transitions.length > 0 && (
+            {withdraw && (
+              <Card title={tx("task_detail.tekshiruvdan_qaytarib_olish")}>
+                <button className="btn btn-sm" disabled={busy}
+                        onClick={() => void run(() => api.post(`/tasks/${task.id}/status/`,
+                                                              { status: withdraw.value }))}>
+                  {tx("task_detail.qaytarib_olish")}
+                </button>
+              </Card>
+            )}
+
+            {picks.length > 0 && (
               <Card title={tx("task_detail.holatni_ozgartirish")}>
                 {/* Tugmalar yonma-yon: oltita holat ustma-ust turganda panel
                     ekranning yarmini egallab, yonidagi «Tekshiruv» va boshqa
                     bo'limlarni pastga surib yuborardi. */}
                 <div className="status-picker">
-                  {transitions.map((t) => (
+                  {picks.map((t) => (
                     <button key={t.value} className="btn btn-sm" disabled={busy}
                             onClick={() => void run(() => api.post(`/tasks/${task.id}/status/`, {
                               status: t.value,
@@ -425,7 +451,7 @@ export default function TaskDetail() {
                     </button>
                   ))}
                 </div>
-                {transitions.some((t) => t.value === "BLOCKED") && (
+                {picks.some((t) => t.value === "BLOCKED") && (
                   /* Sabab «To'xtab qolgan» tugmasidan OLDIN yoziladi - tugma
                      bosilishi bilanoq holat serverga ketadi. Shuning uchun
                      maydon ko'rinib turadi, lekin ixcham: yorlig'i yo'q,

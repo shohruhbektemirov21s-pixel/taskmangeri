@@ -126,6 +126,64 @@ class BoardApproveTest(ApiTestCase):
         self.task.refresh_from_db()
         self.assertEqual(self.task.status, TaskStatus.IN_REVIEW)
 
+    # ------------------------------------------- tekshiruvdan qaytarib olish
+
+    def test_ijrochi_tekshiruvdan_qaytarib_oladi(self):
+        """Adashib topshirgan ish tekshiruvchining navbatida osilib qolmasin."""
+        self.submit()
+        r = self.move(self.client_for(self.dev), TaskStatus.IN_PROGRESS)
+        self.assertEqual(r.status_code, 200)
+
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, TaskStatus.IN_PROGRESS)
+
+    def test_qaytarib_olingach_navbatdan_chiqadi(self):
+        """Tekshiruvchining ro'yxati holatdan chiqadi - ikkovi ajralmasin."""
+        self.submit()
+        self.assertEqual(
+            [t["id"] for t in self.api.get("/api/tasks/review-queue/").data],
+            [self.task.pk])
+
+        self.move(self.client_for(self.dev), TaskStatus.IN_PROGRESS)
+        self.assertEqual(list(self.api.get("/api/tasks/review-queue/").data), [])
+
+    def test_qaytarib_olinganda_tekshiruvchiga_xabar_boradi(self):
+        """Navbatdagi ish g'oyib bo'lsa - sababi aytilsin."""
+        from apps.notifications.models import Notification
+
+        self.submit()
+        before = Notification.objects.filter(recipient=self.manager).count()
+        self.move(self.client_for(self.dev), TaskStatus.IN_PROGRESS)
+
+        fresh = Notification.objects.filter(recipient=self.manager).order_by("-id").first()
+        self.assertEqual(Notification.objects.filter(recipient=self.manager).count(),
+                         before + 1)
+        self.assertIn("qaytarib olindi", fresh.title.lower())
+
+    def test_qaytarib_olish_yolni_oldinga_ochmaydi(self):
+        """Ortga qaytish ochildi, «Bajarildi» esa avvalgidek yopiq."""
+        self.submit()
+        r = self.move(self.client_for(self.dev), TaskStatus.DONE)
+        self.assertEqual(r.status_code, 403)
+
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, TaskStatus.IN_REVIEW)
+
+    def test_chetdagi_odam_qaytarib_ololmaydi(self):
+        self.submit()
+        r = self.move(self.client_for(self.outsider), TaskStatus.IN_PROGRESS)
+        self.assertEqual(r.status_code, 403)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, TaskStatus.IN_REVIEW)
+
+    def test_doska_qaytarish_yolini_korsatadi(self):
+        """Karta ostidagi menyu va sudrash shu ro'yxatdan chiqadi."""
+        self.submit()
+        r = self.client_for(self.dev).get("/api/tasks/board/", {"project": self.project.pk})
+        card = next(t for c in r.data["columns"] for t in c["tasks"] if t["id"] == self.task.pk)
+        self.assertEqual([m["value"] for m in card["allowed_transitions"]],
+                         [TaskStatus.IN_PROGRESS])
+
     def test_doska_javobida_tekshirish_huquqi_bor(self):
         """Interfeys ustunni to'g'ri belgilashi uchun `access` kerak."""
         r = self.api.get("/api/tasks/board/", {"project": self.project.pk})

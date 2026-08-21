@@ -88,12 +88,27 @@ def move_status(task, new_status, access, actor, blocked_reason=""):
             "Siz bu vazifani '{}' holatiga ota olmaysiz.".format(TaskStatus(new_status).label))
 
     old_label = task.get_status_display()
+    old_status = task.status
     task.apply_status(new_status)
     if new_status == TaskStatus.BLOCKED:
         task.blocked_reason = (blocked_reason or "")[:250]
     if new_status == TaskStatus.IN_REVIEW:
         task.review_round += 1
     task.save()
+
+    # TEKSHIRUVDAN QAYTARIB OLINDI. Navbatda turgan ish g'oyib bo'ldi -
+    # buni tekshiruvchi bilishi kerak, aks holda u ochib ko'rgan ishini
+    # qidirib qolardi yoki allaqachon o'qib chiqqanini bekorga tekshirardi.
+    # Xabar topshirilganidagi bilan juft: biri navbatga qo'yadi, ikkinchisi
+    # oladi.
+    if old_status == TaskStatus.IN_REVIEW and new_status == TaskStatus.IN_PROGRESS:
+        reviewers = [m.user for m in task.project.memberships.filter(
+            is_active=True, role__in=[ProjectRole.MANAGER, ProjectRole.ADMIN])
+            .select_related("user")]
+        notify_many(reviewers, NotificationKind.TASK_REVIEW,
+                    title="{} tekshiruvdan qaytarib olindi".format(task.code),
+                    body="{}: {}".format(getattr(actor, "full_name", ""), task.title[:100]),
+                    url="/vazifa/{}".format(task.pk), actor=actor)
 
     verb = "task.status"
     if new_status == TaskStatus.IN_REVIEW:
