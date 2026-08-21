@@ -515,6 +515,17 @@ export default function Suggestions() {
   /* Taklif saqlandi-yu, fayl yuklanmadi - shu yerda aytiladi. */
   const [warn, setWarn] = useState("");
 
+  /* «Saqlandi» xabari o'n soniyada o'zi so'nadi.
+     U ish BITGANINI aytadi, ya'ni o'qilgach kerak emas - lekin ro'yxatning
+     tepasida turib joy egallardi va odam uni yopish uchun sahifani qayta
+     yuklardi. Ogohlantirish (`warn`) esa QOLADI: unda bajarilmagan ish bor
+     (fayl yuklanmadi) va uni ko'rmay qolish mumkin emas. */
+  useEffect(() => {
+    if (!ok) return;
+    const timer = setTimeout(() => setOk(""), 10_000);
+    return () => clearTimeout(timer);
+  }, [ok]);
+
   /* Saralash SERVERDA: eng ko'p qo'llab-quvvatlangani birinchi sahifada
      turadi. Shuning uchun kesish ham serverda - mijozda kesilsa, "1-o'rin"
      faqat kelgan o'ttiztaning ichida bo'lardi. */
