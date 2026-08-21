@@ -1623,20 +1623,8 @@
   "value": "Xabarlar",
   "note": "pages/Messages.tsx"
  },
- "my_work.bu_holatda_ishingiz_yoq": {
-  "value": "Bu holatda ishingiz yoq",
-  "note": "pages/MyWork.tsx"
- },
  "my_work.bu_ustun_bosh": {
   "value": "Bu ustun bo'sh.",
-  "note": "pages/MyWork.tsx"
- },
- "my_work.faqat": {
-  "value": "Faqat:",
-  "note": "pages/MyWork.tsx"
- },
- "my_work.hammasini_korish": {
-  "value": "Hammasini korish",
   "note": "pages/MyWork.tsx"
  },
  "my_work.loyihaga_qoshiling_menejer_mutaxassisligingi": {
@@ -1651,8 +1639,40 @@
   "value": "Sizga hali vazifa biriktirilmagan",
   "note": "pages/MyWork.tsx"
  },
- "my_work.tanlangan_holat_boyicha_sizga_biriktirilgan": {
-  "value": "Tanlangan holat boyicha sizga biriktirilgan vazifa topilmadi.",
+ "my_work.ustun_barchasi": {
+  "value": "Barchasi",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.ustun_shu_haftalik": {
+  "value": "Shu haftalik ishlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.ustun_bugun": {
+  "value": "Bugun qilayotgan ishlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.ustun_bajarilganlar": {
+  "value": "Bajarilganlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.barcha_muddatlar": {
+  "value": "Barcha muddatlar",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.muddat_1_haftalik": {
+  "value": "1 haftalik",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.muddat_1_oylik": {
+  "value": "1 oylik",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.muddat_1_yillik": {
+  "value": "1 yillik",
+  "note": "pages/MyWork.tsx"
+ },
+ "my_work.kochirib_bolmadi": {
+  "value": "Vazifani ko'chirib bo'lmadi.",
   "note": "pages/MyWork.tsx"
  },
  "notification_bell.bildirishnomalar_ulanish_yoq": {

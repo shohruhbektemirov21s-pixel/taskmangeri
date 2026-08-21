@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, listOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
@@ -25,6 +25,17 @@ export default function Board({ project }: { project: Project }) {
   const { subscribe } = useRealtime();
   const [assignee, setAssignee] = useState("");
   const [dragId, setDragId] = useState<number | null>(null);
+  /**
+   * Sudralayotgan kartaning raqami - REF da, holatda emas.
+   *
+   * `dragstart` va `drop` bir-biriga juda yaqin kelsa (tez sudralganda,
+   * sensorli ekranda, sinov vositasida) React holatni oradan ULGURMAY
+   * yangilaydi va `drop` ichidagi `dragId` hali `null` bo'ladi: karta
+   * qimirlamaydi, xato ham chiqmaydi - odam "ishlamayapti" deb qoladi.
+   * Ref esa o'sha zahoti yoziladi. Holat baribir kerak: ustunning
+   * yonishi (`drag-over`) qayta chizishga bog'liq.
+   */
+  const dragRef = useRef<number | null>(null);
   const [over, setOver] = useState<string | null>(null);
   // Ko'chirish xatosi - yuklash xatosidan alohida.
   const [actionError, setActionError] = useState<string | null>(null);
@@ -66,7 +77,7 @@ export default function Board({ project }: { project: Project }) {
     if (!access?.can_work) return false;
     if (status !== "DONE") return true;
     if (!access?.can_review) return false;
-    const task = columns?.flatMap((c) => c.tasks).find((t) => t.id === dragId);
+    const task = columns?.flatMap((c) => c.tasks).find((t) => t.id === dragRef.current);
     return task?.status === "IN_REVIEW";
   }
 
@@ -83,9 +94,10 @@ export default function Board({ project }: { project: Project }) {
 
   async function drop(status: TaskStatusValue) {
     setOver(null);
-    const id = dragId;
+    const id = dragRef.current;
+    if (id == null || !accepts(status)) { dragRef.current = null; setDragId(null); return; }
+    dragRef.current = null;
     setDragId(null);
-    if (id == null || !accepts(status)) return;
     await move(id, status);
   }
 
@@ -133,7 +145,7 @@ export default function Board({ project }: { project: Project }) {
             key={col.status}
             className={`column ${over === col.status ? "drag-over" : ""}`}
             onDragOver={(e) => {
-              if (dragId != null && !accepts(col.status)) return;
+              if (dragRef.current != null && !accepts(col.status)) return;
               e.preventDefault();
               setOver(col.status);
             }}
@@ -156,7 +168,9 @@ export default function Board({ project }: { project: Project }) {
                   key={t.id}
                   task={t}
                   draggable={Boolean(access?.can_work)}
-                  onDragStart={() => setDragId(t.id)}
+                  dragging={dragId === t.id}
+                  onDragStart={() => { dragRef.current = t.id; setDragId(t.id); }}
+                  onDragEnd={() => { dragRef.current = null; setDragId(null); setOver(null); }}
                   /* Sudrab bo'lmaydigan joylar uchun (telefon, klaviatura)
                      kartaning o'zida tanlash maydoni chiqadi. */
                   onMove={access?.can_work ? (task, status) => void move(task.id, status) : undefined}

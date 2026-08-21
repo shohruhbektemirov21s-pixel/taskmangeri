@@ -1300,7 +1300,14 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .tcard.dragging { opacity: .4; transform: rotate(1.5deg) scale(.98); }
 .tcard .code { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
 .tcard .title { font-weight: 550; font-size: 13.5px; margin: 5px 0 10px; color: var(--text); line-height: 1.42; }
-.tcard .foot { display: flex; align-items: center; gap: 6px; }
+/* Pastki qator O'RALADI. Ilgari o'ralmasdi va nishonlar (tur,
+   mutaxassislik, fayl soni, muddat) kartadan chiqib ketardi: ustun tagida
+   gorizontal surish yo'lakchasi paydo bo'lib, odam kartaning oxirini
+   ko'rish uchun uni yon tomonga surishi kerak edi. `min-width: 0` esa
+   uzun nishonni qisqartirishga ruxsat beradi - aks holda `nowrap` li
+   sana qatorni baribir cho'zib yuborardi. */
+.tcard .foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.tcard .foot > * { min-width: 0; }
 .tcard.overdue { border-left: 3px solid var(--danger); }
 .tcard-due {
   display: inline-flex; align-items: center; gap: 5px;
@@ -1313,6 +1320,16 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    chegarasi "shu yerga tashla" degan nishonni ko'rsatadi. */
 .board.plain .column {
   background: transparent; border: 0; box-shadow: none; max-height: none;
+  /* Bu doskada ustunlar DOIMO to'rtta (muddat kesimlari), shuning uchun
+     ular qat'iy 306px emas, kontent kengligiga bo'linib sig'adi. Qat'iy
+     kenglikda to'rttasi 1272px joy so'rardi, kontent esa 1440px dan
+     kengaymaydi va yon panel bilan ~1020px qoladi - ya'ni oxirgi ustun
+     («Bajarilganlar») har safar ekrandan chiqib ketardi va uni ko'rish
+     uchun doskani surish kerak bo'lardi.
+
+     Loyiha doskasi (`.board` ustunlari) tegilmaydi: u yerda ustunlar
+     holatlar soniga qarab ko'payadi va surilishi to'g'ri. */
+  flex: 1 1 0; width: auto; min-width: 210px;
 }
 .board.plain .column-head {
   background: transparent; border-bottom: 0; padding: 0 4px 10px; font-size: 13px;
