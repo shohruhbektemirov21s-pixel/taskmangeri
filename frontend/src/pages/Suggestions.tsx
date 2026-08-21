@@ -166,9 +166,6 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
               {tx("suggestions.yopiq")}
             </label>
           </div>
-          <div className="help">
-            {closed ? tx("suggestions.yopiq_izoh") : tx("suggestions.ochiq_izoh")}
-          </div>
         </div>
 
         {/* Anonimlik TURDAN QAT'I NAZAR: yopiq taklif eng og'ir mavzular
@@ -180,9 +177,6 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
                      onChange={(e) => set("is_anonymous", e.target.checked)} />
               {tx("suggestions.anonim_yuborish")}
             </label>
-          </div>
-          <div className="help">
-            {closed ? tx("suggestions.anonim_yopiq_izoh") : tx("suggestions.anonim_izoh")}
           </div>
         </div>
 
@@ -217,16 +211,7 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
 
           <FilePicker files={picked} onChange={setPicked}
                       hint={tx("suggestions.fayl_hint")} />
-          <div className="help">
-            {f.is_anonymous ? tx("suggestions.anonim_fayl_izoh") : tx("suggestions.fayl_izoh")}
-          </div>
         </div>
-
-        {editing && editing.status !== "PENDING" && (
-          <div className="help" style={{ marginBottom: 14 }}>
-            {tx("suggestions.tahrirdan_keyin_qaytadi")}
-          </div>
-        )}
 
         <div className="form-actions">
           <button className="btn btn-primary" disabled={busy}>

@@ -3167,20 +3167,8 @@
   "value": "Qoshish",
   "note": "components/SkillEditor.tsx"
  },
- "suggestions.anonim_fayl_izoh": {
-  "value": "Anonim taklifda faylni kim yuklagani ham ko'rsatilmaydi.",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.anonim_izoh": {
-  "value": "Ismingiz hech kimga ko'rsatilmaydi — boshliqqa ham.",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.anonim_muallif": {
   "value": "Anonim",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.anonim_yopiq_izoh": {
-  "value": "Yopiq taklifni faqat boshliq o'qiydi. Anonim tanlansangiz u ham kim yozganini bilmaydi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.anonim_yuborish": {
@@ -3209,10 +3197,6 @@
  },
  "suggestions.fayl_hint": {
   "value": "Hujjat, chizma yoki rasmni shu yerga tashlang — 25 MB gacha",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.fayl_izoh": {
-  "value": "Taklifga hujjat yoki rasm qo'shsangiz — u kartada ko'rinadi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.fayl_ochirilsinmi": {
@@ -3265,10 +3249,6 @@
  },
  "suggestions.ochiq": {
   "value": "Ochiq",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.ochiq_izoh": {
-  "value": "Ochiq — butun jamoa ko'radi va ovoz beradi, boshliq esa qaror qiladi.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.ochirildi": {
@@ -3335,10 +3315,6 @@
   "value": "Takliflar",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.tahrirdan_keyin_qaytadi": {
-  "value": "Matn o'zgarsa taklif yana boshliq navbatiga tushadi — eski qaror bekor bo'ladi.",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.taklif_matni": {
   "value": "Taklif matni",
   "note": "pages/Suggestions.tsx"
@@ -3369,10 +3345,6 @@
  },
  "suggestions.yopiq": {
   "value": "Yopiq",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.yopiq_izoh": {
-  "value": "Yopiq — faqat siz va boshliq ko'radi. Jamoa oldida aytilmaydigan gap uchun.",
   "note": "pages/Suggestions.tsx"
  },
  "suggestions.yuborish": {
