@@ -17,6 +17,7 @@ import type {
   Suggestion, SuggestionFile, SuggestionScopeValue, VoteChoiceValue,
 } from "@/api/types";
 import { useFetch } from "@/api/useFetch";
+import { useLive } from "@/realtime/RealtimeContext";
 import { useAuth } from "@/auth/AuthContext";
 import { confirmDialog } from "@/components/Confirm";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
@@ -25,7 +26,7 @@ import {
   IconCheck, IconClose, IconFile, IconIdea, IconNeutral, IconThumbDown, IconThumbUp,
 } from "@/components/icons";
 import {
-  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, Pager, PhotoView, timeAgo,
+  Avatar, Card, Empty, ErrorMsg, Loading, OkMsg, Pager, PhotoView, RowMenu, timeAgo,
 } from "@/components/ui";
 import { tx } from "@/i18n";
 
@@ -83,12 +84,9 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
     setF((prev) => ({ ...prev, [k]: v }));
   }
 
-  // Yopiq taklif anonim bo'lmaydi - serverda ham shu qoida bor
-  // (`SuggestionSerializer.validate`), bu yerda faqat belgini olib tashlaymiz.
+  // Anonimlik ikkala turda ham ishlaydi - turini almashtirish endi
+  // belgini olib tashlamaydi. Sababi `apps/suggestions/models.py` da.
   const closed = f.scope === "CLOSED";
-  useEffect(() => {
-    if (closed && f.is_anonymous) setF((prev) => ({ ...prev, is_anonymous: false }));
-  }, [closed, f.is_anonymous]);
 
   /** Saqlangan faylni olib tashlash — faqat tahrir rejimida bo'ladi. */
   async function dropFile(file: SuggestionFile) {
@@ -173,20 +171,20 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
           </div>
         </div>
 
-        {/* Anonimlik faqat ochiq taklifda: yopiqni baribir boshliq o'qiydi
-            va kimga javob berishni bilishi kerak. */}
-        {!closed && (
-          <div className="field">
-            <div className="check-list">
-              <label className={f.is_anonymous ? "on" : ""}>
-                <input type="checkbox" checked={f.is_anonymous}
-                       onChange={(e) => set("is_anonymous", e.target.checked)} />
-                {tx("suggestions.anonim_yuborish")}
-              </label>
-            </div>
-            <div className="help">{tx("suggestions.anonim_izoh")}</div>
+        {/* Anonimlik TURDAN QAT'I NAZAR: yopiq taklif eng og'ir mavzular
+            uchun va aynan o'sha yerda ism majburiy bo'lib turardi. */}
+        <div className="field">
+          <div className="check-list">
+            <label className={f.is_anonymous ? "on" : ""}>
+              <input type="checkbox" checked={f.is_anonymous}
+                     onChange={(e) => set("is_anonymous", e.target.checked)} />
+              {tx("suggestions.anonim_yuborish")}
+            </label>
           </div>
-        )}
+          <div className="help">
+            {closed ? tx("suggestions.anonim_yopiq_izoh") : tx("suggestions.anonim_izoh")}
+          </div>
+        </div>
 
         {/* Fayl — «oddiy taklif ham yuklay olsin». Kim yuklagani kartada
             ko'rinadi; anonim taklifda esa u ham yashiriladi. */}
@@ -246,7 +244,13 @@ function SuggestionForm({ initial, editing, onCancel, onSaved }: {
 
 /* ------------------------------------------------------- boshliq paneli */
 
-function BossPanel({ item, onDone }: { item: Suggestion; onDone: (s: Suggestion) => void }) {
+function BossPanel({ item, onDone, onCancel }: {
+  item: Suggestion;
+  onDone: (s: Suggestion) => void;
+  /* Faqat QAYTA ochilganda beriladi: odam fikridan qaytsa, hech narsani
+     o'zgartirmasdan yopib qo'ya olsin. */
+  onCancel?: () => void;
+}) {
   const [note, setNote] = useState(item.decision_note || "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -286,6 +290,11 @@ function BossPanel({ item, onDone }: { item: Suggestion; onDone: (s: Suggestion)
         <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => void send()}>
           {tx("suggestions.izohni_saqlash")}
         </button>
+        {onCancel && (
+          <button className="btn btn-sm btn-ghost" disabled={busy} onClick={onCancel}>
+            {tx("common.bekor_qilish")}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -321,6 +330,14 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
   onDelete: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  /* Qaror QAYTA OCHILDIMI.
+
+     Qaror chiqqach forma yopiladi: tasdiqlangan taklifning ostida
+     «Tasdiqlash / Rad etish» tugmalari turishi qarorni chiqmagandek
+     ko'rsatardi va tasodifan qayta bosish oson edi. Fikr o'zgarsa yo'l
+     ochiq qolsin uchun u «⋯» menyusiga ko'chdi - loyihalar ro'yxatidagi
+     kabi, kartaning o'ng chekkasida. */
+  const [redeciding, setRedeciding] = useState(false);
   // Kattalashtirib ko'rilayotgan rasm (yoki `null`).
   const [shot, setShot] = useState<SuggestionFile | null>(null);
   // Rasm va qolgan fayl ikki xil chiziladi - sababi pastda, chizilgan joyda.
@@ -365,6 +382,19 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
             <button className="btn btn-sm btn-ghost" onClick={onDelete}>
               {tx("common.ochirish")}
             </button>
+          </div>
+        )}
+
+        {/* Qaror chiqqan taklifda boshliqning yagona amali shu menyuda:
+            «Tahrirlash» formani qaytadan ochadi va u yerda tasdiqlash
+            ham, rad etish ham, izohni almashtirish ham bor. */}
+        {item.can_decide && item.status !== "PENDING" && !redeciding && (
+          <div className="row sg-actions" style={{ gap: 6 }}>
+            <RowMenu>
+              <button type="button" onClick={() => setRedeciding(true)}>
+                {tx("common.tahrirlash")}
+              </button>
+            </RowMenu>
           </div>
         )}
       </div>
@@ -460,7 +490,11 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
         </div>
       )}
 
-      {item.can_decide && <BossPanel item={item} onDone={onChange} />}
+      {item.can_decide && (item.status === "PENDING" || redeciding) && (
+        <BossPanel item={item}
+                   onDone={(saved) => { setRedeciding(false); onChange(saved); }}
+                   onCancel={redeciding ? () => setRedeciding(false) : undefined} />
+      )}
     </div>
   );
 }
@@ -501,6 +535,16 @@ export default function Suggestions() {
     setRows(listOf<Suggestion>(data));
     setTotal((data as { count?: number }).count ?? 0);
   }, [data]);
+
+  // REAL VAQTDA. Yangi taklif boshliqqa, qaror esa muallifga bildirishnoma
+  // bo'lib keladi (`apps/suggestions/services.py`). Sahifa ochiq turgan
+  // odam uchun qo'ng'iroqning o'zi yetarli emas - ro'yxatning o'zi ham
+  // yangilansin, aks holda u sahifani qo'lda qayta yuklashi kerak bo'lardi.
+  useLive((d) => {
+    if (d.event !== "notification") return;
+    const kind = d.notification?.kind;
+    if (kind === "suggestion.new" || kind === "suggestion.decided") reload();
+  });
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
 

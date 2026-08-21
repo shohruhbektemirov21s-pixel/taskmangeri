@@ -28,6 +28,11 @@ class NotificationKind(models.TextChoices):
     JOIN_REQUEST = "join.request", "Qo'shilish so'rovi"
     # Loyiha muddati yaqinlashdi - 1 hafta va 3 kun qolganda
     PROJECT_DEADLINE = "project.deadline", "Loyiha muddati yaqin"
+    # Taklif - javob KUTIB turadigan narsa, shuning uchun qo'ng'iroqqa
+    # tushadi: yangisi boshliqqa, qarori esa muallifga boradi. Ovoz
+    # berilgani bu yerga TUSHMAYDI - u kutish emas, jamoaning fikri.
+    SUGGESTION_NEW = "suggestion.new", "Yangi taklif"
+    SUGGESTION_DECIDED = "suggestion.decided", "Taklif bo'yicha qaror"
 
 
 class Notification(models.Model):

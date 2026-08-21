@@ -3179,6 +3179,10 @@
   "value": "Anonim",
   "note": "pages/Suggestions.tsx"
  },
+ "suggestions.anonim_yopiq_izoh": {
+  "value": "Yopiq taklifni faqat boshliq o'qiydi. Anonim tanlansangiz u ham kim yozganini bilmaydi.",
+  "note": "pages/Suggestions.tsx"
+ },
  "suggestions.anonim_yuborish": {
   "value": "Anonim yuborish",
   "note": "pages/Suggestions.tsx"

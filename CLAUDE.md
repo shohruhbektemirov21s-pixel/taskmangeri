@@ -212,7 +212,11 @@ Jamoa taklif beradi, **boshliq** (`GlobalRole.BOSS`) qaror qiladi. Uchta
 qoida kodda ham, testda ham qulflangan — buzma:
 
 - **Anonim taklifda muallif hech kimga ko'rsatilmaydi** — boshliqqa ham,
-  `django-admin/` da ham.
+  `django-admin/` da ham. Bu BILDIRISHNOMAGA ham tegishli: `actor`
+  foydalanuvchini to'liq ochadi (ismi, rasmi), shuning uchun anonim
+  taklifda u bo'sh ketadi va matnda ham ism bo'lmaydi
+  (`apps/suggestions/services.py`). Anonimlik taklif TURIGA bog'liq
+  emas — yopiq taklif ham anonim bo'la oladi.
 - **Kim ovoz bergani tashqariga chiqmaydi.** `SuggestionVote` da `user` bor
   (bir odam bir marta ovoz bersin), lekin API faqat sonlarni va so'ragan
   odamning o'z tanlovini beradi. `SuggestionVote` ataylab admin panelida
@@ -233,6 +237,12 @@ yashirish qulaylik uchun, chegara esa `get_queryset` da.
 
 Ovoz sonlari `Count()` bilan emas, `related_count` (ichki so'rov) bilan
 olinadi: Db2 `GROUP BY` ichida CLOB ustunini (`Suggestion.body`) qo'llamaydi.
+
+**Bildirishnoma ikki nuqtada** (`apps/suggestions/services.py`): yangi
+taklif — boshliqqa, qaror va izoh — muallifga. Ovoz berilgani qo'ng'iroqqa
+TUSHMAYDI: u javob talab qilmaydi va boshliqning qo'ng'irog'ini kunda
+o'nlab marta chalardi. Sahifa WebSocket orqali o'zi yangilanadi
+(`Suggestions.tsx` dagi `useLive`) — ochiq turgan odam qayta yuklamaydi.
 
 ## Ish tartibi
 
