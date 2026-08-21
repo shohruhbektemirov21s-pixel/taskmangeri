@@ -3371,22 +3371,6 @@
   "value": "Yuklagan: {ism}",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.pill_all": {
-  "value": "Barchasi",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.pill_pending": {
-  "value": "Ko'rib chiqilmoqda",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.pill_approved": {
-  "value": "Tasdiqlangan",
-  "note": "pages/Suggestions.tsx"
- },
- "suggestions.pill_rejected": {
-  "value": "Rad etilgan",
-  "note": "pages/Suggestions.tsx"
- },
  "suggestions.pill_mine": {
   "value": "Mening takliflarim",
   "note": "pages/Suggestions.tsx"
@@ -3411,16 +3395,24 @@
   "value": "Boshliq ko'rib chiqmoqda",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.royxat_qamrovi": {
-  "value": "{jami} ta taklifdan {dan}–{gacha} tasi ko'rsatilmoqda",
+ "suggestions.ustun_all": {
+  "value": "Barchasi",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.kutilayotgan_bosh": {
-  "value": "Javob kutayotgan taklif yo'q",
+ "suggestions.ustun_pending": {
+  "value": "Ko'rilmoqda",
   "note": "pages/Suggestions.tsx"
  },
- "suggestions.kutilayotgan_bosh_matn": {
-  "value": "Hamma taklif bo'yicha qaror chiqqan — navbatda hech nima qolmadi.",
+ "suggestions.ustun_approved": {
+  "value": "Tasdiqlandi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ustun_rejected": {
+  "value": "Rad etildi",
+  "note": "pages/Suggestions.tsx"
+ },
+ "suggestions.ustun_bosh": {
+  "value": "Bu ustun bo'sh.",
   "note": "pages/Suggestions.tsx"
  },
  "task_bulk_form.bu_sahifa_loyiha_ichidan_ochiladi": {

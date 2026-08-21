@@ -12,13 +12,12 @@
  */
 import { useEffect, useMemo, useState } from "react";
 
-import { api, listOf } from "@/api/client";
+import { api } from "@/api/client";
 import type {
   Suggestion, SuggestionFile, SuggestionScopeValue, VoteChoiceValue,
 } from "@/api/types";
 import { useFetch } from "@/api/useFetch";
 import { useLive } from "@/realtime/RealtimeContext";
-import { useAuth } from "@/auth/AuthContext";
 import { confirmDialog } from "@/components/Confirm";
 import FilePicker, { uploadFiles } from "@/components/FilePicker";
 import { PageHead } from "@/components/Layout";
@@ -51,29 +50,43 @@ import { tx } from "@/i18n";
  * «Mening takliflarim» ataylab OXIRGI: u shaxsiy kesim, jamoanikidan
  * keyin turadi.
  */
-type Tab = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "MINE";
-
 /**
- * Filtr nishonlari. Son SERVERDAN keladi (`/suggestions/counts/`) -
- * ekrandagi qatorlarni sanab bo'lmaydi, chunki ro'yxat sahifalangan va
- * birinchi sahifada o'ntasi turadi.
+ * DOSKA USTUNLARI - takliflarning holati bo'yicha.
  *
- * `key` - sanoq javobidagi nom, `tone` - nishon rangi.
+ * Kalitlar serverdan keladi (`/suggestions/board/`), nomi esa bazadan.
+ * «Barchasi» qolgan uchtasining yig'indisi, ya'ni ustunlar bir-birini
+ * inkor qilmaydi: tasdiqlangan taklif «barchasi» da ham turadi. Bu
+ * Kanban emas - bitta ro'yxatning kesimlari, xuddi «Mening ishim»
+ * doskasidagidek.
+ *
+ * Nuqta rangi holatni aytadi: kulrang hammasi, sariq javob kutayotgan,
+ * yashil tasdiqlangan, qizil rad etilgan.
  */
-const PILLS: { tab: Tab; key: string; tone: string; boss?: boolean }[] = [
-  { tab: "ALL", key: "all", tone: "" },
-  { tab: "PENDING", key: "PENDING", tone: "warn" },
-  { tab: "APPROVED", key: "APPROVED", tone: "ok", boss: true },
-  { tab: "REJECTED", key: "REJECTED", tone: "danger", boss: true },
-  { tab: "MINE", key: "mine", tone: "" },
-];
+const COLUMNS = [
+  { key: "ALL", dot: "var(--subtle)" },
+  { key: "PENDING", dot: "var(--attention)" },
+  { key: "APPROVED", dot: "var(--success)" },
+  { key: "REJECTED", dot: "var(--danger)" },
+] as const;
+
+type ColumnKey = typeof COLUMNS[number]["key"];
+
+interface BoardColumn {
+  key: ColumnKey;
+  count: number;
+  page: number;
+  pages: number;
+  items: Suggestion[];
+}
 
 /** Saralash - qiymatlar server tushunadigan kalitlar (`SuggestionViewSet.SORTS`). */
 const SORTS = ["top", "new", "old"] as const;
 type Sort = typeof SORTS[number];
 
-/** Bir sahifada nechta taklif. Serverda ham shu son so'raladi. */
-const PER_PAGE = 10;
+/** Doskaning bitta ustuniga bir marta nechta taklif tushadi.
+    Serverdagi `SuggestionViewSet.BOARD_PAGE` bilan bir xil bo'lishi
+    shart: o'rin raqami shu songa qarab hisoblanadi. */
+const BOARD_PAGE = 10;
 
 /** Bo'sh forma - yangi taklif uchun boshlang'ich holat. */
 const EMPTY = { title: "", body: "", scope: "OPEN" as SuggestionScopeValue, is_anonymous: false };
@@ -524,14 +537,15 @@ function SuggestionCard({ item, rank, onChange, onEdit, onDelete }: {
 /* -------------------------------------------------------------- sahifa */
 
 export default function Suggestions() {
-  const { user } = useAuth();
-  const isBoss = Boolean(user?.is_boss);
-  const [tab, setTab] = useState<Tab>("ALL");
   const [sort, setSort] = useState<Sort>("top");
-  const [page, setPage] = useState(1);
-  const [rows, setRows] = useState<Suggestion[]>([]);
-  /* Serverdagi UMUMIY son - sahifa raqamlari shundan hisoblanadi. */
-  const [total, setTotal] = useState(0);
+  /* Faqat o'zimniki - ilgari «Mening takliflarim» alohida bo'lim edi.
+     Doskada u beshinchi ustun bo'la olmaydi (u HOLAT emas, egalik),
+     shuning uchun butun doskani toraytiradigan belgiga aylandi. */
+  const [mine, setMine] = useState(false);
+  /* Har ustunning O'Z sahifasi: ular uzunligi bilan bir-biriga o'xshamaydi
+     va bitta umumiy raqam «tasdiqlangan» ni uchinchi sahifaga olib
+     chiqqanda «rad etilgan» ni bo'shatib qo'yardi. */
+  const [pages, setPages] = useState<Record<string, number>>({});
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Suggestion | null>(null);
   const [ok, setOk] = useState("");
@@ -539,7 +553,7 @@ export default function Suggestions() {
   const [warn, setWarn] = useState("");
 
   /* «Saqlandi» xabari o'n soniyada o'zi so'nadi.
-     U ish BITGANINI aytadi, ya'ni o'qilgach kerak emas - lekin ro'yxatning
+     U ish BITGANINI aytadi, ya'ni o'qilgach kerak emas - lekin doskaning
      tepasida turib joy egallardi va odam uni yopish uchun sahifani qayta
      yuklardi. Ogohlantirish (`warn`) esa QOLADI: unda bajarilmagan ish bor
      (fayl yuklanmadi) va uni ko'rmay qolish mumkin emas. */
@@ -549,59 +563,37 @@ export default function Suggestions() {
     return () => clearTimeout(timer);
   }, [ok]);
 
-  /* Saralash SERVERDA: eng ko'p qo'llab-quvvatlangani birinchi sahifada
-     turadi. Shuning uchun kesish ham serverda - mijozda kesilsa, "1-o'rin"
-     faqat kelgan o'ttiztaning ichida bo'lardi. */
-  /* Har bo'lim serverga O'Z filtri bilan boradi. «Barchasi» da filtr
-     umuman yo'q - qolganini server ko'rinish qoidasi bo'yicha o'zi
-     qirqadi. Qaror kesimlari `status` bo'yicha: ular ham ochiq, ham
-     yopiq takliflarni qamraydi, chunki qaror turdan qat'i nazar
-     qilinadi. */
-  const params = tab === "MINE"
-    ? { mine: 1, sort, page, page_size: PER_PAGE }
-    : tab === "ALL"
-      ? { sort, page, page_size: PER_PAGE }
-      : { status: tab, sort, page, page_size: PER_PAGE };
-  const { data, error, loading, reload } = useFetch<unknown>("/suggestions/", params);
+  /* DOSKA BIR SO'ROVDA. To'rtta ustun to'rtta alohida so'rov bilan
+     kelganda ular bir-biridan ajralib ketishi mumkin edi: biri qaror
+     chiqishidan oldingi, ikkinchisi keyingi holatni ko'rsatardi.
+     Saralash ham, kesish ham SERVERDA. */
+  const { data, error, loading, reload } = useFetch<{ columns: BoardColumn[] }>(
+    "/suggestions/board/", {
+      sort,
+      ...(mine ? { mine: 1 } : {}),
+      ...Object.fromEntries(COLUMNS.map((c) => [
+        "page_" + c.key.toLowerCase(), String(pages[c.key] || 1)])),
+    });
 
-  /* Nishonlardagi sonlar - alohida so'rov, chunki ro'yxat javobida faqat
-     TANLANGAN kesimning soni bo'ladi. `reload` bilan birga yangilanadi:
-     qaror chiqqanda «Ko'rib chiqilmoqda» kamayib, «Tasdiqlangan» ko'payadi. */
-  const { data: countData, reload: reloadCounts } =
-    useFetch<Record<string, number>>("/suggestions/counts/");
-  const counts = countData || {};
-
-  useEffect(() => {
-    if (data === null) return;
-    setRows(listOf<Suggestion>(data));
-    setTotal((data as { count?: number }).count ?? 0);
-  }, [data]);
+  const columns = data?.columns || [];
+  const bosh = columns.length > 0 && columns.every((c) => !c.count);
 
   // REAL VAQTDA. Yangi taklif boshliqqa, qaror esa muallifga bildirishnoma
   // bo'lib keladi (`apps/suggestions/services.py`). Sahifa ochiq turgan
-  // odam uchun qo'ng'iroqning o'zi yetarli emas - ro'yxatning o'zi ham
+  // odam uchun qo'ng'iroqning o'zi yetarli emas - doskaning o'zi ham
   // yangilansin, aks holda u sahifani qo'lda qayta yuklashi kerak bo'lardi.
   useLive((d) => {
     if (d.event !== "notification") return;
     const kind = d.notification?.kind;
-    if (kind === "suggestion.new" || kind === "suggestion.decided") {
-      reload();
-      reloadCounts();
-    }
+    if (kind === "suggestion.new" || kind === "suggestion.decided") reload();
   });
 
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-
-  /** Bo'limni almashtirish - har doim birinchi sahifadan. */
-  function pick(next: Tab) {
-    setTab(next);
-    setPage(1);
+  /** Doskani boshidan ko'rsatish - filtr yoki tartib o'zgarganda. */
+  function restart(fn: () => void) {
+    fn();
+    setPages({});
     setCreating(false);
     setEditing(null);
-  }
-
-  function patch(saved: Suggestion) {
-    setRows((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
   async function remove(item: Suggestion) {
@@ -612,50 +604,20 @@ export default function Suggestions() {
       danger: true,
     });
     if (!yes) return;
-    await api.delete(`/suggestions/${item.id}/`);
+    await api.delete("/suggestions/" + item.id + "/");
     setOk(tx("suggestions.ochirildi"));
-    // Oxirgi sahifadagi yagona yozuv o'chsa, o'sha sahifa endi yo'q:
-    // server "Invalid page" deb 404 berardi. Bir qadam orqaga qaytamiz.
-    if (rows.length === 1 && page > 1) setPage(page - 1);
-    else reload();
+    // Oxirgi sahifadagi yagona yozuv o'chsa o'sha sahifa endi yo'q -
+    // server raqamni o'zi chegaraga qisadi, biz shunchaki qayta so'raymiz.
+    reload();
   }
 
-  function afterSave(saved: Suggestion, warn?: string) {
+  function afterSave(_saved: Suggestion, note?: string) {
     setCreating(false);
     setEditing(null);
-    setWarn(warn || "");
-    setOk(warn ? "" : tx("suggestions.saqlandi"));
-    // Yangi taklif boshqa kesimga tushgan bo'lishi mumkin (ochiq -> yopiq),
-    // shuning uchun ro'yxatni serverdan qayta so'raymiz.
+    setWarn(note || "");
+    setOk(note ? "" : tx("suggestions.saqlandi"));
     reload();
-    patch(saved);
   }
-
-  /* Qaror kesimlari faqat boshliqqa - qoida o'zgarmadi, faqat nishon
-     ko'rinishiga o'tdi. Yorliqlar bazadan (`tx`), son esa serverdan. */
-  const pills = PILLS.filter((p) => !p.boss || isBoss).map((p) => ({
-    ...p,
-    label: tx(`suggestions.pill_${p.key.toLowerCase()}`),
-    n: counts[p.key],
-  }));
-
-  const EMPTY_STATES: Record<Tab, { title: string; text: string }> = {
-    ALL: { title: tx("suggestions.bosh_holat"), text: tx("suggestions.bosh_holat_matn") },
-    MINE: { title: tx("suggestions.meniki_bosh"), text: tx("suggestions.meniki_bosh_matn") },
-    PENDING: {
-      title: tx("suggestions.kutilayotgan_bosh"),
-      text: tx("suggestions.kutilayotgan_bosh_matn"),
-    },
-    APPROVED: {
-      title: tx("suggestions.tasdiqlangan_bosh"),
-      text: tx("suggestions.tasdiqlangan_bosh_matn"),
-    },
-    REJECTED: {
-      title: tx("suggestions.rad_etilgan_bosh"),
-      text: tx("suggestions.rad_etilgan_bosh_matn"),
-    },
-  };
-  const empty = EMPTY_STATES[tab];
 
   return (
     <>
@@ -668,25 +630,15 @@ export default function Suggestions() {
             </button>
           )
         }
-        tabs={pills.map((p) => (
-          <button key={p.tab} type="button"
-                  className={`sg-pill ${p.tone} ${tab === p.tab ? "on" : ""}`}
-                  onClick={() => pick(p.tab)}>
-            {p.label}
-            {/* Son kelmagan bo'lsa nishon sonsiz chiziladi - nolni
-                ko'rsatib qo'yish yolg'on bo'lardi. */}
-            {p.n !== undefined && <span className="n">{p.n}</span>}
-          </button>
-        ))}
       />
 
-      <div className="content" style={{ maxWidth: 900 }}>
+      <div className="content">
         {ok && <OkMsg text={ok} />}
         {warn && <ErrorMsg error={warn} />}
 
         {(creating || editing) && (
           <SuggestionForm
-            key={editing ? `edit-${editing.id}` : "new"}
+            key={editing ? "edit-" + editing.id : "new"}
             editing={editing}
             initial={editing
               ? { title: editing.title, body: editing.body,
@@ -697,64 +649,80 @@ export default function Suggestions() {
           />
         )}
 
-        {/* Saralash: ro'yxat STANDARTDA ovoz bo'yicha keladi - jamoa eng
-            ko'p kutayotgan o'zgarish tepada turadi. «Eng yangi» boshqa
-            savolga javob beradi («bugun nima taklif qilindi»), shuning
-            uchun u tanlov, standart emas. Tartibni server hal qiladi. */}
-        {!!rows.length && (
-          <div className="sg-toolbar">
-            <span className="spacer" />
-            <label className="sr-only" htmlFor="sg-sort">{tx("suggestions.saralash")}</label>
-            <select id="sg-sort" value={sort}
-                    onChange={(e) => { setSort(e.target.value as Sort); setPage(1); }}>
-              {SORTS.map((v) => (
-                <option key={v} value={v}>{tx(`suggestions.saralash_${v}`)}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        {/* Doska ustidagi boshqaruv: «faqat meniki» va tartib. Tartib
+            SERVERDA hal bo'ladi va butun doskaga qo'llanadi - standarti
+            ovoz bo'yicha, ya'ni jamoa eng ko'p kutayotgan o'zgarish har
+            ustunning tepasida turadi. */}
+        <div className="sg-toolbar">
+          <label className="sg-only-mine">
+            <input type="checkbox" checked={mine}
+                   onChange={(e) => restart(() => setMine(e.target.checked))} />
+            {tx("suggestions.pill_mine")}
+          </label>
+          <span className="spacer" />
+          <label className="sr-only" htmlFor="sg-sort">{tx("suggestions.saralash")}</label>
+          <select id="sg-sort" value={sort}
+                  onChange={(e) => restart(() => setSort(e.target.value as Sort))}>
+            {SORTS.map((v) => (
+              <option key={v} value={v}>{tx("suggestions.saralash_" + v)}</option>
+            ))}
+          </select>
+        </div>
 
         {error && <ErrorMsg error={error} />}
-        {loading ? <Loading /> : !rows.length ? (
+        {loading && !columns.length ? <Loading /> : bosh ? (
           <Card>
-            <Empty icon="💡" title={empty.title} text={empty.text} />
+            <Empty icon="💡"
+                   title={mine ? tx("suggestions.meniki_bosh") : tx("suggestions.bosh_holat")}
+                   text={mine ? tx("suggestions.meniki_bosh_matn")
+                              : tx("suggestions.bosh_holat_matn")} />
           </Card>
         ) : (
-          <div className="sg-list">
-            {rows.map((item, i) => (
-              <SuggestionCard
-                key={item.id}
-                item={item}
-                /* O'rin faqat ochiq kesimda: yopiq takliflar jamoa ovoziga
-                   qo'yilmaydi, ya'ni ular orasida "birinchi o'rin" yo'q.
-                   Raqam sahifadan sahifaga DAVOM etadi: ikkinchi sahifa
-                   11 dan boshlanadi, yana 1 dan emas. */
-                rank={tab === "ALL" ? (page - 1) * PER_PAGE + i + 1 : null}
-                onChange={patch}
-                onEdit={() => { setEditing(item); setCreating(false); }}
-                onDelete={() => void remove(item)}
-              />
-            ))}
+          <div className="board sg-board">
+            {columns.map((col) => {
+              const meta = COLUMNS.find((c) => c.key === col.key);
+              return (
+                <div className="column" key={col.key}>
+                  <div className="column-head">
+                    <span className="dot" style={{ background: meta?.dot }} />
+                    {tx("suggestions.ustun_" + col.key.toLowerCase())}
+                    <span className="n">{col.count}</span>
+                  </div>
+                  <div className="column-body">
+                    {col.items.map((item, i) => (
+                      <SuggestionCard
+                        key={item.id}
+                        item={item}
+                        /* O'rin faqat «Barchasi» da: qolgan ustunlar bitta
+                           holatning ichi va ular orasida "birinchi o'rin"
+                           degani yo'q. Raqam sahifadan sahifaga DAVOM
+                           etadi - ikkinchi sahifa 11 dan boshlanadi. */
+                        rank={col.key === "ALL"
+                          ? (col.page - 1) * BOARD_PAGE + i + 1
+                          : null}
+                        onChange={() => reload()}
+                        onEdit={() => { setEditing(item); setCreating(false); }}
+                        onDelete={() => void remove(item)}
+                      />
+                    ))}
 
-            {/* Sahifa raqamlari - bo'linadigan narsa bo'lsagina. Yangi
-                sahifaga o'tilganda tahrir formasi yopiladi: u boshqa
-                sahifada qolgan taklifniki edi. */}
-            {/* Qamrov yozuvi HAR DOIM turadi - bitta sahifada ham «nechtadan
-                nechtasi» degan savol bor. Sahifa raqamlari esa bo'linadigan
-                narsa bo'lgandagina. */}
-            <div className="pager-bar">
-              <span className="muted">
-                {tx("suggestions.royxat_qamrovi", {
-                  jami: total,
-                  dan: (page - 1) * PER_PAGE + 1,
-                  gacha: Math.min(page * PER_PAGE, total),
-                })}
-              </span>
-              {pages > 1 && (
-                <Pager page={page} pages={pages}
-                       onPick={(n) => { setPage(n); setEditing(null); }} />
-              )}
-            </div>
+                    {!col.items.length && (
+                      <p className="muted center" style={{ fontSize: 12.5, padding: "16px 0" }}>
+                        {tx("suggestions.ustun_bosh")}
+                      </p>
+                    )}
+
+                    {col.pages > 1 && (
+                      <Pager page={col.page} pages={col.pages}
+                             onPick={(n) => {
+                               setPages((prev) => ({ ...prev, [col.key]: n }));
+                               setEditing(null);
+                             }} />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

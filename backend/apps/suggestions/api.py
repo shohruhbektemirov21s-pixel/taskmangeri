@@ -106,6 +106,58 @@ class SuggestionViewSet(viewsets.ModelViewSet):
     def ordering_for(self, key):
         return self.SORTS.get((key or "").strip(), self.SORTS["top"])
 
+    #: Doskaning bitta ustuniga bir marta nechta taklif tushadi.
+    BOARD_PAGE = 10
+
+    #: Doska ustunlari. «Barchasi» - qolgan uchtasining yig'indisi, ya'ni
+    #: ustunlar bir-birini INKOR QILMAYDI: tasdiqlangan taklif «barchasi»
+    #: da ham turadi. Bu Kanban emas - bitta ro'yxatning kesimlari.
+    BOARD_COLUMNS = ("ALL", SuggestionStatus.PENDING,
+                     SuggestionStatus.APPROVED, SuggestionStatus.REJECTED)
+
+    @action(detail=False, methods=["get"])
+    def board(self, request):
+        """Doska ko'rinishi: barchasi, ko'rilmoqda, tasdiqlandi, rad etildi.
+
+        Ro'yxat ko'rinishi (`list`) O'Z JOYIDA qoladi - `?status=` bilan
+        bitta kesim so'raladi. Doska esa to'rttasini bir javobda beradi,
+        aks holda sahifa to'rtta alohida so'rov yuborardi va ular
+        bir-biridan ajralib ketishi mumkin edi (biri eski, biri yangi).
+
+        HAR USTUN O'ZI SAHIFALANADI - `?page_all=2`, `?page_approved=3`.
+        Bitta umumiy raqam yaramaydi: ustunlar uzunligi har xil va
+        «tasdiqlangan» ning uchinchi sahifasi bo'lganda «rad etilgan»
+        niki allaqachon tugagan bo'lardi.
+
+        Tartib va `?mine=1` butun doskaga qo'llanadi - ular
+        `get_queryset` dan keladi.
+        """
+        base = self.get_queryset()
+        ctx = self.get_serializer_context()
+
+        columns = []
+        for key in self.BOARD_COLUMNS:
+            qs = base if key == "ALL" else base.filter(status=key)
+            total = qs.count()
+            pages = max(1, -(-total // self.BOARD_PAGE))
+            asked = request.query_params.get("page_{}".format(key.lower())) or 1
+            try:
+                page = min(max(1, int(asked)), pages)
+            except (TypeError, ValueError):
+                raise ValidationError({"page": "Sahifa raqami butun son bolsin."})
+            start = (page - 1) * self.BOARD_PAGE
+            columns.append({
+                "key": key,
+                # Sarlavhadagi son - ustundagi JAMI taklif, kelgan
+                # kartalar soni emas: u sahifadan sahifaga o'zgarmasin.
+                "count": total,
+                "page": page,
+                "pages": pages,
+                "items": SuggestionSerializer(
+                    qs[start:start + self.BOARD_PAGE], many=True, context=ctx).data,
+            })
+        return Response({"columns": columns})
+
     # --------------------------------------------------------------- yozish
 
     def perform_create(self, serializer):
