@@ -77,10 +77,10 @@ function BackButton() {
   // React uning o'zgarganini bilmaydi. `location.key` esa har navigatsiyada
   // yangilanadi, ya'ni u qiymat emas, TURTKI: "endi qayta o'qi". Usiz tugma
   // birinchi sahifadagi holatida qotib qolardi.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const canGoBack = useMemo(() => {
     const idx = (window.history.state as { idx?: number } | null)?.idx;
     return typeof idx === "number" ? idx > 0 : window.history.length > 1;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
 
   return (

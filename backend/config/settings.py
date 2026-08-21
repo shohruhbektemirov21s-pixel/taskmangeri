@@ -126,6 +126,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Ikkovi ham JAVOB tomonida ishlaydi, shuning uchun eng oxirida:
+    # `last_seen` DRF foydalanuvchini aniqlab bo'lgach yoziladi, muddat
+    # eslatmasi esa javob tayyor bo'lgach yuboriladi - hech biri so'rovni
+    # kutdirmaydi.
+    "apps.accounts.middleware.LastSeenMiddleware",
+    "apps.panel.middleware.DeadlineReminderMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -245,6 +251,10 @@ SIMPLE_JWT = {
     # marta ishlatiladi. Aks holda o'g'irlangan eski token muddati
     # tugagunga qadar (14 kun) yangi access token olib turardi.
     "BLACKLIST_AFTER_ROTATION": True,
+    # Kirish paytida `last_login` yozilsin. Standarti `False` va shu sabab
+    # maydon 37 hisobdan bittasida to'lgan edi: sessiya bilan kirgan yagona
+    # odamniki. Endi JWT bilan kirgan har bir odamnikiga ham yoziladi.
+    "UPDATE_LAST_LOGIN": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",

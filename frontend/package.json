@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint:ci": "eslint . --max-warnings 43"
+    "lint:ci": "eslint . --max-warnings 35"
   },
   "dependencies": {
     "react": "^19.1.0",

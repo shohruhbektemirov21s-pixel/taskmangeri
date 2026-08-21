@@ -8,7 +8,19 @@
  */
 import { tokens } from "@/api/client";
 
-export type SocketMessage = Record<string, any>;
+/**
+ * Serverdan kelgan hodisa.
+ *
+ * `event` doim bor - qolgan maydonlar hodisa turiga qarab o'zgaradi
+ * (`task.update` da `project`, chat xabarida `room` va hokazo). Shuning
+ * uchun qolgani `unknown`: o'qigan joy o'zi tekshirib oladi.
+ */
+export interface SocketMessage {
+  event?: string;
+  /** `event: "notification"` bilan birga keladi - turi bildirishnomaniki. */
+  notification?: { kind?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
 
 export interface SocketOptions {
   onMessage: (data: SocketMessage) => void;

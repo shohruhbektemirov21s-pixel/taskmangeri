@@ -27,7 +27,8 @@ import { PageHead } from "@/components/Layout";
 import {
   AvatarStack, Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
-import { toTask, useGo } from "@/nav";
+import TaskDrawer from "@/components/TaskDrawer";
+import { toTask } from "@/nav";
 import { tx } from "@/i18n";
 
 // Davr sarlavhalari. Kalitlar serverdagi `PERIODS` bilan bir xil, tartibni
@@ -316,8 +317,11 @@ function Combo({ id, label, options, value, onChange, placeholder }: {
 /** Bosilgan katakdagi ishlar - panelning ostida. */
 function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void }) {
   const fid = useId();
-  const go = useGo();
   const { meta } = useAuth();
+  // Tortmada ochiq turgan vazifa. Yozuvning O'ZI saqlanadi, `id` emas:
+  // ro'yxat allaqachon to'liq javobni olgan, ya'ni tortma uchun bazaga
+  // qaytadan borish shart emas.
+  const [open, setOpen] = useState<Task | null>(null);
   const [f, setF] = useState<Filters>(EMPTY_FILTERS);
   // Sahifa filtrdan ALOHIDA holatda: filtr o'zgarganda u birinchi sahifaga
   // qaytadi (`set` da), aks holda odam beshinchi sahifada turib qidiruv
@@ -346,6 +350,11 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
   const clear = () => { setPage(1); setF(EMPTY_FILTERS); };
 
   return (
+    /* Ro'yxat va vazifa paneli yonma-yon: keng ekranda panel ro'yxatning
+       o'ng yonida ochiladi va uni yopib qo'ymaydi (`app.css`,
+       `.panel-split`). Shuning uchun `TaskDrawer` kartaning ICHIDA emas,
+       yonida turadi. */
+    <div className="panel-split">
     <Card title={picked.title} padded={false}
           badge={data ? <span className="badge">{data.count}</span> : undefined}
           action={<button type="button" className="btn btn-sm" onClick={onClose}>{tx("common.yopish")}</button>}>
@@ -407,16 +416,24 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
         <div className="table-wrap"><table className="table">
           <tbody>
             {tasks.map((t) => (
-              /* Qatorning istalgan yeriga bosilsa vazifa ochiladi -
-                 sarlavhaning o'zini nishonga olish shart emas. Loyiha
-                 ichidagi ro'yxat ham shunday ishlaydi (`ui.tsx`, `TaskRow`). */
-              <tr className="clickable" key={t.id} onClick={() => go(toTask(t.id))}>
+              /* Qator bosilganda SAHIFA ALMASHMAYDI - o'ng chetdan tortma
+                 chiqadi (`components/TaskDrawer.tsx`). Sabab: bu ro'yxat
+                 kesim, filtr va sahifa raqami bilan yig'ilgan; boshqa
+                 sahifaga o'tib qaytilsa, hammasi qaytadan tanlanardi. */
+              <tr className="clickable" key={t.id} onClick={() => setOpen(t)}>
                 <td className="nowrap mono muted">{t.code}</td>
                 <td>
-                  {/* Havola joyida qoladi: klaviatura yo'li va «yangi oynada
-                      ochish» shu yerdan o'tadi. Hodisa qatorga o'tmasin -
-                      aks holda o'tish ikki marta bajarilardi. */}
-                  <Link {...toTask(t.id)} onClick={(e) => e.stopPropagation()}>{t.title}</Link>
+                  {/* Havola `<a>` bo'lib qoladi: klaviatura yo'li ham,
+                      «yangi oynada ochish» ham shu yerdan o'tadi. Oddiy
+                      bosishda esa o'tish to'xtatiladi va tortma ochiladi -
+                      modifikator bosilgan bosish brauzerga tegilmaydi. */}
+                  <Link {...toTask(t.id)}
+                        onClick={(e) => {
+                          if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpen(t);
+                        }}>{t.title}</Link>
                   <br /><small className="muted">{t.project_name}</small>
                 </td>
                 <td className="nowrap"><StatusBadge task={t} /></td>
@@ -442,6 +459,8 @@ function PickedTasks({ picked, onClose }: { picked: Picked; onClose: () => void 
         </div>
       )}
     </Card>
+    <TaskDrawer task={open} onClose={() => setOpen(null)} />
+    </div>
   );
 }
 

@@ -204,8 +204,15 @@ function ManagerProjects() {
                   )}
                 </div>
 
+                {/* Nom ostida ish maydoni emas, MENEJER turadi: «kim
+                    javobgar» degan savol «qaysi papkada» dan ko'ra tez-tez
+                    beriladi. Ism serverdan keladi (`ProjectSerializer.manager`),
+                    yorliq esa - bazadagi interfeys matnlaridan. */}
                 <div className="pcard-sub">
-                  {p.workspace_name} · <span className="mono">{p.key}</span>
+                  {p.manager
+                    ? <>{p.manager.full_name} · {tx("projects.loyiha_menejeri")}</>
+                    : tx("projects.menejer_tayinlanmagan")}
+                  {" · "}<span className="mono">{p.key}</span>
                 </div>
 
                 <div className="pcard-prog">

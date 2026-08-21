@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
+import { Link, NavLink, useParams } from "react-router-dom";
 import { useFetch } from "@/api/useFetch";
 import type { Project } from "@/api/types";
 import { PageHead } from "@/components/Layout";
@@ -51,7 +51,6 @@ export default function ProjectDetail() {
   // emas, lekin orqaga qaytish va sahifani yangilash uchun kerak.
   const id = useEntityId("project");
   const { tab } = useParams();
-  const nav = useNavigate();
   const { data: project, error, loading, reload } = useFetch<Project>(
     id ? `/projects/${id}/` : null);
 

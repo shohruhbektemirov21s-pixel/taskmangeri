@@ -65,7 +65,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         if (data.event === "ready") setUnread(Number(data.unread) || 0);
 
         if (data.event === "notification" && data.notification) {
-          const item = data.notification as AppNotification;
+          // `SocketMessage.notification` da faqat `kind` nomlangan -
+          // qolgani `unknown`. Serverdan to'liq yozuv keladi
+          // (`NotificationSerializer`), shuning uchun `unknown` orqali
+          // aniq turga o'tkazamiz.
+          const item = data.notification as unknown as AppNotification;
           // Chat xabarlari bitta yozuvga yig'iladi - o'sha id qayta kelsa
           // o'qilmaganlar sonini oshirmaymiz.
           if (!seen.current.has(item.id)) {

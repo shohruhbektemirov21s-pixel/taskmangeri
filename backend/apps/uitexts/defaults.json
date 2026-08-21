@@ -2843,6 +2843,10 @@
   "value": "Jarayon",
   "note": "pages/Projects.tsx"
  },
+ "projects.loyiha_menejeri": {
+  "value": "Loyiha menejeri",
+  "note": "pages/Projects.tsx"
+ },
  "projects.loyiha_topish": {
   "value": "Loyiha topish",
   "note": "pages/Projects.tsx"
@@ -2857,6 +2861,10 @@
  },
  "projects.menda": {
   "value": "Menda",
+  "note": "pages/Projects.tsx"
+ },
+ "projects.menejer_tayinlanmagan": {
+  "value": "Menejer tayinlanmagan",
   "note": "pages/Projects.tsx"
  },
  "projects.menejer_vazifa_berganda_u_shu": {
@@ -3690,6 +3698,18 @@
  "task_detail.yozuv_yoq": {
   "value": "Yozuv yoq.",
   "note": "pages/TaskDetail.tsx"
+ },
+ "task_drawer.muddat_qoyilmagan": {
+  "value": "Muddat qo'yilmagan",
+  "note": "components/TaskDrawer.tsx"
+ },
+ "task_drawer.toliq_ochish": {
+  "value": "To'liq ochish",
+  "note": "components/TaskDrawer.tsx"
+ },
+ "task_drawer.vazifa_paneli": {
+  "value": "Vazifa paneli",
+  "note": "components/TaskDrawer.tsx"
  },
  "task_form.boshlangich_holat": {
   "value": "Boshlangich holat",

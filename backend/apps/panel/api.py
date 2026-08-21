@@ -32,32 +32,6 @@ logger = logging.getLogger(__name__)
 PANEL_PAGE_SIZE = 15
 
 
-def _tick_deadline_reminders():
-    """Muddat eslatmalarini kuniga bir marta ishga tushiradi.
-
-    Loyihada rejalashtiruvchi (Celery beat, cron) yo'q, qo'shish esa butun
-    bir xizmat qo'shish demakdir. Buning o'rniga tekshiruv panel ochilganda
-    bo'ladi, lekin kuniga BIR MARTA: qulf Redis keshida turadi, ya'ni bir
-    nechta backend jarayoni bo'lsa ham eslatma takrorlanmaydi.
-
-    Ikki qavatli himoya: bu yerdagi kalit ortiqcha ishni to'xtatadi,
-    `ProjectDeadlineNotice` esa xabarning o'zi takrorlanmasligini kafolatlaydi.
-    Panel sekinlashmasin uchun xato bo'lsa jim o'tib ketamiz.
-    """
-    from django.core.cache import cache
-
-    from apps.projects.deadlines import send_due_reminders
-
-    key = "deadline-reminders:{}".format(timezone.localdate())
-    try:
-        # `add` - kalit yo'q bo'lsagina qo'yadi, ya'ni kunning birinchi so'rovi.
-        if not cache.add(key, 1, 60 * 60 * 26):
-            return
-        send_due_reminders()
-    except Exception:
-        logger.exception("Muddat eslatmalarini yuborib bo'lmadi")
-
-
 # «Yopilmagan» - DONE dan boshqa hamma holat, TEKSHIRUVDAGISI HAM.
 # Tekshiruvga topshirilgan ish ham muddati o'tsa kechikkan hisoblanadi:
 # uni ro'yxatdan chiqarib tashlasak, panel «hammasi joyida» deb turardi.
@@ -141,7 +115,10 @@ def dashboard(request):
     now = timezone.now()
     ctx = {"request": request}
 
-    _tick_deadline_reminders()
+    # Muddat eslatmalari endi shu ko'rinishga bog'lanmagan - ular har
+    # qanday so'rovda tekshiriladi (`apps/panel/middleware.py`). Ilgari
+    # shu yerda turgani uchun, jamoa bosh panelni ochmagan kuni eslatma
+    # umuman yuborilmasdi.
 
     # `Exists()` - `.distinct()` o'rniga. Db2 DISTINCT da CLOB ustunini
     # qo'llamaydi (`description` kabi matn maydonlari), shuning uchun takrorni

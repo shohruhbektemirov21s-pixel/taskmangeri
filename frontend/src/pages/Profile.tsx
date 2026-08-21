@@ -12,7 +12,7 @@ import {
   StatusBadge, fmtDate,
 } from "@/components/ui";
 import { confirmDialog } from "@/components/Confirm";
-import { toMessages, toMyWork, toProject, toTask, useEntityId, useGo } from "@/nav";
+import { toMessages, toProject, toTask, useEntityId, useGo } from "@/nav";
 import PasswordCard from "@/components/PasswordCard";
 import TelegramCard from "@/components/TelegramCard";
 import { tx } from "@/i18n";

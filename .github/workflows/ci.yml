@@ -53,7 +53,7 @@ jobs:
       # shartli hook chaqiruvlari (`react-hooks`). Ular ishlab chiqishda
       # emas, foydalanuvchida — eski ma'lumot ko'rinishida chiqadi.
       #
-      # `--max-warnings 43` — bugungi holat. Ogohlantirishlar (`any`,
+      # `--max-warnings 35` — bugungi holat. Ogohlantirishlar (`any`,
       # ishlatilmagan o'zgaruvchi) mavjud qarz, ular yo'lni to'smaydi;
       # lekin YANGISI qo'shilsa CI qizaradi. Qarz kamaygan sari bu sonni
       # ham tushirib boring.

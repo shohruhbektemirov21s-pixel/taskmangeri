@@ -559,7 +559,15 @@ export const STATUS_DOT: Record<string, string> = {
   DONE: "var(--success)",
 };
 
-export function TaskRow({ task, showProject = false }: { task: Task; showProject?: boolean }) {
+/**
+ * Loyiha ichidagi vazifalar jadvalining bitta qatori.
+ *
+ * `showProject` parametri OLIB TASHLANDI: u loyiha nomini sarlavha ostiga
+ * qo'shardi, lekin hech qayerdan uzatilmasdi - qator faqat loyihaning O'Z
+ * ro'yxatida ishlatiladi, u yerda esa loyiha allaqachon ma'lum. Bir necha
+ * loyiha ustidagi ro'yxatlar (bosh panel, profil) o'z jadvalini chizadi.
+ */
+export function TaskRow({ task }: { task: Task }) {
   const go = useGo();
   return (
     /* Qatorning istalgan yeriga bosilsa vazifa ochiladi - sarlavhani
@@ -577,12 +585,6 @@ export function TaskRow({ task, showProject = false }: { task: Task; showProject
             <span className="muted nowrap" title={tx("ui.nechta_fayl", { n: task.attachment_count })}>
               <IconFile size={11} /> {task.attachment_count}
             </span>
-          </>
-        )}
-        {showProject && (
-          <>
-            <br />
-            <small className="muted">{task.project_name}</small>
           </>
         )}
       </td>
