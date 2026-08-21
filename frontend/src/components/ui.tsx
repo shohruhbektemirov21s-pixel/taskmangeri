@@ -470,7 +470,7 @@ export function TaskCard({
         <span className="spacer" />
         <Priority task={task} />
       </div>
-      <div className="title">{task.title}</div>
+      <div className="title" title={task.title}>{task.title}</div>
       <div className="foot">
         <span className="badge">{task.type_display}</span>
         {task.specialty_label && <span className="badge badge-brand">{task.specialty_label}</span>}
