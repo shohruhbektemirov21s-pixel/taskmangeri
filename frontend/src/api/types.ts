@@ -1,3 +1,27 @@
+/**
+ * API TIPLARI - QO'LDA YOZILGAN, VA BU VAQTINCHA.
+ *
+ * MUAMMO. Bu fayl serializerlarning aks-sadosi, lekin ularga hech narsa
+ * bilan bog'lanmagan: backend maydon nomini o'zgartirsa `tsc` JIM
+ * qoladi va xato faqat foydalanuvchida, `undefined` ko'rinishida chiqadi.
+ * Tiplar bor-u, ular kafolat bermaydi.
+ *
+ * ENDI MANBA BOR. Backend OpenAPI sxemasini beradi (`/api/schema/`,
+ * `drf-spectacular`) va undan tiplar GENERATSIYA qilinadi:
+ *
+ *     npm run types      ->  src/api/schema.d.ts
+ *
+ * KO'CHISH BIR MARTADA EMAS. `schema.d.ts` da 182 endpoint bor va bu
+ * fayldagi tiplar o'nlab komponentda ishlatiladi - hammasini bir zarbada
+ * almashtirish katta va xavfli o'zgarish bo'lardi. Shuning uchun yo'l
+ * bosqichma-bosqich: YANGI kod to'g'ridan-to'g'ri sxemadan olsin,
+ *
+ *     import type { components } from "@/api/schema";
+ *     type Suggestion = components["schemas"]["Suggestion"];
+ *
+ * eskisi esa tegilgan sari ko'chirilsin. Shu fayl bo'shagach o'chiriladi.
+ */
+
 // Backend (Django REST) javoblariga mos turlar
 
 export type TaskStatusValue =

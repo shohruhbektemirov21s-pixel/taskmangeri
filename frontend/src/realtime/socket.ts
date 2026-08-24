@@ -6,7 +6,7 @@
  * kechikish bilan qayta uriniladi - har safar tokenning eng yangi nusxasi
  * olinadi, chunki HTTP mijoz uni fonda yangilab turadi.
  */
-import { tokens } from "@/api/client";
+import { api, tokens } from "@/api/client";
 
 /**
  * Serverdan kelgan hodisa.
@@ -37,16 +37,43 @@ export function openSocket(path: string, { onMessage, onStatus }: SocketOptions)
   let retryTimer: number | undefined;
   let pingTimer: number | undefined;
 
-  function url() {
+  /**
+   * Ulanish manzili - CHIPTA bilan.
+   *
+   * Ilgari bu yerga access tokenning o'zi qo'yilardi va so'rov satri
+   * hamma jurnalga tushadi (nginx, proksi) - ya'ni 12 soat yashaydigan,
+   * butun API ga yaraydigan token o'sha yerda qolardi. Chipta 30 soniya
+   * yashaydi va faqat soket uchun yaraydi
+   * (`backend/apps/core/wsticket.py`).
+   *
+   * Chiptani ololmasak ESKI yo'lga qaytamiz: server `?token=` ni hali
+   * ham qabul qiladi, ya'ni ulanish uzilmaydi.
+   */
+  async function url() {
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const token = encodeURIComponent(tokens.access || "");
-    return `${proto}//${window.location.host}${path}?token=${token}`;
+    const base = `${proto}//${window.location.host}${path}`;
+    try {
+      const { ticket } = await api.post<{ ticket: string }>("/ws-ticket/");
+      if (ticket) return `${base}?ticket=${encodeURIComponent(ticket)}`;
+    } catch {
+      /* chipta olinmadi - pastda tokenga qaytamiz */
+    }
+    return `${base}?token=${encodeURIComponent(tokens.access || "")}`;
   }
 
-  function connect() {
+  async function connect() {
+    if (stopped) return;
+    let target: string;
+    try {
+      target = await url();
+    } catch {
+      scheduleRetry();
+      return;
+    }
+    // Chipta so'ralayotganda `close()` chaqirilgan bo'lishi mumkin.
     if (stopped) return;
     try {
-      socket = new WebSocket(url());
+      socket = new WebSocket(target);
     } catch {
       scheduleRetry();
       return;
@@ -83,10 +110,10 @@ export function openSocket(path: string, { onMessage, onStatus }: SocketOptions)
     if (stopped) return;
     attempt += 1;
     const delay = Math.min(MAX_BACKOFF_MS, 800 * 2 ** Math.min(attempt, 5));
-    retryTimer = window.setTimeout(connect, delay);
+    retryTimer = window.setTimeout(() => void connect(), delay);
   }
 
-  connect();
+  void connect();
 
   return () => {
     stopped = true;

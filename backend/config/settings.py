@@ -89,6 +89,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "channels",
+    # OpenAPI sxemasi - `/api/schema/` va `/api/docs/`.
+    "drf_spectacular",
     # loyiha ilovalari
     # `apps.core` da model YO'Q va domen ilovalariga bog'liqlik ham yo'q -
     # u eng pastki qatlam: Db2 adapteri, umumiy maydonlar, yumshoq
@@ -294,6 +296,9 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ),
     "DEFAULT_PAGINATION_CLASS": "config.pagination.StandardPagination",
+    # Sxema `drf-spectacular` dan. Usiz API shartnomasi faqat odam o'qiy
+    # oladigan hujjatda va qo'lda yozilgan TypeScript tiplarida edi.
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "PAGE_SIZE": 30,
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%z",
     # Spam va qo'pol kuch (brute force) ga qarshi cheklovlar.
@@ -326,6 +331,30 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+}
+
+# ---------------------------------------------------------------- OpenAPI
+# Sxema `/api/schema/` da, ko'rish uchun `/api/docs/`.
+#
+# NEGA KERAK. Frontend tiplari (`frontend/src/api/types.ts`) qo'lda
+# yozilgan va serializerlarga hech narsa bilan bog'lanmagan edi: backend
+# maydon nomini o'zgartirsa `tsc` jim qolardi va xato faqat
+# foydalanuvchida, `undefined` ko'rinishida chiqardi. Sxema shu bo'shliqni
+# yopadi - undan tiplarni GENERATSIYA qilsa bo'ladi
+# (`frontend/package.json` -> `npm run types`).
+SPECTACULAR_SETTINGS = {
+    "TITLE": "TeamFlow API",
+    "DESCRIPTION": (
+        "Vazifa boshqaruv tizimi. Hamma o'qish `POST /api/read/` orqali ham "
+        "bajarilishi mumkin - tafsiloti `apps/core/read.py` da."
+    ),
+    "VERSION": "1.0.0",
+    # Sxemaning o'zi javobga qo'shilmaydi - u alohida manzilda.
+    "SERVE_INCLUDE_SCHEMA": False,
+    # `/api/` va `/api/v1/` bir xil marshrutlar, ya'ni sxemada ikki marta
+    # chiqardi. Versiyalisi qoldiriladi: shartnoma aynan shunga bog'lanadi.
+    "SCHEMA_PATH_PREFIX": "/api/v1",
+    "SERVERS": [{"url": "/", "description": "Shu server"}],
 }
 
 # ---------------------------------------------------------------- CORS

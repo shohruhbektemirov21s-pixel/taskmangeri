@@ -6,9 +6,11 @@ sababi `apps/panel/__init__.py` da yozilgan. Manzillar o'zgarmadi.
 """
 from django.urls import path
 
-from . import read
+from . import read, wsview
 
 urlpatterns = [
     # O'qish shlyuzi: GET o'rniga POST. Tafsiloti - `read.py` da.
     path("read/", read.read, name="read"),
+    # WebSocket chiptasi: token manzilga tushmasin - `wsticket.py`.
+    path("ws-ticket/", wsview.ws_ticket, name="ws-ticket"),
 ]

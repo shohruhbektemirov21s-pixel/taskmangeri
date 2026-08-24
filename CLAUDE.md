@@ -73,7 +73,8 @@ parchalanadi va bir xil so'rov sekinlashib boraveradi.
 # Backend
 docker compose exec -T backend python manage.py makemigrations
 docker compose exec -T backend python manage.py migrate
-docker compose exec -T backend python manage.py test --noinput   # Django test runner (pytest YO'Q; --noinput shart - aks holda ibm_db_django interaktiv savol berib qotib qoladi)
+docker compose exec -T backend python manage.py test --noinput   # Db2 da (sekin, ~4 daq)
+docker compose exec -T -e DB_ENGINE=sqlite backend python manage.py test --noinput   # SQLite da (~1.5 daq) - CI shu yo'ldan yuguradi
 
 # Bazani o'qish — SQL emas, ORM orqali
 docker exec teamflow_backend python manage.py shell -c "
@@ -292,6 +293,29 @@ o'nlab marta chalardi. Sahifa WebSocket orqali o'zi yangilanadi
    Sonni oshirma — qarzni kamaytir va chegarani tushir.
 4. UI o'zgarsa: Playwright MCP bilan `http://localhost:5183` ni ochib **ko'z bilan tekshir** — skrinshotni foydalanuvchidan so'rama.
 5. Bo'sh holat (empty state) matnlarini unutma — ular o'zbekcha va foydalanuvchiga tushunarli bo'lsin.
+
+## Bilib qo'yish kerak
+
+- **Testlar ikki bazada yuguradi.** SQLite (`DB_ENGINE=sqlite`) - tez va
+  CI da har push da; Db2 - sekin, lekin faqat u tekshiradigan narsalar bor
+  (CLOB/`GROUP BY`, VARCHAR ning BAYTdagi o'lchovi, `select_for_update`).
+  Db2 qulfni `WITH RS USE AND KEEP UPDATE LOCKS` deb yozadi, `FOR UPDATE` emas.
+- **Har so'rov bitta tranzaksiyada** (`ATOMIC_REQUESTS`). Yangi endpointga
+  `@transaction.atomic` qo'shish shart emas.
+- **Matnni ustunga sig'dirish `apps/core/text.py` da** (`clip`, `byte_len`) -
+  Db2 da `CharField` BAYT bilan o'lchanadi, belgi bilan emas.
+- **Katalog chegarasi `apps/accounts/directory.py` da.** `/api/users/` va
+  chat qidiruvi odamning HAMKASBLARINI beradi, butun tashkilotni emas.
+- **API sxemasi bor:** `/api/schema/`, ko'rish uchun `/api/docs/`.
+  Frontend tiplari undan generatsiya qilinadi: `npm run types` →
+  `src/api/schema.d.ts`. Yangi kod tiplarni O'SHANDAN olsin,
+  `api/types.ts` esa bosqichma-bosqich bo'shatiladi.
+- **WebSocket CHIPTA bilan ulanadi** (`POST /api/ws-ticket/`, 30 soniya).
+  Token manzilga qo'yilmaydi - u jurnallarga tushardi.
+- **Zaxira:** `bash docker/backup.sh`. Oflayn (baza qisqa uziladi) -
+  sababi va tiklash tartibi skriptning ichida.
+- **Eskirgan ma'lumot:** `manage.py cleanup_old_data` - rejalashtiruvchi
+  haftada bir marta chaqiradi.
 
 ## Qat'iy taqiqlar
 

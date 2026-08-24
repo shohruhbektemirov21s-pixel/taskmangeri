@@ -3,9 +3,15 @@
 Brauzer WebSocket ochayotganda `Authorization` headerini qo'sha olmaydi,
 shuning uchun access token so'rov satrida keladi:
 
-    ws://host/ws/bildirishnoma/?token=<access>
+    ws://host/ws/notifications/?ticket=<30 soniyalik chipta>
 
-Token faqat o'qiladi va tekshiriladi - hech qayerga yozilmaydi.
+CHIPTA, TOKEN EMAS. Ilgari bu yerga to'g'ridan-to'g'ri 12 soatlik access
+token qo'yilardi va so'rov satri hamma jurnalga tushadi (nginx, proksi,
+APM) - ya'ni butun API ga yaraydigan token o'sha yerda qolib ketardi.
+Chipta 30 soniya yashaydi va faqat soket uchun yaraydi
+(`apps/core/wsticket.py`).
+
+`?token=` hali ham qabul qilinadi: yangilanmagan mijoz uzilmasin.
 """
 from urllib.parse import parse_qs
 
@@ -27,6 +33,18 @@ def user_from_token(raw):
         return AnonymousUser(), 0
 
 
+@database_sync_to_async
+def user_from_ticket(ticket):
+    """Chiptadan foydalanuvchi - `(foydalanuvchi, token tugash vaqti)`."""
+    from apps.core.wsticket import read
+
+    user_id, exp = read(ticket)
+    if not user_id:
+        return AnonymousUser(), 0
+    user = get_user_model().objects.filter(pk=user_id, is_active=True).first()
+    return (user, exp) if user else (AnonymousUser(), 0)
+
+
 class JWTAuthMiddleware:
     """scope["user"] ni tokendan to'ldiradi. Token bo'lmasa - AnonymousUser.
 
@@ -42,6 +60,18 @@ class JWTAuthMiddleware:
 
     async def __call__(self, scope, receive, send):
         params = parse_qs((scope.get("query_string") or b"").decode())
+
+        # CHIPTA birinchi. U 30 soniya yashaydi va faqat soket uchun
+        # yaraydi, ya'ni jurnalga tushsa ham zarari yo'q
+        # (`apps/core/wsticket.py`).
+        ticket = (params.get("ticket") or [""])[0]
+        if ticket:
+            scope["user"], scope["token_exp"] = await user_from_ticket(ticket)
+            return await self.app(scope, receive, send)
+
+        # ESKI YO'L. Yangilanmagan mijoz uzilib qolmasin - `?token=` hali
+        # ham qabul qilinadi. Frontend chiptaga butunlay o'tgach bu shoxni
+        # olib tashlash mumkin.
         raw = (params.get("token") or [""])[0]
         if raw:
             scope["user"], scope["token_exp"] = await user_from_token(raw)

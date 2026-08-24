@@ -4,6 +4,8 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path, re_path
 
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
 from apps.core.media import serve_media
 
 logger = logging.getLogger(__name__)
@@ -88,6 +90,11 @@ API_ROUTES = [
 urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("api/health/", health),
+    # OpenAPI: mashina o'qiydigan shartnoma va uni ko'rish sahifasi.
+    # Tokensiz - sxemada faqat manzillar va maydon nomlari bor, ma'lumot
+    # yo'q; ular allaqachon repoda ochiq turibdi.
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
     # Prefikssiz (joriy mijozlar) va versiyali - ikkovi bir xil ishlaydi.
     path("api/", include((API_ROUTES, "api"), namespace="api")),
     path("api/v1/", include((API_ROUTES, "api"), namespace="api-v1")),

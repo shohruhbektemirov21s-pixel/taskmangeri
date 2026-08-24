@@ -394,3 +394,53 @@ class ChatParamTest(ApiTestCase):
         seen = {row["partner"]["id"] for row in r.data}
         for u in partners:
             self.assertIn(u.pk, seen)
+
+
+class WsTicketTest(ApiTestCase):
+    """Soket manziliga TOKEN emas, chipta qo'yiladi.
+
+    So'rov satri nginx, proksi va APM jurnallariga to'liq tushadi - u
+    yerda 12 soatlik access token qolib ketardi.
+    """
+
+    URL = "/api/ws-ticket/"
+
+    def test_chipta_beriladi(self):
+        r = self.api.post(self.URL, {}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["ticket"])
+        self.assertEqual(r.data["expires_in"], 30)
+
+    def test_chipta_egasini_ochadi(self):
+        from apps.core.wsticket import read
+
+        ticket = self.api.post(self.URL, {}, format="json").data["ticket"]
+        user_id, _ = read(ticket)
+        self.assertEqual(user_id, self.manager.pk)
+
+    def test_tokensiz_chipta_berilmaydi(self):
+        self.assertEqual(self.anon.post(self.URL, {}, format="json").status_code, 401)
+
+    def test_eskirgan_chipta_otmaydi(self):
+        from unittest import mock
+
+        from apps.core.wsticket import read
+
+        ticket = self.api.post(self.URL, {}, format="json").data["ticket"]
+        with mock.patch("apps.core.wsticket.TTL", -1):
+            self.assertEqual(read(ticket), (None, 0))
+
+    def test_buzilgan_chipta_otmaydi(self):
+        from apps.core.wsticket import read
+
+        self.assertEqual(read("qalbaki-chipta"), (None, 0))
+        self.assertEqual(read(""), (None, 0))
+
+    def test_chipta_bilan_apiga_kirib_bolmaydi(self):
+        """Chipta FAQAT soket uchun - u tokenning o'rnini bosmaydi."""
+        from rest_framework.test import APIClient
+
+        ticket = self.api.post(self.URL, {}, format="json").data["ticket"]
+        c = APIClient()
+        c.credentials(HTTP_AUTHORIZATION="Bearer " + ticket)
+        self.assertEqual(c.get("/api/projects/").status_code, 401)

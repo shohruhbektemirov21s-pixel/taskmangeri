@@ -28,7 +28,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "coverage"] },
+  // `schema.d.ts` - GENERATSIYA qilingan fayl (`npm run types`).
+  // Uni qo'lda tahrirlash mumkin emas va lint qoidalari ham unga
+  // tegishli emas: uslubni generator belgilaydi.
+  { ignores: ["dist", "node_modules", "coverage", "src/api/schema.d.ts"] },
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
