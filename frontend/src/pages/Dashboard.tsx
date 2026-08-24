@@ -22,7 +22,7 @@ import type {
   DashboardData, DashboardPeriod, DashboardPeriodRow, DashboardScope, Task,
 } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
-import { useLive } from "@/realtime/RealtimeContext";
+import { useLiveReload } from "@/realtime/RealtimeContext";
 import { PageHead } from "@/components/Layout";
 import {
   AvatarStack, Card, Empty, ErrorMsg, Loading, Pager, Priority, StatusBadge, fmtDate,
@@ -472,9 +472,10 @@ export default function Dashboard() {
   const { data: d, error, loading, reload } = useFetch<DashboardData>("/dashboard/");
 
   // Jonli: vazifa yoki loyiha o'zgarsa raqamlar o'zini yangilaydi.
-  useLive((e) => {
-    if (e.event === "task.update" || e.event === "project.update") reload();
-  });
+  // Signallar bitta so'rovga yig'iladi - panel butun tashkilotni sanaydi
+  // va har bir harakatga alohida so'rov yuborish qimmat.
+  useLiveReload(reload, (e) =>
+    e.event === "task.update" || e.event === "project.update");
 
   // Nom yuklanayotganda ham turadi: aks holda paneldagi joyi bo'sh qolib,
   // ma'lumot kelgach sakrab paydo bo'lardi.

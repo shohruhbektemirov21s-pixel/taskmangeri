@@ -8,7 +8,7 @@ import { PageHead } from "@/components/Layout";
 import {
   AvatarStack, Card, Empty, ErrorMsg, Loading, Priority, StatusBadge, fmtDate,
 } from "@/components/ui";
-import { useLive } from "@/realtime/RealtimeContext";
+import { useLiveReload } from "@/realtime/RealtimeContext";
 import { toTask } from "@/nav";
 import { tx } from "@/i18n";
 
@@ -30,7 +30,12 @@ export default function ReviewQueue() {
   const error = actionError || loadError;
 
   // Ish topshirilsa navbat darrov to'ldiriladi.
-  useLive((d) => { if (d.event === "task.update") reload(); });
+  //
+  // `useLiveReload` - to'g'ridan-to'g'ri `reload()` emas: bu ro'yxat
+  // TIZIMDAGI har qanday vazifa o'zgarishiga quloq soladi (tekshiruvchi
+  // hamma loyihani ko'radi), ya'ni jamoa faol ishlaganda signal ketma-ket
+  // kelaveradi. Ular bitta so'rovga yig'iladi.
+  useLiveReload(reload, (d) => d.event === "task.update");
 
   const verdicts = meta?.review_verdict || [];
   const rejectValue = String(

@@ -21,7 +21,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, api } from "@/api/client";
 import type { Suggestion } from "@/api/types";
-import { useLive } from "@/realtime/RealtimeContext";
+import { useLiveReload } from "@/realtime/RealtimeContext";
 import { confirmDialog } from "@/components/Confirm";
 import { PageHead } from "@/components/Layout";
 import {
@@ -57,9 +57,8 @@ export default function SuggestionDetail() {
 
   // Boshliq qaror qilsa sahifa o'zi yangilansin - ochiq turgan odam
   // qayta yuklamasin.
-  useLive((d) => {
-    if (d.event === "notification" && d.notification?.kind === "suggestion.decided") void load();
-  });
+  useLiveReload(() => void load(), (d) =>
+    d.event === "notification" && d.notification?.kind === "suggestion.decided");
 
   async function remove(target: Suggestion) {
     const yes = await confirmDialog({

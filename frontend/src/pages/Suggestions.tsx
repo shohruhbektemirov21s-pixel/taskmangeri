@@ -33,7 +33,7 @@ import type {
 } from "@/api/types";
 import { useFetch } from "@/api/useFetch";
 import { useAuth } from "@/auth/AuthContext";
-import { useLive } from "@/realtime/RealtimeContext";
+import { useLiveReload } from "@/realtime/RealtimeContext";
 import { confirmDialog } from "@/components/Confirm";
 import { DateField } from "@/components/dates";
 import { PageHead } from "@/components/Layout";
@@ -275,11 +275,9 @@ export default function Suggestions() {
   }, [reloadList, reloadCounts]);
 
   // Ochiq turgan sahifa o'zi yangilansin - qo'ng'iroqning o'zi yetarli emas.
-  useLive((d) => {
-    if (d.event !== "notification") return;
-    const kind = d.notification?.kind;
-    if (kind === "suggestion.new" || kind === "suggestion.decided") reload();
-  });
+  useLiveReload(reload, (d) =>
+    d.event === "notification"
+    && ["suggestion.new", "suggestion.decided"].includes(String(d.notification?.kind)));
 
   function set<K extends keyof Filters>(k: K, v: Filters[K]) {
     // Filtr almashganda sahifa birinchisiga qaytadi - aks holda beshinchi

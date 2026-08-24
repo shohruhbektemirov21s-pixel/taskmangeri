@@ -150,11 +150,47 @@ export function useLive(handler: (data: SocketMessage) => void) {
   useEffect(() => subscribe((data) => ref.current(data)), [subscribe]);
 }
 
+/**
+ * Hodisa kelganda ro'yxatni qayta so'raydi - lekin BIR MARTA.
+ *
+ * MUAMMO. Sahifalar to'g'ridan-to'g'ri `useLive((d) => ... reload())` deb
+ * yozardi. Signal esa loyiha a'zolarining HAMMASIGA ketadi va bitta amal
+ * bir nechta signal tug'diradi (holat o'zgardi, ijrochi almashdi, izoh
+ * qo'shildi). Jamoa faol ishlayotganda har bir ochiq sahifa har bir
+ * harakatga bittadan to'liq so'rov yuborardi: o'n kishi ishlasa, o'n
+ * sahifa, har biri o'nlab so'rov - server o'zini o'zi yuklardi.
+ *
+ * YECHIM. Hodisalar KUTILADI va bitta so'rovga yig'iladi: ketma-ket
+ * kelgan signallar taymerni qayta qo'yadi, so'rov esa oxirgisidan keyin
+ * bir marta ketadi. Ekranda farqi bilinmaydi (yarim soniya), serverda
+ * esa o'nlab so'rov bittaga tushadi.
+ *
+ * `reload` har renderda yangi bo'lishi mumkin - u ref orqali o'qiladi,
+ * ya'ni obuna qayta ochilmaydi va taymer tashlanmaydi.
+ */
+export function useLiveReload(
+  reload: () => void,
+  match: (data: SocketMessage) => boolean,
+  delayMs = 400,
+) {
+  const reloadRef = useRef(reload);
+  reloadRef.current = reload;
+  const timer = useRef<number | undefined>(undefined);
+
+  useLive((data) => {
+    if (!match(data)) return;
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => reloadRef.current(), delayMs);
+  });
+
+  // Sahifa yopilganda kutayotgan so'rov qolib ketmasin.
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+}
+
 /** Shu loyihaga tegishli o'zgarish bo'lsa `reload` chaqiriladi. */
 export function useProjectLive(projectId: number | undefined, reload: () => void) {
-  useLive((d) => {
-    if (!projectId) return;
-    const mine = Number(d.project) === Number(projectId);
-    if (mine && (d.event === "task.update" || d.event === "project.update")) reload();
-  });
+  useLiveReload(reload, (d) =>
+    Boolean(projectId)
+    && Number(d.project) === Number(projectId)
+    && (d.event === "task.update" || d.event === "project.update"));
 }
