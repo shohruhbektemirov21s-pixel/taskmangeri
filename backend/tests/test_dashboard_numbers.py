@@ -12,6 +12,7 @@ from datetime import datetime, time as dtime
 
 from django.utils import timezone
 
+from apps.core.periods import _period_start
 from apps.tasks.models import Task, TaskAssignment, TaskStatus
 
 from .base import ApiTestCase
@@ -21,6 +22,23 @@ def at(days_ago=0, hours=12):
     """Bugundan `days_ago` kun oldingi lahza (Toshkent vaqtida)."""
     day = timezone.localdate() - timezone.timedelta(days=days_ago)
     return timezone.make_aware(datetime.combine(day, dtime(hour=hours)))
+
+
+def within(period, days_ago=1):
+    """`days_ago` kun oldingi lahza, lekin DAVRDAN chiqib ketmaydi.
+
+    NEGA KERAK. Davrlar KALENDAR bo'yicha: hafta dushanbadan, oy oyning
+    birinchi kunidan, yil yanvarning birinchisidan boshlanadi. Ya'ni
+    `at(1)` - «kecha» - dushanba kuni O'TGAN haftaga, oyning birinchi
+    kuni o'tgan oyga, birinchi yanvarda esa o'tgan yilga tushadi.
+    Natijada «shu davrda ochilgan ish» degan testlar hafta-oyning qaysi
+    kunida yugurishiga qarab yiqilardi: ular har dushanba qizarardi.
+
+    Chegara serverning O'ZI ishlatadigan joydan olinadi
+    (`apps/core/periods.py`), ya'ni ikkovi bir xil dushanbani biladi.
+    Chegaraning o'zi ham davrga kiradi - sanoq `created_at__gte=start`.
+    """
+    return max(at(days_ago), _period_start(period))
 
 
 class DashboardNumbersTest(ApiTestCase):
@@ -52,7 +70,7 @@ class DashboardNumbersTest(ApiTestCase):
 
     # ------------------------------------------------------------ nazoratda
     def test_nazoratda_shu_davrda_ochilgan_yopilmagan_ish(self):
-        self.make(TaskStatus.TODO, created=at(1))
+        self.make(TaskStatus.TODO, created=within("week"))
         d = self.panel()
         self.assertEqual(self.period(d, "week")["todo"], 1)
         self.assertEqual(self.period(d, "year")["todo"], 1)
@@ -63,7 +81,7 @@ class DashboardNumbersTest(ApiTestCase):
 
     def test_tekshiruvdagi_ish_ham_yopilmagan_hisoblanadi(self):
         """Topshirilgan, lekin qabul qilinmagan ish - hamon ochiq."""
-        self.make(TaskStatus.IN_REVIEW, created=at(1))
+        self.make(TaskStatus.IN_REVIEW, created=within("year"))
         self.assertEqual(self.period(self.panel(), "year")["todo"], 1)
 
     def test_bekor_qilingan_ish_sanalmaydi(self):
@@ -72,7 +90,7 @@ class DashboardNumbersTest(ApiTestCase):
 
     # -------------------------------------------------------- muddati o'tgan
     def test_muddati_otgan_yopilmagan_ish(self):
-        self.make(TaskStatus.TODO, created=at(3), due=at(1))
+        self.make(TaskStatus.TODO, created=at(3), due=within("year"))
         self.assertEqual(self.period(self.panel(), "year")["overdue"], 1)
 
     def test_muddati_kelmagan_ish_otgan_emas(self):
@@ -85,15 +103,31 @@ class DashboardNumbersTest(ApiTestCase):
 
     # ---------------------------------------------------------- bajarilganlar
     def test_bajarilganlar_yakunlangan_sana_boyicha(self):
-        self.make(TaskStatus.DONE, created=at(10), completed=at(1))
+        self.make(TaskStatus.DONE, created=at(10), completed=within("week"))
         d = self.panel()
         self.assertEqual(self.period(d, "week")["done"], 1)
         self.assertEqual(self.period(d, "year")["done"], 1)
 
     # ------------------------------------------------------------- davrlar
     def test_yil_oyni_va_haftani_oz_ichiga_oladi(self):
-        """Bir yarim oy oldingi ish yilda ko'rinadi, haftada - yo'q."""
-        self.make(TaskStatus.DONE, created=at(60), completed=at(45))
+        """Shu YILDA, lekin shu HAFTADAN oldin yakunlangan ish.
+
+        Sana ikki chegara orasidan olinadi - «bir yarim oy oldin» degan
+        taxminiy raqamdan emas: yanvarda u o'tgan yilga tushib ketardi va
+        test yilning birinchi haftalarida yiqilardi.
+
+        Yilning birinchi haftasida esa bunday oraliqning o'zi yo'q (yil
+        ham, hafta ham shu kunlarda boshlangan) - tekshiradigan narsa
+        bo'lmagani uchun test o'tkazib yuboriladi.
+        """
+        week_start = _period_start("week")
+        year_start = _period_start("year")
+        moment = week_start - timezone.timedelta(minutes=1)
+        if moment < year_start:
+            self.skipTest("Yilning birinchi haftasi: yil ichida, "
+                          "lekin haftadan oldingi lahza yo'q.")
+
+        self.make(TaskStatus.DONE, created=year_start, completed=moment)
         d = self.panel()
         self.assertEqual(self.period(d, "year")["done"], 1)
         self.assertEqual(self.period(d, "week")["done"], 0)
