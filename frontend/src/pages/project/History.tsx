@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import type { Paged } from "@/api/client";
+import { ApiError, api, listOf } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import type { Activity, Project, ProjectMember } from "@/api/types";
 import Timeline from "@/components/Timeline";
@@ -23,8 +24,8 @@ export default function History({ project }: { project: Project }) {
     // A'zolar ro'yxati - filtr uchun yordamchi. Kelmasa filtr bo'sh qoladi,
     // tarixning o'zi baribir ochiladi.
     let alive = true;
-    void api.get<any>(`/projects/${project.id}/members/`)
-      .then((d) => { if (alive) setMembers(d); })
+    void api.get<Paged<ProjectMember>>(`/projects/${project.id}/members/`)
+      .then((d) => { if (alive) setMembers(listOf<ProjectMember>(d)); })
       .catch(() => { if (alive) setMembers([]); });
     return () => { alive = false; };
   }, [project.id]);

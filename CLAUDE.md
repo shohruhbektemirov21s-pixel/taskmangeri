@@ -302,8 +302,8 @@ o'nlab marta chalardi. Sahifa WebSocket orqali o'zi yangilanadi
 1. O'zgartirishdan oldin tegishli fayllarni o'qi — taxmin qilma.
 2. Backend o'zgarsa: `makemigrations` → `migrate` → `manage.py test`.
 3. Frontend o'zgarsa: `npm run typecheck`, `npm run lint` va `npm test` toza
-   bo'lishi shart. Lint da OGOHLANTIRISH bor (bugun 35 ta — eski `any` lar),
-   lekin CI `--max-warnings 35` bilan yuguradi: YANGISI qo'shilsa qizaradi.
+   bo'lishi shart. Lint da OGOHLANTIRISH bor (bugun 26 ta — eski `any` lar),
+   lekin CI `--max-warnings 26` bilan yuguradi: YANGISI qo'shilsa qizaradi.
    Sonni oshirma — qarzni kamaytir va chegarani tushir.
 4. UI o'zgarsa: Playwright MCP bilan `http://localhost:5183` ni ochib **ko'z bilan tekshir** — skrinshotni foydalanuvchidan so'rama.
 5. Bo'sh holat (empty state) matnlarini unutma — ular o'zbekcha va foydalanuvchiga tushunarli bo'lsin.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import type { Paged } from "@/api/client";
 import { ApiError, api, listOf } from "@/api/client";
 import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -21,7 +22,7 @@ export default function Members({ project, onChange }: { project: Project; onCha
   const [version, setVersion] = useState(0);
 
   const load = useCallback(async () => {
-    setMembers(listOf<ProjectMember>(await api.get<any>(`/projects/${project.id}/members/`)));
+    setMembers(listOf<ProjectMember>(await api.get<Paged<ProjectMember>>(`/projects/${project.id}/members/`)));
     if (acc.can_manage) {
       try {
         setRequests(await api.get<JoinRequest[]>(`/projects/${project.id}/requests/`));

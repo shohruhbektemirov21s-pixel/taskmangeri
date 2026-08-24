@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
+import type { Paged } from "@/api/client";
 import { ApiError, listOf, pagesOf, totalOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
 import type { Choice, MyWorkData, Project, Task } from "@/api/types";
@@ -76,7 +77,7 @@ function ManagerProjects() {
   // loyihada JIMGINA kesilardi - 101-loyiha hech qanday belgisiz
   // yo'qolardi. Endi sahifa raqamlari bor va jami son serverdan keladi.
   const { data, error: loadError, loading, reload } =
-    useFetch<any>("/projects/", { scope: "visible", search: applied, period,
+    useFetch<Paged<Project>>("/projects/", { scope: "visible", search: applied, period,
                                   page, page_size: PER_PAGE });
   const projects = useMemo(() => (data ? listOf<Project>(data) : null), [data]);
   const total = totalOf(data);

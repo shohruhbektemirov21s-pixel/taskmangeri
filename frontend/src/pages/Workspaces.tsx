@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { Link } from "react-router-dom";
+import type { Paged } from "@/api/client";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Workspace } from "@/api/types";
 import { PageHead } from "@/components/Layout";
@@ -17,8 +18,8 @@ export default function Workspaces() {
   const [code, setCode] = useState("");
 
   async function load() {
-    setMine(listOf<Workspace>(await api.get<any>("/workspaces/", { scope: "mine" })));
-    setOthers(listOf<Workspace>(await api.get<any>("/workspaces/", { scope: "open" })));
+    setMine(listOf<Workspace>(await api.get<Paged<Workspace>>("/workspaces/", { scope: "mine" })));
+    setOthers(listOf<Workspace>(await api.get<Paged<Workspace>>("/workspaces/", { scope: "open" })));
   }
 
   useEffect(() => { void load(); }, []);

@@ -14,6 +14,7 @@
  */
 import { useCallback, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
+import type { Paged } from "@/api/client";
 import { ApiError, api, listOf } from "@/api/client";
 import type { JoinRequest, Project, ProjectMember } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -51,7 +52,7 @@ export default function TeamBuilder({
         await api.get<any>(`/projects/${projectId}/requests/`, { status: "PENDING" })));
     } catch { setRequests([]); }
     try {
-      setMembers(listOf<ProjectMember>(await api.get<any>(`/projects/${projectId}/members/`)));
+      setMembers(listOf<ProjectMember>(await api.get<Paged<ProjectMember>>(`/projects/${projectId}/members/`)));
     } catch { setMembers([]); }
   }, [projectId]);
 

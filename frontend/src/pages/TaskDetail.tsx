@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import type { Paged } from "@/api/client";
 import { ApiError, api, listOf } from "@/api/client";
 import type { Activity, ProjectMember, Task } from "@/api/types";
 import { useAuth } from "@/auth/AuthContext";
@@ -64,7 +65,7 @@ export default function TaskDetail() {
     let alive = true;
     void (async () => {
       try {
-        const rows = listOf<ProjectMember>(await api.get<any>(`/projects/${projectId}/members/`));
+        const rows = listOf<ProjectMember>(await api.get<Paged<ProjectMember>>(`/projects/${projectId}/members/`));
         if (alive) setMembers(rows.filter((m) => m.is_active));
       } catch {
         // Ro'yxat kelmasa karta bo'sh turadi - vazifaning o'zi ochilaveradi.

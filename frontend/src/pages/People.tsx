@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import type { Paged } from "@/api/client";
 import { ApiError, api, listOf, pagesOf, totalOf } from "@/api/client";
 import { useFetch } from "@/api/useFetch";
 import type { User } from "@/api/types";
@@ -39,7 +40,7 @@ export default function People() {
   // 200 kishida JIMGINA kesilardi: 201-xodim hech qanday belgisiz
   // yo'qolardi va sarlavhadagi «... ta» ham yolg'on bo'lib qolardi.
   const { data, error: loadError, loading, reload } =
-    useFetch<any>("/users/", { ...f, page, page_size: PER_PAGE }, { debounceMs: 300 });
+    useFetch<Paged<User>>("/users/", { ...f, page, page_size: PER_PAGE }, { debounceMs: 300 });
   const users = useMemo(() => (data ? listOf<User>(data) : null), [data]);
   // Jami son - serverdan (`count`), ekrandagi qatorlar sonidan EMAS.
   const total = totalOf(data);

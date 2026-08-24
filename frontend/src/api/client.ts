@@ -42,6 +42,27 @@ export const tokens = {
   },
 };
 
+/**
+ * DRF sahifalagichining javobi.
+ *
+ * NEGA KERAK. Ro'yxat so'ragan joylar `api.get<any>(...)` deb yozardi va
+ * `any` butun zanjirni o'chirib qo'yardi: javobning ichida nima borligini
+ * `tsc` bilmas, `listOf<T>` esa tipni ISHONIB oladi. Ya'ni server
+ * boshqacha javob qaytarsa xato faqat ekranda ko'rinardi.
+ *
+ * Endi shakl aytilgan: `useFetch<Paged<Project>>(...)`.
+ */
+export interface Paged<T> {
+  count: number;
+  results: T[];
+  /* `next`/`previous` IXTIYORIY: ba'zi endpointlar faqat `count` va
+     `results` qaytaradi (`/api/panel/tasks/` kabi), `Pager` esa
+     sahifalarni `count` dan hisoblaydi (`pagesOf`). Ularni majburiy
+     qilsak o'sha javoblar tipga tushmasdi. */
+  next?: string | null;
+  previous?: string | null;
+}
+
 export class ApiError extends Error {
   status: number;
   data: any;
@@ -196,10 +217,10 @@ export const api = {
 };
 
 /** Sahifalangan javobdan ro'yxatni oladi (paginated yoki oddiy massiv) */
-export function listOf<T>(data: any): T[] {
+export function listOf<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
-  if (data && Array.isArray(data.results)) return data.results as T[];
-  return [];
+  const rows = (data as Paged<T> | null)?.results;
+  return Array.isArray(rows) ? rows : [];
 }
 
 /**
