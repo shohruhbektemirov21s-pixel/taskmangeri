@@ -76,6 +76,46 @@ class TaskNumberTest(ApiTestCase):
         t3 = Task.objects.create(project=self.project, title="Uch", created_by=self.manager)
         self.assertNotEqual(t3.number, t1.number)
 
+    def test_qulf_backend_qollasa_ishlatiladi(self):
+        """Qulf SHARTLI: SQLite uni bilmaydi, Db2 esa biladi.
+
+        `next_task_number` `SELECT ... FOR UPDATE` bilan loyiha qatorini
+        band qiladi - ikki kishi bir vaqtda vazifa yaratsa raqam
+        takrorlanmasin. SQLite da Django `NotSupportedError` beradi,
+        shuning uchun u yerda qulf o'tkazib yuboriladi (bitta jarayon,
+        bitta ulanish - qulf shart ham emas).
+
+        Test ikkala tomonni ham qulflaydi: qo'llaydigan bazada qulf
+        HAQIQATAN qo'yiladi, qo'llamaydiganida esa kod yiqilmaydi.
+        """
+        from django.db import connection
+
+        with transaction.atomic():
+            if connection.features.has_select_for_update:
+                # Db2: qulf so'rovi bajarilishi va xato bermasligi kerak.
+                with connection.execute_wrapper(self._collect_sql):
+                    self._seen = []
+                    Task.objects.create(project=self.project, title="Qulfli",
+                                        created_by=self.manager)
+                joined = " ".join(self._seen).upper()
+                # SINTAKSIS BAZAGA QARAB O'ZGARADI. Db2 `FOR UPDATE` emas,
+                # `WITH RS USE AND KEEP UPDATE LOCKS` yozadi - ma'nosi
+                # o'sha: qator o'qilib, tranzaksiya oxirigacha band
+                # qilinadi. Test shu sabab ikkala shaklni ham qabul
+                # qiladi va u tekshiradigan narsa - qulf QO'YILGANI.
+                self.assertTrue(
+                    "FOR UPDATE" in joined or "KEEP UPDATE LOCKS" in joined,
+                    "qulf so'rovi yuborilmadi: " + joined[:400])
+            else:
+                # SQLite: qulfsiz ham ishlashi kerak.
+                task = Task.objects.create(project=self.project, title="Qulfsiz",
+                                           created_by=self.manager)
+                self.assertGreater(task.number, 0)
+
+    def _collect_sql(self, execute, sql, params, many, context):
+        self._seen.append(sql)
+        return execute(sql, params, many, context)
+
 
 class CompletedAtInvariantTest(ApiTestCase):
     """«Bajarildi» degan vazifa yakunlangan vaqtsiz saqlanmaydi.

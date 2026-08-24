@@ -2264,6 +2264,18 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .sg .repo-item:has(.row-menu-list) { z-index: 20; }
 /* Qatorda `position` yo'q edi - `z-index` ishlashi uchun kerak. */
 .sg .repo-item:has(.row-menu-list) { position: relative; }
+
+/* KARTA MENYUNI QIRQMAYDI.
+   `.card` da `overflow: hidden` bor - u ichidagi qatorlarning burchagini
+   kartaning dumaloq burchagiga moslash uchun. Lekin u ochilgan menyuni
+   ham kesardi: OXIRGI qatorda menyu kartaning pastki chekkasidan ~27px
+   chiqadi va o'sha qismi ko'rinmasdi - «Tahrirlash» ko'rinib,
+   «O'chirish» yo'q bo'lib qolardi.
+   `:has()` faqat menyu OCHIQ paytda ishlaydi, ya'ni burchaklarni qirqish
+   qolgan vaqtda o'z kuchida qoladi. */
+.card:has(.row-menu-list),
+.card:has(.row-menu-list) .card-list,
+.table-wrap:has(.row-menu-list) { overflow: visible; }
 .row-menu > .btn { padding: 4px 10px; font-size: 16px; line-height: 1; }
 .row-menu-list {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 70;

@@ -644,6 +644,29 @@ Db2 konteyneri og'ir: ~7 GB obraz, `privileged` rejim va birinchi ishga tushishi
 bir necha daqiqa (instans, baza va jurnal fayllari yaratiladi). `docker-compose`
 dagi healthcheck shuni hisobga oladi — backend baza tayyor bo'lgach ko'tariladi.
 
+### Zaxira
+
+```bash
+bash docker/backup.sh            # ./backups/ ga
+bash docker/backup.sh /mnt/disk  # boshqa joyga
+```
+
+Skript ikki narsani oladi: Db2 bazasini va media fayllarni. Nusxalar
+konteynerdan **tashqariga** ko'chiriladi — `db2data` volume ning o'zi
+yo'qolsa, ichidagi zaxira ham yo'qoladi, ya'ni u zaxira emas. 14 kundan
+eskisi o'chiriladi (`BACKUP_KEEP_DAYS`).
+
+**Zaxira oflayn — baza qisqa muddatga uziladi.** Sababi: `ARCHIVE_LOGS: "false"`,
+ya'ni Db2 aylanma jurnal rejimida va onlayn zaxirani ataylab taqiqlaydi.
+Onlayn zaxiraga o'tish yo'li skriptning boshida yozilgan; narxi — arxiv
+jurnallari disk egallaydi.
+
+**Tiklash tartibi ham o'sha skriptning ichida** (oxiridagi izoh). Zaxira
+sinalmaguncha zaxira emas — uni yiliga bir marta bo'lsa ham sinab ko'ring.
+
+`.backup/` — bu skriptdan OLDINGI, qo'lda ko'chirilgan eski nusxa.
+U git ga tushmaydi va yangi zaxiralar `backups/` ga boradi.
+
 ---
 
 ## Vaqt

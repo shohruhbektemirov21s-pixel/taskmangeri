@@ -137,3 +137,28 @@ class GatewayHeaderTest(ApiTestCase):
         c = self.client_for(self.dev)
         r = c.post("/api/read/", {"path": "/ui-texts/"}, format="json")
         self.assertTrue(r.headers["Content-Type"].startswith("application/json"))
+
+
+class ApiVersionTest(ApiTestCase):
+    """`/api/v1/` - o'sha marshrutlar, ikkinchi nom ostida.
+
+    Versiyasiz manzil ishlayveradi (joriy mijozlar), versiyali esa
+    kelajakda `v2` qo'shilganda eskisini joyida qoldirish uchun.
+    """
+
+    def test_versiyali_manzil_ishlaydi(self):
+        plain = self.api.get("/api/projects/")
+        versioned = self.api.get("/api/v1/projects/")
+        self.assertEqual(plain.status_code, 200)
+        self.assertEqual(versioned.status_code, 200)
+        self.assertEqual([p["id"] for p in plain.data["results"]],
+                         [p["id"] for p in versioned.data["results"]])
+
+    def test_shlyuz_versiyali_yolni_oqiydi(self):
+        r = self.api.post("/api/read/", {"path": "/v1/projects/"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def test_shlyuz_ozini_versiya_orqali_ham_chaqirmaydi(self):
+        """Cheksiz halqa: `/api/v1/read/` ham bloklangan bo'lishi kerak."""
+        r = self.api.post("/api/read/", {"path": "/v1/read/"}, format="json")
+        self.assertEqual(r.status_code, 400)

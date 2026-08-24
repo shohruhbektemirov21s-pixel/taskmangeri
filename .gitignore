@@ -20,3 +20,7 @@ backend/.env.local
 *.png
 !frontend/public/**/*.png
 !frontend/src/**/*.png
+
+# Zaxira nusxalari (`docker/backup.sh`) - ular git ga tushmaydi:
+# o'lchami katta va ichida haqiqiy ma'lumot bor.
+/backups/

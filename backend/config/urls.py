@@ -59,22 +59,38 @@ def health(request):
     )
 
 
+# API marshrutlari - bitta ro'yxat, ikkita prefiks ostida ulanadi.
+#
+# VERSIYALASH. Ilgari faqat `/api/` bor edi, ya'ni shartnomani buzadigan
+# o'zgarish qilinsa barcha mijoz bir vaqtda yangilanishi kerak bo'lardi.
+# Frontend ilova bilan birga chiqadi, lekin u yagona mijoz emas va
+# kelajakda ham bo'lmaydi.
+#
+# `/api/v1/` - AYNAN o'sha marshrutlar, ya'ni bugun hech narsa
+# o'zgarmaydi va eski manzil ishlayveradi. Foydasi ertaga bilinadi:
+# `v2` qo'shilganda `v1` joyida qoladi va mijozlar o'z vaqtida ko'chadi.
+API_ROUTES = [
+    path("auth/", include("apps.accounts.urls")),
+    path("", include("apps.accounts.api_urls")),
+    path("", include("apps.workspaces.urls")),
+    path("", include("apps.projects.urls")),
+    path("", include("apps.tasks.urls")),
+    path("", include("apps.activity.urls")),
+    path("", include("apps.notifications.urls")),
+    path("", include("apps.chat.urls")),
+    path("", include("apps.telegram.urls")),
+    path("", include("apps.uitexts.urls")),
+    path("", include("apps.suggestions.urls")),
+    path("", include("apps.panel.urls")),
+    path("", include("apps.core.urls")),
+]
+
 urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("api/health/", health),
-    path("api/auth/", include("apps.accounts.urls")),
-    path("api/", include("apps.accounts.api_urls")),
-    path("api/", include("apps.workspaces.urls")),
-    path("api/", include("apps.projects.urls")),
-    path("api/", include("apps.tasks.urls")),
-    path("api/", include("apps.activity.urls")),
-    path("api/", include("apps.notifications.urls")),
-    path("api/", include("apps.chat.urls")),
-    path("api/", include("apps.telegram.urls")),
-    path("api/", include("apps.uitexts.urls")),
-    path("api/", include("apps.suggestions.urls")),
-    path("api/", include("apps.panel.urls")),
-    path("api/", include("apps.core.urls")),
+    # Prefikssiz (joriy mijozlar) va versiyali - ikkovi bir xil ishlaydi.
+    path("api/", include((API_ROUTES, "api"), namespace="api")),
+    path("api/v1/", include((API_ROUTES, "api"), namespace="api-v1")),
 ]
 
 # Media fayllar faqat API bergan imzolangan manzil bilan ochiladi -

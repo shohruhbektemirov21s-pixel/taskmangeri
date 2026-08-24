@@ -14,10 +14,23 @@ yozishni esa o'zi bajaradi - kod uchun hech narsa o'zgarmaydi:
     obj.save()
     obj.meta["count"]        # 3
 
-Matnda saqlangani uchun `meta__key` kabi JSON qidiruvlari ishlamaydi. Bu
-loyihada bunday qidiruv yo'q: `meta` faqat o'qib ko'rsatiladi. Qidirish kerak
-bo'lgan yagona ma'lumot - loyihaning kerakli mutaxassisliklari - alohida
-jadvalga chiqarilgan (`projects.ProjectSpecialty`).
+CHEGARASI VA UNI QACHON HIS QILASIZ. Matnda saqlangani uchun `meta__key`
+kabi JSON qidiruvlari ishlamaydi. Bugun bu muammo emas: `meta` faqat
+o'qib ko'rsatiladi, qidiriladigan yagona ma'lumot - loyihaning kerakli
+mutaxassisliklari - alohida jadvalga chiqarilgan
+(`projects.ProjectSpecialty`).
+
+Chegara `Activity.meta` da bilinadi: u maydon o'zgarishlari tarixini
+saqlaydi va «bu maydonni kim o'zgartirgan» degan savolga javob berish
+uchun qatorlarni Python tomonda o'qib chiqishga to'g'ri keladi. Agar
+shunday hisobot kerak bo'lsa, to'g'ri yechim JSON qidiruvini emas -
+o'sha ma'lumotni ham alohida ustunga (yoki jadvalga) chiqarish:
+mutaxassisliklar bilan aynan shunday qilingan va u indeks ustidan
+qidiriladi.
+
+DIQQAT: bu maydonni `models.JSONField` ga almashtirib bo'lmaydi -
+`ibm_db_django` da `supports_json_field = False` va Django migratsiyani
+`fields.E180` bilan to'xtatadi.
 """
 import json
 

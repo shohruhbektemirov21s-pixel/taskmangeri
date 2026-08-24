@@ -43,8 +43,9 @@ from .throttles import ReadGatewayThrottle
 
 # Darvoza orqali o'qishga ruxsat etilgan yo'l boshi.
 API_PREFIX = "/api/"
-# O'zini o'zi chaqirmasin.
-SELF_PATH = "/api/read/"
+# O'zini o'zi chaqirmasin. Versiyali manzil ham shu ro'yxatda: aks holda
+# `/api/v1/read/` orqali cheksiz halqa yasash mumkin bo'lardi.
+SELF_PATHS = ("/api/read/", "/api/v1/read/")
 
 # Ichki so'rovga ko'chiriladigan sarlavhalar. Butun `META` ni ko'chirsak
 # tashqi so'rovning `CONTENT_TYPE` va `CONTENT_LENGTH` i ham ketardi va
@@ -114,7 +115,9 @@ def _clean_path(raw):
     # `..` bilan yuqoriga chiqishga urinish.
     if "//" in path or "/../" in path or path.endswith("/.."):
         return None
-    if not path.startswith(API_PREFIX) or path.startswith(SELF_PATH):
+    if not path.startswith(API_PREFIX):
+        return None
+    if any(path.startswith(self_path) for self_path in SELF_PATHS):
         return None
     return path
 
