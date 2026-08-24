@@ -114,3 +114,44 @@ class CompletedAtInvariantTest(ApiTestCase):
         task.save(update_fields=["title"])
         task.refresh_from_db()
         self.assertEqual(task.completed_at, moment)
+
+
+class ByteLengthTest(ApiTestCase):
+    """Db2 da `CharField` BAYT bilan o'lchanadi, belgi bilan emas.
+
+    O'zbekcha matnda «ʻ», «—» va «…» ikki-uch bayt egallaydi. Ilgari
+    audit jurnali matnni BELGI bo'yicha kesardi (`summary[:300]`), ya'ni
+    uzun o'zbekcha sarlavha ustunga sig'masdi va `SQL0302N` bilan
+    yiqilardi. `log()` esa istisnoni yutadi - yozuv jimgina yo'qolardi.
+    """
+
+    # Har bir belgi IKKI bayt. 400 ta belgini BELGI bo'yicha kessak
+    # (`[:300]`) 600 bayt qoladi, ya'ni `VARCHAR(300)` ga sig'maydi va
+    # yozuv `SQL0302N` beradi. BAYT bo'yicha kesilganda esa 300 baytda
+    # to'xtaydi. Uzunlik shu sabab ataylab shuncha: qisqasi ikkala yo'lda
+    # ham sig'ib ketardi va test hech narsani isbotlamasdi.
+    LONG = "ʻ" * 400
+
+    def test_uzun_sarlavha_tarixga_tushadi(self):
+        from apps.activity.models import Activity
+        from apps.activity.services import log
+
+        row = log(actor=self.manager, verb="task.created", project=self.project,
+                  summary=self.LONG, target=self.project)
+        self.assertIsNotNone(row, "uzun sarlavha tarixga yozilmadi")
+        self.assertTrue(Activity.objects.filter(pk=row.pk).exists())
+
+    def test_kesish_bayt_boyicha(self):
+        from apps.core.text import byte_len, clip
+
+        self.assertLessEqual(byte_len(clip(self.LONG, 300)), 300)
+        # Chala bayt qolmasin - matn qayta o'qilishi kerak.
+        clip(self.LONG, 301).encode("utf-8").decode("utf-8")
+
+    def test_uzun_bildirishnoma_ham_yoziladi(self):
+        from apps.notifications.models import NotificationKind
+        from apps.notifications.services import notify
+
+        row = notify(self.dev, NotificationKind.TASK_ASSIGNED,
+                     title=self.LONG, body=self.LONG, actor=self.manager)
+        self.assertIsNotNone(row, "uzun bildirishnoma yozilmadi")

@@ -171,6 +171,32 @@ DATABASES = {
         "PORT": os.getenv("DB2_PORT", "50000"),
         "PCONNECT": True,        # ulanishni qayta ishlatish
         "CONN_MAX_AGE": 60,
+        # HAR BIR SO'ROV - BITTA TRANZAKSIYA.
+        #
+        # Ilgari butun kod bazasida oltita `transaction.atomic` bor edi,
+        # ko'p yozadigan amallar esa himoyasiz turardi: vazifa yaratish
+        # (Task + teglar + ijrochilar + tarix + bildirishnoma), tahrirlash,
+        # holatni surish, tekshiruv qarori, a'zo roli. O'rtada uzilsa
+        # yarim yozilgan holat qolardi - vazifa ijrochisiz, holat
+        # o'zgargan-u tarixda yo'q, rol berilgan-u jurnalda iz yo'q.
+        #
+        # NEGA DEKORATOR EMAS. Har bir view ga `@transaction.atomic`
+        # qo'yish mumkin edi, lekin bu qoidani ESLAB qolishga bog'lardi:
+        # yangi endpoint yozgan odam uni qo'ymasa, hech narsa qizarmaydi
+        # va xato faqat uzilish paytida bilinadi. Shu sabab qoida bitta
+        # joyda va unutib bo'lmaydigan qilib qo'yilgan.
+        #
+        # `bulk` va boshqa joylardagi mavjud `atomic` lar QOLADI: ular
+        # ichma-ich ishlaydi (savepoint) va o'z izohlaridagi niyatni
+        # ko'rsatib turadi.
+        #
+        # CHEGARASI. WebSocket signali va Telegram xabari tranzaksiyaga
+        # kirmaydi (`live_task`, `run_later`): tranzaksiya orqaga qaytsa
+        # ular baribir ketib bo'lgan bo'lishi mumkin. Zarari yo'q -
+        # signal faqat «shu yerda nimadir o'zgardi» deydi va mijoz
+        # ma'lumotni qaytadan so'raydi. Bildirishnomaning O'ZI esa bazada,
+        # ya'ni u to'g'ri qaytariladi.
+        "ATOMIC_REQUESTS": True,
         # Db2 da baza nomi 8 belgidan oshmaydi va adapter unga o'zi `t_`
         # qo'shadi - `t_TEAMFLOW` esa yaroqsiz nom (SQL1001N). Shuning uchun
         # sinov bazasi nomini o'zimiz beramiz.

@@ -32,6 +32,8 @@ import logging
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.core.text import byte_len
+
 logger = logging.getLogger(__name__)
 
 # Necha kun qolganda eslatiladi. Kattadan kichikka - xabar matni shunga qarab.
@@ -53,9 +55,10 @@ def _stage_label(days):
     return "1 hafta" if days == 7 else "{} kun".format(days)
 
 
-def _blen(text):
-    """Matnning BAYTDAGI uzunligi - Db2 ustunlari shu bilan o'lchanadi."""
-    return len((text or "").encode("utf-8"))
+# Bayt bo'yicha o'lchash `apps.core.text` da - qoida audit jurnalida va
+# bildirishnomalarda ham bir xil bo'lishi kerak, shuning uchun bitta
+# manbada. Nom shu yerda qisqa qoladi: pastda bir necha marta chaqiriladi.
+_blen = byte_len
 
 
 def _short(text, limit=TITLE_LIMIT):

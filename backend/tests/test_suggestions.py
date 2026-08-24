@@ -434,8 +434,17 @@ class FileTest(SuggestionTestCase):
             self.client_for(self.admin).post("%s%d/vote/" % (URL, item.id),
                                              {"choice": "FOR"}, format="json")
 
-        with self.assertNumQueries(4):
-            # 1 - foydalanuvchi, 2 - sanoq, 3 - takliflar, 4 - fayllar.
+        # OLTITA so'rov, lekin MA'LUMOT uchun to'rttasi:
+        #   1 - foydalanuvchi, 2 - sanoq, 3 - takliflar, 4 - fayllar.
+        # Qolgan ikkitasi - `SAVEPOINT` va `RELEASE TO SAVEPOINT`. Ular
+        # `ATOMIC_REQUESTS` dan keladi (`config/settings.py`): har bir
+        # so'rov bitta tranzaksiyada bajariladi va bu yerda test o'zi ham
+        # tranzaksiya ichida bo'lgani uchun u savepoint bo'lib chiqadi.
+        #
+        # Son 6 ga ko'tarildi, lekin TEKSHIRUV KUCHI o'zgarmadi: uchta
+        # taklif uchun ham, o'ttizta uchun ham shu son qolishi kerak.
+        # Yangi N+1 qo'shilsa 7 bo'ladi va test qizaradi.
+        with self.assertNumQueries(6):
             self.assertEqual(len(self.ids(self.boss_api.get(URL, {"scope": "OPEN"}))), 3)
 
 

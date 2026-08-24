@@ -193,14 +193,19 @@ class SuggestionViewSet(viewsets.ModelViewSet):
         form.is_valid(raise_exception=True)
         choice = form.validated_data["choice"]
 
-        existing = SuggestionVote.objects.filter(suggestion=obj, user=request.user).first()
-        if existing and existing.choice == choice:
-            existing.delete()
-        elif existing:
-            existing.choice = choice
-            existing.save(update_fields=["choice", "updated_at"])
-        else:
-            SuggestionVote.objects.create(suggestion=obj, user=request.user, choice=choice)
+        # `update_or_create` - `filter().first()` keyin `create()` EMAS.
+        #
+        # Ikkita so'rov orasida oyna bor edi: tugmani ikki marta bosish
+        # yoki ikkita ochiq oyna ikkala tomondan ham «yozuv yo'q» degan
+        # javob olib, ikkovi ham `create()` chaqirardi.
+        # `unique_together (suggestion, user)` ni buzib, foydalanuvchi
+        # 500 ko'rardi. `update_or_create` buni bitta amalga jamlaydi.
+        deleted, _ = SuggestionVote.objects.filter(
+            suggestion=obj, user=request.user, choice=choice).delete()
+        if not deleted:
+            # O'sha tugma qayta bosilmagan - ovoz qo'yiladi yoki almashadi.
+            SuggestionVote.objects.update_or_create(
+                suggestion=obj, user=request.user, defaults={"choice": choice})
 
         return Response(self.get_serializer(self.get_queryset().get(pk=obj.pk)).data)
 

@@ -8,6 +8,8 @@ import logging
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
+from apps.core.text import clip
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,22 +61,10 @@ def serialize(notification):
     return NotificationSerializer(notification).data
 
 
-def clip(text, limit):
-    """Matnni ustunga sig'diradi - BELGI emas, BAYT bo'yicha.
-
-    Db2 da `CharField(max_length=200)` VARCHAR(200) bo'lib, uning o'lchovi
-    baytda. O'zbekcha matnda esa bitta belgi ko'pincha ikki-uch bayt:
-    «—», «…», ismlardagi «ʻ». Shu sabab 200 belgilik matn bemalol 400
-    baytdan oshib ketardi va yozuv `SQL0302N` (SQLSTATE 22001) bilan
-    yiqilardi - bildirishnoma umuman yozilmasdi.
-
-    Kesilgan joyda yarim belgi qolmasin uchun `errors="ignore"` bilan
-    qaytariladi: buzuq bayt tashlab yuboriladi.
-    """
-    data = (text or "").encode("utf-8")
-    if len(data) <= limit:
-        return text or ""
-    return data[:limit].decode("utf-8", "ignore")
+# Matnni ustunga sig'dirish - `apps.core.text` da. Qoida Db2 ga tegishli
+# (VARCHAR bayt bilan o'lchanadi), domenga emas, va u audit jurnalida ham
+# kerak - shuning uchun umumiy joyda turadi. Nom shu yerda ochiq qoladi:
+# uni allaqachon shu modulda chaqiradigan kod bor.
 
 
 def notify(recipient, kind, title, body="", url="", actor=None, meta=None, collapse=False):
