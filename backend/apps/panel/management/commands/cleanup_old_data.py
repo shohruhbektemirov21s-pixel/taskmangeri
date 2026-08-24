@@ -21,6 +21,14 @@ NIMA O'CHADI VA NIMA QOLADI.
     «adashib bosildi» ni qaytarish edi; olti oydan keyin uni hech kim
     qaytarmaydi, joyni esa egallab turadi.
 
+NEGA `apps.panel` DA. Bu buyruq beshta domen ilovasining modelini
+o'qiydi (`activity`, `chat`, `notifications`, `projects`, `tasks`).
+Bunday narsaning yagona qonuniy joyi - eng ustki qavat: panel hammani
+biladi, uni esa hech kim import qilmaydi. Ilgari u `apps.core` da edi
+va bu loyihaning birinchi qoidasini buzardi - «`apps/core` da domen
+importi BO'LMASIN». Import funksiya ichida yashiringani bilan halqa
+baribir qoladi, faqat ko'rinmay turadi.
+
 NIMA HECH QACHON O'CHMAYDI: loyiha, vazifa va foydalanuvchining o'zi
 (tirik bo'lsa), chat tarixi, takliflar. Ular «tarix» emas, ishning o'zi.
 

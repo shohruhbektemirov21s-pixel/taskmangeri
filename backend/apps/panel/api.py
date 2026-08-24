@@ -13,6 +13,7 @@ from rest_framework.response import Response
 
 from apps.activity.models import Activity
 from apps.activity.serializers import ActivitySerializer
+from apps.workspaces.models import WorkspaceRole
 from apps.projects.models import (JoinRequest, Project, ProjectMember, ProjectRole,
                                   RequestStatus)
 from apps.projects.permissions import (managed_projects_q, manages_all_projects,
@@ -763,7 +764,6 @@ def meta(request):
     from apps.activity.models import category_choices
     from apps.accounts.specialties import Seniority, specialty_catalog
     from apps.projects.models import ProjectStatus
-    from apps.workspaces.models import WorkspaceRole
     from apps.tasks.models import BOARD_COLUMNS, TaskPriority, TaskType
     from apps.tasks.models import ReviewVerdict
 

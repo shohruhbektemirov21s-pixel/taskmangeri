@@ -5,6 +5,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import (TokenObtainPairSerializer,
                                                   TokenRefreshSerializer)
 
+from apps.core.media import media_url
 from .models import GlobalRole
 from .specialties import Seniority, Specialty, specialty_catalog
 
@@ -31,8 +32,6 @@ class UserBriefSerializer(serializers.ModelSerializer):
                   "seniority", "seniority_display"]
 
     def get_avatar(self, obj):
-        from apps.core.media import media_url
-
         return media_url(obj.avatar)
 
 
@@ -74,8 +73,6 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["email", "global_role", "is_active", "date_joined"]
 
     def get_avatar(self, obj):
-        from apps.core.media import media_url
-
         return media_url(obj.avatar)
 
 

@@ -109,6 +109,20 @@ Backend `./backend/.env` faylini `env_file` orqali oladi. U yerda `DB2_*`, `REDI
 panel  →  projects · tasks · activity · accounts · workspaces  →  core
 ```
 
+**Bu ierarxiya CHEKKALARDA qat'iy, o'rtada esa emas — va buni bilib
+turing.** `core` va `uitexts` hech kimga bog'lanmaydi, `panel` ga hech kim
+bog'lanmaydi: bu ikkovi TEST bilan qulflangan
+(`tests/test_architecture.py`). O'rtadagi beshta ilova esa bir-biriga
+o'zaro bog'langan — sakkizta halqa bor va ular haqiqiy domen
+bog'liqligi: loyihaning bajarilishi vazifalardan hisoblanadi, vazifa esa
+loyihaga tegishli.
+
+Halqalar ro'yxati testda yozib qo'yilgan. **Yangisi qo'shilsa test
+qizaradi**, ya'ni bog'liqlikni funksiya ichiga yashirib qo'yish endi
+ishlamaydi — kechiktirilgan importlar soni ham cheklangan (bugun 92).
+Ro'yxatga yangi juftlik qo'shish o'rniga qaysi tomon kimga tayanishi
+kerakligini hal qiling.
+
 - **`apps/core` da domen importi BO'LMASIN.** U eng pastki qatlam: Db2
   adapteri, `JSONTextField`, yumshoq o'chirish, `related_count`, fayl
   uzatish, o'qish shlyuzi, tezlik cheklovlari (`throttles.py`) va sof

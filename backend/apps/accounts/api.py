@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.core.queries import related_count
 from apps.accounts.models import GlobalRole
 from apps.activity.services import log
 from apps.projects.permissions import (IsPlatformAdmin, sees_all_projects,
@@ -234,7 +235,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return UserAdminSerializer
 
     def get_queryset(self):
-        from apps.core.queries import related_count
         from apps.projects.models import ProjectMember
         from apps.tasks.models import TaskAssignment
 

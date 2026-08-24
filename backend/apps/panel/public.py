@@ -23,6 +23,7 @@ from rest_framework.throttling import ScopedRateThrottle
 
 from apps.accounts.specialties import Specialty
 from apps.core.queries import object_or_404
+from apps.workspaces.models import Workspace
 from apps.projects.models import Project
 from apps.tasks.models import TaskStatus
 
@@ -151,7 +152,6 @@ def public_stats(request):
     from django.contrib.auth import get_user_model
 
     from apps.tasks.models import Task
-    from apps.workspaces.models import Workspace
 
     return Response({
         "projects": Project.objects.filter(is_listed=True).count(),
