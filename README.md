@@ -1,5 +1,24 @@
 # TeamFlow
 
+> **Qaysi hujjatni o'qish kerak.** Uchta manba bor va ular bir-birini
+> TAKRORLAMAYDI - har biri boshqa savolga javob beradi:
+>
+> | Hujjat | Savol | Kim uchun |
+> | --- | --- | --- |
+> | **README.md** (shu fayl) | «Tizim NIMA qiladi?» | Yangi kelgan odam, foydalanuvchi |
+> | **CLAUDE.md** | «Kod bilan QANDAY ishlanadi?» | Kod yozadigan odam va agent |
+> | **Kod izohlari** | «Bu yerda NEGA shunday?» | O'sha faylni ochgan odam |
+>
+> Qoida oddiy: bir narsa bir joyda yoziladi. Ruxsat qoidasi
+> `permissions.py` da, ishga tushirish tartibi CLAUDE.md da, foydalanuvchi
+> uchun tushuntirish shu yerda. Ikkinchi joyga ko'chirmang - HAVOLA qoldiring.
+>
+> Tekshirib bo'ladigan narsalar esa umuman izohda emas, **testda**:
+> qatlam qoidalari `tests/test_architecture.py` da, ruxsatlar
+> `tests/test_permissions.py` da. Izoh eskiradi va buni hech kim sezmaydi;
+> test eskirsa qizaradi.
+
+
 Jamoa, loyiha va vazifalarni boshqarish platformasi — ClickUp uslubidagi vazifa boshqaruvi
 va GitHub uslubidagi ish maydonlari (workspaces) birlashtirilgan.
 

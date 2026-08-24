@@ -239,3 +239,90 @@ class ModuleShapeTest(SimpleTestCase):
                 continue
             with open(path, encoding="utf-8") as fh:
                 ast.parse(fh.read(), filename=path)
+
+
+class Db2AdapterTest(SimpleTestCase):
+    """Db2 adapter forki tayangan narsalar joyidami.
+
+    `apps/core/db2/base.py` - `ibm_db_django` USTIGA qo'yilgan yupqa
+    qatlam va u asl paketning ICHKI tuzilishiga tayanadi: private
+    metodni (`_convert_sql_to_tz`) qayta yozadi va `self.ops` ni
+    konstruktordan keyin qo'lda almashtiradi (ota-klass `ops_class` ni
+    e'tiborga olmaydi).
+
+    Ya'ni paket yangilansa qatlam JIMGINA ishlamay qolishi mumkin: hech
+    narsa xato bermaydi, faqat mintaqali vaqt yana Db2 tushunmaydigan
+    ko'rinishda uzatila boshlaydi va `SQL0180N` migratsiya paytida
+    chiqadi. Quyidagi testlar shu taxminlarni ochiq yozib qo'yadi -
+    versiya ko'tarilganda ular birinchi bo'lib qizaradi.
+
+    Testlar Db2 ga ULANMAYDI: ular faqat sinflarning shakliga qaraydi,
+    ya'ni SQLite da ham yuguradi.
+    """
+
+    def test_asl_paket_kutilgan_joyda(self):
+        from ibm_db_django.base import DatabaseWrapper as Original
+        from ibm_db_django.operations import DatabaseOperations as OriginalOps
+
+        self.assertTrue(callable(Original))
+        self.assertTrue(callable(OriginalOps))
+
+    def test_biz_qayta_yozgan_metodlar_ASL_paketda_bor(self):
+        """Metod nomi o'zgarsa, bizning fork jimgina chetlab o'tilardi."""
+        from ibm_db_django.operations import DatabaseOperations as OriginalOps
+
+        for name in ("adapt_datetimefield_value", "adapt_timefield_value",
+                     "_convert_sql_to_tz", "datetime_cast_date_sql",
+                     "time_trunc_sql"):
+            self.assertTrue(
+                hasattr(OriginalOps, name),
+                "`ibm_db_django` da `{}` yo'q - `apps/core/db2/base.py` uni "
+                "qayta yozadi va endi u hech narsani almashtirmaydi.".format(name))
+
+    def test_bizning_qatlam_ASL_dan_meros_oladi(self):
+        from ibm_db_django.base import DatabaseWrapper as Original
+        from ibm_db_django.operations import DatabaseOperations as OriginalOps
+
+        from apps.core.db2.base import DatabaseOperations, DatabaseWrapper
+
+        self.assertTrue(issubclass(DatabaseWrapper, Original))
+        self.assertTrue(issubclass(DatabaseOperations, OriginalOps))
+
+    def test_vaqt_mintaqasiz_va_utcda_uzatiladi(self):
+        """Forkning ASOSIY sababi - shu o'girish.
+
+        `USE_TZ = True` bo'lgani uchun Django mintaqali vaqt beradi, asl
+        adapter esa uni `TIMESTAMP('...+00:00')` qilib uzatadi va Db2
+        buni tushunmay `SQL0180N` bilan yiqiladi.
+        """
+        import datetime
+
+        from apps.core.db2.base import DatabaseOperations
+
+        ops = DatabaseOperations.__new__(DatabaseOperations)
+        aware = datetime.datetime(2026, 8, 24, 12, 30, tzinfo=datetime.timezone.utc)
+        out = ops.adapt_datetimefield_value(aware)
+
+        self.assertIsInstance(out, str)
+        self.assertNotIn("+00:00", out, "mintaqa qoldi - Db2 buni tushunmaydi")
+        self.assertIn("2026-08-24 12:30:00", out)
+
+    def test_mintaqa_siljishi_daqiqada_hisoblanadi(self):
+        """`TIMEZONE_TZ` Db2 da YO'Q - u Postgres dan ko'chib qolgan."""
+        from apps.core.db2.base import DatabaseOperations
+
+        # Toshkent - doim UTC+5, yozgi vaqt yo'q.
+        self.assertEqual(DatabaseOperations._tz_offset_minutes("Asia/Tashkent"), 300)
+        self.assertEqual(DatabaseOperations._tz_offset_minutes("UTC"), 0)
+
+    def test_qadalgan_versiya_ozgarmagan(self):
+        """Versiya ko'tarilsa yuqoridagi taxminlar qayta tekshirilsin."""
+        import os
+
+        req = os.path.join(os.path.dirname(APPS_DIR), "requirements.txt")
+        with open(req, encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertIn(
+            "ibm_db_django==1.6.0.0", text,
+            "`ibm_db_django` versiyasi o'zgargan - `apps/core/db2/base.py` "
+            "asl paketning ichki tuzilishiga tayanadi, uni qayta sinang.")

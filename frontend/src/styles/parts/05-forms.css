@@ -1,0 +1,92 @@
+/* Formalar va sana maydonlari
+   ---
+   `app.css` dan ajratilgan bo'lak. Tartib MUHIM: kaskad
+   `app.css` dagi import ketma-ketligiga bog'liq - bo'laklarni
+   joyidan surmang. */
+
+/* ============ FORMS ============ */
+label { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 7px; }
+/* Yorliq ko'rinishidagi sarlavha - lekin bitta maydonga tegishli emas
+   (radio guruhi, o'qish uchun ma'lumot). `<label>` bo'lsa ekran o'quvchi
+   uni bog'lanmagan yorliq deb o'qirdi. */
+.lbl { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 7px; }
+/* input:not([type]) - JSX da type yozilmagan maydonlar ham shu qoidaga tushsin,
+   aks holda ular boshqalardan tor bolib qoladi. */
+input:not([type]),
+input[type=text], input[type=email], input[type=password], input[type=url],
+input[type=number], input[type=date], input[type=search],
+/* `datetime-local` ro'yxatda yo'q edi - brauzerning standart tor maydoni
+   chiqib, qolgan maydonlardan ajralib turardi. */
+input[type=datetime-local], input[type=time], input[type=month],
+select, textarea {
+  width: 100%; padding: 9px 14px; border: 1px solid var(--border);
+  border-radius: 12px; font-size: 14px; font-family: inherit; line-height: 20px;
+  background: var(--canvas-inset); color: var(--text); min-height: 40px;
+  -webkit-backdrop-filter: var(--blur-sm); backdrop-filter: var(--blur-sm);
+  box-shadow: var(--sh-inset);
+  transition: border-color .16s, box-shadow .16s, background .16s;
+}
+input:hover, select:hover, textarea:hover { border-color: var(--veil-strong); }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  background: var(--canvas-inset);
+  box-shadow: var(--ring), var(--sh-inset);
+}
+input::placeholder, textarea::placeholder { color: var(--subtle); }
+
+/* ---- Sana maydoni (DateField / DateTimeField) ----
+   Native `<input type=date>` brauzer tilida chizilardi ("08/18/2026") va
+   uni sahifadan boshqarib bo'lmasdi. Endi ko'rinadigan maydon oddiy matn,
+   taqvim esa yonidagi tugmadagi yashirin native maydondan chaqiriladi. */
+.dt-field { position: relative; display: block; width: 100%; }
+.dt-field > input[type=text] { width: 100%; padding-right: 40px; }
+/* Yashirin native maydon: `showPicker()` chizilmagan elementda ishlamaydi,
+   shuning uchun o'chirilmaydi - shaffof va o'lchamsiz qilinadi. */
+.dt-field .dt-native {
+  position: absolute; inset-inline-end: 8px; bottom: 0;
+  width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0;
+  border: 0; opacity: 0; pointer-events: none;
+}
+.dt-field .dt-pick {
+  position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 9px; background: transparent;
+  color: var(--muted); cursor: pointer;
+  transition: background .16s, color .16s;
+}
+.dt-field .dt-pick:hover { background: var(--veil); color: var(--text); }
+.dt-field .dt-pick:disabled { opacity: .5; cursor: default; }
+select { cursor: pointer; }
+select option { background: var(--surface); color: var(--text); }
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); cursor: pointer; }
+/* Sana/vaqt maydonidagi taqvim belgisi: kechki rejimda ko'rinmay qolmasin */
+input[type=date]::-webkit-calendar-picker-indicator,
+input[type=datetime-local]::-webkit-calendar-picker-indicator,
+input[type=time]::-webkit-calendar-picker-indicator {
+  cursor: pointer; opacity: .65; transition: opacity .15s;
+}
+input[type=date]::-webkit-calendar-picker-indicator:hover,
+input[type=datetime-local]::-webkit-calendar-picker-indicator:hover,
+input[type=time]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
+.field { margin-bottom: 18px; }
+.field .help { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.field .err { font-size: 12.5px; color: var(--danger); margin-top: 6px; font-weight: 550; }
+.check-list { display: flex; flex-wrap: wrap; gap: 9px; }
+.check-list label {
+  display: flex; align-items: center; gap: 8px; margin: 0; padding: 7px 15px;
+  border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+  font-weight: 500; background: var(--surface-2); font-size: 13px;
+  transition: .16s;
+}
+.check-list label:hover {
+  border-color: rgba(95, 131, 232, .5); background: var(--accent-soft); transform: translateY(-1px);
+}
+.check-list label.on {
+  border-color: var(--accent); background: var(--accent-soft); color: var(--text);
+  box-shadow: var(--gloss), 0 4px 14px rgba(95, 131, 232, .22);
+}
+.check-list input { width: auto; margin: 0; min-height: 0; accent-color: var(--accent); box-shadow: none; }
+.form-actions { display: flex; gap: 12px; padding-top: 10px; }
+

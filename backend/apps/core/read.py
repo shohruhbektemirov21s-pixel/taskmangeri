@@ -30,6 +30,7 @@ XAVFSIZLIK. Darvoza ichki manzillarni ochib qo'ymasin:
   * ichkariga faqat GET yuboriladi - yozish amallari bu yerdan o'tmaydi;
   * javob DRF `Response` bo'lishi shart, aks holda rad etiladi.
 """
+from functools import lru_cache
 from urllib.parse import urlencode
 
 from django.http import Http404, HttpRequest, QueryDict
@@ -143,6 +144,27 @@ def _query_string(params):
     return urlencode(pairs)
 
 
+# Marshrut natijalari eslab qolinadi.
+#
+# `resolve()` har chaqiruvda butun `urlpatterns` ni aylanib chiqadi va
+# shlyuz orqali HAR BIR o'qish shu yo'ldan o'tadi - ya'ni ilovadagi eng
+# ko'p takrorlanadigan amal. Yo'llar to'plami esa chекланган: ular
+# `urls.py` da yozilgan va ishlash paytida o'zgarmaydi.
+#
+# `maxsize` chegarasi bor: yo'lda identifikator bo'ladi
+# (`/projects/6/members/`), ya'ni kalitlar soni loyihalar soniga qarab
+# o'sadi. 512 ta - bir necha ekran ochiq turgan jamoa uchun yetarli,
+# xotira esa cheklangan qoladi.
+@lru_cache(maxsize=512)
+def _resolved(path):
+    """`resolve()` natijasi - eslab qolingan holda.
+
+    `Resolver404` ni O'ZI ushlamaydi: istisno keshlanmaydi va har safar
+    qayta ko'tariladi. Bu to'g'ri - yaroqsiz yo'l kamdan-kam keladi.
+    """
+    return resolve(path)
+
+
 def _sub_request(outer, path, query):
     """Ichkariga yuboriladigan GET so'rovini yasaydi.
 
@@ -187,7 +209,7 @@ def read(request):
             "read_gateway_path", path)
 
     try:
-        match = resolve(path)
+        match = _resolved(path)
     except Resolver404:
         return Response({"detail": "Topilmadi."}, status=status.HTTP_404_NOT_FOUND)
 

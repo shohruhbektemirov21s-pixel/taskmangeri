@@ -1,0 +1,262 @@
+/* Ranglar, tokenlar va kunduzgi rejim
+   ---
+   `app.css` dan ajratilgan bo'lak. Tartib MUHIM: kaskad
+   `app.css` dagi import ketma-ketligiga bog'liq - bo'laklarni
+   joyidan surmang. */
+
+/* ============================================================
+   TeamFlow - "Calm Modern SaaS" dizayn tizimi
+   Yumshoq qorongi korpоrativ ko'rinish: tinch qattiq sathlar,
+   sezilar-sezilmas chegaralar, susaytirilgan ranglar.
+
+   Avvalgi "liquid glass" dan farqi: rangli animatsion fon, kuchli
+   blur va yaltiroq qirralar yo'q. Ular chiroyli edi, lekin kun bo'yi
+   ishlanadigan interfeysda diqqatni matndan o'g'irlab turardi.
+
+   Class nomlari o'zgarmadi - sahifalar tegilmasdan shu ko'rinishga o'tadi.
+
+   IKKI REJIM: kechki (standart) va kunduzgi. Sahifalar rangni to'g'ridan-
+   to'g'ri yozmaydi - hammasi shu yerdagi o'zgaruvchilardan oladi, shuning
+   uchun rejim almashganda butun interfeys birdan o'zgaradi. Tanlov
+   `<html data-theme="light|dark">` da turadi (`src/theme.ts`).
+   ============================================================ */
+:root {
+  color-scheme: dark;
+  /* Qorong'i sathda yorug'lik bilan ishlanadi: hover chegarasi, ajratuvchi
+     nozik chiziqlar. Kunduzgi rejimda bular soyaga aylanadi. */
+  --veil: rgba(255, 255, 255, .12);
+  --veil-strong: rgba(255, 255, 255, .24);
+  --veil-soft: rgba(255, 255, 255, .07);
+
+  /* ---------- asos: qattiq sathlar, shaffof emas ---------- */
+  --canvas: #0e1116;
+  --canvas-inset: #0a0d12;                   /* ichkariga botgan sath: input, kod */
+  --surface: #151a21;                        /* karta, panel */
+  --surface-2: #1b212a;                      /* hover, chip */
+  --surface-3: #242c37;
+  --border: #242c37;
+  --border-muted: #1a2028;
+
+  /* ---------- effektlar: deyarli yo'q ----------
+     Blur o'chirilgan; `--gloss` esa ko'rinmas soya - u `box-shadow`
+     ro'yxatlari ichida ishlatilgan, `none` qo'ysak butun qoida buziladi. */
+  --blur: none;
+  --blur-sm: none;
+  --gloss: inset 0 0 0 0 transparent;
+  --gloss-strong: inset 0 0 0 0 transparent;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .22);
+  --shadow-lg: 0 10px 34px rgba(0, 0, 0, .45);
+  --sh-top: 0 6px 24px rgba(0, 0, 0, .28);       /* yopishqoq sarlavha */
+  --sh-drawer: 0 18px 46px rgba(0, 0, 0, .55);   /* ochiluvchi panel */
+  --sh-raised: 0 2px 10px rgba(0, 0, 0, .22);    /* karta, tugma */
+  --sh-raised-hover: 0 10px 26px rgba(0, 0, 0, .34);
+  --sh-inset: inset 0 1px 2px rgba(0, 0, 0, .3); /* ichkariga botgan maydon */
+  --ring: 0 0 0 3px rgba(95, 131, 232, .25);
+
+  /* ---------- matn ---------- */
+  --text: #e2e8f0;
+  --muted: #8b96a8;
+  --subtle: #6a7482;
+
+  /* ---------- ranglar ----------
+     Asosiy rang - ko'k (kunduzgi rejimda #3562ff). Kechki sathda o'sha ko'k
+     qorayib ketadi, shuning uchun bu yerda uning yorug'roq qarindoshi turadi:
+     ikkala rejimda ham bitta rang oilasi ko'rinadi. */
+  --accent: #6a8dff;
+  --accent-soft: rgba(106, 141, 255, .16);
+  --accent-hover: #7f9dff;
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, .15);
+  /* Taqvimda bugungi kun - ko'zga tashlansin, lekin qichqirmasin */
+  --cal-today: rgba(52, 211, 153, .12);
+  --done: #a78bfa;
+  --done-soft: rgba(167, 139, 250, .16);
+  --attention: #fbbf24;
+  --attention-soft: rgba(251, 191, 36, .15);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, .15);
+
+  /* Birlamchi tugma. Nomi tarixiy («green»), rangi esa endi asosiy ko'k -
+     mockupdagi «Yangi loyiha» tugmasi shunday. */
+  --green: #3562ff;
+  --green-hover: #2a54e6;
+  --btn: #1b212a;
+  --btn-hover: #242c37;
+
+  /* ---------- shisha (glassmorphism) ----------
+     Butun ilova shu tilda: qobiq sathlari (yon panel, sarlavha, kartalar)
+     yarim shaffof va orqasidagini xiralashtiradi.
+
+     Ikki qism bor. `--glass-tint-*` - tuval ortidagi rangli yoyilmalar:
+     ularsiz `backdrop-filter` xiralashtiradigan narsa topmaydi va shisha
+     oddiy shaffof qutiga aylanadi. `--glass-fill/border/edge/shadow` -
+     shishaning o'zi: yarim shaffof to'ldirma, yorug' qirra va soya.
+
+     Uchala yoyilma BITTA ohangda (asosiy ko'k), faqat quyuqligi har xil.
+     Har xil rang qo'yilganda kartalar har xil rangga bo'yalib ketardi -
+     biri ko'k, biri yashil, biri siyohrang.
+
+     Quyuqlik ataylab past: fon ko'zga tashlansa uzoq ishlaganda charchatadi.
+     U yerda turgani sezilsin, lekin o'qilayotgan narsa bilan raqobatlashmasin. */
+  --glass-tint-1: rgba(106, 141, 255, .26);
+  --glass-tint-2: rgba(106, 141, 255, .17);
+  --glass-tint-3: rgba(106, 141, 255, .12);
+  --glass-fill: linear-gradient(140deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .035));
+  --glass-border: rgba(255, 255, 255, .13);
+  --glass-line: rgba(255, 255, 255, .14);
+  --glass-shadow: 0 10px 34px rgba(0, 0, 0, .42);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, .14);
+  /* Xiralik: kuchli blur chiroyli ko'rinadi-yu, har bir sath uchun brauzer
+     alohida qatlam chizadi - sahifada o'nlab shisha bo'lsa aylantirish
+     sekinlashadi. 14px yetarli va yengil. */
+  --glass-blur: blur(14px) saturate(150%);
+
+  --radius: 10px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --sidebar-w: 260px;
+  --header-h: 70px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ---------------- KUNDUZGI REJIM ----------------
+   O'lchamlar, radiuslar va shriftlar o'zgarmaydi - faqat sath va ranglar.
+   Oq qog'oz emas, biroz kulrang tuval: uzoq qaraganda ko'z qamashmasin.
+   Ranglar qorong'i rejimdagidan to'qroq olindi - oq fonda ochiq rang
+   o'qilmay qoladi (kontrast AA dan past tushmasin). */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --veil: rgba(15, 23, 42, .06);
+  --veil-strong: rgba(15, 23, 42, .16);
+  --veil-soft: rgba(15, 23, 42, .04);
+
+  /* Sathlar - dizayndan pikselma-piksel olingan */
+  --canvas: #f5f7fa;                 /* sahifa tuvali */
+  --canvas-inset: #ffffff;
+  --surface: #ffffff;                /* karta, yon panel, sarlavha */
+  --surface-2: #f8fafc;              /* jadval sarlavhasi, yumshoq hover */
+  --surface-3: #eef2f7;
+  --border: #e2e8f0;
+  --border-muted: #f1f3f7;           /* jadval qatorlari orasidagi chiziq */
+
+  /* Soyalar juda yumshoq: dizaynda kartalar deyarli tekis turadi */
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  --shadow-lg: 0 12px 32px rgba(16, 24, 40, .12);
+  --sh-top: 0 1px 2px rgba(16, 24, 40, .04);
+  --sh-drawer: 0 18px 46px rgba(16, 24, 40, .16);
+  --sh-raised: 0 1px 2px rgba(16, 24, 40, .04);
+  --sh-raised-hover: 0 6px 18px rgba(16, 24, 40, .10);
+  --sh-inset: none;
+  --ring: 0 0 0 3px rgba(53, 98, 255, .18);
+
+  --text: #1e293b;
+  --muted: #64748b;
+  --subtle: #94a3b8;
+
+  --accent: #3562ff;
+  --accent-soft: #e8eeff;
+  --accent-hover: #2a54e6;
+  --success: #10b981;
+  --success-soft: #d1fae5;
+  --cal-today: #e8eeff;
+  --done: #8b5cf6;
+  --done-soft: #ede9fe;
+  --attention: #f59e0b;
+  --attention-soft: #fef3c7;
+  --danger: #ef4444;
+  --danger-soft: #fee2e2;
+
+  --green: #3562ff;
+  --green-hover: #2a54e6;
+  --btn: #ffffff;
+  --btn-hover: #f1f5f9;
+
+  /* Oq fonda shisha OQ bo'ladi, qora emas: to'ldirma ham, qirra ham oqning
+     shaffof qatlami. To'ldirma quyuqroq - och tuvalda matn kontrasti
+     tushib ketmasin (kartadagi kulrang yozuvlar o'qilishi kerak). */
+  --glass-tint-1: rgba(53, 98, 255, .26);
+  --glass-tint-2: rgba(53, 98, 255, .17);
+  --glass-tint-3: rgba(53, 98, 255, .12);
+  --glass-fill: linear-gradient(140deg, rgba(255, 255, 255, .70), rgba(255, 255, 255, .50));
+  --glass-border: rgba(255, 255, 255, .85);
+  --glass-line: rgba(148, 163, 184, .30);
+  --glass-shadow: 0 10px 30px rgba(16, 24, 40, .08);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, .95);
+  --glass-blur: blur(14px) saturate(150%);
+}
+
+* { box-sizing: border-box; }
+html { background: var(--canvas); scroll-behavior: smooth; }
+html, body, #root { margin: 0; padding: 0; min-height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  background: transparent;
+  color: var(--text);
+  font-size: 14.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+/* Fon: uchta zaif, QIMIRLAMAYDIGAN yorugʻlik. Shisha sathlar shuni
+   xiralashtiradi - tekis tuval ustida `backdrop-filter` hech narsa
+   bermaydi va karta oddiy shaffof qutiga o'xshab qolardi.
+
+   Avval bu yerda aylanib turadigan to'rtta rangli dogʻ bor edi - u har
+   doim harakatda bo'lib, uzoq ishlaganda charchatardi. Shuning uchun
+   bular qo'zg'almaydi, bitta ohangda va juda zaif: sezilsin, lekin
+   o'qilayotgan matn bilan raqobatlashmasin. */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(58% 40% at 16% -8%, var(--glass-tint-1), transparent 68%),
+    radial-gradient(50% 36% at 90% 2%, var(--glass-tint-2), transparent 70%),
+    radial-gradient(66% 46% at 46% 106%, var(--glass-tint-3), transparent 72%);
+}
+
+a { color: var(--accent); text-decoration: none; transition: color .15s, opacity .15s; }
+a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { margin: 0 0 .5rem; line-height: 1.25; font-weight: 650; letter-spacing: -.01em; }
+h1 { font-size: 25px; } h2 { font-size: 20px; } h3 { font-size: 16px; } h4 { font-size: 14.5px; }
+p { margin: 0 0 .75rem; }
+small { font-size: 12px; }
+hr { border: none; border-top: 1px solid var(--border-muted); margin: 18px 0; }
+/* Brauzer <button> ga o'z kulrang fonini va chegarasini beradi - qorong'i
+   mavzuda u yorug' yamoq bo'lib turadi (masalan bildirishnomalar sahifasidagi
+   tablar). Ko'rinish har doim class orqali beriladi. */
+button {
+  font-family: inherit; background: none; border: 0; color: inherit;
+  cursor: pointer; padding: 0;
+}
+.mono { font-family: var(--mono); font-size: 12.5px; }
+code {
+  font-family: var(--mono); font-size: 12.5px; background: var(--surface-2);
+  border: 1px solid var(--border-muted); padding: 1px 6px; border-radius: 6px;
+}
+pre {
+  background: var(--canvas-inset); border: 1px solid var(--border); padding: 15px;
+  border-radius: var(--radius); overflow-x: auto; font-family: var(--mono);
+  font-size: 12.5px; -webkit-backdrop-filter: var(--blur-sm); backdrop-filter: var(--blur-sm);
+}
+::selection { background: rgba(95, 131, 232, .38); }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3); border-radius: 10px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--subtle); background-clip: content-box; }
+
+/* Rejim almashganda sath keskin sakramasin */
+html, body { transition: background-color .18s ease, color .18s ease; }
+/* Kirish/ro'yxatdan o'tish sahifalarida sarlavha yo'q - rejim tugmasi
+   burchakda suzib turadi. `.top-icon` quyida `position: relative` beradi
+   va bir xil kuchdagi selektor bo'lgani uchun uni bosib ketardi: tugma
+   burchakka chiqmay, sahifa o'rtasida qolardi. Shuning uchun bu yerda
+   ikki qavatli nom. */
+.theme-float.theme-float { position: fixed; top: 16px; right: 16px; z-index: 70; }
+
+/* Klaviatura bilan yurgan foydalanuvchi qayerdaligini doim koʻrsin */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+

@@ -1,0 +1,146 @@
+/* Bosh paneldagi taxtalar
+   ---
+   `app.css` dan ajratilgan bo'lak. Tartib MUHIM: kaskad
+   `app.css` dagi import ketma-ketligiga bog'liq - bo'laklarni
+   joyidan surmang. */
+
+/* ============ PANELDAGI TAXTALAR ============
+   Ikki qator: yuqorida davr kesimi (yil / oy / hafta), pastda muddat
+   holati. Oltala karta BIR XIL: bitta ko'k sath, bitta chegara, bitta
+   radius. Ilgari pastki qator sariq va pushti edi - bir ekranda uch xil
+   rang turgach, ko'z ma'noni emas, rangni o'qiy boshlardi. */
+/* Raqamlar kimniki - taxtalardan yuqorida, bir qatorda. */
+.scope-note {
+  margin: 0 0 12px; font-size: 12.5px; color: var(--muted);
+}
+
+.period-grid,
+.deadline-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.deadline-grid { margin-top: 14px; }
+
+/* Ko'rinishi (shisha to'ldirmasi, qirra, soya) fayl oxiridagi umumiy
+   SHISHA blokidan keladi - bu yerda faqat shu ikki kartaga xos o'lchamlar. */
+.stat-band,
+.deadline-card { border-radius: 18px; }
+.stat-band:hover,
+.deadline-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), var(--glass-edge);
+}
+
+/* ---- Yuqori qator: davr kesimi ---- */
+.stat-band { padding: 16px 8px 18px; }
+.stat-band-head { text-align: center; padding: 0 10px; border-radius: 12px; }
+/* Sarlavha ham bosiladi: ochiq ro'yxatni shu davrga ko'chiradi. Kataklar
+   bilan bir xil belgilar - bosilsa bo'ladigani ostiga chiziladi, ochilgani
+   yumshoq fonda turadi. */
+.stat-band-head.pickable { cursor: pointer; }
+.stat-band-head.pickable:hover .stat-band-title { text-decoration: underline; }
+.stat-band-head.picked { background: var(--accent-soft); }
+.stat-band-title {
+  margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text);
+  letter-spacing: -.01em;
+}
+/* Sarlavha ostidagi sana: «yil boshidan» degani qaysi kundan sanalayotganini
+   aytmaydi - shu qator aytadi. */
+.stat-band-since {
+  margin: 3px 0 0; font-size: 11px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-band-row {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+}
+/* Raqamlar YUQORIDAN tekislanadi. `center` bo'lganda ikki qatorga tushgan
+   yorliq ("Muddati o'tgan") o'z katagidagi raqamni tepaga surib yuborardi
+   va uchta son bir chiziqda turmasdi. */
+/* Katak endi `<button>`: brauzer unga o'z shrifti, chegarasi va
+   markazlashini beradi - ularni qaytarib olamiz. */
+.stat-band-cell, .deadline-card {
+  font: inherit; color: inherit; border: 0; background: none;
+}
+/* Bosiladigan katak: sichqoncha tekkanda ko'tariladi. Bo'sh katak (nol)
+   bosilmaydi - bo'sh ro'yxat ochish faqat chalg'itadi, shuning uchun u
+   oddiy matn bo'lib qoladi. */
+.stat-band-cell.pickable, .deadline-card.pickable { cursor: pointer; }
+.stat-band-cell.pickable:hover .v, .deadline-card.pickable:hover .v { text-decoration: underline; }
+.stat-band-cell.picked, .deadline-card.picked {
+  background: var(--accent-soft); border-radius: 12px;
+}
+.stat-band-cell:disabled, .deadline-card:disabled { cursor: default; }
+
+.stat-band-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 5px; padding: 2px 3px; text-align: center; min-width: 0;
+}
+/* Ajratgich - ingichka chiziq, taxtaning ko'k fonida ko'rinadigan darajada.
+   Ilgari qalin ko'k tayoq edi: uchta taxtada oltita tayoq ekranning eng
+   to'q elementi bo'lib qolib, ko'z raqamlarga emas, chiziqlarga tushardi. */
+.stat-band-cell + .stat-band-cell { border-left: 1px solid var(--glass-line); }
+/* 11px - «Muddati o'tgan» eng tor ustunda ham BIR QATORDA sig'sin.
+   Ikki qatorga tushganda karta baland bo'lib, uchta taxta bir tekisda
+   turmay qolardi. */
+.stat-band-cell .k { font-size: 11px; color: var(--muted); text-wrap: balance; }
+
+/* ---- Pastki qator: muddat holati ----
+   Sarlavha tepada, raqam ostida - yuqoridagi taxtalarda aksincha (raqam
+   tepada). Ataylab shunday: ikki qator bir xil bo'lsa ular bitta uzun
+   ro'yxatga qo'shilib ketardi, endi ko'z ularni ikki blok deb ajratadi. */
+.deadline-card {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 18px 14px; text-align: center;
+}
+.deadline-card .k {
+  font-size: 12.5px; font-weight: 600; color: var(--text); text-wrap: balance;
+}
+
+/* ---- Raqamlar: ikkala qatorda ham bir xil ---- */
+.stat-band-cell .v,
+.deadline-card .v {
+  font-size: 28px; font-weight: 750; line-height: 1.1; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;   /* son o'zgarganda kenglik sakramasin */
+  color: var(--accent);
+}
+/* Nol - so'ngan rangda: "0 ta kechikkan ish" xabar emas, tinchlik. */
+.stat-band-cell .v.zero,
+.deadline-card .v.zero { color: var(--subtle); }
+
+/* Yon panel shu kenglikda yig'iladi - taxtalar ham shu yerda ustma-ust
+   tushadi: uchovi yonma-yon qolsa raqamlar siqilib o'qilmay qolardi. */
+@media (max-width: 900px) {
+  .period-grid, .deadline-grid { grid-template-columns: minmax(0, 1fr); }
+  .stat-band { padding: 16px 12px 18px; }
+}
+@media (max-width: 620px) {
+  .stat-band-cell .v, .deadline-card .v { font-size: 24px; }
+  .stat-band-cell .k { font-size: 11px; }
+}
+
+.progress {
+  height: 6px; background: var(--border); border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.progress > span {
+  display: block; height: 100%; border-radius: var(--radius-pill);
+  transition: width .45s cubic-bezier(.3, .9, .3, 1);
+  background: var(--accent);
+}
+
+/* Umumiy tarixda loyiha ochilganda: hujjatlar tasmasi yozuvlardan oldin */
+.feed-docs {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2, var(--surface)); font-size: 12.5px;
+}
+.feed-docs .row { gap: 8px; align-items: center; }
+/* `min()`: keng ekranda 320px, tor ekranda konteynerdan oshmaydi. */
+.feed-docs .chip { max-width: min(320px, 100%); }
+/* Chip `inline-flex`: nomni kesish uchun ICHKI elementga `min-width: 0`
+   kerak, aks holda u qisqarmaydi va matn chipdan chiqib ketadi. */
+.feed-docs .doc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-docs .doc-size { flex: 0 0 auto; white-space: nowrap; }
+.feed-docs a.chip:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+

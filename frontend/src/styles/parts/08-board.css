@@ -1,0 +1,204 @@
+/* Kanban doskasi va tarix lentasi
+   ---
+   `app.css` dan ajratilgan bo'lak. Tartib MUHIM: kaskad
+   `app.css` dagi import ketma-ketligiga bog'liq - bo'laklarni
+   joyidan surmang. */
+
+/* ============ KANBAN ============ */
+/* `--board-top` - doskaning tepasidan qancha joy band bo'lgani. Ustun
+   balandligi shundan hisoblanadi, chunki doska GORIZONTAL suriladi va
+   uning yo'lakchasi eng pastda turadi: ustun bo'yi oshib ketsa yo'lakcha
+   ekrandan chiqib qoladi va yondagi ustunga o'tish yo'li yo'qoladi.
+   Sahifalar bir xil emas - loyiha doskasining tepasida tablar, progress
+   va filtr turadi, shuning uchun raqam `.board.deep` da kattaroq. */
+.board {
+  --board-top: 300px;
+  display: flex; gap: 16px; overflow-x: auto; padding-bottom: 18px; align-items: flex-start;
+}
+.board.deep { --board-top: 390px; }
+/* Doska tepasidagi umumiy hujjatlar tasmasi */
+.board-files {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-bottom: 14px; font-size: 12.5px;
+}
+.board-files .chip { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-files a.chip:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+.column {
+  flex: 0 0 306px; width: 306px; background: var(--surface);
+  border-radius: var(--radius-lg); border: 1px solid var(--border);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  box-shadow: var(--gloss), var(--shadow);
+  display: flex; flex-direction: column; max-height: calc(100dvh - var(--board-top));
+  transition: border-color .16s, box-shadow .16s;
+}
+.column-head {
+  padding: 9px 12px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border-muted); font-weight: 650; font-size: 13px;
+  background: var(--border-muted);
+}
+.column-head .dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+.column-head .n {
+  margin-left: auto; color: var(--muted); font-size: 11.5px;
+  background: var(--surface-2); padding: 1px 9px; border-radius: 20px;
+  border: 1px solid var(--border);
+}
+.column-body { padding: 7px; overflow-y: auto; flex: 1; min-height: 110px; }
+.column.drag-over {
+  border-color: var(--accent);
+  box-shadow: var(--gloss), 0 0 0 1px var(--accent) inset, 0 0 28px rgba(95, 131, 232, .3);
+}
+
+/* KARTA IXCHAM. Doskada ular o'nlab bo'ladi va har bir ortiqcha piksel
+   ustunni cho'zadi: kartalar baland bo'lganda ustun ekranga sig'may,
+   doskaning pastidagi GORIZONTAL surish yo'lakchasi ko'rinmaydigan
+   joyga tushib qolardi - ya'ni yondagi ustunga o'tish yo'li yo'qolardi.
+   Mazmun qisqarmagan, faqat oraliqlar va o'lchamlar. */
+.tcard {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 11px; padding: 7px 9px; margin-bottom: 5px; cursor: pointer;
+  display: block; color: inherit; box-shadow: var(--gloss), var(--sh-raised);
+  transition: transform .16s cubic-bezier(.3, .9, .3, 1), background .16s, box-shadow .16s, border-color .16s;
+}
+.tcard:hover {
+  border-color: var(--veil-strong); text-decoration: none;
+  background: var(--surface-3); transform: translateY(-2px);
+  box-shadow: var(--gloss-strong), var(--sh-raised-hover);
+}
+.tcard.dragging { opacity: .4; transform: rotate(1.5deg) scale(.98); }
+.tcard .code { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+/* SARLAVHA UCH QATOR bilan cheklanadi. Kartaning balandligini aynan shu
+   belgilaydi: haqiqiy vazifa nomlari ko'pincha butun bir jumla bo'ladi
+   ("Rag'batlantirish modulida tegishli o'zgartirishlar kiritish...") va
+   olti qatorga cho'zilib, bitta karta ustunning yarmini egallardi.
+   To'liq matn yo'qolmaydi - sichqoncha ustiga borilsa `title` da
+   ko'rinadi, vazifa sahifasida esa butunlay ochiq turadi. */
+.tcard .title {
+  font-weight: 550; font-size: 12.5px; margin: 2px 0 5px;
+  color: var(--text); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+/* Pastki qator O'RALADI. Ilgari o'ralmasdi va nishonlar (tur,
+   mutaxassislik, fayl soni, muddat) kartadan chiqib ketardi: ustun tagida
+   gorizontal surish yo'lakchasi paydo bo'lib, odam kartaning oxirini
+   ko'rish uchun uni yon tomonga surishi kerak edi. `min-width: 0` esa
+   uzun nishonni qisqartirishga ruxsat beradi - aks holda `nowrap` li
+   sana qatorni baribir cho'zib yuborardi. */
+.tcard .foot { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; row-gap: 4px; }
+.tcard .foot > * { min-width: 0; }
+.tcard.overdue { border-left: 3px solid var(--danger); }
+.tcard-due {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--muted); white-space: nowrap;
+}
+
+/* ---- Ustunlari ekranga SIG'ADIGAN doska («Mening ishim») ----
+   Ko'rinishi loyiha doskasi bilan bir xil: ustun o'z qutisida, sarlavha
+   tasmasi bilan. Ramka bu yerda ham kerak - u "shu yerga tashla" degan
+   nishonni ko'rsatadi, sudrash esa ikkovida ham bor.
+
+   Farqi faqat KENGLIKDA. U yerda ustunlar holatlar soniga qarab ko'payadi
+   va surilishi to'g'ri; bu yerda esa ular DOIMO to'rtta (muddat kesimlari)
+   va hammasi ko'rinib tursin. Qat'iy 306px da to'rttasi 1272px joy
+   so'rardi, kontent esa 1440px dan kengaymaydi va yon panel bilan ~1020px
+   qoladi - ya'ni oxirgi ustun («Bajarilganlar») har safar ekrandan chiqib
+   ketardi. Tor ekranda `min-width` ishlaydi va doska yana suriladi. */
+.board.fit .column { flex: 1 1 0; width: auto; min-width: 210px; }
+
+/* ---- Kartani ustundan ustunga ko'chirish (sudramasdan) ----
+   Sudrash faqat sichqoncha bilan ishlaydi: sensorli ekran ham, klaviatura
+   ham `dragstart` ni tug'dirmaydi. Shuning uchun kartaning ostiga native
+   `<select>` qo'yiladi - u har platformada ishlaydi va ekran o'qigichga
+   ham tushunarli. Ro'yxat serverdan keladi (`allowed_transitions`). */
+.tcard-wrap { margin-bottom: 5px; }
+.tcard-wrap .tcard { margin-bottom: 0; border-radius: 11px 11px 0 0; }
+.tcard-move {
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 11px 11px; background: var(--surface-2);
+  padding: 3px 5px;
+}
+/* Maydon KARTA KENGLIGIDA emas, o'z eniga qarab chiziladi va o'ngga
+   suriladi. To'liq kenglikda u kartaning eng ko'zga tashlanadigan
+   elementi bo'lib qolardi - aslida esa u kamdan-kam ishlatiladigan
+   zaxira yo'l (asosiysi - sudrash). */
+.tcard-move select {
+  width: auto; max-width: 100%; margin-left: auto; display: block;
+  height: 26px; padding: 0 6px; font-size: 11px;
+  border-radius: 8px; box-shadow: none;
+  background: var(--canvas-inset); color: var(--muted);
+  /* Umumiy forma qoidasi hamma maydonga `min-height: 40px` beradi -
+     barmoq uchun to'g'ri o'lcham, lekin doskadagi karta uchun katta:
+     ko'chirish tasmasi 47px bo'lib, kartaning uchdan birini egallardi.
+     26px - WCAG ning 24px chegarasidan yuqori, ya'ni bosish maydoni
+     yetarli qoladi. Barmoq bilan ishlaydigan ekranda pastda yana
+     kattalashtiriladi. */
+  min-height: 26px;
+}
+/* Sensorli ekranda sichqoncha aniqligi yo'q - maydon kattaroq bo'lsin. */
+@media (pointer: coarse) {
+  .tcard-move select { height: 34px; min-height: 34px; font-size: 12px; }
+}
+.tcard-move select:hover { color: var(--text); }
+/* SICHQONCHALI QURILMADA TASMA UMUMAN JOY OLMAYDI.
+   Bu yerda asosiy yo'l - sudrash; menyu esa zaxira. Alohida tasma
+   bo'lib turganda u har bir kartaga 33px qo'shardi, ya'ni o'nta karta
+   uchun butun boshli ekran balandligi. Endi u kartaning O'Z ustida,
+   pastki o'ng burchakda suzadi va faqat karta ustiga borilganda yoki
+   klaviatura bilan fokus tushganda ko'rinadi.
+
+   Sensorli ekranda (`hover` yo'q) hech nima o'zgarmaydi: u yerda
+   sudrash umuman ishlamaydi va menyu YAGONA yo'l - shuning uchun
+   doim ko'rinib turadi va barmoq uchun kattaroq chiziladi. */
+@media (hover: hover) {
+  .tcard-wrap { position: relative; }
+  /* Tasma pastda turmagach kartaning to'rt burchagi ham yumaloq. */
+  .tcard-wrap .tcard { border-radius: 11px; }
+  .tcard-move {
+    position: absolute; right: 7px; bottom: 6px;
+    border: none; background: none; padding: 0;
+    opacity: 0; transition: opacity .16s;
+  }
+  /* Fokus bilan kelgan odam ham ko'rsin - `opacity: 0` element
+     klaviatura uchun yo'qolmaydi, faqat ko'rinmaydi. */
+  .tcard-wrap:hover .tcard-move,
+  .tcard-move:focus-within { opacity: 1; }
+  /* Karta ustida suzgani uchun o'z fonini oladi - aks holda tagidagi
+     nishonlar orasidan o'qib bo'lmasdi. */
+  .tcard-move select {
+    background: var(--surface-3); border-color: var(--veil-strong);
+    box-shadow: var(--sh-raised);
+  }
+}
+
+/* Faqat ekran o'qigich uchun matn - ko'z bilan ko'rinmaydi, lekin
+   `display: none` dan farqli o'laroq o'qigich uni o'qiydi. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ============ TIMELINE ============ */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: ""; position: absolute; left: 11px; top: 8px; bottom: 8px; width: 2px;
+  background: linear-gradient(180deg, transparent, var(--border) 12%, var(--border) 88%, transparent);
+}
+.tl-item { position: relative; padding: 0 0 20px 6px; }
+.tl-item::before {
+  content: ""; position: absolute; left: -22px; top: 6px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--canvas); border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--accent-soft);
+}
+.tl-item.cat-review::before { border-color: var(--success); box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--success-soft); }
+.tl-item.cat-member::before { border-color: var(--accent); }
+.tl-item.cat-project::before { border-color: var(--attention); box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--attention-soft); }
+.tl-item.cat-task::before { border-color: var(--done); box-shadow: 0 0 0 4px var(--canvas), 0 0 12px var(--done-soft); }
+.tl-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tl-sum { font-weight: 550; font-size: 14px; }
+.tl-detail {
+  font-size: 13px; color: var(--muted); margin-top: 7px; white-space: pre-wrap;
+  background: var(--surface-2); padding: 11px 13px; border-radius: 12px;
+  border: 1px solid var(--border-muted);
+}
+.tl-time { font-size: 12px; color: var(--muted); }
+

@@ -1,0 +1,139 @@
+/* Jadval, xabar va sanoqlar
+   ---
+   `app.css` dan ajratilgan bo'lak. Tartib MUHIM: kaskad
+   `app.css` dagi import ketma-ketligiga bog'liq - bo'laklarni
+   joyidan surmang. */
+
+/* ============ TABLE ============ */
+/* Kartaning o'zida `overflow: hidden` turadi - keng jadval qirqilib qolmasin
+   deb uni alohida siljiydigan o'ramga solamiz. */
+.table-wrap { width: 100%; overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+/* Jadval sarlavhasi dizaynda yumshoq kulrang tasma bo'lib turadi */
+.table th {
+  text-align: left; padding: 12px 20px; font-size: 11.5px; color: var(--muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border); font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.table td { padding: 14px 20px; border-bottom: 1px solid var(--border-muted); vertical-align: middle; }
+.table tr:last-child td { border-bottom: none; }
+.table tbody tr { transition: background .14s; }
+.table tbody tr:hover { background: var(--surface-2); }
+.table tbody tr.clickable { cursor: pointer; }
+/* Amal tugmalari: joy yetmasa yangi qatorga tushsin, qirqilib ketmasin */
+.table .row-actions {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end;
+  max-width: 230px; margin-left: auto;
+}
+/* Tugmada `white-space: nowrap` turadi - uzun yozuv ("Adminlikni bekor qilish")
+   ustunni cho'zib, jadvalni kartadan chiqarib yuborardi. Shu yerda o'ralsin. */
+.table .row-actions .btn {
+  white-space: normal; text-align: center; line-height: 1.25; padding: 6px 12px;
+}
+
+/* ---- Holat tanlagich (`pages/TaskDetail.tsx`) ----
+   Oltita holat tugmasi to'liq kenglikda ustma-ust turganda o'ng ustun
+   cho'zilib ketardi. Endi ular qatorga terilib, joyga qarab o'zi
+   bo'linadi: yorliqlar uzunligi har xil, shuning uchun `flex-basis`
+   emas, `auto` - qisqasi kam joy oladi. */
+.status-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-picker .btn { flex: 1 1 auto; min-width: 0; }
+.status-reason { margin-top: 10px; }
+.status-reason input { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+
+/* ---- Tekshiruv navbati jadvali (`pages/ReviewQueue.tsx`) ----
+   Amal tugmalari qisqarmasin: umumiy `.row-actions` qoidasi ularni ikki
+   qatorga sindiradi va kengligini 230px bilan cheklaydi - bu yerda ular
+   bitta qatorda turishi kerak, jadval esa kerak bo'lsa yonga suriladi. */
+.table-review th, .table-review td { padding: 12px 14px; }
+.table-review th:first-child, .table-review td:first-child { min-width: 200px; }
+.table-review .row-actions { max-width: none; flex-wrap: nowrap; }
+.table-review .row-actions .btn { white-space: nowrap; }
+/* Tor oynada jadval yonga suriladi - amal tugmalari esa o'ng chetda
+   yopishib qoladi, aks holda asosiy tugma ko'rinmay ketardi. */
+.table-review th:last-child, .table-review td:last-child {
+  position: sticky; right: 0; background: var(--surface);
+  box-shadow: -10px 0 12px -10px rgba(16, 24, 40, .22);
+}
+.table-review th:last-child { background: var(--surface-2); }
+.table-review tbody tr:hover td:last-child { background: var(--surface-2); }
+/* Tor oynada «Holat» ustuni olib tashlanadi: navbatdagi hamma ish baribir
+   tekshiruvda turadi, ya'ni bu ustun eng kam ma'lumot beradi. Shu bilan
+   jadval sig'adi va yopishgan ustun boshqasini to'smaydi. */
+@media (max-width: 1250px) {
+  .table-review th:nth-child(5), .table-review td:nth-child(5) { display: none; }
+}
+
+/* Tekshiruv navbatidagi qaror paneli - qatorning ostidan ochiladi
+   (`pages/ReviewQueue.tsx`) */
+.table tr.review-panel-row > td { padding: 0; background: var(--surface-2); }
+.table tr.review-panel-row:hover > td { background: var(--surface-2); }
+.review-panel { padding: 18px 20px; }
+
+/* ============ MESSAGES ============ */
+.msg {
+  padding: 13px 17px; border-radius: 14px; margin-bottom: 18px;
+  border: 1px solid; font-size: 14px; display: flex; gap: 11px; align-items: center;
+  -webkit-backdrop-filter: var(--blur-sm); backdrop-filter: var(--blur-sm);
+  box-shadow: var(--gloss);
+}
+.msg-success { background: var(--success-soft); border-color: rgba(79, 168, 111, .42); color: var(--success); }
+.msg-error { background: var(--danger-soft); border-color: rgba(217, 115, 108, .42); color: var(--danger); }
+.msg-warning { background: var(--attention-soft); border-color: rgba(207, 160, 75, .42); color: var(--attention); }
+.msg-info { background: var(--accent-soft); border-color: rgba(95, 131, 232, .42); color: var(--accent); }
+
+/* ============ STATS ============ */
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px;
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  box-shadow: var(--gloss), var(--shadow);
+  transition: transform .18s cubic-bezier(.3, .9, .3, 1), box-shadow .18s;
+}
+.stat .v { font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; }
+.stat .k { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+.stat.accent .v { color: var(--accent); }
+.stat.danger .v { color: var(--danger); }
+.stat.ok .v { color: var(--success); }
+.stat.warn .v { color: var(--attention); }
+.stat.done .v { color: var(--done); }
+/* Bosiladigan ko'rsatkich: havola bo'lsa ham matn rangi o'zgarmasin,
+   lekin sichqoncha va chekka rangi "bosilaman" deb tursin.
+   `width`/`text-align`/`font`: katak `<button>` bo'lganda ham `<a>` bilan
+   bir xil ko'rinsin - brauzer tugmaga o'z shrifti va markazlashini beradi. */
+.stat.clickable {
+  display: block; width: 100%; text-align: left; font: inherit;
+  text-decoration: none; color: inherit; cursor: pointer;
+}
+/* Ko'tarilish FAQAT shu yerda. Ilgari `.stat:hover` HAMMA katakka tegishli
+   edi: sichqoncha tekkanda «Sarflangan soat» ham, «Loyiha boshlanish sanasi»
+   ham ko'tarilardi - odam ularni bosib ko'rar va hech narsa ochilmagach
+   "buzuq" deb o'ylardi. */
+.stat.clickable:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px); box-shadow: var(--gloss-strong), var(--shadow-lg);
+}
+
+/* Ko'rsatkich kataklari qatori.
+   `grid-4` dagi `1fr` katakni butun ekran bo'ylab cho'zib yuborardi: keng
+   monitorda uchta raqam uchun uchta yotiq taxta chiqardi. Bu yerda katak
+   o'z o'lchamida qoladi (eni cheklangan), bo'yi esa balandroq - raqam
+   markazda, atrofida havo bilan turadi. */
+/* Dizaynda birinchi qator uchta, ikkinchisi to'rtta katakdan iborat - ya'ni
+   ustunlar soni katak soniga qarab o'zi tanlanadi. `auto-fit` bo'sh yo'lakni
+   yig'ib tashlaydi, shuning uchun uchta katak uchta ustunga, to'rttasi
+   to'rtta ustunga tekis bo'linadi. 200px - shu bo'linish ishlashi uchun
+   eng kichik kenglik. */
+.grid-stats { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.grid-stats .stat {
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: 106px; padding: 22px 24px;
+}
+.grid-stats .stat .v { font-size: 30px; }
+@media (max-width: 620px) {
+  /* Telefonda ikkitadan - bitta ustunda raqamlar juda uzun ro'yxat bo'lardi */
+  .grid-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-stats .stat { min-height: 88px; padding: 16px; }
+}
+
