@@ -14,15 +14,18 @@ so'rov javobni darrov qaytaradi, xabar esa fonda ketadi. Navbat xizmati
 (Celery, RQ) qo'shilmadi - loyihada broker yo'q va bitta tashqi chaqiruv
 uchun butun bir xizmat ortiqcha.
 
-CHEGARASI ochiq aytiladi: jarayon qayta ishga tushsa navbatdagi xabar
-yo'qoladi. Bildirishnomaning O'ZI bazada va WebSocketda allaqachon
-yetkazilgan, Telegram esa qo'shimcha kanal - shuning uchun bu narx
-qabul qilinadi. Xabar yetib borishi kafolatlanishi kerak bo'lsa, o'shanda
-haqiqiy navbat kerak bo'ladi.
+CHEGARASI ochiq aytiladi: bu kafolatli navbat emas. Lekin eng ko'p
+uchraydigan yo'qotish sababi - odatdagi qayta ishga tushirish - yopilgan:
+jarayon TINCH to'xtayotganda navbat bo'shatiladi (`_drain`). Qolgani -
+`SIGKILL`, quvvat uzilishi - baribir yo'qotadi. Bildirishnomaning O'ZI
+bazada va WebSocketda allaqachon yetkazilgan, Telegram esa qo'shimcha
+kanal, shuning uchun bu narx qabul qilinadi. Xabar yetib borishi
+KAFOLATLANISHI kerak bo'lsa, o'shanda broker (Celery, RQ) kerak.
 
 XATO YUTILADI. Fon oqimidagi istisno hech kimga ko'rinmaydi va uni ushlab
 qolmasak butun oqim jimgina o'lardi - shuning uchun logga yoziladi.
 """
+import atexit
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
@@ -42,11 +45,45 @@ def _executor():
 
     Modul yuklanganda emas: boshqaruv buyruqlari va migratsiyalar uchun
     bo'sh turadigan oqimlar ochish keraksiz.
+
+    Birinchi yasalganda TO'XTASH ILGAGI ham qo'yiladi - pastdagi
+    `_drain` ga qarang.
     """
     global _pool
     if _pool is None:
         _pool = ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="tf-bg")
+        # Jarayon tinch to'xtaganda navbatdagi ish bajarilib bo'lsin.
+        atexit.register(_drain)
     return _pool
+
+
+def _drain():
+    """To'xtashdan oldin navbatdagi ishlarni tugatishga imkon beradi.
+
+    NEGA. Bu to'plam kafolatli navbat emas va bu ochiq aytilgan: jarayon
+    o'lsa navbatdagi xabar yo'qoladi. Lekin yo'qotishning eng KO'P
+    uchraydigan sababi halokat emas - odatdagi qayta ishga tushirish:
+    yangi versiya chiqarish, `docker compose restart`, konteynerni
+    ko'chirish. Ular oldindan ma'lum va ularda kutish mumkin.
+
+    Shuning uchun `atexit`: jarayon tinch to'xtayotganda navbat
+    bo'shatiladi. `SIGKILL` da bu ishlamaydi - o'shanda yo'qotish
+    qoladi va haqiqiy kafolat kerak bo'lsa broker (Celery, RQ) kerak.
+
+    Kutishning O'Z chegarasi yo'q - uni tashqaridan Docker qo'yadi:
+    `stop_grace_period` (standarti 10 soniya) tugagach `SIGKILL` keladi
+    va qolgani baribir tashlanadi. Bu yerdagi ishlar qisqa (bitta HTTP
+    so'rov), ya'ni odatda o'sha vaqtga bemalol ulguradi.
+    """
+    global _pool
+    pool, _pool = _pool, None
+    if pool is None:
+        return
+    try:
+        # `cancel_futures=False` - boshlanmaganlari ham bajarilsin.
+        pool.shutdown(wait=True, cancel_futures=False)
+    except Exception:
+        logger.exception("Fon oqimlarini to'xtatib bo'lmadi")
 
 
 def _guarded(func, args, kwargs):

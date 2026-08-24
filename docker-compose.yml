@@ -153,9 +153,17 @@ services:
   scheduler:
     build: ./backend
     container_name: teamflow_scheduler
+    # Ikkita reja: eslatma SOATIGA, tozalash HAFTASIGA (168 soat).
+    # Tozalash `--yes` bilan chaqiriladi - u interaktiv tasdiq so'ramaydi
+    # (`cleanup_old_data`). `|| true` - bittasi yiqilsa sikl to'xtamasin.
     command: >
-      sh -c 'while true; do
+      sh -c 'i=0;
+      while true; do
         python manage.py send_deadline_reminders || true;
+        i=$$((i+1));
+        if [ $$((i % 168)) -eq 0 ]; then
+          python manage.py cleanup_old_data --yes || true;
+        fi;
         sleep 3600;
       done'
     env_file:

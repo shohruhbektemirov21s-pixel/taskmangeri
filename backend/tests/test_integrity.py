@@ -155,3 +155,80 @@ class ByteLengthTest(ApiTestCase):
         row = notify(self.dev, NotificationKind.TASK_ASSIGNED,
                      title=self.LONG, body=self.LONG, actor=self.manager)
         self.assertIsNotNone(row, "uzun bildirishnoma yozilmadi")
+
+
+class CleanupTest(ApiTestCase):
+    """Saqlash muddati: eskisi ketadi, keragi qoladi.
+
+    Ilgari hech narsa hech qachon o'chmasdi - `Activity` har maydon
+    o'zgarishiga bittadan qator yozadi va jadval cheksiz o'sardi.
+    """
+
+    def run_cleanup(self, **kw):
+        from django.core.management import call_command
+        from io import StringIO
+
+        out = StringIO()
+        call_command("cleanup_old_data", stdout=out, **kw)
+        return out.getvalue()
+
+    def test_eski_tarix_ochadi_yangisi_qoladi(self):
+        from apps.activity.models import Activity
+        from apps.activity.services import log
+
+        old = log(actor=self.manager, verb="task.created", project=self.project,
+                  summary="Eski yozuv")
+        new = log(actor=self.manager, verb="task.created", project=self.project,
+                  summary="Yangi yozuv")
+        Activity.objects.filter(pk=old.pk).update(
+            created_at=timezone.now() - timedelta(days=400))
+
+        self.run_cleanup(activity_days=365, yes=True)
+
+        self.assertFalse(Activity.objects.filter(pk=old.pk).exists())
+        self.assertTrue(Activity.objects.filter(pk=new.pk).exists())
+
+    def test_oqilmagan_bildirishnoma_tegilmaydi(self):
+        """Odam uni hali ko'rmagan - eskiligi sabab bo'lolmaydi."""
+        from apps.notifications.models import Notification, NotificationKind
+        from apps.notifications.services import notify
+
+        unread = notify(self.dev, NotificationKind.TASK_ASSIGNED,
+                        title="O'qilmagan", actor=self.manager)
+        read = notify(self.dev, NotificationKind.TASK_ASSIGNED,
+                      title="O'qilgan", actor=self.manager)
+        Notification.objects.filter(pk=read.pk).update(is_read=True)
+        Notification.objects.filter(pk__in=[unread.pk, read.pk]).update(
+            created_at=timezone.now() - timedelta(days=200))
+
+        self.run_cleanup(notify_days=90, yes=True)
+
+        self.assertTrue(Notification.objects.filter(pk=unread.pk).exists())
+        self.assertFalse(Notification.objects.filter(pk=read.pk).exists())
+
+    def test_yumshoq_ochirilgan_vazifa_muddatdan_keyin_ketadi(self):
+        from apps.tasks.models import Task
+
+        task = Task.objects.create(project=self.project, title="O'chirilgan ish",
+                                   created_by=self.manager)
+        task.soft_delete(self.manager)
+        Task.all_objects.filter(pk=task.pk).update(
+            deleted_at=timezone.now() - timedelta(days=200))
+
+        self.run_cleanup(deleted_days=180, yes=True)
+        self.assertFalse(Task.all_objects.filter(pk=task.pk).exists())
+
+    def test_tasdiqsiz_hech_narsa_ochmaydi(self):
+        from apps.activity.models import Activity
+        from apps.activity.services import log
+
+        row = log(actor=self.manager, verb="task.created", project=self.project,
+                  summary="Eski yozuv")
+        Activity.objects.filter(pk=row.pk).update(
+            created_at=timezone.now() - timedelta(days=400))
+
+        self.run_cleanup(activity_days=365)          # `yes` yo'q
+        self.assertTrue(Activity.objects.filter(pk=row.pk).exists())
+
+        self.run_cleanup(activity_days=365, dry_run=True)
+        self.assertTrue(Activity.objects.filter(pk=row.pk).exists())

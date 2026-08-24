@@ -5,18 +5,24 @@ KO'RINISH QOIDASI (`get_queryset`):
   * boshliq — hammasini ko'radi (ochiq ham, yopiq ham);
   * qolgan hamma — barcha OCHIQ takliflarni va O'ZINING yopiq takliflarini.
 
-TARTIB. Ro'yxat ovoz bo'yicha saralanadi: `qo'shilaman` dan `qo'shilmayman`
-ayiriladi va kattasi yuqorida turadi. Teng chiqsa ko'proq qo'llab-quvvatlangani,
-undan keyin yangisi oldinga o'tadi. Shu sabab boshliq ro'yxatning boshiga
-qarasa - jamoa eng ko'p kutayotgan o'zgarishni ko'radi.
+TARTIB. Avval JAVOB KUTAYOTGANLAR, keyin qaror qilinganlar - bu qoida
+tanlangan tartibdan qat'i nazar ishlaydi (`ordering_for`). Tasdiqlangan
+yoki rad etilgan taklif - yopilgan ish, u ro'yxatning boshini egallab
+turmasligi kerak.
+
+Har guruh ICHIDA esa ovoz bo'yicha: `qo'shilaman` dan `qo'shilmayman`
+ayiriladi va kattasi yuqorida turadi. Teng chiqsa ko'proq
+qo'llab-quvvatlangani, undan keyin yangisi oldinga o'tadi. Shu sabab
+boshliq ro'yxatning boshiga qarasa - jamoa eng ko'p kutayotgan va hali
+javobsiz o'zgarishni ko'radi.
 
 NEGA `related_count`. Db2 `GROUP BY` ichida CLOB ustunini qo'llamaydi,
 `Suggestion.body` esa aynan CLOB. Oddiy `annotate(Count(...))` tashqi
 so'rovga `GROUP BY` qo'shadi va `SQL0134N` bilan yiqiladi - tafsiloti
 `apps/core/queries.py` da. Shuning uchun sanoq ichki so'rov orqali olinadi.
 """
-from django.db.models import (Count, F, IntegerField, OuterRef, Prefetch, Q,
-                              Subquery)
+from django.db.models import (Case, Count, F, IntegerField, OuterRef, Prefetch,
+                              Q, Subquery, Value, When)
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -79,6 +85,21 @@ class SuggestionViewSet(viewsets.ModelViewSet):
         ).annotate(
             score=Coalesce(F("for_count") - F("against_count"), 0,
                            output_field=IntegerField()),
+            # QAROR QILINGANLAR PASTGA. Javob kutayotgan taklif - ish,
+            # tasdiqlangani yoki rad etilgani esa natija: u o'qilgan va
+            # yopilgan. Ilgari ikkovi aralash turardi va ovoz bo'yicha
+            # saralanganda yopilgan taklif ro'yxatning boshida qolib
+            # ketardi - boshliq har safar uni oshirib o'tishga majbur edi.
+            #
+            # Bu HAMMA tartibda qo'llanadi (`SORTS`): «eng yangi» ni
+            # tanlagan odam ham avval javob kutayotganini ko'radi.
+            # Holat bo'yicha filtrlanganda esa ta'siri yo'q - u yerda
+            # hamma qator bir xil guruhda bo'ladi.
+            decided_last=Case(
+                When(status=SuggestionStatus.PENDING, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
         )
 
         scope = self.request.query_params.get("scope")
@@ -143,7 +164,12 @@ class SuggestionViewSet(viewsets.ModelViewSet):
     }
 
     def ordering_for(self, key):
-        return self.SORTS.get((key or "").strip(), self.SORTS["top"])
+        """Tanlangan tartib - lekin QAROR QILINGANLAR har doim pastda.
+
+        `decided_last` birinchi kalit: javob kutayotganlar tepada qoladi,
+        tanlangan tartib esa har guruh ICHIDA ishlaydi.
+        """
+        return ("decided_last",) + self.SORTS.get((key or "").strip(), self.SORTS["top"])
 
     # --------------------------------------------------------------- yozish
 

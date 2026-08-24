@@ -556,3 +556,48 @@ class NotificationTest(SuggestionTestCase):
                            {"status": "APPROVED", "note": "Yaxshi fikr."}, format="json")
         got = self.notes(self.dev, NotificationKind.SUGGESTION_DECIDED)
         self.assertEqual(len(got), 1)
+
+
+class DecidedLastTest(SuggestionTestCase):
+    """Qaror qilingan taklif ro'yxatning pastiga tushadi.
+
+    Ilgari u ovoz bo'yicha saralanardi va yopilgan taklif eng ko'p
+    ovoz to'plagani uchun boshliqning ro'yxatida birinchi bo'lib
+    turaverardi - javob kutayotganini esa uni oshirib o'tib topish
+    kerak edi.
+    """
+
+    def order(self, **params):
+        return self.ids(self.boss_api.get(URL, params))
+
+    def test_kutayotganlar_tepada(self):
+        # Qaror qilingani KO'PROQ ovoz to'playdi - shunda tartib faqat
+        # ovozga qarasa, u tepada qolardi.
+        decided = self.make(title="Yopilgan")
+        pending = self.make(title="Javob kutmoqda")
+        for who in (self.admin, self.manager, self.dev):
+            self.client_for(who).post("%s%d/vote/" % (URL, decided.id),
+                                      {"choice": "FOR"}, format="json")
+        decided.status = SuggestionStatus.APPROVED
+        decided.save(update_fields=["status"])
+
+        self.assertEqual(self.order()[:2], [pending.id, decided.id])
+
+    def test_qoida_hamma_tartibda_ishlaydi(self):
+        decided = self.make(title="Yopilgan")
+        decided.status = SuggestionStatus.REJECTED
+        decided.save(update_fields=["status"])
+        pending = self.make(title="Javob kutmoqda")
+
+        for sort in ("top", "new", "old"):
+            with self.subTest(sort=sort):
+                self.assertEqual(self.order(sort=sort)[:2], [pending.id, decided.id])
+
+    def test_holat_filtri_bilan_tartib_buzilmaydi(self):
+        """Bitta guruh qolganda kalit ta'sirsiz - ro'yxat bo'sh chiqmasin."""
+        first = self.make(title="Bir")
+        first.status = SuggestionStatus.APPROVED
+        first.save(update_fields=["status"])
+
+        rows = self.order(status=SuggestionStatus.APPROVED)
+        self.assertIn(first.id, rows)
