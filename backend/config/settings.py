@@ -117,6 +117,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # Eng boshida: so'rov identifikatori qolgan hamma qatlam yozgan
+    # loglarda ham bo'lishi kerak (`apps/core/observe.py`).
+    "apps.core.observe.ObservabilityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -390,9 +393,64 @@ if TESTING:
 # joyida bajarilishi va natijasi darrov ko'rinishi kerak.
 BACKGROUND_TASKS = env_bool("BACKGROUND_TASKS", True) and not TESTING
 
+# Sekin so'rov chegarasi (millisekund). 0 - jurnal o'chadi.
+SLOW_REQUEST_MS = int(os.getenv("SLOW_REQUEST_MS", "1500"))
+
+# Har bir qatorda SO'ROV IDENTIFIKATORI bo'ladi (`apps/core/observe.py`).
+# Ilgari log qatorlari o'zicha turardi: qaysi so'rovga tegishli ekani
+# ko'rinmasdi va bir vaqtda kelgan so'rovlarning izlari aralashib ketardi.
+# Endi javobda ham `X-Request-Id` qaytadi - foydalanuvchi «xato chiqdi»
+# deganda o'sha koddan butun izni topsa bo'ladi.
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "filters": {
+        "request_id": {"()": "apps.core.observe.RequestIdFilter"},
+    },
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["request_id"],
+            "formatter": "standard",
+        },
+    },
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
 }
+
+# ---------------------------------------------------------------- Xato yig'uvchi
+# IXTIYORIY. `SENTRY_DSN` qo'yilmasa hech narsa o'zgarmaydi va paket ham
+# talab qilinmaydi - shuning uchun `requirements.txt` ga majburiy
+# bog'liqlik sifatida qo'shilmadi. Yoqish uchun:
+#
+#   pip install sentry-sdk
+#   backend/.env -> SENTRY_DSN=https://...
+#
+# Nega kerak: hozir server xatosi faqat konteyner jurnalida qoladi va uni
+# kimdir qarab turishi kerak. Yig'uvchi esa xatoni o'zi to'playdi va
+# takrorlanishini sanaydi.
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN and not TESTING:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration()],
+            environment=os.getenv("SENTRY_ENV", "dev" if DEBUG else "prod"),
+            # Shaxsiy ma'lumot yuborilmasin: email, ism va so'rov tanasi
+            # xato hisobotiga tushmaydi.
+            send_default_pii=False,
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES", "0")),
+        )
+    except ImportError:
+        import logging as _logging
+
+        _logging.getLogger(__name__).warning(
+            "SENTRY_DSN qo'yilgan, lekin `sentry-sdk` o'rnatilmagan - "
+            "xatolar faqat jurnalga yoziladi.")

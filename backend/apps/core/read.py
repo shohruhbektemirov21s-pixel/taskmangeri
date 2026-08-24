@@ -178,6 +178,10 @@ def read(request):
         )
 
     query = _query_string(request.data.get("params"))
+    # Kuzatuv uchun: jurnalda `POST /api/read/` emas, ichki yo'l ko'rinsin
+    # (`apps/core/observe.py`). Boshqa hech narsaga ta'sir qilmaydi.
+    setattr(request._request if hasattr(request, "_request") else request,
+            "read_gateway_path", path)
 
     try:
         match = resolve(path)
