@@ -37,7 +37,12 @@ class Workspace(SoftDeleteModel):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                               related_name="owned_workspaces", verbose_name="Egasi")
     join_code = models.CharField("Taklif kodi", max_length=12, unique=True, default=make_code)
-    is_open = models.BooleanField("Ochiq (kod bilan qoshilsa boladi)", default=True)
+    # KO'RINISH bayrog'i, kirish kaliti EMAS. Belgilansa maydon ochiq
+    # ro'yxatda turadi (`WorkspaceViewSet.get_queryset`) va odam uni topib,
+    # egasidan taklif kodi so'rashi mumkin. Qo'shilishning o'zi baribir
+    # kodga bog'liq - `join` ga qarang.
+    is_open = models.BooleanField("Ochiq (royxatda korinadi, kod bilan qoshiladi)",
+                                  default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

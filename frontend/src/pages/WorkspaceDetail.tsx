@@ -16,6 +16,12 @@ export default function WorkspaceDetail() {
   const [ws, setWs] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Qo'shilish uchun TAKLIF KODI kerak - ochiq maydonga ham
+  // (`WorkspaceViewSet.join`). Maydon a'zoligi ichkariga ochadigan kalit:
+  // undan keyin maydondagi ochiq loyihalarning vazifalari va fayllari
+  // ko'rinadi, shuning uchun kirish taklif bilan bo'ladi.
+  const [joining, setJoining] = useState(false);
+  const [code, setCode] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -62,11 +68,35 @@ export default function WorkspaceDetail() {
         }
         actions={
           <>
-            {!ws.my_role && (
-              <button className="btn btn-sm btn-primary"
-                      onClick={() => void act(() => api.post(`/workspaces/${ws.slug}/join/`, {}))}>
-                {tx("common.qoshilish")}
+            {!ws.my_role && !joining && (
+              <button className="btn btn-sm btn-primary" onClick={() => setJoining(true)}>
+                {tx("workspace_detail.kod_bilan_qoshilish")}
               </button>
+            )}
+            {!ws.my_role && joining && (
+              <form
+                className="ws-join"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void act(() => api.post(`/workspaces/${ws.slug}/join/`, { code }));
+                }}
+              >
+                <input
+                  autoFocus
+                  className="mono"
+                  value={code}
+                  maxLength={12}
+                  placeholder={tx("workspace_detail.taklif_kodi")}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                />
+                <button className="btn btn-sm btn-primary" type="submit" disabled={!code.trim()}>
+                  {tx("common.qoshilish")}
+                </button>
+                <button className="btn btn-sm" type="button"
+                        onClick={() => { setJoining(false); setCode(""); setError(null); }}>
+                  {tx("common.bekor_qilish")}
+                </button>
+              </form>
             )}
             {ws.my_role && (
               <Link className="btn btn-sm" {...toWorkspaceChat(ws.slug)}>

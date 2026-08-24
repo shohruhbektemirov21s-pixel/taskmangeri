@@ -131,6 +131,65 @@ class PlatformRoleTest(ApiTestCase):
         self.assertEqual(r.status_code, 200)
 
 
+class SelfServiceRoleTest(ApiTestCase):
+    """TIZIM ROLI O'ZINI O'ZI BERMAYDI.
+
+    Mutaxassislik odamning o'zi tanlaydigan, hech kim tasdiqlamaydigan
+    maydon. `MANAGER` esa `manages_all_projects` orqali HAMMA loyihani
+    boshqarish huquqi. Ikkovi bog'langan joyda ro'yxatdan o'tish formasi
+    huquq berish vositasiga aylanadi.
+    """
+
+    def test_pm_mutaxassisligi_bilan_royxatdan_otgan_odam_menejer_bolmaydi(self):
+        r = self.anon.post("/api/auth/register/", {
+            "email": "yangi_pm@sinov.uz",
+            "full_name": "Yangi PM",
+            "specialty": "PM",
+            "password": "juda-kuchli-parol-99",
+            "password_confirm": "juda-kuchli-parol-99",
+        }, format="json")
+        self.assertEqual(r.status_code, 201)
+
+        user = User.objects.get(email="yangi_pm@sinov.uz")
+        # Mutaxassislik saqlanadi - u kasb yorlig'i.
+        self.assertEqual(user.specialty, "PM")
+        # Huquq esa berilmaydi.
+        self.assertEqual(user.global_role, GlobalRole.DEVELOPER)
+
+    def test_royxatdan_otgan_pm_begona_loyihani_boshqara_olmaydi(self):
+        """S-01 ning haqiqiy oqibati: o'chirish tugmasi."""
+        self.anon.post("/api/auth/register/", {
+            "email": "buzgunchi@sinov.uz",
+            "full_name": "Chetdan Kelgan",
+            "specialty": "PM",
+            "password": "juda-kuchli-parol-99",
+            "password_confirm": "juda-kuchli-parol-99",
+        }, format="json")
+        intruder = User.objects.get(email="buzgunchi@sinov.uz")
+
+        c = self.client_for(intruder)
+        self.assertEqual(c.delete("/api/projects/{}/".format(self.project.pk)).status_code, 403)
+        self.assertEqual(
+            c.patch("/api/projects/{}/".format(self.project.pk),
+                    {"name": "Egallandi"}, format="json").status_code, 403)
+
+    def test_adminlik_bekor_qilinganda_menejerlik_qaytarilmaydi(self):
+        """Huquqni TUSHIRISH amali uning bir qismini qaytarib bermasin."""
+        target = make_user("eski_admin@sinov.uz", "Eski Admin",
+                           role="ADMIN", specialty="PM")
+        member = ProjectMember.objects.create(project=self.project, user=target,
+                                              role=ProjectRole.DEVELOPER)
+
+        # Tizim adminligini faqat tizim admini bekor qiladi.
+        r = self.client_for(self.admin).post(
+            "/api/projects/{}/members/{}/".format(self.project.pk, member.pk),
+            {"action": "revoke_admin"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+        target.refresh_from_db()
+        self.assertEqual(target.global_role, GlobalRole.DEVELOPER)
+
+
 class UserListTest(ApiTestCase):
     """Odamlar ro'yxatidan shaxsiy kontakt chiqmaydi."""
 

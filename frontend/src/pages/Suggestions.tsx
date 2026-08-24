@@ -184,9 +184,10 @@ function SuggestionRow({ item, rank, onEdit, onDelete }: {
             : <span className="sg-anon">{tx("suggestions.anonim_muallif")}</span>}
         </span>
         <span>{timeAgo(item.created_at)}</span>
-        {decided && item.decided_by && (
-          <span>{tx("suggestions.qaror_qildi", { ism: item.decided_by.full_name })}</span>
-        )}
+        {/* KIM qaror qilgani yozilmaydi - taklif sahifasidagi bilan bir
+            xil qoida (`DecisionBox`). Qaror qiladigan rol bitta, ya'ni
+            ism yangi ma'lumot bermaydi; qarorning O'ZI esa pastdagi
+            `sg-verdict` qatorida, izohi bilan birga turadi. */}
       </div>
 
       {/* QAROR QATORNING O'ZIDA. Nishonning yolg'iz o'zi «tasdiqlandi»

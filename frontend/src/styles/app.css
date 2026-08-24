@@ -2884,7 +2884,7 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .sg-decision.no { border-left-color: var(--danger); background: var(--danger-soft); }
 .sg-decision.wait { border-left-color: var(--attention); background: var(--attention-soft); }
 .sg-decision p { margin: 6px 0; white-space: pre-wrap; }
-/* Qutidagi ikki qator - kim qaror qildi va qachon - ustma-ust turadi. */
+/* Qutining ostidagi qatorlar - «ko'rilmoqda» va qachon - ustma-ust turadi. */
 .sg-decision .muted { display: block; font-size: 12.5px; }
 
 /* Uzun yorliqlar tanlagichga sig'sin: «Ko'rib chiqilmoqda (2)» va «Eng
@@ -2938,4 +2938,14 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
 .sg-verdict-note {
   color: var(--muted); min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Ish maydoniga qo'shilish - taklif kodi sarlavha qatorining o'zida.
+   Alohida sahifa yoki modal ochilmaydi: bu bitta maydonlik amal va
+   tugma allaqachon shu yerda turgan edi. Kod harflari katta va
+   o'xshash belgilar ko'p (O/0, I/1), shuning uchun monoshrift. */
+.ws-join { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ws-join input {
+  width: 132px; min-height: 0; padding: 6px 10px;
+  font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
 }

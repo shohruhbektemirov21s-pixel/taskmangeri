@@ -562,12 +562,19 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     "detail": "Bu oxirgi tizim admini - uni tushirsak platforma boshqaruvsiz qoladi."
                 })
 
-            # Mutaxassisligi loyiha menejeri bo'lsa menejer roliga qaytadi,
-            # aks holda oddiy dasturchi bo'ladi - ro'yxatdan o'tish mantig'i bilan bir xil.
-            from apps.accounts.specialties import Specialty
-
-            target.global_role = (GlobalRole.MANAGER if target.specialty == Specialty.PM
-                                  else GlobalRole.DEVELOPER)
+            # Adminlik bekor qilinganda odam DASTURCHI bo'lib qoladi.
+            #
+            # Ilgari mutaxassisligi «Loyiha menejeri» bo'lsa `MANAGER`
+            # roliga «qaytarilardi». Mutaxassislik odamning o'zi tanlagan,
+            # hech kim tasdiqlamagan maydon, `MANAGER` esa
+            # `manages_all_projects` orqali HAMMA loyihani boshqarish
+            # huquqi. Ya'ni huquqni tushirish amali uning bir qismini
+            # jimgina qaytarib berardi va buni hech kim so'ramagan edi.
+            #
+            # Menejerlik kerak bo'lsa u ATAYLAB beriladi:
+            # `PATCH /api/users/:id/role/` (`IsPlatformAdmin`). Qoida
+            # ro'yxatdan o'tish bilan bir xil - `RegisterSerializer.create`.
+            target.global_role = GlobalRole.DEVELOPER
             target.save(update_fields=["global_role"])
             log(actor=request.user, verb="user.role_changed", project=project, target=target,
                 summary="{} tizim adminligi bekor qilindi".format(target.full_name),

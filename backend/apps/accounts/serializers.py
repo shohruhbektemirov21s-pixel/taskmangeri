@@ -244,9 +244,26 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         if not (validated_data.get("job_title") or "").strip():
             validated_data["job_title"] = dict(Specialty.choices).get(specialty, "")
-        # Loyiha menejeri mutaxassisligi tanlansa tizim roli ham menejer boladi
-        if specialty == Specialty.PM:
-            validated_data["global_role"] = GlobalRole.MANAGER
+
+        # TIZIM ROLI BU YERDA BERILMAYDI - hamma yangi hisob `DEVELOPER`
+        # bo'lib boshlanadi (modeldagi standart).
+        #
+        # Ilgari «Loyiha menejeri» MUTAXASSISLIGI tanlansa `global_role`
+        # ham `MANAGER` ga ko'tarilardi. Mutaxassislik esa odamning O'ZI
+        # tanlaydigan, hech kim tasdiqlamaydigan maydon va ro'yxatdan
+        # o'tish hammaga ochiq (`RegisterView` - `AllowAny`). Ya'ni
+        # notanish odam ro'yxatdan o'tayotib tanlovni o'zgartirsa,
+        # `manages_all_projects` dan o'tib ketardi: tizimdagi HAR BIR
+        # loyihaning sozlamasi, a'zoligi, vazifalari va O'CHIRISH tugmasi
+        # unga ochilardi (`ProjectAccess.can_manage`, `can_delete_project`).
+        #
+        # Bu hujjatdagi qoidaning aynan buzilishi edi: «Tizim rolini
+        # loyiha ichidan berma» - `can_appoint_admin` shu sabab
+        # `is_platform_admin` da qulflangan. Rol faqat BERILADI:
+        # `PATCH /api/users/:id/role/` (`IsPlatformAdmin`).
+        #
+        # Mutaxassislik o'z joyida qoladi - u kasb yorlig'i va vazifa
+        # taqsimotiga ta'sir qiladi, huquqqa emas.
 
         password = validated_data.pop("password")
         user = User(**validated_data)

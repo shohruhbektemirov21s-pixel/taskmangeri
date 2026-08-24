@@ -189,3 +189,51 @@ class WorkspaceJoinCodeTest(ApiTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.data["can_manage"])
         self.assertIsNone(r.data["join_code"])
+
+    def test_ochiq_maydonga_ham_kodsiz_qoshilib_bolmaydi(self):
+        """`is_open` KO'RINISH bayrog'i, kirish kaliti emas.
+
+        Ilgari ochiq maydonga kodsiz kirilardi va bu ichkariga ochadigan
+        eshik edi: maydon a'zosiga o'sha maydondagi `is_public` loyihalar
+        ko'rinadi (`visible_projects_q` dagi `in_ws`).
+        """
+        self.assertTrue(self.workspace.is_open)
+        r = self.client_for(self.outsider).post(
+            "/api/workspaces/{}/join/".format(self.workspace.slug), {}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(
+            WorkspaceMember.objects.filter(workspace=self.workspace,
+                                           user=self.outsider).exists())
+
+    def test_notogri_kod_bilan_qoshilib_bolmaydi(self):
+        r = self.client_for(self.outsider).post(
+            "/api/workspaces/{}/join/".format(self.workspace.slug),
+            {"code": "XXXXXXXX"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(
+            WorkspaceMember.objects.filter(workspace=self.workspace,
+                                           user=self.outsider).exists())
+
+    def test_togri_kod_bilan_qoshiladi(self):
+        r = self.client_for(self.outsider).post(
+            "/api/workspaces/{}/join/".format(self.workspace.slug),
+            {"code": self.workspace.join_code}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["created"])
+        self.assertTrue(
+            WorkspaceMember.objects.filter(workspace=self.workspace,
+                                           user=self.outsider).exists())
+
+    def test_kodsiz_odam_maydondagi_ochiq_loyihani_kormaydi(self):
+        """S-02 ning haqiqiy oqibati - eshik ortidagi narsa."""
+        open_project = Project.objects.create(
+            workspace=self.workspace, name="Maydon ichida ochiq",
+            manager=self.manager, created_by=self.manager, is_public=True)
+
+        c = self.client_for(self.outsider)
+        r = c.get("/api/projects/{}/".format(open_project.pk))
+        self.assertEqual(r.status_code, 403)
+
+        listed = c.get("/api/projects/", {"workspace": self.workspace.slug})
+        ids = [p["id"] for p in listed.data.get("results", listed.data)]
+        self.assertNotIn(open_project.pk, ids)

@@ -96,11 +96,31 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def join(self, request, slug=None):
-        """POST /api/workspaces/:slug/join/  {code?}"""
+        """POST /api/workspaces/:slug/join/  {code}
+
+        TAKLIF KODI HAR DOIM SO'RALADI.
+
+        Ilgari shart `if not ws.is_open and code != ws.join_code` edi,
+        ya'ni OCHIQ maydonga kodsiz ham kirilardi. Maydonning o'z yorlig'i
+        esa boshqa narsani va'da qilardi: «Ochiq (kod bilan qoshilsa
+        boladi)» - kod kutilishi yorliqda yozilgan, kodda esa yo'q edi.
+
+        Farqi og'ir, chunki maydon a'zoligi ICHKARIGA ochadigan kalit:
+        `visible_projects_q` da `is_public=True` loyihalar aynan maydon
+        a'zosiga ko'rinadi (`in_ws`). Ya'ni ro'yxatdan o'tgan istalgan
+        odam ochiq maydonlar ro'yxatini olib, bittasiga bir bosishda
+        kirib, ichidagi loyihalarning vazifalari, fayllari va brifini
+        o'qiy olardi - hech kim uni taklif qilmagan holda.
+
+        Endi `is_open` faqat KO'RINISHNI bildiradi: maydon ro'yxatda
+        turadi va kod bilan qo'shilsa bo'ladi. Kirish esa har doim
+        kodga bog'liq - hujjatdagi qoida bilan bir xil: «join_code -
+        parol bilan bir og'irlikda».
+        """
         ws = self.get_object()
         code = (request.data.get("code") or "").strip().upper()
-        if not ws.is_open and code != ws.join_code:
-            raise ValidationError({"code": "Taklif kodi notogri."})
+        if code != ws.join_code:
+            raise ValidationError({"code": "Taklif kodi noto'g'ri."})
         obj, created = WorkspaceMember.objects.get_or_create(
             workspace=ws, user=request.user, defaults={"role": WorkspaceRole.MEMBER})
         if created:

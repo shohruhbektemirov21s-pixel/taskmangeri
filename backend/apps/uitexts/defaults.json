@@ -4491,6 +4491,18 @@
   "value": "ish maydonlari",
   "note": "pages/WorkspaceDetail.tsx"
  },
+ "workspace_detail.kod_bilan_qoshilish": {
+  "value": "Kod bilan qo'shilish",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.kodni_egasidan_soring": {
+  "value": "Kodni maydon egasidan yoki a'zolaridan so'rang.",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
+ "workspace_detail.taklif_kodi": {
+  "value": "Taklif kodi",
+  "note": "pages/WorkspaceDetail.tsx"
+ },
  "workspace_detail.loyiha_yaratish": {
   "value": "Loyiha yaratish",
   "note": "pages/WorkspaceDetail.tsx"

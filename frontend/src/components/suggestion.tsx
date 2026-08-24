@@ -401,7 +401,7 @@ export function Attachments({ item }: { item: Suggestion }) {
 /* ---------------------------------------------------------------- qaror */
 
 /**
- * Boshliqning javobi to'liq holda: qaror, izoh, kim va qachon.
+ * Boshliqning javobi: qaror, izoh va qachon.
  *
  * Javob kutayotgan taklifda ham chiziladi - «hali qaror yo'q» ham holat
  * va uni ko'rsatmaslik «boshliq ko'rmadimi?» degan savol qoldirardi.
@@ -417,13 +417,14 @@ export function DecisionBox({ item }: { item: Suggestion }) {
         {item.status_display}
       </strong>
       {item.decision_note && <p>{item.decision_note}</p>}
-      <span className="muted">
-        {item.status === "PENDING"
-          ? tx("suggestions.boshliq_korib_chiqmoqda")
-          : item.decided_by
-            ? tx("suggestions.qaror_qildi", { ism: item.decided_by.full_name })
-            : ""}
-      </span>
+      {/* KIM qaror qilgani yozilmaydi. Qaror qiladigan rol bitta -
+          boshliq - va uni har qutida takrorlash yangi ma'lumot bermaydi,
+          faqat holat nishoni bilan izoh orasiga qo'shimcha qator qo'yadi.
+          Javob KUTAYOTGAN taklifda qator qoladi: u boshqa narsani
+          aytadi - «ko'rilmoqda», ya'ni taklif e'tibordan chetda emas. */}
+      {item.status === "PENDING" && (
+        <span className="muted">{tx("suggestions.boshliq_korib_chiqmoqda")}</span>
+      )}
       <span className="muted">
         {timeAgo(item.status === "PENDING"
           ? item.created_at
