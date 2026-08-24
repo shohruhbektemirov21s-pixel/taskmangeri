@@ -1,0 +1,80 @@
+# Produksiya uchun qo'shimcha qatlam.
+#
+# MUAMMO. Loyihada yagona `docker-compose.yml` bor edi va u ISHLAB CHIQISH
+# uchun: kod xostdan ulanadi (`./backend:/app`), `DEBUG=1` bo'lsa
+# `runserver` ishga tushadi, frontend esa Vite ning dev serveri. Ya'ni
+# `frontend/Dockerfile` da `prod` bosqichi (nginx + yig'ilgan fayllar)
+# BOR edi, lekin uni ko'taradigan hech narsa yo'q edi - serverga chiqarish
+# hujjatsiz, qo'lda bajariladigan qadamlar ketma-ketligi bo'lib qolgandi.
+#
+# ISHLATISH:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Ikkinchi fayl birinchisining USTIGA qo'yiladi: servislar ro'yxati,
+# tarmoq, Db2 va Redis sozlamalari o'sha yerdan keladi, bu yerda esa
+# faqat FARQ yoziladi. Shu sabab bitta narsa ikki joyda turmaydi.
+#
+# OLDINDAN TEKSHIRING (`backend/.env`):
+#   DEBUG=0                      - aks holda entrypoint `runserver` ni tanlaydi
+#   SECRET_KEY=<32+ belgili>     - zaif kalit bilan ishga tushmaydi
+#   ALLOWED_HOSTS=domen.uz       - `*` bilan ishga tushmaydi
+#   CORS_ALLOWED_ORIGINS=https://domen.uz
+#   CSRF_TRUSTED_ORIGINS=https://domen.uz
+#   SITE_URL=https://domen.uz    - Telegramdagi havolalar shundan yasaladi
+#
+# MAVJUD O'RNATMADA BIR MARTALIK QADAM. Backend endi `root` emas,
+# `teamflow` (uid 10001) bo'lib ishlaydi (`backend/Dockerfile`). Docker
+# volume'ning egaligini faqat u BO'SH bo'lganda obrazdan ko'chiradi -
+# ya'ni ilgari ko'tarilgan tizimda `staticfiles` va `media` hali ham
+# `root` niki bo'lib qoladi va `collectstatic` «Permission denied» beradi.
+# Ma'lumot O'CHIRILMAYDI, faqat egasi almashadi:
+#
+#   docker run --rm \
+#     -v <prefiks>_backend_static:/s -v <prefiks>_backend_media:/m \
+#     alpine chown -R 10001:999 /s /m
+#
+# `<prefiks>` - `docker volume ls` da ko'rinadi (odatda papka nomi).
+
+services:
+  backend:
+    # KOD OBRAZDAN, xostdan emas. Dev dagi `./backend:/app` bu yerda
+    # o'chiriladi: serverda ishlayotgan kod obrazda muhrlangan bo'lishi
+    # kerak - aks holda xostdagi tasodifiy o'zgarish darrov jonli
+    # tizimga tushardi va qaysi versiya ishlayotgani noma'lum bo'lardi.
+    volumes:
+      - backend_static:/app/staticfiles
+      - backend_media:/app/media
+    # Port tashqariga OCHILMAYDI. Backend ga faqat nginx murojaat qiladi
+    # (ichki tarmoq orqali), ya'ni 8010 ni internetga chiqarish shart emas.
+    ports: []
+    environment:
+      DEBUG: "0"
+    restart: always
+
+  telegram:
+    volumes: []
+    restart: always
+
+  scheduler:
+    volumes: []
+    restart: always
+
+  frontend:
+    # Vite dev serveri emas - yig'ilgan fayllar va nginx.
+    build:
+      context: ./frontend
+      target: prod
+    # Dev dagi kod va `node_modules` ulanishlari kerak emas.
+    volumes: []
+    environment: {}
+    ports:
+      - "80:80"
+    # Nginx ning o'zi tirikmi. Backend ning sog'lomligi alohida
+    # tekshiriladi (`/api/health/`), bu yer faqat statik uzatuvchi.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: always

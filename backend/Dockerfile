@@ -19,6 +19,23 @@ COPY . /app/
 
 RUN chmod +x /app/docker/entrypoint.sh
 
+# ROOT OSTIDA ISHLAMAYDI.
+#
+# Standart obrazda jarayon `root` bo'lib ketardi: konteynerdan chiqishga
+# imkon beradigan har qanday zaiflik darrov to'liq huquqqa aylanardi, va
+# konteyner yozgan fayllar (media, staticfiles) xostda ham `root` niki
+# bo'lib qolardi.
+#
+# `staticfiles` va `media` - yoziladigan yagona papkalar, shuning uchun
+# ular oldindan yaratilib egasi almashtiriladi. Ishlab chiqishda kod
+# xostdan ulanadi (bind-mount) va uning egaligi xostnikicha qoladi -
+# shuning uchun `/app` ning o'zi tegilmaydi: unga yozish kerak emas.
+RUN useradd --system --create-home --uid 10001 teamflow \
+    && mkdir -p /app/staticfiles /app/media \
+    && chown -R teamflow:teamflow /app/staticfiles /app/media
+
+USER teamflow
+
 EXPOSE 8000
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
 # WebSocket kerak - shuning uchun WSGI (gunicorn) emas, ASGI server ishlatiladi.
