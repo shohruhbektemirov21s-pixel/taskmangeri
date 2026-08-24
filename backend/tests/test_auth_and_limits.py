@@ -219,6 +219,111 @@ class UserListTest(ApiTestCase):
         self.assertIn("telegram", r.data)
 
 
+class BossSeparationTest(ApiTestCase):
+    """«Taklifni faqat boshliq tasdiqlaydi» TEXNIK chegara bo'lsin.
+
+    Admin boshliq hisobiga kira olsa, qoida shunchaki kelishuvga
+    aylanadi: u parolni qo'yib, boshliq bo'lib kirib, o'z taklifini
+    tasdiqlab qo'yardi.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.boss = make_user("boshliq@sinov.uz", "Boshliq", role="BOSS")
+
+    def test_admin_boshliq_parolini_almashtira_olmaydi(self):
+        r = self.client_for(self.admin).post(
+            "/api/users/{}/set-password/".format(self.boss.pk),
+            {"password": "yangi-kuchli-parol-77"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.boss.refresh_from_db()
+        self.assertTrue(self.boss.check_password("sinov-parol-12345"))
+
+    def test_admin_oddiy_hisob_parolini_almashtiradi(self):
+        """Chegara faqat boshliqqa - qolgan hisoblar oldingidek."""
+        r = self.client_for(self.admin).post(
+            "/api/users/{}/set-password/".format(self.dev.pk),
+            {"password": "yangi-kuchli-parol-77"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def test_admin_ozini_boshliq_qila_olmaydi(self):
+        r = self.client_for(self.admin).patch(
+            "/api/users/{}/role/".format(self.admin.pk),
+            {"global_role": GlobalRole.BOSS}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.admin.refresh_from_db()
+        self.assertEqual(self.admin.global_role, GlobalRole.ADMIN)
+
+    def test_admin_boshqa_odamni_boshliq_qila_oladi(self):
+        """Tayinlash qonuniy - hujjatda shunday yozilgan."""
+        r = self.client_for(self.admin).patch(
+            "/api/users/{}/role/".format(self.dev.pk),
+            {"global_role": GlobalRole.BOSS}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.dev.refresh_from_db()
+        self.assertEqual(self.dev.global_role, GlobalRole.BOSS)
+
+
+class DirectoryScopeTest(ApiTestCase):
+    """KATALOG - hamkasblar ro'yxati, butun tashkilot emas.
+
+    Ro'yxatdan o'tish hammaga ochiq, javobda esa `email` bor va qidiruv
+    ham `email` bo'yicha ishlaydi. Chegara bo'lmasa bitta yangi hisob
+    butun pochta katalogini yig'ib olish uchun yetardi.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        # Hech qayerda a'zo bo'lmagan yangi hisob.
+        cls.newcomer = make_user("yangi@sinov.uz", "Yangi Kelgan")
+
+    def test_hamkasbi_yoq_odam_faqat_ozini_koradi(self):
+        r = self.client_for(self.newcomer).get("/api/users/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual([u["id"] for u in r.data["results"]], [self.newcomer.pk])
+
+    def test_begona_odamni_email_boyicha_qidirib_bolmaydi(self):
+        r = self.client_for(self.newcomer).get("/api/users/", {"search": self.dev.email})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["results"], [])
+
+    def test_begona_odamning_sahifasi_ochilmaydi(self):
+        r = self.client_for(self.newcomer).get("/api/users/{}/".format(self.dev.pk))
+        self.assertEqual(r.status_code, 404)
+
+    def test_yozishma_qidiruvi_ham_shu_chegaradan_otadi(self):
+        """Ikkinchi eshik ochiq qolsa chegaraning ma'nosi qolmaydi."""
+        r = self.client_for(self.newcomer).get(
+            "/api/chat/messages/people/", {"q": self.dev.email})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, [])
+
+    def test_bir_loyihadagilar_bir_birini_koradi(self):
+        ids = [u["id"] for u in self.client_for(self.dev).get("/api/users/").data["results"]]
+        self.assertIn(self.manager.pk, ids)
+        self.assertNotIn(self.newcomer.pk, ids)
+
+    def test_bir_maydondagilar_bir_birini_koradi(self):
+        WorkspaceMember.objects.create(workspace=self.workspace, user=self.newcomer)
+        WorkspaceMember.objects.create(workspace=self.workspace, user=self.outsider)
+        ids = [u["id"] for u in
+               self.client_for(self.newcomer).get("/api/users/").data["results"]]
+        self.assertIn(self.outsider.pk, ids)
+
+    def test_admin_hammani_koradi(self):
+        ids = [u["id"] for u in self.client_for(self.admin).get("/api/users/").data["results"]]
+        for who in (self.dev, self.manager, self.outsider, self.newcomer):
+            self.assertIn(who.pk, ids)
+
+    def test_boshliq_hammani_koradi(self):
+        boss = make_user("boshliq@sinov.uz", "Boshliq", role="BOSS")
+        ids = [u["id"] for u in self.client_for(boss).get("/api/users/").data["results"]]
+        self.assertIn(self.dev.pk, ids)
+        self.assertIn(self.newcomer.pk, ids)
+
+
 class DashboardCountTest(ApiTestCase):
     """Panel sanoqlari ko'rsatiladigan sahifa uzunligiga bog'lanmasin."""
 

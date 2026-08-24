@@ -35,9 +35,11 @@ from urllib.parse import urlencode
 from django.http import Http404, HttpRequest, QueryDict
 from django.urls import Resolver404, resolve
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+from .throttles import ReadGatewayThrottle
 
 # Darvoza orqali o'qishga ruxsat etilgan yo'l boshi.
 API_PREFIX = "/api/"
@@ -165,6 +167,7 @@ def _sub_request(outer, path, query):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])   # ruxsatni ICHKARIDAGI view tekshiradi
+@throttle_classes([ReadGatewayThrottle])   # tezlikni esa BU YER
 def read(request):
     """Tanadagi yo'lni ichki GET ga aylantirib, javobini qaytaradi."""
     path = _clean_path(request.data.get("path"))

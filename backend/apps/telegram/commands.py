@@ -14,7 +14,7 @@ emas, bog'lanishning yagona yo'li.
 import logging
 
 from . import client
-from .models import TelegramLink, normalize_username, user_lookup
+from .models import TelegramLink
 from .services import esc
 
 logger = logging.getLogger(__name__)
@@ -28,16 +28,17 @@ WELCOME = (
     "Bot faqat xabar yuboradi. Ishlar, ro'yxatlar va hisobotlar ilovada."
 )
 
-NOT_LINKED = (
-    "Bu Telegram akkaunti hech qaysi TeamFlow hisobiga bog'lanmagan.\n\n"
-    "Ilovaga kiring -> <b>Profil</b> -> <b>Tahrirlash</b> -> Telegram maydoniga "
-    "<code>{name}</code> deb yozing va shu yerga qaytib /start bosing."
-)
-
-NO_USERNAME = (
-    "Telegram akkauntingizda username yo'q. Telegram sozlamalaridan username "
-    "qo'ying, keyin ilovadagi profilingizga o'sha nomni yozing va bu yerga "
-    "qaytib /start bosing."
+# Kodsiz yoki eskirgan kod bilan kelgan `/start`.
+#
+# Ilgari bu yerda profildagi username bo'yicha qidiruv turardi va matn
+# ham shuni aytardi. Endi bog'lanish faqat ilovadagi tugmadan boshlanadi:
+# kod hisobga kirgan odamdagina bo'ladi (`linkcode.py`).
+NEED_CODE = (
+    "Bog'lanish uchun havola ilovadan olinadi.\n\n"
+    "TeamFlow ga kiring -> <b>Profil</b> -> <b>Telegram</b> -> "
+    "<b>Telegramga ulash</b> tugmasini bosing. Havola shu suhbatni ochadi "
+    "va bog'lanish o'zi tugaydi.\n\n"
+    "Havola 15 daqiqa amal qiladi - eskirgan bo'lsa ilovadan yangisini oling."
 )
 
 # Har qanday boshqa xabarga - qisqa javob. Bot jim qolsa odam "yetib
@@ -49,25 +50,27 @@ ONLY_NOTIFICATIONS = (
 )
 
 
-def _bind(chat, username):
-    """Kelgan xabarni hisobga moslaydi va bog'lanishni yozadi.
+def _bind(chat, code):
+    """Bir martalik kod bo'yicha hisobni topib, bog'lanishni yozadi.
 
-    Moslash PROFILDAGI Telegram maydoni bo'yicha (`accounts.User.telegram`)
-    - odam u yerga o'z username'ini allaqachon yozgan. Topilmasa `None`
-    qaytadi va odamga nima qilish kerakligi aytiladi.
+    Kod ilovadagi «Telegramga ulash» tugmasidan keladi va imzolangan
+    (`linkcode.py`), ya'ni u faqat HISOBGA KIRGAN odamda bo'ladi.
+
+    Ilgari moslash profildagi `telegram` maydoni bo'yicha edi. U maydonni
+    hech kim tasdiqlamaydi va begonaning username'ini yozib qo'yish
+    mumkin edi - kimningdir bildirishnomalari boshqa odamning
+    Telegramiga tushardi (`linkcode.py` dagi izoh).
 
     Bitta Telegram akkaunti - bitta hisob: shu `chat_id` boshqa odamga
     bog'langan bo'lsa, eskisi uziladi.
     """
-    from django.contrib.auth import get_user_model
+    from .linkcode import read_code
 
-    name = normalize_username(username)
     chat_id = chat.get("id")
-    if not name or not chat_id:
+    if not chat_id:
         return None
 
-    User = get_user_model()
-    user = User.objects.filter(user_lookup(name), is_active=True).first()
+    user = read_code(code)
     if user is None:
         return None
 
@@ -86,7 +89,6 @@ def handle(update):
     """Bitta yangilikni qayta ishlaydi. Javob yuborilsa `True`."""
     message = (update or {}).get("message") or {}
     chat = message.get("chat") or {}
-    sender = message.get("from") or {}
     text = (message.get("text") or "").strip()
 
     chat_id = chat.get("id")
@@ -101,11 +103,14 @@ def handle(update):
         client.send_message(chat_id, ONLY_NOTIFICATIONS)
         return True
 
-    link = _bind(chat, sender.get("username"))
+    # `/start <kod>` - kod havoladan keladi (`?start=` ni Telegram shu
+    # ko'rinishga o'giradi). Kodsiz `/start` bog'lamaydi.
+    parts = text.split(maxsplit=1)
+    code = parts[1].strip() if len(parts) > 1 else ""
+
+    link = _bind(chat, code)
     if link is None:
-        who = sender.get("username")
-        reply = NOT_LINKED.format(name=esc(who)) if who else NO_USERNAME
-        client.send_message(chat_id, reply)
+        client.send_message(chat_id, NEED_CODE)
         return True
 
     client.send_message(chat_id, WELCOME.format(name=esc(link.user.full_name)))

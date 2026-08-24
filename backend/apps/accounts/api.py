@@ -238,6 +238,8 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         from apps.projects.models import ProjectMember
         from apps.tasks.models import TaskAssignment
 
+        from .directory import visible_people_q
+
         qs = User.objects.annotate(
             project_count=related_count(ProjectMember, group_by="user", is_active=True),
             open_tasks=related_count(
@@ -245,6 +247,11 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 task__status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS,
                                   TaskStatus.IN_REVIEW]),
         )
+        # KATALOG CHEGARASI: odam o'zi bilan ishlaydigan odamlarni ko'radi.
+        # Ilgari bu ro'yxat tizimdagi HAMMA hisobni, `email` bilan birga
+        # qaytarardi - qidiruv esa `email` bo'yicha ham ishlaydi. Sababi va
+        # to'liq qoida `accounts/directory.py` da.
+        qs = qs.filter(visible_people_q(self.request.user))
         # O'chirilgan hisoblar ro'yxatda turmaydi - ular na qidiruvda, na
         # odam tanlash oynasida kerak. Adminga kerak bo'lsa `?inactive=1`.
         if self.request.query_params.get("inactive") == "1":
@@ -417,6 +424,23 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                     "detail": "Bu oxirgi tizim admini - uni tushirsak platforma "
                               "boshqaruvsiz qoladi."})
 
+        # BOSHLIQLIKNI O'ZIGA BERIB BO'LMAYDI.
+        #
+        # Boshqa odamga berish qonuniy va hujjatda yozilgan - admin
+        # tashkilotdagi boshliqni tayinlaydi. O'ziga berish esa boshqa
+        # narsa: rollar aynan shuning uchun ajratilgan - «taklif bo'yicha
+        # qarorni faqat boshliq qabul qiladi, tizim admini ham qila
+        # olmaydi» (`GlobalRole`). Admin o'ziga boshliqlik berса, o'z
+        # taklifini o'zi tasdiqlay oladi va ajratmaning ma'nosi qolmaydi.
+        #
+        # Qoida `revoke_admin` dagi «o'z huquqingni o'zing olib qo'ymaysan»
+        # bilan bir juft: huquq ham, javobgarlik ham boshqa odam orqali
+        # o'tadi va tarixda kim bergani ko'rinib turadi.
+        if role == GlobalRole.BOSS and target.pk == request.user.pk:
+            raise ValidationError({
+                "global_role": "Boshliqlik huquqini o'zingizga o'zingiz bera "
+                               "olmaysiz - buni boshqa admin qiladi."})
+
         if role and role in dict(User._meta.get_field("global_role").choices):
             target.global_role = role
         if "is_active" in request.data:
@@ -461,10 +485,29 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         Bosh hisobga tegib bo'lmaydi: uning paroli faqat o'zi orqali
         almashadi, aks holda bitta admin butun platformani egallab olishi
         mumkin edi.
+
+        BOSHLIQ HAM SHU HIMOYADA. Loyihaning qat'iy qoidasi bor: taklifni
+        faqat boshliq tasdiqlaydi va «tizim admini ham qila olmaydi»
+        (`GlobalRole` izohi, `SuggestionViewSet.decide`). Bu yerda o'sha
+        qoida amalda bekor bo'lardi - admin boshliqning parolini qo'yib,
+        uning hisobiga kirib, o'z taklifini o'zi tasdiqlay olardi. Ya'ni
+        rollarni ajratish tashkiliy kelishuv bo'lib qolar, texnik chegara
+        bo'lmasdi.
+
+        Boshliq parolini unutsa: o'zi `/api/auth/change-password/` orqali
+        almashtiradi; hisobga umuman kirib bo'lmasa `backend/.env` dagi
+        `BOSS_EMAIL` ni yangi manzilga o'zgartirib `manage.py
+        bootstrap_boss` chaqiriladi - u yangi boshliq hisobini yaratadi.
         """
         target = self.get_object()
-        if target.is_superuser and target.pk != request.user.pk:
-            raise ValidationError({"detail": "Bosh hisobning parolini almashtirib bo'lmaydi."})
+        if target.pk != request.user.pk:
+            if target.is_superuser:
+                raise ValidationError({
+                    "detail": "Bosh hisobning parolini almashtirib bo'lmaydi."})
+            if target.is_boss:
+                raise ValidationError({
+                    "detail": "Boshliq hisobining parolini almashtirib bo'lmaydi - "
+                              "takliflar bo'yicha qaror faqat unga tegishli."})
 
         password = (request.data.get("password") or "").strip()
         if not password:

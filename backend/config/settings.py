@@ -240,6 +240,9 @@ REST_FRAMEWORK = {
         "invite": "40/hour",     # jamoaga a'zo qo'shish - to'p-to'p qo'shib tashlamasin
         "auth": "20/min",        # kirish va ro'yxatdan o'tish urinishlari
         "search": "120/min",     # odam qidirish
+        # O'qish shlyuzi: hamma o'qish shu bitta manzildan o'tadi, shuning
+        # uchun chegara keng - sabab `apps/core/throttles.py` da.
+        "read": "600/min",
     },
 }
 

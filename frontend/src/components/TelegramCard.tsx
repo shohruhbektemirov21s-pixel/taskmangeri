@@ -1,10 +1,16 @@
 /**
  * Telegram bog'lanishi — o'z profilida.
  *
- * NEGA TUGMA BILAN ULANMAYDI. Telegram bot API `chat_id` talab qiladi va
- * uni faqat odam botga `/start` bosgandan keyin biladi (spamdan himoya).
- * Ya'ni ulanishni ilova o'zi boshlay olmaydi: bu yerda faqat holat
- * ko'rsatiladi va nima qilish kerakligi aytiladi.
+ * BITTA TUGMA. Havola serverdan keladi (`link_url`) va ichida shu hisob
+ * uchun imzolangan, 15 daqiqalik kod bor. Telegram uni `/start <kod>`
+ * xabari qilib botga yuboradi, bot esa kodni tekshirib bog'laydi -
+ * odam hech narsa yozmaydi.
+ *
+ * NEGA KOD KERAK. Ilgari bu yerda ikki qadamlik yo'riqnoma turardi:
+ * «profilingizga username yozing, keyin botga /start bosing». Bot esa
+ * o'sha maydon bo'yicha qidirardi va maydonni hech kim tasdiqlamasdi -
+ * begonaning username'ini yozib qo'yish mumkin edi
+ * (`backend/apps/telegram/linkcode.py`).
  *
  * Token qo'yilmagan bo'lsa (`enabled: false`) bo'lim UMUMAN chizilmaydi -
  * ishlamaydigan sozlama ko'rsatib, odamni ovora qilmaydi.
@@ -17,11 +23,13 @@ import { tx } from "@/i18n";
 interface TelegramState {
   enabled: boolean;
   bot_username: string;
-  /** Profildagi Telegram maydonidan olingan nom - bot aynan shuni qidiradi. */
+  /** Profildagi Telegram maydoni - faqat ma'lumot uchun, bog'lashda ishlatilmaydi. */
   username: string;
   is_linked: boolean;
   is_muted: boolean;
   linked_at: string | null;
+  /** Bir martalik ulash havolasi. Bog'langan hisobda bo'sh keladi. */
+  link_url: string;
 }
 
 export default function TelegramCard() {
@@ -50,9 +58,6 @@ export default function TelegramCard() {
   // Sozlanmagan yoki o'qib bo'lmagan - bo'lim ko'rinmaydi.
   if (!state?.enabled) return null;
 
-  const bot = state.bot_username ? `@${state.bot_username}` : "botni";
-  const botUrl = state.bot_username ? `https://t.me/${state.bot_username}` : null;
-
   return (
     <Card title={tx("telegram_card.telegram")}>
       {state.is_linked ? (
@@ -64,9 +69,12 @@ export default function TelegramCard() {
               <small className="muted">{fmtDateTime(state.linked_at)}</small>
             )}
           </p>
+          {/* Ilgari bu yerda `/vazifalarim`, `/bugun` va `/tekshiruv`
+              buyruqlari sanalardi. Ular botdan OLIB TASHLANGAN
+              (`telegram/commands.py`) - matn esa qolib ketgan edi va
+              odamga ishlamaydigan buyruqni va'da qilardi. */}
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            {tx("telegram_card.bildirishnomalar_telegramga_ham_keladi_botda")} <code>{tx("telegram_card.vazifalarim")}</code>,{" "}
-            <code>{tx("telegram_card.bugun")}</code> {tx("telegram_card.va")} <code>{tx("telegram_card.tekshiruv")}</code> {tx("telegram_card.buyruqlari_bor")}
+            {tx("telegram_card.faqat_xabar_yuboradi")}
           </p>
           <div className="row" style={{ gap: 8 }}>
             <button type="button" className="btn btn-sm" disabled={busy}
@@ -85,26 +93,23 @@ export default function TelegramCard() {
           <p className="row" style={{ gap: 8, margin: 0 }}>
             <span className="badge">{tx("telegram_card.boglanmagan")}</span>
           </p>
-          {/* Ikki qadam - ikkinchisini ilova bajara olmaydi, shuning uchun
-              ular ochiq ro'yxat bo'lib turadi. */}
-          <ol className="tg-steps">
-            <li>
-              {tx("telegram_card.profilingizdagi")} <strong>{tx("telegram_card.telegram")}</strong> {tx("telegram_card.maydoniga_usernameingizni_yozing")}
-              {state.username
-                ? <> {tx("telegram_card.hozir")} <code>@{state.username}</code> {tx("telegram_card.turibdi")}</>
-                : <> {tx("telegram_card.hozir")} <strong>{tx("telegram_card.bosh")}</strong></>}
-            </li>
-            <li>
-              {botUrl
-                ? <>{tx("telegram_card.telegramda")} <a href={botUrl} target="_blank" rel="noreferrer">{bot}</a> {tx("telegram_card.ni_oching")}</>
-                : <>{tx("telegram_card.telegramda")} {bot} {tx("telegram_card.oching")}</>}{" "}
-              {tx("telegram_card.va")} <code>{tx("telegram_card.start")}</code> {tx("telegram_card.bosing")}
-            </li>
-          </ol>
-          <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
-            {tx("telegram_card.bot_usernameingizni_profildagi_nom_bilan")}
-            <code>{tx("telegram_card.start")}</code> {tx("telegram_card.bosish_shart")}
-          </p>
+          {state.link_url ? (
+            <>
+              {/* Havola HAR SAFAR yangi kod bilan keladi, shuning uchun
+                  sahifa ochilganda olinadi va saqlanmaydi. */}
+              <a className="btn btn-sm btn-primary" style={{ alignSelf: "flex-start" }}
+                 href={state.link_url} target="_blank" rel="noreferrer">
+                {tx("telegram_card.telegramga_ulash")}
+              </a>
+              <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
+                {tx("telegram_card.havola_bir_martalik")}
+              </p>
+            </>
+          ) : (
+            <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
+              {tx("telegram_card.bot_sozlanmagan")}
+            </p>
+          )}
         </div>
       )}
     </Card>

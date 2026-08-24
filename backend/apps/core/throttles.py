@@ -15,6 +15,24 @@ Endi ikkovi shu yerdan oladi.
 from rest_framework.throttling import ScopedRateThrottle
 
 
+class ReadGatewayThrottle(ScopedRateThrottle):
+    """O'qish shlyuzi - 600/daqiqa (`settings.DEFAULT_THROTTLE_RATES`).
+
+    Shlyuz `AllowAny` va ichkaridagi view ni o'zi chaqiradi
+    (`apps/core/read.py`), ya'ni tashqi so'rovga hech qanday cheklov
+    qo'llanmasdi: ruxsat ham, tezlik ham ICHKARIDAGI view ga tashlab
+    qo'yilgan edi. Ko'p o'qish endpointida esa `throttle_scope` yo'q -
+    ular uchun cheklov umuman bo'lmasdi.
+
+    Chegara ATAYLAB keng: bitta sahifa ochilishi bir necha o'qish
+    yuboradi va real-time yangilanishlar ustiga qo'shiladi. Maqsad
+    kundalik ishga tegish emas - avtomatlashtirilgan qirqib olishning
+    (scraping) tezligini cheklash.
+    """
+
+    scope = "read"
+
+
 class AddMemberThrottle(ScopedRateThrottle):
     """Jamoaga a'zo qo'shish - 40/soat (`settings.DEFAULT_THROTTLE_RATES`).
 

@@ -186,8 +186,17 @@ class ChatMessageViewSet(mixins.ListModelMixin,
         `?q=` bo'sh bo'lsa oxirgi qo'shilganlardan bir nechtasi qaytadi,
         shunda foydalanuvchi bo'sh ekranga qaramaydi.
         """
+        from apps.accounts.directory import visible_people_q
+
         q = (request.query_params.get("q") or "").strip()
-        qs = User.objects.filter(is_active=True).exclude(pk=request.user.pk)
+        # Qidiruv KATALOG chegarasidan o'tadi - `/api/users/` bilan bir xil
+        # qoida (`accounts/directory.py`). Ilgari bu yer tizimdagi hamma
+        # hisobni `email` bilan qaytarardi va katalogni yig'ib olishning
+        # ikkinchi yo'li edi: `/api/users/` yopilib, bu ochiq qolsa
+        # chegaraning ma'nosi qolmasdi.
+        qs = (User.objects.filter(is_active=True)
+              .filter(visible_people_q(request.user))
+              .exclude(pk=request.user.pk))
         if q:
             qs = qs.filter(Q(full_name__icontains=q) | Q(email__icontains=q))
         qs = qs.order_by("full_name")[:25]

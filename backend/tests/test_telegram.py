@@ -8,6 +8,7 @@ from unittest import mock
 
 from apps.tasks.models import Task, TaskAssignment
 from apps.telegram import commands
+from apps.telegram.linkcode import make_code
 from apps.telegram.models import TelegramLink, normalize_username
 
 from .base import ApiTestCase
@@ -66,33 +67,44 @@ class BotCommandTest(ApiTestCase):
         return self.sent[-1][1] if self.sent else ""
 
     # ---------------------------------------------------------- bog'lanish
-    def test_start_profildagi_username_boyicha_boglaydi(self):
-        commands.handle(update(self.CHAT, "/start"))
+    #
+    # BOG'LANISH BIR MARTALIK KOD BILAN. Ilgari u profildagi `telegram`
+    # maydoni bo'yicha edi: maydonni hech kim tasdiqlamaydi, ya'ni begona
+    # username'ni yozib qo'yib, o'sha odamning `chat_id` sini o'z hisobiga
+    # tortib olish mumkin edi (`telegram/linkcode.py`).
+    def test_kod_bilan_boglaydi(self):
+        commands.handle(update(self.CHAT, "/start " + make_code(self.dev)))
         link = TelegramLink.objects.get(user=self.dev)
         self.assertEqual(link.chat_id, self.CHAT)
         self.assertIn(self.dev.full_name, self.last())
 
-    def test_registr_va_at_belgisi_ahamiyatsiz(self):
-        commands.handle(update(self.CHAT, "/start", username="Dasturchi_Ali"))
-        self.assertTrue(TelegramLink.objects.filter(user=self.dev).exists())
-
-    def test_notanish_username_boglanmaydi(self):
-        commands.handle(update(self.CHAT, "/start", username="begona_odam"))
+    def test_kodsiz_start_boglamaydi(self):
+        commands.handle(update(self.CHAT, "/start"))
         self.assertFalse(TelegramLink.objects.exists())
-        self.assertIn("bog'lanmagan", self.last())
+        self.assertIn("Profil", self.last())
 
-    def test_usernamesiz_akkauntga_tushuntiriladi(self):
-        commands.handle(update(self.CHAT, "/start", username=None))
+    def test_profildagi_username_endi_yetarli_emas(self):
+        """Regressiya: username - tasdiqlanmagan maydon, kalit emas."""
+        self.assertEqual(self.dev.telegram, "@dasturchi_ali")
+        commands.handle(update(self.CHAT, "/start", username="dasturchi_ali"))
         self.assertFalse(TelegramLink.objects.exists())
-        self.assertIn("username", self.last())
+
+    def test_begona_kod_boglamaydi(self):
+        commands.handle(update(self.CHAT, "/start qalbaki-kod-12345"))
+        self.assertFalse(TelegramLink.objects.exists())
+        self.assertIn("Profil", self.last())
+
+    def test_eskirgan_kod_boglamaydi(self):
+        code = make_code(self.dev)
+        # Kod 15 daqiqa yashaydi - undan keyin yaroqsiz.
+        with mock.patch("apps.telegram.linkcode.MAX_AGE", -1):
+            commands.handle(update(self.CHAT, "/start " + code))
+        self.assertFalse(TelegramLink.objects.exists())
 
     def test_bitta_chat_bitta_hisob(self):
         """Chat boshqa hisobga o'tsa, eskisi uziladi."""
-        commands.handle(update(self.CHAT, "/start"))
-        self.manager.telegram = "menejer_bek"
-        self.manager.save(update_fields=["telegram"])
-
-        commands.handle(update(self.CHAT, "/start", username="menejer_bek"))
+        commands.handle(update(self.CHAT, "/start " + make_code(self.dev)))
+        commands.handle(update(self.CHAT, "/start " + make_code(self.manager)))
         self.assertFalse(TelegramLink.objects.filter(user=self.dev).exists())
         self.assertEqual(TelegramLink.objects.get(chat_id=self.CHAT).user, self.manager)
 
@@ -101,7 +113,7 @@ class BotCommandTest(ApiTestCase):
     # `/tekshiruv` olib tashlandi - ular ilovadagi sahifalarni Telegramda
     # takrorlardi. Quyidagi testlar shu qarorni bog'laydi.
     def test_eski_buyruqlar_ishlamaydi(self):
-        commands.handle(update(self.CHAT, "/start"))
+        commands.handle(update(self.CHAT, "/start " + make_code(self.dev)))
         for text in ("/vazifalarim", "/bugun", "/tekshiruv", "/uzish", "/yordam"):
             with self.subTest(text=text):
                 commands.handle(update(self.CHAT, text))
@@ -111,7 +123,7 @@ class BotCommandTest(ApiTestCase):
 
     def test_oddiy_matn_ham_shu_javobni_oladi(self):
         """Bot jim qolmaydi - aks holda odam «yetib bordimi?» deb o'ylardi."""
-        commands.handle(update(self.CHAT, "/start"))
+        commands.handle(update(self.CHAT, "/start " + make_code(self.dev)))
         self.assertTrue(commands.handle(update(self.CHAT, "salom")))
         self.assertIn("faqat bildirishnoma", self.last())
 
@@ -120,7 +132,7 @@ class BotCommandTest(ApiTestCase):
 
     def test_start_boglashda_davom_etadi(self):
         """`/start` ni olib tashlab bo'lmaydi - `chat_id` faqat shundan."""
-        commands.handle(update(self.CHAT, "/start"))
+        commands.handle(update(self.CHAT, "/start " + make_code(self.dev)))
         self.assertTrue(TelegramLink.objects.filter(user=self.dev).exists())
         self.assertIn("bog'landi", self.last())
 

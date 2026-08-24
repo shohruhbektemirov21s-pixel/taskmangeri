@@ -4267,6 +4267,22 @@
   "value": "/tekshiruv",
   "note": "components/TelegramCard.tsx"
  },
+ "telegram_card.telegramga_ulash": {
+  "value": "Telegramga ulash",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.havola_bir_martalik": {
+  "value": "Havola shu hisob uchun yasaladi va 15 daqiqa amal qiladi. Telegram ochiladi, qolganini bot o'zi bajaradi.",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.bot_sozlanmagan": {
+  "value": "Bot hali sozlanmagan - ulash havolasi yo'q.",
+  "note": "components/TelegramCard.tsx"
+ },
+ "telegram_card.faqat_xabar_yuboradi": {
+  "value": "Bildirishnomalar Telegramga ham keladi. Bot faqat xabar yuboradi - ishlar, ro'yxatlar va hisobotlar ilovada.",
+  "note": "components/TelegramCard.tsx"
+ },
  "telegram_card.telegram": {
   "value": "Telegram",
   "note": "components/TelegramCard.tsx"

@@ -77,4 +77,16 @@ def serve_media(request, path):
         # Fayl nomi saqlanadi, faqat "inline" -> "attachment" ga almashadi.
         disposition = response.headers.get("Content-Disposition", "inline")
         response.headers["Content-Disposition"] = disposition.replace("inline", "attachment", 1)
+
+    # UCHINCHI QATLAM. Birinchisi - yuklashda kengaytma bo'yicha rad etish
+    # (`core/uploads.py`), ikkinchisi - yuqoridagi `attachment`. Ikkovi ham
+    # FAYL NOMIGA va serverning turni to'g'ri aniqlashiga tayanadi, ya'ni
+    # ular chetlab o'tilsa oxirgi to'siq qolmasdi.
+    #
+    # `default-src 'none'` - sahifa hech narsa yuklay olmaydi; `sandbox` -
+    # skript umuman ishga tushmaydi va fayl o'z originida turgan bo'lsa ham
+    # `localStorage` dagi tokenga yeta olmaydi. Rasm, PDF va matnni ko'rishga
+    # bu ta'sir qilmaydi - ular skript ishlatmaydi.
+    response.headers["Content-Security-Policy"] = "default-src 'none'; sandbox"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
