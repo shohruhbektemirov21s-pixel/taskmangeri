@@ -304,7 +304,8 @@ class BossSuggestionFiltersTest(ApiTestCase):
         """Eng muhim qulf: `status` filtri ko'rinish qoidasini aylanib o'tmasin.
 
         Chetdagi odam «tasdiqlanganlar» ni so'rasa ham, unga faqat OCHIQ
-        tasdiqlangan taklif chiqadi - yopig'i muallif va boshliqniki.
+        va ISM BILAN yozilgan taklif chiqadi. Yopig'i ham, anonimi ham
+        boshliqniki (va muallifniki) - `SuggestionViewSet.visible`.
         """
         c = self.client_for(self.outsider)
         ids = self.ids(c.get(self.URL, {"status": "APPROVED"}))
@@ -313,10 +314,11 @@ class BossSuggestionFiltersTest(ApiTestCase):
         ids = self.ids(c.get(self.URL, {"status": "REJECTED"}))
         self.assertEqual(ids, [])
 
-        # Filtrsiz so'rov ham yopiqni bermaydi.
+        # Filtrsiz so'rov ham na yopiqni, na anonimni bermaydi.
         ids = self.ids(c.get(self.URL))
-        self.assertCountEqual(ids, [self.open_pending.pk, self.open_approved.pk,
-                                    self.anon_open.pk])
+        self.assertCountEqual(ids, [self.open_pending.pk, self.open_approved.pk])
+        self.assertNotIn(self.anon_open.pk, ids)
+        self.assertNotIn(self.anon_closed.pk, ids)
 
     def test_muallif_oz_yopiq_taklifini_kesimda_ham_koradi(self):
         ids = self.ids(self.client_for(self.dev).get(self.URL, {"status": "REJECTED"}))

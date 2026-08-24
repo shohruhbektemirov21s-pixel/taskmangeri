@@ -333,8 +333,10 @@ class FilterTest(SuggestionTestCase):
         hidden = self.make(author=self.dev, title="Anonim gap", is_anonymous=True)
         for client in (self.api, self.boss_api, self.dev_api):
             self.assertNotIn(hidden.id, self.ids(client.get(URL, {"search": "Dasturchi Ali"})))
-        # Sarlavhasi bo'yicha esa odatdagidek topiladi.
-        self.assertIn(hidden.id, self.ids(self.api.get(URL, {"search": "Anonim gap"})))
+        # Sarlavhasi bo'yicha esa odatdagidek topiladi - LEKIN uni ko'ra
+        # oladigan odam uchun. Anonim taklif oddiy foydalanuvchiga umuman
+        # chiqmaydi (`visible`), shuning uchun bu yerda boshliq qidiradi.
+        self.assertIn(hidden.id, self.ids(self.boss_api.get(URL, {"search": "Anonim gap"})))
 
     def test_sana_va_davr_kesimi(self):
         """Kesim taklif QACHON yozilgani bo'yicha - `created_at`."""
@@ -651,3 +653,57 @@ class SoftDeleteTest(FileTest):
         self.assertFalse(SuggestionFile.objects.filter(pk=row.id).exists())
         self.assertTrue(SuggestionFile.all_objects.filter(pk=row.id).exists())
         self.assertTrue(os.path.exists(path), "fayl baytlari o'chirib yuborilgan")
+
+
+class AnonymousAndClosedVisibilityTest(SuggestionTestCase):
+    """Anonim va yopiq taklif - BOSHLIQQA aytilgan gap.
+
+    Ilgari anonimlik faqat MUALLIFNI yashirardi: taklifning o'zi
+    ro'yxatda hammaga turar, ism o'rnida «Anonim» yozilardi. Ya'ni odam
+    ismini yashirsa ham gapini butun jamoa oldida aytgan bo'lardi.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.anon_item = self.make(author=self.dev, title="Anonim gap",
+                                   is_anonymous=True)
+        self.closed_item = self.make(author=self.dev, title="Yopiq gap",
+                                     scope=SuggestionScope.CLOSED)
+        self.plain = self.make(author=self.dev, title="Ochiq gap")
+
+    def test_begona_odam_faqat_ochiq_va_ismli_taklifni_koradi(self):
+        rows = self.ids(self.client_for(self.outsider).get(URL))
+        self.assertEqual(rows, [self.plain.id])
+
+    def test_boshliq_hammasini_koradi(self):
+        rows = self.ids(self.boss_api.get(URL))
+        for item in (self.anon_item, self.closed_item, self.plain):
+            self.assertIn(item.id, rows)
+
+    def test_muallif_ozinikini_koradi(self):
+        """Aks holda odam yozgan taklifini o'zi kuzata olmasdi."""
+        rows = self.ids(self.dev_api.get(URL))
+        for item in (self.anon_item, self.closed_item, self.plain):
+            self.assertIn(item.id, rows)
+
+    def test_begona_odam_ochib_ham_kora_olmaydi(self):
+        c = self.client_for(self.outsider)
+        for item in (self.anon_item, self.closed_item):
+            self.assertEqual(c.get("%s%d/" % (URL, item.id)).status_code, 404)
+
+    def test_begona_odam_anonim_taklifga_ovoz_bera_olmaydi(self):
+        """Ko'rmaydigan narsaga ovoz ham berilmaydi."""
+        r = self.client_for(self.outsider).post(
+            "%s%d/vote/" % (URL, self.anon_item.id), {"choice": "FOR"}, format="json")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(SuggestionVote.objects.count(), 0)
+
+    def test_sanoqlar_royxat_bilan_bir_xil(self):
+        """Nishondagi son ko'rinadigan qatorlar bilan mos kelsin."""
+        counts = self.client_for(self.outsider).get(URL + "counts/").json()
+        self.assertEqual(counts["all"], 1)
+        self.assertEqual(counts["closed"], 0)
+
+        boss_counts = self.boss_api.get(URL + "counts/").json()
+        self.assertEqual(boss_counts["all"], 3)
+        self.assertEqual(boss_counts["closed"], 1)

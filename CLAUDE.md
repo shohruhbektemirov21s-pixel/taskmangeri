@@ -264,6 +264,11 @@ modullarini statik import QILMAYDI — avval lug'at keladi, keyin `bootstrap.tsx
 Jamoa taklif beradi, **boshliq** (`GlobalRole.BOSS`) qaror qiladi. Uchta
 qoida kodda ham, testda ham qulflangan — buzma:
 
+- **Anonim va YOPIQ taklif faqat BOSHLIQQA ko'rinadi** (va muallifning
+  o'ziga). Ikkovi ham boshliqqa aytilgan gap: yopig'i mavzusi bilan,
+  anonimi ismi bilan yopiq. Oddiy foydalanuvchi faqat ochiq va ism bilan
+  yozilgan takliflarni ko'radi (`SuggestionViewSet.visible`). Oqibati:
+  anonim taklifga jamoa ovoz bermaydi — u ro'yxatda ko'rinmaydi.
 - **Anonim taklifda muallif hech kimga ko'rsatilmaydi** — boshliqqa ham,
   `django-admin/` da ham. Bu BILDIRISHNOMAGA ham tegishli: `actor`
   foydalanuvchini to'liq ochadi (ismi, rasmi), shuning uchun anonim

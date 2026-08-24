@@ -1,9 +1,13 @@
 """Takliflar API.
 
-KO'RINISH QOIDASI (`get_queryset`):
+KO'RINISH QOIDASI (`visible`):
 
-  * boshliq — hammasini ko'radi (ochiq ham, yopiq ham);
-  * qolgan hamma — barcha OCHIQ takliflarni va O'ZINING yopiq takliflarini.
+  * boshliq — hammasini ko'radi (ochiq, yopiq, anonim);
+  * muallif — o'zining hamma taklifini;
+  * qolgan hamma — faqat OCHIQ va ISM BILAN yozilganini.
+
+Ya'ni yopiq ham, anonim ham boshliqqa aytilgan gap: birinchisi mavzusi
+bilan, ikkinchisi ismi bilan yopiq.
 
 TARTIB. Avval JAVOB KUTAYOTGANLAR, keyin qaror qilinganlar - bu qoida
 tanlangan tartibdan qat'i nazar ishlaydi (`ordering_for`). Tasdiqlangan
@@ -50,14 +54,33 @@ class SuggestionViewSet(viewsets.ModelViewSet):
     def visible(self, me):
         """Odam KO'RA oladigan takliflar - filtrlarsiz, sanoqlarsiz.
 
+        QOIDA. Oddiy foydalanuvchi faqat OCHIQ va ISM BILAN yozilgan
+        takliflarni ko'radi. Yopig'i ham, anonimi ham unga chiqmaydi -
+        ular BOSHLIQQA aytilgan gap.
+
+        Boshliq hammasini ko'radi (u qaror qiladi), muallif esa o'zinikini
+        - aks holda odam yozgan taklifini o'zi kuzata olmasdi va «Mening
+        takliflarim» bo'limi bo'sh qolardi.
+
+        ANONIMLIK ENDI KO'RINISHGA HAM TA'SIR QILADI. Ilgari u faqat
+        MUALLIFNI yashirardi: taklifning o'zi ro'yxatda hammaga turardi,
+        ism o'rnida «Anonim» yozilardi. Ya'ni odam ismini yashirsa ham
+        gapini butun jamoa oldida aytgan bo'lardi. Endi anonim taklif -
+        boshliq bilan yakkama-yakka suhbat.
+
+        OQIBATI: anonim taklifga jamoa OVOZ BERMAYDI - u ro'yxatda
+        ko'rinmaydi, ya'ni ovoz tugmalari ham faqat boshliqda va
+        muallifda bo'ladi. Bu qoidaning tabiiy natijasi: yakkama-yakka
+        aytilgan gapga ovoz berish uchun uni ko'rish kerak bo'lardi.
+
         Ro'yxat ham, `counts` ham shu yerdan boshlanadi. Ajralib qolsa
         nishondagi son bilan ochilgan ro'yxat bir-biriga to'g'ri kelmasdi:
         «Tasdiqlangan 6» deb yozilib, ichida to'rttasi turardi.
         """
         qs = Suggestion.objects.all()
         if not me.is_boss:
-            # Yopiq taklif - faqat egasiga. Boshliq bu shartdan tashqarida.
-            qs = qs.filter(Q(scope=SuggestionScope.OPEN) | Q(author=me))
+            qs = qs.filter(
+                Q(scope=SuggestionScope.OPEN, is_anonymous=False) | Q(author=me))
         return qs
 
     def get_queryset(self):
