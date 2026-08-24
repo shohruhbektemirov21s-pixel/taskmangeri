@@ -26,6 +26,8 @@ da. Tashqariga faqat SONLAR chiqadi va so'rayotgan odamning O'Z tanlovi.
 from django.conf import settings
 from django.db import models
 
+from apps.core.softdelete import SoftDeleteModel
+
 
 class SuggestionScope(models.TextChoices):
     OPEN = "OPEN", "Ochiq"
@@ -44,8 +46,17 @@ class VoteChoice(models.TextChoices):
     NEUTRAL = "NEUTRAL", "Betarafman"
 
 
-class Suggestion(models.Model):
-    """Bitta taklif."""
+class Suggestion(SoftDeleteModel):
+    """Bitta taklif.
+
+    YUMSHOQ O'CHIRILADI. Ilgari `perform_destroy` `instance.delete()`
+    chaqirardi va taklif bilan birga unga berilgan hamma ovoz, fayl va
+    boshliqning qarori CASCADE bilan yo'q bo'lardi - qaytarib bo'lmaydigan
+    holda. Loyihaning qolgan hamma yeri esa yumshoq o'chiradi
+    (`apps/core/softdelete.py`): «o'chirdim» degani «yo'qoldi» degani
+    emas. Taklif ham istisno bo'lishi uchun sabab yo'q edi - aksincha,
+    unda boshqa odamlarning ovozi bor.
+    """
 
     title = models.CharField("Sarlavha", max_length=200)
     body = models.TextField("Taklif matni")
@@ -131,8 +142,11 @@ def suggestion_file_path(instance, filename):
     return "suggestions/{}/{}".format(instance.suggestion_id, filename)
 
 
-class SuggestionFile(models.Model):
+class SuggestionFile(SoftDeleteModel):
     """Taklifga biriktirilgan fayl: hujjat, chizma, hisob-kitob.
+
+    Bu ham yumshoq o'chiriladi va faylning BAYTLARI diskda qoladi -
+    ilgari `item.file.delete()` ularni ham o'chirib yuborardi.
 
     KIM YUKLAGANI KO'RINADI — ro'yxatda fayl nomi yonida odamning ismi
     turadi. YAGONA ISTISNO: anonim taklif. U yerda ism chiqsa anonimlik

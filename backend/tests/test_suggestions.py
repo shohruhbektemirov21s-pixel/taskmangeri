@@ -601,3 +601,53 @@ class DecidedLastTest(SuggestionTestCase):
 
         rows = self.order(status=SuggestionStatus.APPROVED)
         self.assertIn(first.id, rows)
+
+
+class SoftDeleteTest(FileTest):
+    """O'chirilgan taklif YO'QOLMAYDI.
+
+    Ilgari `perform_destroy` `instance.delete()` chaqirardi va taklif
+    bilan birga unga berilgan hamma ovoz CASCADE bilan ketardi - boshqa
+    odamlarning fikri, qaytarib bo'lmaydigan holda. Loyihaning qolgan
+    hamma yeri esa yumshoq o'chiradi.
+
+    `FileTest` dan meros: fayl yuklovchi yordamchi (`upload`) o'sha
+    yerda va uni ikki joyda takrorlashning ma'nosi yo'q.
+    """
+
+    def test_ochirilgan_taklif_bazada_qoladi(self):
+        item = self.make()
+        self.assertEqual(self.dev_api.delete("%s%d/" % (URL, item.id)).status_code, 204)
+
+        self.assertFalse(Suggestion.objects.filter(pk=item.id).exists())
+        self.assertTrue(Suggestion.all_objects.filter(pk=item.id).exists())
+        self.assertIsNotNone(Suggestion.all_objects.get(pk=item.id).deleted_at)
+
+    def test_ochirilgan_taklif_royxatda_korinmaydi(self):
+        item = self.make()
+        self.dev_api.delete("%s%d/" % (URL, item.id))
+        self.assertNotIn(item.id, self.ids(self.boss_api.get(URL)))
+        self.assertEqual(self.boss_api.get("%s%d/" % (URL, item.id)).status_code, 404)
+
+    def test_ovozlar_yoqolmaydi(self):
+        """Eng muhimi: boshqa odamlarning fikri saqlanadi."""
+        item = self.make()
+        self.client_for(self.admin).post("%s%d/vote/" % (URL, item.id),
+                                         {"choice": "FOR"}, format="json")
+        self.assertEqual(SuggestionVote.objects.filter(suggestion=item).count(), 1)
+
+        self.dev_api.delete("%s%d/" % (URL, item.id))
+        self.assertEqual(SuggestionVote.objects.filter(suggestion=item).count(), 1)
+
+    def test_ochirilgan_fayl_baytlari_diskda_qoladi(self):
+        item = self.make()
+        self.upload(self.dev_api, item)
+        row = SuggestionFile.objects.get()
+        path = row.file.path
+
+        r = self.dev_api.delete("%s%d/files/%d/" % (URL, item.id, row.id))
+        self.assertEqual(r.status_code, 204)
+
+        self.assertFalse(SuggestionFile.objects.filter(pk=row.id).exists())
+        self.assertTrue(SuggestionFile.all_objects.filter(pk=row.id).exists())
+        self.assertTrue(os.path.exists(path), "fayl baytlari o'chirib yuborilgan")

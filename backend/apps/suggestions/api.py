@@ -200,7 +200,10 @@ class SuggestionViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         self._mine_or_403(instance)
-        instance.delete()
+        # YUMSHOQ o'chirish - loyihaning qolgan hamma yeri kabi. Ilgari
+        # `delete()` edi va taklif bilan birga unga berilgan ovozlar ham
+        # ketardi: boshqa odamlarning fikri, qaytarib bo'lmaydigan holda.
+        instance.soft_delete(self.request.user)
 
     # --------------------------------------------------------------- amallar
 
@@ -305,8 +308,9 @@ class SuggestionViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         self._mine_or_403(obj)
         item = get_object_or_404(SuggestionFile, pk=file_id, suggestion=obj)
-        item.file.delete(save=False)
-        item.delete()
+        # Faylning BAYTLARI diskda qoladi: `file.delete()` ularni butunlay
+        # o'chirardi va yozuvni tiklab ham bo'lmasdi.
+        item.soft_delete(request.user)
         return Response(status=http.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"], url_path="counts")
