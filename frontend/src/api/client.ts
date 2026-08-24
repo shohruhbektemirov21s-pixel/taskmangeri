@@ -2,6 +2,7 @@
  * Backend (Django REST) bilan ishlovchi yagona HTTP mijoz.
  * JWT tokenni localStorage da saqlaydi va 401 da avtomatik yangilaydi.
  */
+import { clearCache } from "./cache";
 import { tx } from "@/i18n";
 
 export const BASE = import.meta.env.VITE_API_URL || "/api";
@@ -207,13 +208,27 @@ async function request<T>(path: string, opts: RequestOptions = {}, retry = true)
  */
 const READ_PATH = "/read/";
 
+/**
+ * Yozgandan keyin kesh tozalanadi.
+ *
+ * Qaysi manzil qaysi javobga ta'sir qilishini aniq bilib bo'lmaydi:
+ * bitta vazifa yaratilishi panelga ham, doskaga ham, loyiha sanoqlariga
+ * ham tegadi. Tozalash arzon (keyingi so'rov qaytadan oladi), eski
+ * ma'lumotni ekranda ushlab turish esa qimmat.
+ */
+async function write<T>(path: string, opts: RequestOptions): Promise<T> {
+  const result = await request<T>(path, opts);
+  clearCache();
+  return result;
+}
+
 export const api = {
   get: <T,>(path: string, params?: RequestOptions["params"], signal?: AbortSignal) =>
     request<T>(READ_PATH, { method: "POST", body: { path, params: params || {} }, signal }),
-  post: <T,>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
-  patch: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
-  put: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
-  delete: <T,>(path: string) => request<T>(path, { method: "DELETE" }),
+  post: <T,>(path: string, body?: unknown) => write<T>(path, { method: "POST", body }),
+  patch: <T,>(path: string, body?: unknown) => write<T>(path, { method: "PATCH", body }),
+  put: <T,>(path: string, body?: unknown) => write<T>(path, { method: "PUT", body }),
+  delete: <T,>(path: string) => write<T>(path, { method: "DELETE" }),
 };
 
 /** Sahifalangan javobdan ro'yxatni oladi (paginated yoki oddiy massiv) */

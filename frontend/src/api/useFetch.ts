@@ -10,9 +10,19 @@
  *
  * POYGA. Filtrni yoki loyihani tez almashtirsangiz ikkita so'rov yo'lda
  * bo'ladi. Ular qaytish tartibi kafolatlanmagan: kechikkan ESKI javob
- * yangisining ustiga tushib, ekranda noto'g'ri ma'lumot qolardi. Endi eski
- * so'rov `AbortController` bilan bekor qilinadi, ustiga `alive` bayrog'i
- * ham bor - komponent yo'q bo'lgach holat umuman yozilmaydi.
+ * yangisining ustiga tushib, ekranda noto'g'ri ma'lumot qolardi. Buni
+ * `alive` bayrog'i yopadi: effekt tozalanganda u `false` bo'ladi va eski
+ * so'rov qaytganda holatga umuman yozmaydi.
+ *
+ * NEGA `AbortController` EMAS. So'rov endi umumiy (`api/cache.ts`): aynan
+ * shu manzil bir vaqtda bir necha komponentga kerak bo'lishi mumkin va
+ * ular bitta va'dani bo'lishadi. Birini bekor qilish qolganlarini javobsiz
+ * qoldirardi. Uzilgan so'rov esa baribir keshga tushadi - ya'ni «bekor
+ * qilingan» ish behuda ketmaydi.
+ *
+ * KESH. Keshdagi javob darrov beriladi, keyin fon rejimida yangilanadi.
+ * Ekran bo'sh qolmaydi, ma'lumot esa eskirmaydi. Tafsiloti va muddatlar -
+ * `api/cache.ts` da.
  *
  * HAR HARFDA SO'ROV. Qidiruv maydoni bevosita parametrga ulanganda har
  * bosilgan tugma bitta so'rov tug'dirardi - "arxitektura" so'zini yozguncha
@@ -21,6 +31,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "./client";
+import { keyOf, peek, share } from "./cache";
 import { tx } from "@/i18n";
 
 type Params = Record<string, string | number | boolean | undefined | null>;
@@ -64,14 +75,15 @@ export function useFetch<T>(path: string | null, params?: Params, opts: Options 
   // bo'lardi. Matnga aylantirib solishtiramiz.
   const key = JSON.stringify(params ?? null);
   const lastPath = useRef<string | null>(null);
+  const lastTick = useRef(0);
 
   useEffect(() => {
     if (!path) {
       setPending(false);
       return;
     }
-    const ctl = new AbortController();
     let alive = true;
+    const cacheKey = keyOf(path, params ?? null);
 
     // Manzil o'zgarganda eski ma'lumot tozalanadi - u boshqa narsaga tegishli.
     // Faqat filtr o'zgargan bo'lsa esa ekranda qoladi: aks holda har filtr
@@ -81,19 +93,34 @@ export function useFetch<T>(path: string | null, params?: Params, opts: Options 
       setData(null);
     }
     setError(null);
+
+    // KESHDAGISI DARROV. Ekran bo'sh qolmaydi va odam bir soniya oldin
+    // ko'rgan ro'yxatini qaytadan kutmaydi. Yangi bo'lmasa ham
+    // ko'rsatiladi - ostidan yangilanadi (`stale-while-revalidate`).
+    const cached = peek(cacheKey);
+    if (cached) setData(cached.value as T);
+
+    // Kesh YANGI bo'lsa va bu qayta so'rov emas - tarmoqqa umuman
+    // chiqmaymiz. `tick` (ya'ni `reload()`) bu shartni chetlab o'tadi:
+    // odam ataylab yangilashni so'ragan.
+    if (cached?.fresh && tick === lastTick.current) {
+      setPending(false);
+      return;
+    }
+    lastTick.current = tick;
     setPending(true);
 
     const run = () => {
-      api.get<T>(path, params, ctl.signal)
+      // `share` - aynan shu so'rov allaqachon yo'lda bo'lsa, yangisi
+      // ochilmaydi (`api/cache.ts`).
+      share(cacheKey, () => api.get<T>(path, params))
         .then((d) => {
           if (!alive) return;
-          setData(d);
+          setData(d as T);
           setPending(false);
         })
         .catch((e) => {
-          // Bekor qilingan so'rov xato emas - shunchaki kerak bo'lmay qoldi.
-          // Bunda `pending` ni ham o'chirmaymiz: o'rniga yangi so'rov ketgan.
-          if (!alive || (e instanceof DOMException && e.name === "AbortError")) return;
+          if (!alive) return;
           setError(e instanceof ApiError ? e.message : tx("api_use_fetch.malumotni_yuklab_bolmadi"));
           setPending(false);
         });
@@ -106,11 +133,13 @@ export function useFetch<T>(path: string | null, params?: Params, opts: Options 
     return () => {
       alive = false;
       window.clearTimeout(timer);
-      ctl.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, key, tick, debounceMs]);
 
+  // `reload()` KESHNI CHETLAB O'TADI: odam (yoki jonli signal) ataylab
+  // yangilashni so'ragan bo'lsa, unga eski javobni qaytarishning ma'nosi
+  // yo'q.
   const reload = useCallback(() => setTick((t) => t + 1), []);
   return { data, error, loading: pending && data === null, pending, reload };
 }
