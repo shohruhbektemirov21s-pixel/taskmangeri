@@ -340,7 +340,16 @@ class Project(models.Model):
         """
         # Qulf loyihaning o'ziga qo'yiladi: vazifalar jadvalini emas, bitta
         # qatorni band qilamiz - boshqa loyihalar erkin ishlayveradi.
-        type(self).objects.select_for_update().filter(pk=self.pk).exists()
+        #
+        # Backend qo'llasagina: SQLite `SELECT ... FOR UPDATE` ni bilmaydi
+        # va Django `NotSupportedError` beradi. Testlar SQLite da yuguradi
+        # (`config/settings.py` dagi `USE_SQLITE`), u yerda esa qulf shart
+        # ham emas - bitta jarayon, bitta ulanish. Produksiyada (Db2) qulf
+        # oldingidek qo'yiladi va poyga o'sha yerda to'siladi.
+        from django.db import connection
+
+        if connection.features.has_select_for_update:
+            type(self).objects.select_for_update().filter(pk=self.pk).exists()
         # `self.tasks` standart menejerdan yasaladi va o'chirilganlarni
         # yashiradi - u bilan sanasak o'chirilgan vazifaning raqami qayta
         # ishlatilib, `unique_together (project, number)` buzilardi.

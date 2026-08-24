@@ -2611,23 +2611,45 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    kengligi kichik, bo'sh joy esa 2:4 nisbatda qidiruv va tanlovlar
    orasida bo'linadi. Panel keng ekranda ham, tor ekranda ham bitta
    qatorda qoladi va faqat haqiqatan sig'masa bo'linadi. */
-.wl .filters { padding: 12px 14px; gap: 10px; }
+/* YUQORIDAN tekislanadi, pastdan emas.
+   `.filters` ning umumiy qoidasi `align-items: flex-end` - u bitta
+   qatorli panel uchun to'g'ri. Bu yerda esa panelning o'ng yarmi
+   (`.wl-filters`) o'zi o'raladigan guruh: joy yetmasa u IKKI QATOR
+   bo'lib balandlashadi. O'shanda `flex-end` chapdagi qidiruv maydonini
+   guruhning PASTKI qatoriga tekislab qo'yardi - natijada qidiruv
+   ikkinchi qatorga tushib qolgandek ko'rinardi va yorlig'i tanlovlar
+   yorlig'idan ajralib turardi. Aynan shu holat «Tozalash» tugmasi
+   paydo bo'lganda (filtr tanlanganda) yuz berardi.
+   `flex-start` da qidiruv doim birinchi qator bilan bir sathda:
+   hamma maydon bir xil tuzilishda (yorliq + boshqaruv), ya'ni
+   yuqoridan tekislanganda ular baribir bir chiziqda turadi. */
+.wl .filters { padding: 12px 14px; gap: 10px; align-items: flex-start; }
 .wl .filters label { font-size: 11px; margin-bottom: 4px; }
 .wl .filters .f { min-width: 0; flex: 1 1 130px; }
 .wl .filters select, .wl .filters input { width: 100%; }
 .wl .filters .wl-search { flex: 2 1 180px; }
 /* Sana maydoni matn maydoni kengligida cho'zilib ketmasin. */
-.wl .filters .wl-date { flex: 1 1 140px; }
+.wl .filters .wl-date { flex: 1 1 118px; }
 /* Tanlovlar guruhi - o'ng tomonda, o'zi ham cho'ziladigan qatoriq.
    `margin-left: auto` endi kerak emas: guruh bo'sh joyning kattaroq
    ulushini olgani uchun o'zi o'ng chekkaga tayanadi. */
 .wl .filters .wl-filters {
-  display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+  display: flex; gap: 10px; align-items: flex-end;
   flex: 4 1 520px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
-.wl .filters .wl-filters .f { flex: 1 1 120px; }
+.wl .filters .wl-filters .f { flex: 1 1 114px; }
 /* «Tozalash» yorliqsiz - qolgan maydonlar bilan bir sathda tursin. */
 .wl .filters .wl-filters .btn-ghost { flex: 0 0 auto; }
+/* Panelning o'ng chetidagi boshqaruvlar: «Faqat meniki» va «Tozalash».
+   Ular yorliqli maydon emas, shuning uchun maydonlar guruhidan tashqarida
+   turadi va siqilmaydi. `flex-end` - yorlig'i yo'q, ya'ni maydonlarning
+   PASTKI chizig'iga tekislanadi. */
+.wl .filters .wl-toggles {
+  display: flex; align-items: center; gap: 12px;
+  flex: 0 0 auto; align-self: flex-end; padding-bottom: 8px;
+}
 
 /* Telefonda ulush ishlamaydi - joy yo'q. Qidiruv o'z qatorini oladi,
    tanlovlar esa IKKITADAN tushadi: to'rttasi ustma-ust bo'lsa panel yana
@@ -2891,8 +2913,18 @@ textarea { resize: vertical; min-height: 92px; padding: 11px 14px; }
    ko'p qo'llab-quvvatlangan» 120px lik tayanch kenglikda «Barcha hola...»
    bo'lib qirqilardi. Qat'iy kenglik emas, ULUSH - panel tor ekranda ham
    bitta qatorda qoladi. */
-.sg .filters .wl-filters .sg-status { flex: 1.4 1 160px; }
-.sg .filters .wl-filters .sg-sort { flex: 1.8 1 200px; }
+/* Qidiruv maydoni umumiy qoidada bo'sh joyning katta ulushini oladi
+   (`flex: 2`). Takliflar panelida esa maydon OLTITA - qidiruv o'sha
+   ulushni olsa, oxirgisi («Saralash») qatorga sig'may qolardi. Bu yerda
+   ulush tenglashtiriladi: qidiruv baribir eng keng maydon bo'lib
+   qoladi, chunki tayanchi kattaroq. */
+.sg .filters .wl-search { flex: 1 1 170px; }
+.sg .filters .wl-filters .sg-status { flex: 1.4 1 145px; }
+/* Saralash matni uzun («Eng ko'p qo'llab-quvvatlangan»), shuning uchun
+   tayanchi kattaroq. `max-width` esa u O'RALIB ikkinchi qatorga
+   tushganda kerak: o'sha yerda yolg'iz qolib, butun qatorni egallab
+   cho'zilib ketardi va panel qiyshiq ko'rinardi. */
+.sg .filters .wl-filters .sg-sort { flex: 1.6 1 164px; max-width: 280px; }
 
 /* «Faqat meniki» - filtr panelidagi boshqa maydonlar bilan bir sathda.
    Bu YORLIQ emas, belgi: `.filters label` ning katta harflari va keng

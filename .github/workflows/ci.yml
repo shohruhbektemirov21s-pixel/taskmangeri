@@ -112,10 +112,29 @@ jobs:
       - name: Yozilmagan migratsiya bormi
         run: python manage.py makemigrations --check --dry-run
 
-  # ------------------------------------------------------------ to'liq testlar
-  # 459 ta backend testi shu yerda yuguradi. GitHub ning oddiy runneri uni
-  # ko'tarmaydi: Db2 obrazi 3 GB, `privileged` rejim va bir necha daqiqalik
-  # ishga tushish vaqtini so'raydi. Shuning uchun `self-hosted` runner kerak.
+      # TO'LIQ TO'PLAM - HAR PUSH DA.
+      #
+      # Ilgari 525 ta test faqat `db2-tests` ishida edi va u mavjud
+      # bo'lmagan `self-hosted` runner'ni talab qilardi - ya'ni amalda
+      # hech qachon yugurmasdi. Sinov to'plami bor edi, uni yugurtiradigan
+      # narsa yo'q edi.
+      #
+      # Loyihada bazaga xos maydon yo'q (`JSONTextField`, mutaxassisliklar
+      # alohida jadvalda) - shuning uchun to'plam SQLite da ham to'liq
+      # o'tadi va 90 soniya oladi. Db2 ning O'Z xossalari (CLOB/GROUP BY,
+      # VARCHAR ning baytdagi o'lchovi, `select_for_update`) bu yerda
+      # tekshirilmaydi - ular pastdagi `db2-tests` da qoladi. Ikkovi
+      # bir-birini almashtirmaydi.
+      - name: Testlar (SQLite)
+        env:
+          DB_ENGINE: sqlite
+        run: python manage.py test --noinput
+
+  # ------------------------------------------------------------ Db2 da testlar
+  # Yuqoridagi ish to'plamni SQLite da yugurtiradi va regressiyani har push
+  # da tutadi. Bu yer esa Db2 ning O'ZIGA tegishli xatti-harakatni
+  # tekshiradi: GitHub ning oddiy runneri uni ko'tarmaydi - obraz 3 GB,
+  # `privileged` rejim va bir necha daqiqalik ishga tushish vaqti kerak.
   #
   # YOQISH — KOD TAHRIRSIZ. Ilgari bu yerda `if: false` turardi, ya'ni
   # yoqish uchun workflow faylini o'zgartirish kerak edi (va uni keyin

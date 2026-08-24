@@ -159,6 +159,32 @@ ASGI_APPLICATION = "config.asgi.application"
 # orqali matnda saqlanadi, kerakli mutaxassisliklar esa alohida jadvalda
 # (`projects.ProjectSpecialty`) - shuning uchun migratsiyalar boshqa bazada ham
 # ishlaydi, lekin loyiha Db2 ga sozlangan.
+# SQLITE - FAQAT TEKSHIRUV UCHUN.
+#
+# MUAMMO. 525 ta test bor va hech qaysi push da yugurmaydi: hammasi Db2
+# ni talab qiladi, Db2 esa 3 GB obraz, `privileged` rejim va bir necha
+# daqiqalik ko'tarilish. Shu sababdan CI da faqat `check` va
+# `makemigrations --check` qolgan, to'liq to'plam esa mavjud bo'lmagan
+# `self-hosted` runner'ga bog'lab qo'yilgan edi. Ya'ni sinov to'plami
+# bor, lekin uni hech nima yugurtirmaydi.
+#
+# NEGA MUMKIN. Loyihada bazaga xos maydon YO'Q - bu ataylab shunday:
+# JSON matnda saqlanadi (`core.fields.JSONTextField`), mutaxassisliklar
+# alohida jadvalda. Ya'ni migratsiyalar ham, so'rovlar ham boshqa bazada
+# ishlaydi.
+#
+# NIMA TEKSHIRILADI VA NIMA YO'Q. SQLite da domen mantig'i tekshiriladi:
+# ruxsatlar, holat o'tishlari, sanoqlar, bildirishnomalar. Db2 ning O'Z
+# xossalari (CLOB/GROUP BY cheklovi, VARCHAR ning baytdagi o'lchovi,
+# `select_for_update`) tekshirilmaydi - ular uchun Db2 kerak va
+# `db2-tests` ishi joyida qoladi. Ikkovi bir-birini almashtirmaydi:
+# SQLite har push da yugurib regressiyani darrov tutadi, Db2 esa
+# chiqarishdan oldin.
+#
+# ISHLATISH:
+#   DB_ENGINE=sqlite python manage.py test --noinput
+USE_SQLITE = os.getenv("DB_ENGINE", "").lower() in ("sqlite", "sqlite3")
+
 DATABASES = {
     "default": {
         # `ibm_db_django` ustidagi tuzatish qatlami (apps/core/db2/base.py):
@@ -203,6 +229,16 @@ DATABASES = {
         "TEST": {"NAME": os.getenv("DB2_TEST_DB", "TFTEST")},
     }
 }
+
+if USE_SQLITE:
+    # `ATOMIC_REQUESTS` shu yerda ham qoladi - u tekshiriladigan xatti-harakat
+    # (`config/settings.py` dagi izohga qarang), sozlama emas.
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.getenv("SQLITE_PATH", ":memory:"),
+        "ATOMIC_REQUESTS": True,
+        "TEST": {"NAME": os.getenv("SQLITE_PATH", ":memory:")},
+    }
 
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = ["apps.accounts.backends.EmailBackend"]
@@ -335,6 +371,17 @@ CACHES = {
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 if TESTING:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    # Kanal qatlami ham xotirada. Ikkita sabab:
+    #
+    #  * CI da Redis YO'Q. To'plam har push da oddiy runnerda yuguradi
+    #    (`.github/workflows/ci.yml`) va u yerda `redis://redis:6379`
+    #    umuman yechilmaydi. Xato ushlanardi va logga tushardi, lekin
+    #    har bir signal uchun bitta ulanish urinishi - to'plam sekinlashardi.
+    #  * Testlar dev serveri bilan bitta Redis ni bo'lishmasin - kesh
+    #    uchun bu allaqachon shunday qilingan (yuqoridagi izoh).
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    }
 
 # ---------------------------------------------------------------- Fon oqimi
 # Tashqi tarmoqqa boradigan ishlar (hozircha - Telegram) foydalanuvchi

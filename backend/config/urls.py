@@ -32,7 +32,12 @@ def health(request):
 
     try:
         with connection.cursor() as cur:
-            cur.execute("SELECT 1 FROM SYSIBM.SYSDUMMY1")
+            # Db2 `SELECT` ni `FROM` siz qabul qilmaydi va shu maqsad uchun
+            # `SYSIBM.SYSDUMMY1` degan bir qatorli jadval beradi. SQLite
+            # (testlar shunda yuguradi) esa aksincha - unda bunday jadval
+            # yo'q. Shuning uchun so'rov backendga qarab tanlanadi.
+            cur.execute("SELECT 1" if connection.vendor == "sqlite"
+                        else "SELECT 1 FROM SYSIBM.SYSDUMMY1")
             cur.fetchone()
         checks["db"] = True
     except Exception:

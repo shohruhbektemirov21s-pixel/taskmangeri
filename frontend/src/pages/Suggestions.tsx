@@ -441,12 +441,21 @@ export default function Suggestions() {
               </select>
             </div>
 
+          </div>
+
+          {/* «Faqat meniki» va «Tozalash» - MAYDONLAR guruhidan tashqarida.
+              Ikkovi ham yorliqli maydon emas, butun panelga tegishli
+              boshqaruv. Guruh ichida turganda ular yorliqli maydonlar
+              bilan bir xil joyni talashardi va guruhni ikki qatorga
+              o'rab yuborardi - o'shanda chapdagi qidiruv maydoni pastki
+              qatorga tekislanib, ikkinchi qatorga tushib qolgandek
+              ko'rinardi. */}
+          <div className="wl-toggles">
             <label className="sg-only-mine">
               <input type="checkbox" checked={f.mine}
                      onChange={(e) => set("mine", e.target.checked)} />
               {tx("suggestions.meniki")}
             </label>
-
             {dirty && (
               <button type="button" className="btn btn-ghost" onClick={clear}>
                 {tx("common.tozalash")}
