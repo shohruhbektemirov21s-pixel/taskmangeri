@@ -1,20 +1,30 @@
-"""Muddat eslatmalarini kunda bir marta ishga tushiruvchi.
+"""Muddat eslatmalarining ZAXIRA ishga tushiruvchisi.
 
-NEGA BU YERDA. Loyihada rejalashtiruvchi (cron, Celery beat) yo'q va
-uni qo'shish butun bir xizmat qo'shish demakdir - shu sabab tekshiruv
-kelayotgan so'rovga ilashtirilgan. Ilgari u BOSH PANEL ko'rinishining
-ichida turardi va oqibati og'ir edi: jamoa o'sha kuni bosh panelni
-ochmasa, muddat eslatmasi UMUMAN ketmasdi. Ya'ni odamlar tizimga kam
-kirgan kuni - aynan eslatma eng kerak bo'lgan kuni - u jim qolardi.
+ASOSIY YO'L - `scheduler` konteyneri (`docker-compose.yml`): u soatiga
+bir marta `manage.py send_deadline_reminders` ni chaqiradi. Bu modul esa
+zaxira: rejalashtiruvchi ko'tarilmagan yoki o'chirilgan muhitda ham
+eslatma ketsin.
 
-Endi tekshiruv HAR QANDAY so'rovda bo'ladi: vazifa ochilsa ham, loyiha
-ro'yxati so'ralsa ham, hatto interfeys matnlari olinsa ham. Narxi bitta
-kesh o'qishi, foydasi esa - eslatma bosh panelga emas, ilovadan
-foydalanishning o'ziga bog'lanadi.
+NEGA ZAXIRA KERAK. Tarixi shunday: eslatma avval BOSH PANEL ko'rinishi
+ichida turardi va jamoa o'sha kuni panelni ochmasa umuman ketmasdi -
+ya'ni odamlar tizimga kam kirgan kuni, aynan eslatma eng kerak bo'lgan
+kuni, u jim qolardi. Keyin u har qanday so'rovga ilashtirildi.
 
-QOLGAN CHEGARA. Bu baribir rejalashtiruvchi emas: kun bo'yi backendga
-BIRORTA ham so'rov kelmasa, o'sha kuni eslatma yuborilmaydi. To'liq
-kafolat kerak bo'lsa alohida xizmat (cron konteyneri) qo'shiladi.
+NIMA O'ZGARDI. Ish endi so'rov OQIMIDA bajarilmaydi.
+
+Ilgari bu yerda shunday yozilgandi: «javob tayyor bo'lgach - so'rovni
+kutdirmasin». Izoh noto'g'ri edi. `get_response()` dan keyin turgan kod
+javob mijozga KETISHIDAN oldin bajariladi: Django uni shu yerdan
+qaytarib olib, keyin uzatadi. Ya'ni kuniga bir marta bitta baxtsiz
+foydalanuvchi butun eslatma partiyasining narxini to'lardi - u esa
+hamma loyihani aylanib, har bir a'zoga bildirishnoma yozadi.
+
+Endi chaqiruv `run_later` orqali fon oqimiga beriladi va javob kutmaydi.
+
+TAKRORLANMAYDI. Ikki qavatli himoya: keshdagi kunlik kalit ortiqcha
+ishni to'xtatadi, `ProjectDeadlineNotice` esa xabarning o'zi ikki marta
+ketmasligini kafolatlaydi. Shu sabab rejalashtiruvchi bilan zaxira bir
+vaqtda ishlasa ham odam bitta xabar oladi.
 
 `apps.panel` - eng ustki qavat, ya'ni `projects` ni import qilishi
 qonuniy. Middleware sozlamalarda MATN bilan ko'rsatiladi, shuning uchun
@@ -29,13 +39,13 @@ logger = logging.getLogger(__name__)
 
 
 def tick_deadline_reminders():
-    """Kuniga bir marta muddat eslatmalarini yuboradi.
+    """Kunning birinchi so'rovida eslatmalarni FON OQIMIGA beradi.
 
-    Ikki qavatli himoya: keshdagi kalit ortiqcha ishni to'xtatadi (bir
-    nechta backend jarayoni bo'lsa ham bittasi bajaradi),
-    `ProjectDeadlineNotice` esa xabarning o'zi takrorlanmasligini
-    kafolatlaydi. So'rov sekinlashmasin uchun xato bo'lsa jim o'tiladi.
+    Keshdagi kalit qo'yilishi arzon (bitta kesh o'qishi) va u so'rov
+    oqimida qoladi; haqiqiy ish esa `run_later` ga o'tadi va javobni
+    kutdirmaydi.
     """
+    from apps.core.background import run_later
     from apps.projects.deadlines import send_due_reminders
 
     key = "deadline-reminders:{}".format(timezone.localdate())
@@ -43,7 +53,17 @@ def tick_deadline_reminders():
         # `add` - kalit yo'q bo'lsagina qo'yadi, ya'ni kunning birinchi so'rovi.
         if not cache.add(key, 1, 60 * 60 * 26):
             return
-        send_due_reminders()
+        # `run_later` testlarda JOYIDA bajariladi (`BACKGROUND_TASKS`),
+        # ya'ni mavjud testlar oldingidek ishlayveradi.
+        run_later(_guarded_send, send_due_reminders)
+    except Exception:
+        logger.exception("Muddat eslatmalarini rejaga qo'yib bo'lmadi")
+
+
+def _guarded_send(fn):
+    """Fon oqimidagi xato hech kimga ko'rinmaydi - hech bo'lmasa logga tushsin."""
+    try:
+        fn()
     except Exception:
         logger.exception("Muddat eslatmalarini yuborib bo'lmadi")
 
@@ -54,6 +74,7 @@ class DeadlineReminderMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        # Javob tayyor bo'lgach: eslatma yuborish so'rovni kutdirmasin.
+        # Bu yer javob mijozga ketishidan OLDIN bajariladi - shuning uchun
+        # ichida faqat kesh tekshiruvi qoladi, ish esa fonga ketadi.
         tick_deadline_reminders()
         return response

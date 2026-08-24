@@ -2,9 +2,13 @@
 
     docker compose exec backend python manage.py send_deadline_reminders
 
-Ilova ichidan ham kuniga bir marta o'zi ishga tushadi (`apps/core/api.py` ->
-`dashboard`), shuning uchun rejalashtiruvchi (cron) shart emas. Buyruq esa
-qo'lda tekshirish va aniq rejaga qo'yish uchun qulay.
+ASOSIY CHAQIRUVCHI - `scheduler` konteyneri (`docker-compose.yml`): u
+soatiga bir marta shu buyruqni yuguradi. Zaxira sifatida ilova ichidan
+ham ishga tushadi (`apps/panel/middleware.py`) - rejalashtiruvchi
+ko'tarilmagan muhitda eslatma baribir ketsin.
+
+Ikki marta chaqirilishidan xavf yo'q: `ProjectDeadlineNotice` har bosqich
+va muddat uchun bitta yozuvni kafolatlaydi.
 """
 from django.core.management.base import BaseCommand
 from django.utils import timezone

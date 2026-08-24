@@ -1,12 +1,57 @@
+import logging
+
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path, re_path
 
 from apps.core.media import serve_media
 
+logger = logging.getLogger(__name__)
+
 
 def health(request):
-    return JsonResponse({"status": "ok", "service": "teamflow-api"})
+    """`GET /api/health/` - xizmat HAQIQATAN ishlayaptimi.
+
+    Ilgari bu funksiya shartsiz `{"status": "ok"}` qaytarardi: Db2
+    butunlay yiqilgan bo'lsa ham «ok» derdi, ya'ni ishonib bo'lmasdi.
+    Kulgilisi shundaki, `docker-compose.yml` dagi haqiqiy healthcheck
+    `/api/ui-texts/` ni so'raydi - u bazaga tegadi, ya'ni ishlaydigan
+    tekshiruv tasodifan boshqa manzilda turgan edi.
+
+    Endi ikkala bog'liqlik ham so'raladi. Xato SABABI javobga
+    yozilmaydi - bu manzil tokensiz ochiq va ichki nosozlik matni
+    tashqariga chiqmasligi kerak; sababi logga tushadi.
+
+    Yiqilganda `503` qaytadi: orkestrator (Docker, Kubernetes) aynan
+    holat kodiga qaraydi.
+    """
+    from django.core.cache import cache
+    from django.db import connection
+
+    checks = {}
+
+    try:
+        with connection.cursor() as cur:
+            cur.execute("SELECT 1 FROM SYSIBM.SYSDUMMY1")
+            cur.fetchone()
+        checks["db"] = True
+    except Exception:
+        logger.exception("Health: bazaga ulanib bo'lmadi")
+        checks["db"] = False
+
+    try:
+        # Kesh - throttle hisoblagichlari va kunlik eslatma qulfi shu yerda.
+        cache.set("health", "1", 10)
+        checks["cache"] = cache.get("health") == "1"
+    except Exception:
+        logger.exception("Health: keshga yozib bo'lmadi")
+        checks["cache"] = False
+
+    ok = all(checks.values())
+    return JsonResponse(
+        {"status": "ok" if ok else "fail", "service": "teamflow-api", "checks": checks},
+        status=200 if ok else 503,
+    )
 
 
 urlpatterns = [
