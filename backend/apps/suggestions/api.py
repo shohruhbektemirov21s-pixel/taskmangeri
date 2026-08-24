@@ -15,7 +15,8 @@ NEGA `related_count`. Db2 `GROUP BY` ichida CLOB ustunini qo'llamaydi,
 so'rovga `GROUP BY` qo'shadi va `SQL0134N` bilan yiqiladi - tafsiloti
 `apps/core/queries.py` da. Shuning uchun sanoq ichki so'rov orqali olinadi.
 """
-from django.db.models import F, IntegerField, OuterRef, Prefetch, Q, Subquery
+from django.db.models import (Count, F, IntegerField, OuterRef, Prefetch, Q,
+                              Subquery)
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -292,21 +293,34 @@ class SuggestionViewSet(viewsets.ModelViewSet):
         (`visible`). Ajralib qolsa «Tasdiqlangan 6» deb yozilib, ichida
         to'rttasi turardi.
 
-        Har holat alohida `count()` bilan olinadi, bitta `GROUP BY` bilan
-        emas: Db2 guruhlash ichida CLOB ustunini (`Suggestion.body`)
-        qo'llamaydi - modul izohiga qarang.
+        BITTA SO'ROV. Ilgari bu yerda yettita alohida `count()` turardi -
+        hammasi AYNI BIR jadvalni, ayni bir ko'rinish shartidan o'tib
+        o'qir, faqat filtri boshqacha edi. Ya'ni Db2 ga yettita
+        borib-kelish, har safar `visible()` dagi shart qayta hisoblanib.
+
+        `aggregate()` esa `GROUP BY` QO'SHMAYDI - u butun to'plam ustidan
+        bitta qator qaytaradi. Shu sabab Db2 ning CLOB cheklovi
+        (`Suggestion.body`) bu yerda qo'zg'almaydi: cheklov guruhlashga
+        tegishli, shartli sanoqqa emas. Naqsh `apps/panel/api.py` da
+        ilgaridan ishlatiladi.
         """
         base = self.visible(request.user)
-        data = {
-            "open": base.filter(scope=SuggestionScope.OPEN).count(),
-            "closed": base.filter(scope=SuggestionScope.CLOSED).count(),
-            # Filtr nishonlari: «Barchasi», «Ko'rib chiqilmoqda», ...
-            "all": base.count(),
-            "mine": base.filter(author=request.user).count(),
+        me = request.user
+
+        sums = {
+            "open": Q(scope=SuggestionScope.OPEN),
+            "closed": Q(scope=SuggestionScope.CLOSED),
+            "mine": Q(author=me),
         }
         for value in SuggestionStatus.values:
-            data[value] = base.filter(status=value).count()
+            sums[value] = Q(status=value)
+
+        data = base.aggregate(
+            # Filtr nishonlari: «Barchasi», «Ko'rib chiqilmoqda», ...
+            all=Count("id"),
+            **{key: Count("id", filter=cond) for key, cond in sums.items()},
+        )
         # Boshliq uchun: navbatda nechta qaror kutyapti. Yon paneldagi
         # nishon shunga qaraydi, shuning uchun u faqat boshliqda to'ladi.
-        data["pending"] = data[SuggestionStatus.PENDING] if request.user.is_boss else 0
+        data["pending"] = data[SuggestionStatus.PENDING] if me.is_boss else 0
         return Response(data)

@@ -217,10 +217,17 @@ def sync_assignees(task, user_ids, actor):
     current = {a.user_id: a for a in task.assignments.select_related("user")}
     added, removed = [], []
 
+    # Yangi biriktiriladiganlar BITTA so'rovda olinadi. Ilgari sikl ichida
+    # har bir id uchun alohida `filter(pk=uid).first()` ketardi - beshta
+    # ijrochi beshta so'rov degani, `bulk` da esa bu naqsh ko'payib
+    # ketardi. `in_bulk` ro'yxat bo'sh bo'lsa bazaga umuman bormaydi.
+    fresh = [uid for uid in wanted if uid not in current]
+    people = User.objects.in_bulk(fresh) if fresh else {}
+
     for uid in wanted:
         a = current.get(uid)
         if a is None:
-            user = User.objects.filter(pk=uid).first()
+            user = people.get(uid)
             if not user:
                 continue
             TaskAssignment.objects.create(task=task, user=user, assigned_by=actor)

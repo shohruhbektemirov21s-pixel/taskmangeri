@@ -1,7 +1,7 @@
 # Har push va pull request da avtomatik tekshiruv.
 #
-# NEGA KERAK. Loyihada 459 ta backend va 33 ta frontend testi bor va
-# hammasi o'tadi — lekin ularni hech nima o'zi yugurtirmasdi. Test faqat
+# NEGA KERAK. Loyihada 525 ta backend va 33 ta frontend testi bor va
+# hammasi o'tadi — lekin ilgari ularni hech nima o'zi yugurtirmasdi. Test faqat
 # kimdir qo'lda chaqirganda ishlaydigan bo'lsa, u ertami-kechmi unutiladi
 # va buzilgan kod branchda jimgina yotib qoladi.
 #
@@ -154,7 +154,7 @@ jobs:
     # qo'yilmagan bo'lsa ham. Runnerni birinchi marta sinab ko'rish uchun.
     if: vars.RUN_DB2_TESTS == '1' || github.event_name == 'workflow_dispatch'
     runs-on: self-hosted
-    # Db2 ning ko'tarilishi + 459 test ~6 daqiqa. Osilib qolsa runner band
+    # Db2 ning ko'tarilishi + 525 test ~6 daqiqa. Osilib qolsa runner band
     # bo'lib turmasin.
     timeout-minutes: 30
     steps:

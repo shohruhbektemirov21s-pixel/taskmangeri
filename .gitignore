@@ -15,3 +15,8 @@ backend/.env.local
 
 # Ma'lumot zaxiralari (D: da, git ga tushmaydi)
 .backup/
+
+# Ish jarayonidagi skrinshotlar (UI tekshiruvidan qoladi)
+*.png
+!frontend/public/**/*.png
+!frontend/src/**/*.png

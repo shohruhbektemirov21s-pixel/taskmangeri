@@ -13,6 +13,10 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
+    /* O'lik kod - ESLint ning `no-unused-vars` qoidasi bilan tutiladi
+       (`eslint.config.js`), shuning uchun `tsc` da takrorlanmaydi:
+       ikkovi bir xil narsani aytsa, xato ikki marta chiqardi. Chegara
+       esa lintda - u OGOHLANTIRISH beradi va soni CI da qulflangan. */
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
